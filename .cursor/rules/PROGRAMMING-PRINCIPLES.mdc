@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+
+- algorithm_efficiency: use the most efficient algorithms and data structures
+- modularity: write modular code, break complex logic into smaller atomic parts. Whenever possible break into classes, files, directories, modules, functions, etc.
+- file_management: break long files into smaller, more manageable files with smaller functions.
+- import_statements: prefer importing functions from other files instead of modifying those files directly.
+- file_organization: organize files into directories and folders.
+- reuse: prefer to reuse existing code instead of writing it from scratch. 
+- code_preservation: Preserve What Works. Don’t modify working components without necessity.
+- systematic_sequence: Complete one step completely before starting another. Keep systematic sequence of functionalities.
+- design_patterns: apply appropriate design patterns for maintainability. Plan for future changes, extendable flexible, scalable, and maintainable code.
+- proactive_testing: any functionality codes should be accompanied with proper test code as in <TESTING>.

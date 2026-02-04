@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Total Chillers - Messaging</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .messages {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 16px;
+        margin-top: 20px;
+      }
+      .message-list {
+        background: var(--color-surface-2);
+        border: 1px solid var(--color-edge);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+        box-shadow: var(--shadow-md);
+      }
+      .message-thread {
+        background: var(--color-surface);
+        border: 1px solid var(--color-edge);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        box-shadow: var(--shadow-md);
+        display: grid;
+        gap: 12px;
+      }
+      .message-item {
+        display: grid;
+        gap: 6px;
+        padding: 10px;
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(201, 163, 74, 0.2);
+        background: rgba(15, 34, 51, 0.5);
+      }
+      .message-item.active {
+        border-color: var(--color-gold);
+        background: rgba(201, 163, 74, 0.08);
+      }
+      .message-bubble {
+        padding: 12px 14px;
+        border-radius: var(--radius-md);
+        background: rgba(15, 34, 51, 0.6);
+        border: 1px solid var(--color-edge);
+      }
+      .message-bubble.self {
+        background: rgba(201, 163, 74, 0.12);
+        border-color: rgba(201, 163, 74, 0.4);
+        justify-self: end;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h2>The Chillers</h2>
+        <div class="nav">
+          <a href="index.html">Public Landing</a>
+          <a href="dashboard.html">Dashboard</a>
+          <a href="news.html">News</a>
+          <a href="data-import.html">Data Import</a>
+          <a href="data-table.html">Data Table</a>
+          <a href="charts.html">Charts</a>
+          <a href="events.html">Events</a>
+          <a class="active" href="messaging.html">Messaging</a>
+          <a href="admin.html">Admin</a>
+          <a href="components.html">Components</a>
+        </div>
+        <div class="footer">Private messages preview</div>
+      </aside>
+
+      <main class="content">
+        <section class="header">
+          <div class="title">Messages</div>
+          <div class="actions">
+            <button class="button">New Message</button>
+            <button class="button primary">Broadcast</button>
+          </div>
+        </section>
+
+        <div class="messages">
+          <section class="message-list">
+            <div class="list-item">
+              <span>Search</span>
+              <span class="badge">Ctrl + K</span>
+            </div>
+            <div class="message-item active">
+              <strong>Klaus</strong>
+              <span class="card-subtitle">War prep tonight?</span>
+            </div>
+            <div class="message-item">
+              <strong>Sabine</strong>
+              <span class="card-subtitle">CSV upload done</span>
+            </div>
+            <div class="message-item">
+              <strong>Max</strong>
+              <span class="card-subtitle">Need help with rules</span>
+            </div>
+          </section>
+
+          <section class="message-thread">
+            <div class="card-title">Klaus</div>
+            <div class="message-bubble">
+              Can you confirm the war prep times for tonight?
+            </div>
+            <div class="message-bubble self">
+              Yes, 20:30 for planning and 21:00 for launch.
+            </div>
+            <div class="message-bubble">
+              Perfect, I will notify everyone.
+            </div>
+            <div class="list-item">
+              <span>Type a message...</span>
+              <button class="button">Send</button>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

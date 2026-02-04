@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Total Chillers - Events</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .calendar {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .calendar .day {
+        background: rgba(15, 34, 51, 0.5);
+        border: 1px solid var(--color-edge);
+        border-radius: var(--radius-md);
+        padding: 10px;
+        min-height: 90px;
+        display: grid;
+        gap: 6px;
+      }
+      .calendar .day span {
+        font-size: 0.75rem;
+        color: var(--color-text-2);
+      }
+      .calendar .event {
+        padding: 6px 8px;
+        border-radius: var(--radius-md);
+        background: rgba(201, 163, 74, 0.15);
+        border: 1px solid rgba(201, 163, 74, 0.4);
+        color: var(--color-gold-2);
+        font-size: 0.7rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h2>The Chillers</h2>
+        <div class="nav">
+          <a href="index.html">Public Landing</a>
+          <a href="dashboard.html">Dashboard</a>
+          <a href="news.html">News</a>
+          <a href="data-import.html">Data Import</a>
+          <a href="data-table.html">Data Table</a>
+          <a href="charts.html">Charts</a>
+          <a class="active" href="events.html">Events</a>
+          <a href="messaging.html">Messaging</a>
+          <a href="admin.html">Admin</a>
+          <a href="components.html">Components</a>
+        </div>
+        <div class="footer">Events calendar preview</div>
+      </aside>
+
+      <main class="content">
+        <section class="header">
+          <div class="title">Clan Events</div>
+          <div class="actions">
+            <button class="button">Month</button>
+            <button class="button">Week</button>
+            <button class="button primary">Create Event</button>
+          </div>
+        </section>
+
+        <div class="grid">
+          <section class="card" style="grid-column: span 12;">
+            <div class="card-header">
+              <div>
+                <div class="card-title">February 2026</div>
+                <div class="card-subtitle">Chillers Clan Calendar</div>
+              </div>
+              <div class="tabs">
+                <div class="tab active">All</div>
+                <div class="tab">War</div>
+                <div class="tab">Training</div>
+              </div>
+            </div>
+            <div class="calendar">
+              <div class="day"><span>1</span><div class="event">War Prep 20:30</div></div>
+              <div class="day"><span>2</span></div>
+              <div class="day"><span>3</span><div class="event">Chest Upload</div></div>
+              <div class="day"><span>4</span></div>
+              <div class="day"><span>5</span><div class="event">Guild Meeting</div></div>
+              <div class="day"><span>6</span></div>
+              <div class="day"><span>7</span></div>
+              <div class="day"><span>8</span></div>
+              <div class="day"><span>9</span></div>
+              <div class="day"><span>10</span><div class="event">War Day</div></div>
+              <div class="day"><span>11</span></div>
+              <div class="day"><span>12</span></div>
+              <div class="day"><span>13</span></div>
+              <div class="day"><span>14</span></div>
+              <div class="day"><span>15</span></div>
+              <div class="day"><span>16</span></div>
+              <div class="day"><span>17</span></div>
+              <div class="day"><span>18</span><div class="event">Training</div></div>
+              <div class="day"><span>19</span></div>
+              <div class="day"><span>20</span></div>
+              <div class="day"><span>21</span></div>
+              <div class="day"><span>22</span></div>
+              <div class="day"><span>23</span></div>
+              <div class="day"><span>24</span></div>
+              <div class="day"><span>25</span></div>
+              <div class="day"><span>26</span></div>
+              <div class="day"><span>27</span></div>
+              <div class="day"><span>28</span></div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

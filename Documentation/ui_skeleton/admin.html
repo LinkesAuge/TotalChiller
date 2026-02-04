@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Total Chillers - Admin</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h2>The Chillers</h2>
+        <div class="nav">
+          <a href="index.html">Public Landing</a>
+          <a href="dashboard.html">Dashboard</a>
+          <a href="news.html">News</a>
+          <a href="data-import.html">Data Import</a>
+          <a href="data-table.html">Data Table</a>
+          <a class="active" href="admin.html">Admin</a>
+        </div>
+        <div class="footer">Admin panel preview</div>
+      </aside>
+
+      <main class="content">
+        <section class="header">
+          <div class="title">Admin Panel</div>
+          <div class="actions">
+            <div class="tabs">
+              <div class="tab active">Users</div>
+              <div class="tab">Clans</div>
+              <div class="tab">Rules</div>
+            </div>
+            <button class="button primary">Create</button>
+          </div>
+        </section>
+
+        <div class="grid">
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">User Management</div>
+                <div class="card-subtitle">Assign roles, ranks, and clans</div>
+              </div>
+              <button class="button">Filters</button>
+            </div>
+            <div class="list">
+              <div class="list-item">
+                <span>Klaus</span>
+                <span class="badge">Administrator</span>
+              </div>
+              <div class="list-item">
+                <span>Sabine</span>
+                <span class="badge">Editor</span>
+              </div>
+              <div class="list-item">
+                <span>Max</span>
+                <span class="badge">Member</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Rules Overview</div>
+                <div class="card-subtitle">Validation, correction, scoring</div>
+              </div>
+              <button class="button">Manage Rules</button>
+            </div>
+            <div class="list">
+              <div class="list-item">
+                <span>Validation rules</span>
+                <span class="badge">24</span>
+              </div>
+              <div class="list-item">
+                <span>Correction rules</span>
+                <span class="badge">10</span>
+              </div>
+              <div class="list-item">
+                <span>Scoring rules</span>
+                <span class="badge">18</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="card-title">Clan Settings</div>
+            <div class="list">
+              <div class="list-item">
+                <span>Chillers</span>
+                <span class="badge">Active</span>
+              </div>
+              <div class="list-item">
+                <span>Nordics</span>
+                <span class="badge">Invite Only</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="card-title">Cross-Clan Access</div>
+            <div class="list">
+              <div class="list-item">
+                <span>Moderators with global access</span>
+                <span class="badge">3</span>
+              </div>
+              <div class="list-item">
+                <span>Pending requests</span>
+                <span class="badge">1</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

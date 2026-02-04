@@ -1,0 +1,108 @@
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+function getSupabaseUrl(): string {
+  const supabaseUrl: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL.");
+  }
+  return supabaseUrl;
+}
+
+function getSupabaseAnonKey(): string {
+  const supabaseAnonKey: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseAnonKey) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  }
+  return supabaseAnonKey;
+}
+
+function isPublicPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/home") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon.ico")
+  );
+}
+
+function isAdminPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/data-import") ||
+    pathname.startsWith("/data-table")
+  );
+}
+
+/**
+ * Ensures protected routes require an authenticated session.
+ */
+export async function middleware(request: NextRequest): Promise<NextResponse> {
+  const response = NextResponse.next();
+  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    cookies: {
+      get(name: string): string | undefined {
+        return request.cookies.get(name)?.value;
+      },
+      set(name: string, value: string, options: Record<string, unknown>): void {
+        response.cookies.set({ name, value, ...options });
+      },
+      remove(name: string, options: Record<string, unknown>): void {
+        response.cookies.set({ name, value: "", ...options });
+      },
+    },
+  });
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session && request.nextUrl.pathname === "/") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/home";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (session && request.nextUrl.pathname === "/home") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (!session && !isPublicPath(request.nextUrl.pathname)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/home";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (session && isAdminPath(request.nextUrl.pathname)) {
+    const { data: adminRows, error: adminError } = await supabase
+      .from("clan_memberships")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("is_active", true)
+      .in("role", ["owner", "admin"])
+      .limit(1);
+    if (adminError || !adminRows || adminRows.length === 0) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/";
+      return NextResponse.redirect(redirectUrl);
+    }
+    if (request.nextUrl.pathname === "/data-import") {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin/data-import";
+      return NextResponse.redirect(redirectUrl);
+    }
+    if (request.nextUrl.pathname === "/data-table") {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin/data-table";
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};

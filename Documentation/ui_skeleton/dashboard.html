@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Total Chillers - Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h2>The Chillers</h2>
+        <div class="nav">
+          <a href="index.html">Public Landing</a>
+          <a class="active" href="dashboard.html">Dashboard</a>
+          <a href="news.html">News</a>
+          <a href="data-import.html">Data Import</a>
+          <a href="data-table.html">Data Table</a>
+          <a href="admin.html">Admin</a>
+        </div>
+        <div class="footer">Member area preview</div>
+      </aside>
+
+      <main class="content">
+        <section class="header">
+          <div class="title">Community Dashboard</div>
+          <div class="actions">
+            <span class="badge">Rank: Officer</span>
+            <button class="button">Notifications</button>
+            <button class="button primary">New Post</button>
+          </div>
+        </section>
+
+        <div class="grid">
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Announcements</div>
+                <div class="card-subtitle">Pinned updates for your clan</div>
+              </div>
+              <div class="tabs">
+                <div class="tab active">All</div>
+                <div class="tab">Clan</div>
+                <div class="tab">Global</div>
+              </div>
+            </div>
+            <div class="list">
+              <div class="list-item">
+                <span>War prep tonight at 21:00</span>
+                <span class="badge">Pinned</span>
+              </div>
+              <div class="list-item">
+                <span>Chest upload deadline Friday</span>
+                <span class="badge">Info</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Quick Stats</div>
+                <div class="card-subtitle">Personal and clan highlights</div>
+              </div>
+              <button class="button">View Charts</button>
+            </div>
+            <div class="list">
+              <div class="list-item">
+                <span>Personal Score (7d)</span>
+                <strong>12,450</strong>
+              </div>
+              <div class="list-item">
+                <span>Clan Score (7d)</span>
+                <strong>210,980</strong>
+              </div>
+              <div class="list-item">
+                <span>Top Chest Type</span>
+                <strong>Warrior</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="card-title">Quick Links</div>
+            <div class="list">
+              <button class="button primary">Upload CSV</button>
+              <button class="button">Manage Rules</button>
+              <button class="button">Event Calendar</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="card-title">Clan Status</div>
+            <div class="list">
+              <span class="badge">Active Event</span>
+              <span class="badge">50 Members</span>
+              <span class="badge">3 New Posts</span>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

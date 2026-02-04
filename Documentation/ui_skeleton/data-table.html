@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Total Chillers - Data Table</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h2>The Chillers</h2>
+        <div class="nav">
+          <a href="index.html">Public Landing</a>
+          <a href="dashboard.html">Dashboard</a>
+          <a href="news.html">News</a>
+          <a href="data-import.html">Data Import</a>
+          <a class="active" href="data-table.html">Data Table</a>
+          <a href="admin.html">Admin</a>
+        </div>
+        <div class="footer">Editable data preview</div>
+      </aside>
+
+      <main class="content">
+        <section class="header">
+          <div class="title">Chest Data Table</div>
+          <div class="actions">
+            <button class="button">Filters</button>
+            <button class="button">Batch Edit</button>
+            <button class="button danger">Batch Delete</button>
+          </div>
+        </section>
+
+        <div class="grid">
+          <section class="panel">
+            <div class="card-title">Filters</div>
+            <div class="list">
+              <div class="list-item">
+                <span>Date Range</span>
+                <span class="badge">Last 30 days</span>
+              </div>
+              <div class="list-item">
+                <span>Player</span>
+                <span class="badge">All</span>
+              </div>
+              <div class="list-item">
+                <span>Source</span>
+                <span class="badge">All</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="card-title">Audit Trail</div>
+            <div class="list">
+              <div class="list-item">
+                <span>Last edit</span>
+                <span class="badge">Klaus</span>
+              </div>
+              <div class="list-item">
+                <span>Rows updated</span>
+                <span class="badge">8</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="table">
+            <header>
+              <span>Date</span>
+              <span>Player</span>
+              <span>Source</span>
+              <span>Chest</span>
+              <span>Score</span>
+              <span>Status</span>
+            </header>
+            <div class="row">
+              <span>2026-01-29</span>
+              <span>Max</span>
+              <span>Dungeon</span>
+              <span>Hero Chest</span>
+              <span>340</span>
+              <span class="status">Validated</span>
+            </div>
+            <div class="row">
+              <span>2026-01-28</span>
+              <span>Sabine</span>
+              <span>Quest</span>
+              <span>Gold Chest</span>
+              <span>280</span>
+              <span class="status warn">Needs Review</span>
+            </div>
+            <div class="row">
+              <span>2026-01-27</span>
+              <span>Klaus</span>
+              <span>War</span>
+              <span>Silver Chest</span>
+              <span>120</span>
+              <span class="status">Validated</span>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

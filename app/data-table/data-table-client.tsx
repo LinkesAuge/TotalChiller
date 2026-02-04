@@ -58,6 +58,15 @@ function DataTableClient(): JSX.Element {
   const [status, setStatus] = useState<string>("");
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isFiltersOpen, setIsFiltersOpen] = useState<boolean>(false);
+  const [filterPlayer, setFilterPlayer] = useState<string>("");
+  const [filterSource, setFilterSource] = useState<string>("");
+  const [filterChest, setFilterChest] = useState<string>("");
+  const [filterClanId, setFilterClanId] = useState<string>("all");
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
+  const [filterScoreMin, setFilterScoreMin] = useState<string>("");
+  const [filterScoreMax, setFilterScoreMax] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(20);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -73,6 +82,62 @@ function DataTableClient(): JSX.Element {
     () => rows.some((row) => selectedSet.has(row.id)) && !areAllRowsSelected,
     [areAllRowsSelected, rows, selectedSet],
   );
+  const clanNameById = useMemo(() => {
+    return availableClans.reduce<Record<string, string>>((acc, clan) => {
+      acc[clan.id] = clan.name;
+      return acc;
+    }, {});
+  }, [availableClans]);
+  const activeFilters = useMemo(() => {
+    const filters: { key: string; label: string }[] = [];
+    if (filterPlayer.trim()) {
+      filters.push({ key: "player", label: `Player: ${filterPlayer.trim()}` });
+    }
+    if (filterSource.trim()) {
+      filters.push({ key: "source", label: `Source: ${filterSource.trim()}` });
+    }
+    if (filterChest.trim()) {
+      filters.push({ key: "chest", label: `Chest: ${filterChest.trim()}` });
+    }
+    if (filterClanId !== "all") {
+      filters.push({ key: "clan", label: `Clan: ${clanNameById[filterClanId] ?? filterClanId}` });
+    }
+    if (filterDateFrom.trim()) {
+      filters.push({ key: "dateFrom", label: `From: ${filterDateFrom.trim()}` });
+    }
+    if (filterDateTo.trim()) {
+      filters.push({ key: "dateTo", label: `To: ${filterDateTo.trim()}` });
+    }
+    if (filterScoreMin.trim()) {
+      filters.push({ key: "scoreMin", label: `Score ≥ ${filterScoreMin.trim()}` });
+    }
+    if (filterScoreMax.trim()) {
+      filters.push({ key: "scoreMax", label: `Score ≤ ${filterScoreMax.trim()}` });
+    }
+    return filters;
+  }, [
+    clanNameById,
+    filterChest,
+    filterClanId,
+    filterDateFrom,
+    filterDateTo,
+    filterPlayer,
+    filterScoreMax,
+    filterScoreMin,
+    filterSource,
+  ]);
+
+  function clearAllFilters(): void {
+    setFilterPlayer("");
+    setFilterSource("");
+    setFilterChest("");
+    setFilterClanId("all");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterScoreMin("");
+    setFilterScoreMax("");
+    setPage(1);
+  }
 
   async function loadRows(): Promise<void> {
     const fromIndex = (page - 1) * pageSize;
@@ -85,6 +150,36 @@ function DataTableClient(): JSX.Element {
     if (searchTerm.trim()) {
       const pattern = `%${searchTerm.trim()}%`;
       query.or(`player.ilike.${pattern},source.ilike.${pattern},chest.ilike.${pattern}`);
+    }
+    if (filterPlayer.trim()) {
+      query.ilike("player", `%${filterPlayer.trim()}%`);
+    }
+    if (filterSource.trim()) {
+      query.ilike("source", `%${filterSource.trim()}%`);
+    }
+    if (filterChest.trim()) {
+      query.ilike("chest", `%${filterChest.trim()}%`);
+    }
+    if (filterClanId !== "all") {
+      query.eq("clan_id", filterClanId);
+    }
+    if (filterDateFrom.trim()) {
+      query.gte("collected_date", filterDateFrom.trim());
+    }
+    if (filterDateTo.trim()) {
+      query.lte("collected_date", filterDateTo.trim());
+    }
+    if (filterScoreMin.trim()) {
+      const minValue = Number(filterScoreMin);
+      if (!Number.isNaN(minValue)) {
+        query.gte("score", minValue);
+      }
+    }
+    if (filterScoreMax.trim()) {
+      const maxValue = Number(filterScoreMax);
+      if (!Number.isNaN(maxValue)) {
+        query.lte("score", maxValue);
+      }
     }
     const { data, error, count } = await query;
     if (error) {
@@ -125,7 +220,19 @@ function DataTableClient(): JSX.Element {
 
   useEffect(() => {
     void loadRows();
-  }, [page, pageSize, searchTerm]);
+  }, [
+    filterChest,
+    filterClanId,
+    filterDateFrom,
+    filterDateTo,
+    filterPlayer,
+    filterScoreMax,
+    filterScoreMin,
+    filterSource,
+    page,
+    pageSize,
+    searchTerm,
+  ]);
 
   useEffect(() => {
     async function loadClans(): Promise<void> {
@@ -452,6 +559,123 @@ function DataTableClient(): JSX.Element {
             placeholder="Search player, source, or chest"
           />
         </div>
+        {isFiltersOpen ? (
+          <div className="card-section">
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="filterPlayer">Player</label>
+                <input
+                  id="filterPlayer"
+                  value={filterPlayer}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    setFilterPlayer(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Player name"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="filterSource">Source</label>
+                <input
+                  id="filterSource"
+                  value={filterSource}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    setFilterSource(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Source"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="filterChest">Chest</label>
+                <input
+                  id="filterChest"
+                  value={filterChest}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    setFilterChest(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Chest"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="filterClan">Clan</label>
+                <select
+                  id="filterClan"
+                  value={filterClanId}
+                  onChange={(event) => {
+                    setFilterClanId(event.target.value);
+                    setPage(1);
+                  }}
+                >
+                  <option value="all">All</option>
+                  {availableClans.map((clan) => (
+                    <option key={clan.id} value={clan.id}>
+                      {clan.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="filterDateFrom">Date from</label>
+                <input
+                  id="filterDateFrom"
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    setFilterDateFrom(event.target.value);
+                    setPage(1);
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="filterDateTo">Date to</label>
+                <input
+                  id="filterDateTo"
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    setFilterDateTo(event.target.value);
+                    setPage(1);
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="filterScoreMin">Score min</label>
+                <input
+                  id="filterScoreMin"
+                  value={filterScoreMin}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    setFilterScoreMin(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="0"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="filterScoreMax">Score max</label>
+                <input
+                  id="filterScoreMax"
+                  value={filterScoreMax}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    setFilterScoreMax(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="100"
+                />
+              </div>
+            </div>
+            <div className="list inline">
+              <button
+                className="button"
+                type="button"
+                onClick={clearAllFilters}
+              >
+                Clear filters
+              </button>
+            </div>
+          </div>
+        ) : null}
         <div className="form-group">
           <label htmlFor="batchSource">Batch Source</label>
           <input
@@ -486,8 +710,8 @@ function DataTableClient(): JSX.Element {
         </div>
       </section>
       <div className="table-toolbar">
-        <button className="button" type="button">
-          Filters
+        <button className="button" type="button" onClick={() => setIsFiltersOpen((current) => !current)}>
+          {isFiltersOpen ? "Hide Filters" : "Filters"}
         </button>
         <button className="button" type="button" onClick={handleBatchUpdate}>
           Batch Edit
@@ -499,6 +723,18 @@ function DataTableClient(): JSX.Element {
           Batch Delete
         </button>
       </div>
+      {activeFilters.length > 0 ? (
+        <div className="filter-chips">
+          {activeFilters.map((filter) => (
+            <span className="badge" key={filter.key}>
+              {filter.label}
+            </span>
+          ))}
+          <button className="button" type="button" onClick={clearAllFilters}>
+            Clear all
+          </button>
+        </div>
+      ) : null}
       <section className="table data-table">
         <header>
           <span>

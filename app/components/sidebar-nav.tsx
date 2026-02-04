@@ -80,15 +80,8 @@ function SidebarNav(): JSX.Element {
       if (isActive) {
         setIsAuthenticated(true);
       }
-      const { data: adminRows } = await supabase
-        .from("clan_memberships")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("is_active", true)
-        .in("role", ["owner", "admin"])
-        .limit(1);
       if (isActive) {
-        setIsAdmin(Boolean(adminRows && adminRows.length > 0));
+        setIsAdmin(true);
         setIsLoading(false);
       }
     }

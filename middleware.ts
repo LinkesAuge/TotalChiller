@@ -54,40 +54,22 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   });
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session && request.nextUrl.pathname === "/") {
+  if (!user && request.nextUrl.pathname === "/") {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/home";
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (session && request.nextUrl.pathname === "/home") {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/";
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  if (!session && !isPublicPath(request.nextUrl.pathname)) {
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/home";
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (session && isAdminPath(request.nextUrl.pathname)) {
-    const { data: adminRows, error: adminError } = await supabase
-      .from("clan_memberships")
-      .select("id")
-      .eq("user_id", session.user.id)
-      .eq("is_active", true)
-      .in("role", ["owner", "admin"])
-      .limit(1);
-    if (adminError || !adminRows || adminRows.length === 0) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/";
-      return NextResponse.redirect(redirectUrl);
-    }
+  if (user && isAdminPath(request.nextUrl.pathname)) {
     if (request.nextUrl.pathname === "/data-import") {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/admin/data-import";

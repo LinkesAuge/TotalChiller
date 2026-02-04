@@ -86,7 +86,7 @@ function SettingsPage(): JSX.Element {
           .select("id")
           .eq("user_id", currentUserId)
           .eq("is_active", true)
-          .in("role", ["owner", "admin"])
+          .or("role.ilike.owner,role.ilike.admin")
           .limit(1);
         setIsAdmin(Boolean(adminRows && adminRows.length > 0));
       }

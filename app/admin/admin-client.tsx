@@ -65,6 +65,26 @@ interface AuditLogRow {
 const roleOptions: readonly string[] = ["owner", "admin", "moderator", "editor", "member"];
 const rankOptions: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier"];
 const ruleFieldOptions: readonly string[] = ["source", "chest", "player", "clan"];
+const validationSortOptions: readonly { value: "field" | "status" | "match_value"; label: string }[] = [
+  { value: "field", label: "Field" },
+  { value: "status", label: "Status" },
+  { value: "match_value", label: "Match value" },
+];
+const correctionSortOptions: readonly { value: "field" | "match_value" | "replacement_value"; label: string }[] = [
+  { value: "field", label: "Field" },
+  { value: "match_value", label: "Match value" },
+  { value: "replacement_value", label: "Replacement" },
+];
+const scoringSortOptions: readonly { value: "rule_order" | "score" | "chest_match" | "source_match"; label: string }[] =
+  [
+    { value: "rule_order", label: "Order" },
+    { value: "score", label: "Score" },
+    { value: "chest_match", label: "Chest" },
+    { value: "source_match", label: "Source" },
+  ];
+const EMAIL_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_MIN_LENGTH: number = 2;
+const USERNAME_MAX_LENGTH: number = 32;
 
 /**
  * Admin UI for clan and membership management.
@@ -77,14 +97,16 @@ function AdminClient(): JSX.Element {
   const [memberships, setMemberships] = useState<readonly MembershipRow[]>([]);
   const [selectedClanId, setSelectedClanId] = useState<string>("");
   const [status, setStatus] = useState<string>("");
-  const [memberUserId, setMemberUserId] = useState<string>("");
   const [memberUsername, setMemberUsername] = useState<string>("");
   const [memberEmail, setMemberEmail] = useState<string>("");
+  const [memberDisplayName, setMemberDisplayName] = useState<string>("");
   const [memberRole, setMemberRole] = useState<string>("member");
   const [memberActive, setMemberActive] = useState<boolean>(true);
   const [memberRank, setMemberRank] = useState<string>("");
+  const [memberModalStatus, setMemberModalStatus] = useState<string>("");
   const [membershipEditingId, setMembershipEditingId] = useState<string>("");
   const [membershipEdits, setMembershipEdits] = useState<Record<string, MembershipEditState>>({});
+  const [membershipErrors, setMembershipErrors] = useState<Record<string, string>>({});
   const [isMemberModalOpen, setIsMemberModalOpen] = useState<boolean>(false);
   const [profilesById, setProfilesById] = useState<Record<string, ProfileRow>>({});
   const [memberSearch, setMemberSearch] = useState<string>("");
@@ -93,8 +115,35 @@ function AdminClient(): JSX.Element {
   const [validationRules, setValidationRules] = useState<readonly RuleRow[]>([]);
   const [correctionRules, setCorrectionRules] = useState<readonly RuleRow[]>([]);
   const [scoringRules, setScoringRules] = useState<readonly RuleRow[]>([]);
+  const [validationSearch, setValidationSearch] = useState<string>("");
+  const [validationFieldFilter, setValidationFieldFilter] = useState<string>("all");
+  const [validationStatusFilter, setValidationStatusFilter] = useState<string>("all");
+  const [validationSortKey, setValidationSortKey] = useState<"field" | "status" | "match_value">("field");
+  const [validationSortDirection, setValidationSortDirection] = useState<"asc" | "desc">("asc");
+  const [correctionSearch, setCorrectionSearch] = useState<string>("");
+  const [correctionFieldFilter, setCorrectionFieldFilter] = useState<string>("all");
+  const [correctionSortKey, setCorrectionSortKey] =
+    useState<"field" | "match_value" | "replacement_value">("field");
+  const [correctionSortDirection, setCorrectionSortDirection] = useState<"asc" | "desc">("asc");
+  const [scoringSearch, setScoringSearch] = useState<string>("");
+  const [scoringSortKey, setScoringSortKey] =
+    useState<"rule_order" | "score" | "chest_match" | "source_match">("rule_order");
+  const [scoringSortDirection, setScoringSortDirection] = useState<"asc" | "desc">("asc");
+  const [validationPage, setValidationPage] = useState<number>(1);
+  const [correctionPage, setCorrectionPage] = useState<number>(1);
+  const [scoringPage, setScoringPage] = useState<number>(1);
+  const [validationPageSize, setValidationPageSize] = useState<number>(5);
+  const [correctionPageSize, setCorrectionPageSize] = useState<number>(5);
+  const [scoringPageSize, setScoringPageSize] = useState<number>(5);
   const [auditLogs, setAuditLogs] = useState<readonly AuditLogRow[]>([]);
   const [auditActorsById, setAuditActorsById] = useState<Record<string, ProfileRow>>({});
+  const [auditPage, setAuditPage] = useState<number>(1);
+  const [auditPageSize, setAuditPageSize] = useState<number>(10);
+  const [auditTotalCount, setAuditTotalCount] = useState<number>(0);
+  const [auditSearch, setAuditSearch] = useState<string>("");
+  const [auditActionFilter, setAuditActionFilter] = useState<string>("all");
+  const [auditEntityFilter, setAuditEntityFilter] = useState<string>("all");
+  const [auditActorFilter, setAuditActorFilter] = useState<string>("all");
   const [validationField, setValidationField] = useState<string>("source");
   const [validationMatch, setValidationMatch] = useState<string>("");
   const [validationStatus, setValidationStatus] = useState<string>("valid");
@@ -121,6 +170,163 @@ function AdminClient(): JSX.Element {
     () => clans.find((clan) => clan.id === selectedClanId),
     [clans, selectedClanId],
   );
+
+  function paginateRules<T>(rules: readonly T[], page: number, pageSize: number): readonly T[] {
+    const startIndex = (page - 1) * pageSize;
+    return rules.slice(startIndex, startIndex + pageSize);
+  }
+
+  function compareRuleValues(
+    left: string | number | null | undefined,
+    right: string | number | null | undefined,
+    direction: "asc" | "desc",
+  ): number {
+    if (left === right) {
+      return 0;
+    }
+    if (left === undefined || left === null) {
+      return direction === "asc" ? 1 : -1;
+    }
+    if (right === undefined || right === null) {
+      return direction === "asc" ? -1 : 1;
+    }
+    if (typeof left === "number" && typeof right === "number") {
+      return direction === "asc" ? left - right : right - left;
+    }
+    const leftText = String(left);
+    const rightText = String(right);
+    const result = leftText.localeCompare(rightText, undefined, { sensitivity: "base" });
+    return direction === "asc" ? result : -result;
+  }
+
+  const filteredValidationRules = useMemo(() => {
+    const normalizedSearch = validationSearch.trim().toLowerCase();
+    return validationRules.filter((rule) => {
+      if (validationFieldFilter !== "all" && rule.field !== validationFieldFilter) {
+        return false;
+      }
+      if (validationStatusFilter !== "all" && rule.status !== validationStatusFilter) {
+        return false;
+      }
+      if (!normalizedSearch) {
+        return true;
+      }
+      const searchText = [rule.field, rule.match_value, rule.status]
+        .filter((value): value is string => Boolean(value))
+        .join(" ")
+        .toLowerCase();
+      return searchText.includes(normalizedSearch);
+    });
+  }, [validationFieldFilter, validationRules, validationSearch, validationStatusFilter]);
+
+  const sortedValidationRules = useMemo(() => {
+    const sorted = [...filteredValidationRules];
+    sorted.sort((left, right) => {
+      const leftValue = left[validationSortKey];
+      const rightValue = right[validationSortKey];
+      return compareRuleValues(leftValue, rightValue, validationSortDirection);
+    });
+    return sorted;
+  }, [filteredValidationRules, validationSortDirection, validationSortKey]);
+
+  const filteredCorrectionRules = useMemo(() => {
+    const normalizedSearch = correctionSearch.trim().toLowerCase();
+    return correctionRules.filter((rule) => {
+      if (correctionFieldFilter !== "all" && rule.field !== correctionFieldFilter) {
+        return false;
+      }
+      if (!normalizedSearch) {
+        return true;
+      }
+      const searchText = [rule.field, rule.match_value, rule.replacement_value]
+        .filter((value): value is string => Boolean(value))
+        .join(" ")
+        .toLowerCase();
+      return searchText.includes(normalizedSearch);
+    });
+  }, [correctionFieldFilter, correctionRules, correctionSearch]);
+
+  const sortedCorrectionRules = useMemo(() => {
+    const sorted = [...filteredCorrectionRules];
+    sorted.sort((left, right) => {
+      const leftValue = left[correctionSortKey];
+      const rightValue = right[correctionSortKey];
+      return compareRuleValues(leftValue, rightValue, correctionSortDirection);
+    });
+    return sorted;
+  }, [correctionSortDirection, correctionSortKey, filteredCorrectionRules]);
+
+  const filteredScoringRules = useMemo(() => {
+    const normalizedSearch = scoringSearch.trim().toLowerCase();
+    return scoringRules.filter((rule) => {
+      if (!normalizedSearch) {
+        return true;
+      }
+      const searchText = [
+        rule.chest_match,
+        rule.source_match,
+        rule.min_level?.toString(),
+        rule.max_level?.toString(),
+        rule.score?.toString(),
+        rule.rule_order?.toString(),
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(" ")
+        .toLowerCase();
+      return searchText.includes(normalizedSearch);
+    });
+  }, [scoringRules, scoringSearch]);
+
+  const sortedScoringRules = useMemo(() => {
+    const sorted = [...filteredScoringRules];
+    sorted.sort((left, right) => {
+      const leftValue = left[scoringSortKey];
+      const rightValue = right[scoringSortKey];
+      return compareRuleValues(leftValue, rightValue, scoringSortDirection);
+    });
+    return sorted;
+  }, [filteredScoringRules, scoringSortDirection, scoringSortKey]);
+
+  const pagedValidationRules = useMemo(
+    () => paginateRules(sortedValidationRules, validationPage, validationPageSize),
+    [sortedValidationRules, validationPageSize, validationPage],
+  );
+  const pagedCorrectionRules = useMemo(
+    () => paginateRules(sortedCorrectionRules, correctionPage, correctionPageSize),
+    [sortedCorrectionRules, correctionPageSize, correctionPage],
+  );
+  const pagedScoringRules = useMemo(
+    () => paginateRules(sortedScoringRules, scoringPage, scoringPageSize),
+    [sortedScoringRules, scoringPageSize, scoringPage],
+  );
+  const validationTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredValidationRules.length / validationPageSize)),
+    [filteredValidationRules.length, validationPageSize],
+  );
+  const correctionTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredCorrectionRules.length / correctionPageSize)),
+    [filteredCorrectionRules.length, correctionPageSize],
+  );
+  const scoringTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredScoringRules.length / scoringPageSize)),
+    [filteredScoringRules.length, scoringPageSize],
+  );
+  const auditTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(auditTotalCount / auditPageSize)),
+    [auditPageSize, auditTotalCount],
+  );
+  const auditActionOptions = useMemo(() => {
+    const options = new Set(auditLogs.map((entry) => entry.action));
+    return Array.from(options);
+  }, [auditLogs]);
+  const auditEntityOptions = useMemo(() => {
+    const options = new Set(auditLogs.map((entry) => entry.entity));
+    return Array.from(options);
+  }, [auditLogs]);
+  const auditActorOptions = useMemo(() => {
+    const options = new Set(auditLogs.map((entry) => entry.actor_id));
+    return Array.from(options);
+  }, [auditLogs]);
 
   const filteredMemberships = useMemo(() => {
     const normalizedSearch = memberSearch.trim().toLowerCase();
@@ -248,6 +454,9 @@ function AdminClient(): JSX.Element {
       setValidationRules([]);
       setCorrectionRules([]);
       setScoringRules([]);
+      setValidationPage(1);
+      setCorrectionPage(1);
+      setScoringPage(1);
       return;
     }
     const { data: validationData } = await supabase
@@ -270,23 +479,40 @@ function AdminClient(): JSX.Element {
     setScoringRules(scoringData ?? []);
   }
 
-  async function loadAuditLogs(clanId: string): Promise<void> {
+  async function loadAuditLogs(clanId: string, nextPage: number, pageSize: number): Promise<void> {
     if (!clanId) {
       setAuditLogs([]);
       setAuditActorsById({});
+      setAuditPage(1);
+      setAuditTotalCount(0);
       return;
     }
-    const { data, error } = await supabase
+    const fromIndex = (nextPage - 1) * pageSize;
+    const toIndex = fromIndex + pageSize - 1;
+    let query = supabase
       .from("audit_logs")
-      .select("id,clan_id,actor_id,action,entity,entity_id,diff,created_at")
-      .eq("clan_id", clanId)
-      .order("created_at", { ascending: false })
-      .limit(50);
+      .select("id,clan_id,actor_id,action,entity,entity_id,diff,created_at", { count: "exact" })
+      .eq("clan_id", clanId);
+    if (auditActionFilter !== "all") {
+      query = query.eq("action", auditActionFilter);
+    }
+    if (auditEntityFilter !== "all") {
+      query = query.eq("entity", auditEntityFilter);
+    }
+    if (auditActorFilter !== "all") {
+      query = query.eq("actor_id", auditActorFilter);
+    }
+    if (auditSearch.trim()) {
+      const pattern = `%${auditSearch.trim()}%`;
+      query = query.or(`action.ilike.${pattern},entity.ilike.${pattern},entity_id.ilike.${pattern}`);
+    }
+    const { data, error, count } = await query.order("created_at", { ascending: false }).range(fromIndex, toIndex);
     if (error) {
       setStatus(`Failed to load audit logs: ${error.message}`);
       return;
     }
     const rows = data ?? [];
+    setAuditTotalCount(count ?? 0);
     setAuditLogs(rows);
     const actorIds = Array.from(new Set(rows.map((row) => row.actor_id)));
     if (actorIds.length === 0) {
@@ -321,8 +547,19 @@ function AdminClient(): JSX.Element {
   useEffect(() => {
     void loadMemberships(selectedClanId);
     void loadRules(selectedClanId);
-    void loadAuditLogs(selectedClanId);
   }, [selectedClanId]);
+
+  useEffect(() => {
+    setAuditPage(1);
+  }, [selectedClanId]);
+
+  useEffect(() => {
+    void loadAuditLogs(selectedClanId, auditPage, auditPageSize);
+  }, [auditActionFilter, auditActorFilter, auditEntityFilter, auditPage, auditPageSize, auditSearch, selectedClanId]);
+
+  useEffect(() => {
+    setAuditPage(1);
+  }, [auditActionFilter, auditActorFilter, auditEntityFilter, auditSearch]);
 
   useEffect(() => {
     if (clans.length === 0) {
@@ -332,6 +569,34 @@ function AdminClient(): JSX.Element {
       setSelectedClanId(defaultClanId);
     }
   }, [clans, defaultClanId]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredValidationRules.length / validationPageSize));
+    if (validationPage > totalPages) {
+      setValidationPage(1);
+    }
+  }, [filteredValidationRules.length, validationPageSize, validationPage]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredCorrectionRules.length / correctionPageSize));
+    if (correctionPage > totalPages) {
+      setCorrectionPage(1);
+    }
+  }, [filteredCorrectionRules.length, correctionPageSize, correctionPage]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredScoringRules.length / scoringPageSize));
+    if (scoringPage > totalPages) {
+      setScoringPage(1);
+    }
+  }, [filteredScoringRules.length, scoringPageSize, scoringPage]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(auditTotalCount / auditPageSize));
+    if (auditPage > totalPages) {
+      setAuditPage(1);
+    }
+  }, [auditPage, auditPageSize, auditTotalCount]);
 
   async function handleSaveClan(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -403,12 +668,16 @@ function AdminClient(): JSX.Element {
   async function handleAddMember(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!selectedClanId) {
-      setStatus("Select a clan first.");
+      setMemberModalStatus("Select a clan first.");
       return;
     }
-    let resolvedUserId = memberUserId.trim();
     const identifier = memberUsername.trim() || memberEmail.trim();
-    if (!resolvedUserId && identifier) {
+    if (!identifier) {
+      setMemberModalStatus("Username or email is required.");
+      return;
+    }
+    let resolvedUserId = "";
+    if (identifier) {
       const response = await fetch("/api/admin/user-lookup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -421,16 +690,16 @@ function AdminClient(): JSX.Element {
       });
       const payload = (await response.json()) as { id?: string; error?: string };
       if (!response.ok) {
-        setStatus(payload.error ?? "Failed to find user.");
+        setMemberModalStatus(payload.error ?? "Failed to find user.");
         return;
       }
       resolvedUserId = payload.id ?? "";
     }
     if (!resolvedUserId) {
-      setStatus("User ID or email is required.");
+      setMemberModalStatus("Failed to resolve user.");
       return;
     }
-    setStatus("Adding member...");
+    setMemberModalStatus("Adding member...");
     const payload = {
       clan_id: selectedClanId,
       user_id: resolvedUserId,
@@ -454,8 +723,22 @@ function AdminClient(): JSX.Element {
           .select("id")
           .single();
     if (error) {
-      setStatus(`Failed to add member: ${error.message}`);
+      setMemberModalStatus(`Failed to add member: ${error.message}`);
       return;
+    }
+    const displayNameValue = memberDisplayName.trim() || memberUsername.trim() || null;
+    let shouldCloseModal = true;
+    if (displayNameValue) {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ display_name: displayNameValue })
+        .eq("id", resolvedUserId);
+      if (profileError) {
+        setMemberModalStatus(
+          `Member added. Display name update failed: ${profileError.message}`,
+        );
+        shouldCloseModal = false;
+      }
     }
     const membershipId = data?.id ?? membershipEditingId;
     const actorId = await getCurrentUserId();
@@ -485,13 +768,18 @@ function AdminClient(): JSX.Element {
         },
       ]);
     }
-    setMemberUserId("");
     setMemberUsername("");
     setMemberEmail("");
+    setMemberDisplayName("");
     setMembershipEditingId("");
-    setStatus("Member updated.");
-    setIsMemberModalOpen(false);
+    if (shouldCloseModal) {
+      setMemberModalStatus("Member updated.");
+      setIsMemberModalOpen(false);
+    }
     await loadMemberships(selectedClanId);
+    if (!shouldCloseModal) {
+      return;
+    }
   }
 
   async function handleDeleteMembership(membershipId: string): Promise<void> {
@@ -532,7 +820,6 @@ function AdminClient(): JSX.Element {
 
   function handleEditMembership(membership: MembershipRow): void {
     setMembershipEditingId(membership.id);
-    setMemberUserId(membership.user_id);
     setMemberUsername("");
     setMemberEmail("");
     setMemberRole(membership.role);
@@ -558,6 +845,70 @@ function AdminClient(): JSX.Element {
         [membershipId]: { ...existing, [field]: nextValue },
       };
     });
+    setMembershipErrors((current) => {
+      if (!current[membershipId]) {
+        return current;
+      }
+      const updated = { ...current };
+      delete updated[membershipId];
+      return updated;
+    });
+  }
+
+  function cancelMembershipEdits(membershipId: string): void {
+    setMembershipEdits((current) => {
+      if (!current[membershipId]) {
+        return current;
+      }
+      const updated = { ...current };
+      delete updated[membershipId];
+      return updated;
+    });
+    setMembershipErrors((current) => {
+      if (!current[membershipId]) {
+        return current;
+      }
+      const updated = { ...current };
+      delete updated[membershipId];
+      return updated;
+    });
+  }
+
+  function isMembershipFieldChanged(
+    membership: MembershipRow,
+    field: keyof MembershipEditState,
+  ): boolean {
+    const edits = membershipEdits[membership.id];
+    if (!edits || edits[field] === undefined) {
+      return false;
+    }
+    const baseProfile = profilesById[membership.user_id];
+    const nextValue = edits[field];
+    if (field === "role") {
+      return String(nextValue ?? "") !== membership.role;
+    }
+    if (field === "is_active") {
+      return Boolean(nextValue) !== membership.is_active;
+    }
+    if (field === "rank") {
+      return String(nextValue ?? "") !== String(membership.rank ?? "");
+    }
+    if (field === "clan_id") {
+      return String(nextValue ?? "") !== membership.clan_id;
+    }
+    if (field === "username") {
+      const baseValue = baseProfile?.username_display ?? baseProfile?.username ?? "";
+      return String(nextValue ?? "") !== baseValue;
+    }
+    if (field === "display_name") {
+      const baseValue = baseProfile?.display_name ?? "";
+      return String(nextValue ?? "") !== baseValue;
+    }
+    if (field === "email") {
+      const baseValue = baseProfile?.email ?? "";
+      return String(nextValue ?? "") !== baseValue;
+    }
+    return false;
   }
 
   function getMembershipEditValue(membership: MembershipRow): MembershipEditState {
@@ -577,10 +928,43 @@ function AdminClient(): JSX.Element {
     };
   }
 
+  function validateMembershipEdit(membership: MembershipRow): string | null {
+    const edits = getMembershipEditValue(membership);
+    const nextEmail = edits.email?.trim() ?? "";
+    if (!nextEmail) {
+      return "Email is required.";
+    }
+    if (!EMAIL_REGEX.test(nextEmail)) {
+      return "Email must be valid.";
+    }
+    const nextUsername = edits.username?.trim() ?? "";
+    if (!nextUsername) {
+      return "Username is required.";
+    }
+    if (nextUsername.length < USERNAME_MIN_LENGTH || nextUsername.length > USERNAME_MAX_LENGTH) {
+      return `Username must be ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} characters.`;
+    }
+    if (/\s/.test(nextUsername)) {
+      return "Username cannot contain spaces.";
+    }
+    if (!edits.role?.trim()) {
+      return "Role is required.";
+    }
+    if (!edits.clan_id?.trim()) {
+      return "Clan is required.";
+    }
+    return null;
+  }
+
   async function handleSaveMembershipEdit(membership: MembershipRow, shouldReload: boolean = true): Promise<void> {
     const edits = membershipEdits[membership.id];
     if (!edits) {
       setStatus("No changes to save.");
+      return;
+    }
+    const validationError = validateMembershipEdit(membership);
+    if (validationError) {
+      setMembershipErrors((current) => ({ ...current, [membership.id]: validationError }));
       return;
     }
     const actorId = await getCurrentUserId();
@@ -655,12 +1039,23 @@ function AdminClient(): JSX.Element {
       return;
     }
     setStatus("Saving member changes...");
+    let hasValidationError = false;
     for (const membershipId of editEntries) {
       const membership = memberships.find((entry) => entry.id === membershipId);
       if (!membership) {
         continue;
       }
+      const validationError = validateMembershipEdit(membership);
+      if (validationError) {
+        setMembershipErrors((current) => ({ ...current, [membership.id]: validationError }));
+        hasValidationError = true;
+        continue;
+      }
       await handleSaveMembershipEdit(membership, false);
+    }
+    if (hasValidationError) {
+      setStatus("Some member updates need fixes before saving.");
+      return;
     }
     await loadMemberships(selectedClanId);
     setStatus("All member changes saved.");
@@ -672,17 +1067,19 @@ function AdminClient(): JSX.Element {
       return;
     }
     setMembershipEditingId("");
-    setMemberUserId("");
     setMemberUsername("");
     setMemberEmail("");
+    setMemberDisplayName("");
     setMemberRole("member");
     setMemberActive(true);
     setMemberRank("");
+    setMemberModalStatus("");
     setIsMemberModalOpen(true);
   }
 
   function handleCloseMemberModal(): void {
     setIsMemberModalOpen(false);
+    setMemberModalStatus("");
   }
 
   function getMembershipLabel(membership: MembershipRow): string {
@@ -741,6 +1138,12 @@ function AdminClient(): JSX.Element {
       setStatus("Select a clan first.");
       return;
     }
+    if (validationEditingId) {
+      const confirmUpdate = window.confirm("Update this validation rule?");
+      if (!confirmUpdate) {
+        return;
+      }
+    }
     const payload = {
       clan_id: selectedClanId,
       field: validationField.trim(),
@@ -787,6 +1190,12 @@ function AdminClient(): JSX.Element {
     if (!selectedClanId) {
       setStatus("Select a clan first.");
       return;
+    }
+    if (correctionEditingId) {
+      const confirmUpdate = window.confirm("Update this correction rule?");
+      if (!confirmUpdate) {
+        return;
+      }
     }
     const payload = {
       clan_id: selectedClanId,
@@ -835,6 +1244,12 @@ function AdminClient(): JSX.Element {
     if (!selectedClanId) {
       setStatus("Select a clan first.");
       return;
+    }
+    if (scoringEditingId) {
+      const confirmUpdate = window.confirm("Update this scoring rule?");
+      if (!confirmUpdate) {
+        return;
+      }
     }
     const scoreValue = Number(scoringScore);
     const orderValue = Number(scoringOrder);
@@ -1022,7 +1437,7 @@ function AdminClient(): JSX.Element {
             ) : null}
           </div>
         </div>
-        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+        <div className="list inline admin-members-filters" style={{ alignItems: "center", flexWrap: "wrap" }}>
           <label htmlFor="memberSearch" className="text-muted">
             Search
           </label>
@@ -1103,11 +1518,13 @@ function AdminClient(): JSX.Element {
             {filteredMemberships.map((membership) => (
               <div className="row" key={membership.id}>
                 <input
+                  className={isMembershipFieldChanged(membership, "username") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).username ?? ""}
                   onChange={(event) => updateMembershipEdit(membership.id, "username", event.target.value)}
                   placeholder="Username"
                 />
                 <select
+                  className={isMembershipFieldChanged(membership, "role") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).role}
                   onChange={(event) => updateMembershipEdit(membership.id, "role", event.target.value)}
                 >
@@ -1118,16 +1535,19 @@ function AdminClient(): JSX.Element {
                   ))}
                 </select>
                 <input
+                  className={isMembershipFieldChanged(membership, "email") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).email ?? ""}
                   onChange={(event) => updateMembershipEdit(membership.id, "email", event.target.value)}
                   placeholder="Email"
                 />
                 <input
+                  className={isMembershipFieldChanged(membership, "display_name") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).display_name ?? ""}
                   onChange={(event) => updateMembershipEdit(membership.id, "display_name", event.target.value)}
                   placeholder="Display name"
                 />
                 <select
+                  className={isMembershipFieldChanged(membership, "clan_id") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
                   onChange={(event) => updateMembershipEdit(membership.id, "clan_id", event.target.value)}
                 >
@@ -1138,6 +1558,7 @@ function AdminClient(): JSX.Element {
                   ))}
                 </select>
                 <select
+                  className={isMembershipFieldChanged(membership, "rank") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).rank ?? ""}
                   onChange={(event) => updateMembershipEdit(membership.id, "rank", event.target.value)}
                 >
@@ -1149,6 +1570,7 @@ function AdminClient(): JSX.Element {
                   ))}
                 </select>
                 <select
+                  className={isMembershipFieldChanged(membership, "is_active") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).is_active ? "true" : "false"}
                   onChange={(event) => updateMembershipEdit(membership.id, "is_active", event.target.value)}
                 >
@@ -1159,6 +1581,12 @@ function AdminClient(): JSX.Element {
                   <button className="button" type="button" onClick={() => handleSaveMembershipEdit(membership)}>
                     Save
                   </button>
+                  <button className="button" type="button" onClick={() => cancelMembershipEdits(membership.id)}>
+                    Cancel
+                  </button>
+                  {membershipErrors[membership.id] ? (
+                    <span className="text-muted">{membershipErrors[membership.id]}</span>
+                  ) : null}
                   <button
                     className="button danger"
                     type="button"
@@ -1236,14 +1664,112 @@ function AdminClient(): JSX.Element {
             ) : null}
           </div>
         </form>
+        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <label htmlFor="validationSearch" className="text-muted">
+            Search
+          </label>
+          <input
+            id="validationSearch"
+            value={validationSearch}
+            onChange={(event) => {
+              setValidationSearch(event.target.value);
+              setValidationPage(1);
+            }}
+            placeholder="Field or match value"
+          />
+          <label htmlFor="validationFieldFilter" className="text-muted">
+            Field
+          </label>
+          <select
+            id="validationFieldFilter"
+            value={validationFieldFilter}
+            onChange={(event) => {
+              setValidationFieldFilter(event.target.value);
+              setValidationPage(1);
+            }}
+          >
+            <option value="all">All</option>
+            {ruleFieldOptions.map((field) => (
+              <option key={field} value={field}>
+                {field}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="validationStatusFilter" className="text-muted">
+            Status
+          </label>
+          <select
+            id="validationStatusFilter"
+            value={validationStatusFilter}
+            onChange={(event) => {
+              setValidationStatusFilter(event.target.value);
+              setValidationPage(1);
+            }}
+          >
+            <option value="all">All</option>
+            <option value="valid">valid</option>
+            <option value="invalid">invalid</option>
+          </select>
+          <label htmlFor="validationSort" className="text-muted">
+            Sort
+          </label>
+          <select
+            id="validationSort"
+            value={validationSortKey}
+            onChange={(event) => {
+              setValidationSortKey(event.target.value as "field" | "status" | "match_value");
+              setValidationPage(1);
+            }}
+          >
+            {validationSortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Validation sort direction"
+            value={validationSortDirection}
+            onChange={(event) => {
+              setValidationSortDirection(event.target.value as "asc" | "desc");
+              setValidationPage(1);
+            }}
+          >
+            <option value="asc">Asc</option>
+            <option value="desc">Desc</option>
+          </select>
+          <button
+            className="button"
+            type="button"
+            onClick={() => {
+              setValidationSearch("");
+              setValidationFieldFilter("all");
+              setValidationStatusFilter("all");
+              setValidationSortKey("field");
+              setValidationSortDirection("asc");
+              setValidationPageSize(5);
+              setValidationPage(1);
+            }}
+          >
+            Reset
+          </button>
+          <span className="text-muted">
+            {filteredValidationRules.length} / {validationRules.length}
+          </span>
+        </div>
         <div className="list">
           {validationRules.length === 0 ? (
             <div className="list-item">
               <span>No validation rules</span>
               <span className="badge">Add one</span>
             </div>
+          ) : filteredValidationRules.length === 0 ? (
+            <div className="list-item">
+              <span>No validation rules match the filters</span>
+              <span className="badge">Adjust filters</span>
+            </div>
           ) : (
-            validationRules.map((rule) => (
+            pagedValidationRules.map((rule) => (
               <div className="list-item" key={rule.id}>
                 <span>{rule.field}: {rule.match_value}</span>
                 <div className="list">
@@ -1259,6 +1785,48 @@ function AdminClient(): JSX.Element {
             ))
           )}
         </div>
+        {filteredValidationRules.length > 0 ? (
+          <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+            <div className="list inline">
+              <button
+                className="button"
+                type="button"
+                disabled={validationPage === 1}
+                onClick={() => setValidationPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </button>
+              <button
+                className="button"
+                type="button"
+                disabled={validationPage >= validationTotalPages}
+                onClick={() => setValidationPage((current) => current + 1)}
+              >
+                Next
+              </button>
+            </div>
+            <span className="text-muted">
+              Page {validationPage} of {validationTotalPages}
+            </span>
+            <div className="list inline">
+              <label htmlFor="validationPageSize" className="text-muted">
+                Page size
+              </label>
+              <select
+                id="validationPageSize"
+                value={validationPageSize}
+                onChange={(event) => {
+                  setValidationPageSize(Number(event.target.value));
+                  setValidationPage(1);
+                }}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+              </select>
+            </div>
+          </div>
+        ) : null}
       </section>
       ) : null}
       {activeSection === "rules" ? (
@@ -1322,14 +1890,96 @@ function AdminClient(): JSX.Element {
             ) : null}
           </div>
         </form>
+        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <label htmlFor="correctionSearch" className="text-muted">
+            Search
+          </label>
+          <input
+            id="correctionSearch"
+            value={correctionSearch}
+            onChange={(event) => {
+              setCorrectionSearch(event.target.value);
+              setCorrectionPage(1);
+            }}
+            placeholder="Field, match, or replacement"
+          />
+          <label htmlFor="correctionFieldFilter" className="text-muted">
+            Field
+          </label>
+          <select
+            id="correctionFieldFilter"
+            value={correctionFieldFilter}
+            onChange={(event) => {
+              setCorrectionFieldFilter(event.target.value);
+              setCorrectionPage(1);
+            }}
+          >
+            <option value="all">All</option>
+            {ruleFieldOptions.map((field) => (
+              <option key={field} value={field}>
+                {field}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="correctionSort" className="text-muted">
+            Sort
+          </label>
+          <select
+            id="correctionSort"
+            value={correctionSortKey}
+            onChange={(event) => {
+              setCorrectionSortKey(event.target.value as "field" | "match_value" | "replacement_value");
+              setCorrectionPage(1);
+            }}
+          >
+            {correctionSortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Correction sort direction"
+            value={correctionSortDirection}
+            onChange={(event) => {
+              setCorrectionSortDirection(event.target.value as "asc" | "desc");
+              setCorrectionPage(1);
+            }}
+          >
+            <option value="asc">Asc</option>
+            <option value="desc">Desc</option>
+          </select>
+          <button
+            className="button"
+            type="button"
+            onClick={() => {
+              setCorrectionSearch("");
+              setCorrectionFieldFilter("all");
+              setCorrectionSortKey("field");
+              setCorrectionSortDirection("asc");
+              setCorrectionPageSize(5);
+              setCorrectionPage(1);
+            }}
+          >
+            Reset
+          </button>
+          <span className="text-muted">
+            {filteredCorrectionRules.length} / {correctionRules.length}
+          </span>
+        </div>
         <div className="list">
           {correctionRules.length === 0 ? (
             <div className="list-item">
               <span>No correction rules</span>
               <span className="badge">Add one</span>
             </div>
+          ) : filteredCorrectionRules.length === 0 ? (
+            <div className="list-item">
+              <span>No correction rules match the filters</span>
+              <span className="badge">Adjust filters</span>
+            </div>
           ) : (
-            correctionRules.map((rule) => (
+            pagedCorrectionRules.map((rule) => (
               <div className="list-item" key={rule.id}>
                 <span>{rule.field}: {rule.match_value}</span>
                 <div className="list">
@@ -1345,6 +1995,48 @@ function AdminClient(): JSX.Element {
             ))
           )}
         </div>
+        {filteredCorrectionRules.length > 0 ? (
+          <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+            <div className="list inline">
+              <button
+                className="button"
+                type="button"
+                disabled={correctionPage === 1}
+                onClick={() => setCorrectionPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </button>
+              <button
+                className="button"
+                type="button"
+                disabled={correctionPage >= correctionTotalPages}
+                onClick={() => setCorrectionPage((current) => current + 1)}
+              >
+                Next
+              </button>
+            </div>
+            <span className="text-muted">
+              Page {correctionPage} of {correctionTotalPages}
+            </span>
+            <div className="list inline">
+              <label htmlFor="correctionPageSize" className="text-muted">
+                Page size
+              </label>
+              <select
+                id="correctionPageSize"
+                value={correctionPageSize}
+                onChange={(event) => {
+                  setCorrectionPageSize(Number(event.target.value));
+                  setCorrectionPage(1);
+                }}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+              </select>
+            </div>
+          </div>
+        ) : null}
       </section>
       ) : null}
       {activeSection === "rules" ? (
@@ -1433,14 +2125,77 @@ function AdminClient(): JSX.Element {
             ) : null}
           </div>
         </form>
+        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <label htmlFor="scoringSearch" className="text-muted">
+            Search
+          </label>
+          <input
+            id="scoringSearch"
+            value={scoringSearch}
+            onChange={(event) => {
+              setScoringSearch(event.target.value);
+              setScoringPage(1);
+            }}
+            placeholder="Chest, source, level, or score"
+          />
+          <label htmlFor="scoringSort" className="text-muted">
+            Sort
+          </label>
+          <select
+            id="scoringSort"
+            value={scoringSortKey}
+            onChange={(event) => {
+              setScoringSortKey(event.target.value as "rule_order" | "score" | "chest_match" | "source_match");
+              setScoringPage(1);
+            }}
+          >
+            {scoringSortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Scoring sort direction"
+            value={scoringSortDirection}
+            onChange={(event) => {
+              setScoringSortDirection(event.target.value as "asc" | "desc");
+              setScoringPage(1);
+            }}
+          >
+            <option value="asc">Asc</option>
+            <option value="desc">Desc</option>
+          </select>
+          <button
+            className="button"
+            type="button"
+            onClick={() => {
+              setScoringSearch("");
+              setScoringSortKey("rule_order");
+              setScoringSortDirection("asc");
+              setScoringPageSize(5);
+              setScoringPage(1);
+            }}
+          >
+            Reset
+          </button>
+          <span className="text-muted">
+            {filteredScoringRules.length} / {scoringRules.length}
+          </span>
+        </div>
         <div className="list">
           {scoringRules.length === 0 ? (
             <div className="list-item">
               <span>No scoring rules</span>
               <span className="badge">Add one</span>
             </div>
+          ) : filteredScoringRules.length === 0 ? (
+            <div className="list-item">
+              <span>No scoring rules match the filters</span>
+              <span className="badge">Adjust filters</span>
+            </div>
           ) : (
-            scoringRules.map((rule) => (
+            pagedScoringRules.map((rule) => (
               <div className="list-item" key={rule.id}>
                 <span>
                   {rule.chest_match} / {rule.source_match}
@@ -1458,6 +2213,48 @@ function AdminClient(): JSX.Element {
             ))
           )}
         </div>
+        {filteredScoringRules.length > 0 ? (
+          <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+            <div className="list inline">
+              <button
+                className="button"
+                type="button"
+                disabled={scoringPage === 1}
+                onClick={() => setScoringPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </button>
+              <button
+                className="button"
+                type="button"
+                disabled={scoringPage >= scoringTotalPages}
+                onClick={() => setScoringPage((current) => current + 1)}
+              >
+                Next
+              </button>
+            </div>
+            <span className="text-muted">
+              Page {scoringPage} of {scoringTotalPages}
+            </span>
+            <div className="list inline">
+              <label htmlFor="scoringPageSize" className="text-muted">
+                Page size
+              </label>
+              <select
+                id="scoringPageSize"
+                value={scoringPageSize}
+                onChange={(event) => {
+                  setScoringPageSize(Number(event.target.value));
+                  setScoringPage(1);
+                }}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+              </select>
+            </div>
+          </div>
+        ) : null}
       </section>
       ) : null}
       {activeSection === "logs" ? (
@@ -1467,7 +2264,79 @@ function AdminClient(): JSX.Element {
             <div className="card-title">Audit Logs</div>
             <div className="card-subtitle">Latest clan activity</div>
           </div>
-          <span className="badge">Last 50</span>
+          <span className="badge">{auditTotalCount} total</span>
+        </div>
+        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <label htmlFor="auditSearch" className="text-muted">
+            Search
+          </label>
+          <input
+            id="auditSearch"
+            value={auditSearch}
+            onChange={(event) => setAuditSearch(event.target.value)}
+            placeholder="Action, entity, or id"
+          />
+          <label htmlFor="auditActionFilter" className="text-muted">
+            Action
+          </label>
+          <select
+            id="auditActionFilter"
+            value={auditActionFilter}
+            onChange={(event) => setAuditActionFilter(event.target.value)}
+          >
+            <option value="all">All</option>
+            {auditActionOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="auditEntityFilter" className="text-muted">
+            Entity
+          </label>
+          <select
+            id="auditEntityFilter"
+            value={auditEntityFilter}
+            onChange={(event) => setAuditEntityFilter(event.target.value)}
+          >
+            <option value="all">All</option>
+            {auditEntityOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="auditActorFilter" className="text-muted">
+            Actor
+          </label>
+          <select
+            id="auditActorFilter"
+            value={auditActorFilter}
+            onChange={(event) => setAuditActorFilter(event.target.value)}
+          >
+            <option value="all">All</option>
+            {auditActorOptions.map((actorId) => (
+              <option key={actorId} value={actorId}>
+                {getAuditActorLabel(actorId)}
+              </option>
+            ))}
+          </select>
+          <button
+            className="button"
+            type="button"
+            onClick={() => {
+              setAuditSearch("");
+              setAuditActionFilter("all");
+              setAuditEntityFilter("all");
+              setAuditActorFilter("all");
+              setAuditPage(1);
+            }}
+          >
+            Reset
+          </button>
+          <span className="text-muted">
+            {auditLogs.length} shown
+          </span>
         </div>
         <div className="list">
           {auditLogs.length === 0 ? (
@@ -1494,6 +2363,48 @@ function AdminClient(): JSX.Element {
             ))
           )}
         </div>
+        {auditTotalCount > 0 ? (
+          <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+            <div className="list inline">
+              <button
+                className="button"
+                type="button"
+                disabled={auditPage === 1}
+                onClick={() => setAuditPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </button>
+              <button
+                className="button"
+                type="button"
+                disabled={auditPage >= auditTotalPages}
+                onClick={() => setAuditPage((current) => current + 1)}
+              >
+                Next
+              </button>
+            </div>
+            <span className="text-muted">
+              Page {auditPage} of {auditTotalPages}
+            </span>
+            <div className="list inline">
+              <label htmlFor="auditPageSize" className="text-muted">
+                Page size
+              </label>
+              <select
+                id="auditPageSize"
+                value={auditPageSize}
+                onChange={(event) => {
+                  setAuditPageSize(Number(event.target.value));
+                  setAuditPage(1);
+                }}
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+        ) : null}
       </section>
       ) : null}
       {isClanModalOpen ? (
@@ -1552,15 +2463,6 @@ function AdminClient(): JSX.Element {
                 <input id="memberClan" value={selectedClan?.name ?? ""} disabled />
               </div>
               <div className="form-group">
-                <label htmlFor="userId">User ID</label>
-                <input
-                  id="userId"
-                  value={memberUserId}
-                  onChange={(event) => setMemberUserId(event.target.value)}
-                  placeholder="Supabase user UUID"
-                />
-              </div>
-              <div className="form-group">
                 <label htmlFor="username">Username</label>
                 <input
                   id="username"
@@ -1576,6 +2478,15 @@ function AdminClient(): JSX.Element {
                   value={memberEmail}
                   onChange={(event) => setMemberEmail(event.target.value)}
                   placeholder="user@example.com"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="displayName">Display name</label>
+                <input
+                  id="displayName"
+                  value={memberDisplayName}
+                  onChange={(event) => setMemberDisplayName(event.target.value)}
+                  placeholder="Optional display name"
                 />
               </div>
               <div className="form-group">
@@ -1601,14 +2512,17 @@ function AdminClient(): JSX.Element {
               </div>
               <div className="form-group">
                 <label htmlFor="rank">Rank</label>
-                <input
-                  id="rank"
-                  value={memberRank}
-                  onChange={(event) => setMemberRank(event.target.value)}
-                  placeholder="Rank"
-                />
+                <select id="rank" value={memberRank} onChange={(event) => setMemberRank(event.target.value)}>
+                  <option value="">None</option>
+                  {rankOptions.map((rank) => (
+                    <option key={rank} value={rank}>
+                      {rank}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="list">
+                {memberModalStatus ? <div className="alert info">{memberModalStatus}</div> : null}
                 <button className="button primary" type="submit">
                   Add Member
                 </button>

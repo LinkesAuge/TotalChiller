@@ -564,7 +564,7 @@ body {
   background: var(--color-parchment);
   color: var(--color-parchment-dark);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: auto;
   border: 1px solid #c4b596;
   box-shadow: var(--shadow-lg);
 }
@@ -576,6 +576,12 @@ body {
   padding: 14px 18px;
   align-items: center;
   font-size: 0.875rem;
+  min-width: max-content;
+}
+
+.table header > *,
+.table .row > * {
+  min-width: 0;
 }
 
 .table.data-import header,
@@ -631,6 +637,13 @@ body {
   background: rgba(255, 255, 255, 0.6);
   border-color: #c4b596;
   color: #3a3020;
+}
+
+.table.members select.is-edited,
+.table.members input.is-edited {
+  border-color: #a8863c;
+  box-shadow: 0 0 0 2px rgba(168, 134, 60, 0.18);
+  background: rgba(255, 248, 230, 0.85);
 }
 
 .table.members select:focus,
@@ -797,12 +810,32 @@ select:disabled {
   margin: 18px 0;
 }
 
+.card-section {
+  margin-top: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
 .table-toolbar {
   grid-column: span 12;
   display: flex;
   gap: 12px;
   align-items: center;
   margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-chips {
+  grid-column: span 12;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .admin-clan-row {
@@ -819,6 +852,10 @@ select:disabled {
 
 .admin-clan-row select {
   min-width: 220px;
+}
+
+.admin-members-filters {
+  margin-bottom: 16px;
 }
 
 .header-inline {

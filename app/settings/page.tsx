@@ -81,14 +81,8 @@ function SettingsPage(): JSX.Element {
             displayName: profileData?.display_name ?? profileData?.username_display ?? "",
           });
         }
-        const { data: adminRows } = await supabase
-          .from("clan_memberships")
-          .select("id")
-          .eq("user_id", currentUserId)
-          .eq("is_active", true)
-          .or("role.ilike.owner,role.ilike.admin")
-          .limit(1);
-        setIsAdmin(Boolean(adminRows && adminRows.length > 0));
+        const { data: adminFlag, error: adminFlagError } = await supabase.rpc("is_any_admin");
+        setIsAdmin(!adminFlagError && Boolean(adminFlag));
       }
     }
     void loadUser();

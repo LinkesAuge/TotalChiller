@@ -28,14 +28,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!userData.user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
-  const { data: membershipData } = await supabase
-    .from("clan_memberships")
-    .select("id,role")
-    .eq("clan_id", body.clanId)
-    .eq("user_id", userData.user.id)
-    .eq("is_active", true)
-    .maybeSingle();
-  if (!membershipData || !["owner", "admin"].includes(membershipData.role)) {
+  const { data: isAdmin, error: adminError } = await supabase.rpc("is_clan_admin", {
+    target_clan: body.clanId,
+  });
+  if (adminError || !isAdmin) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
   const profileQuery = supabase.from("profiles").select("id");

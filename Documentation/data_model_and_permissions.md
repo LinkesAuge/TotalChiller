@@ -26,9 +26,17 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - created_at (timestamp)
 - updated_at (timestamp)
 
-### clan_memberships
+### game_accounts
 - id (uuid, pk)
 - user_id (uuid, fk users)
+- game_username (text)
+- display_name (text, nullable)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+### game_account_clan_memberships
+- id (uuid, pk)
+- game_account_id (uuid, fk game_accounts)
 - clan_id (uuid, fk clans)
 - rank (text, enum: leader, superior, officer, veteran, soldier)
 - role (text, enum: owner, admin, moderator, editor, member, guest)
@@ -76,6 +84,19 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - type (text, enum: news, announcement)
 - is_pinned (bool)
 - status (text, enum: draft, pending, published)
+- tags (text[])
+- created_by (uuid, fk users)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+### events
+- id (uuid, pk)
+- clan_id (uuid, fk clans)
+- title (text)
+- description (text)
+- location (text, nullable)
+- starts_at (timestamp)
+- ends_at (timestamp)
 - created_by (uuid, fk users)
 - created_at (timestamp)
 - updated_at (timestamp)

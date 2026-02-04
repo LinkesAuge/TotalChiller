@@ -34,20 +34,7 @@ create trigger enforce_single_default_clan
 before insert or update on public.clans
 for each row execute function public.ensure_single_default_clan();
 
-create table if not exists public.clan_memberships (
-  id uuid primary key default gen_random_uuid(),
-  clan_id uuid not null references public.clans(id) on delete cascade,
-  user_id uuid not null,
-  role text not null default 'member',
-  rank text,
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (clan_id, user_id)
-);
-
-alter table public.clan_memberships
-  add column if not exists rank text;
+-- Legacy: clan_memberships replaced by game_account_clan_memberships
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -58,6 +45,28 @@ create table if not exists public.profiles (
   default_clan_id uuid references public.clans(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+create table if not exists public.game_accounts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  game_username text not null,
+  display_name text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, game_username)
+);
+
+create table if not exists public.game_account_clan_memberships (
+  id uuid primary key default gen_random_uuid(),
+  game_account_id uuid not null references public.game_accounts(id) on delete cascade,
+  clan_id uuid not null references public.clans(id) on delete cascade,
+  role text not null default 'member',
+  rank text,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (game_account_id, clan_id)
 );
 
 alter table public.profiles
@@ -86,6 +95,8 @@ alter table public.profiles
 
 create unique index if not exists profiles_username_unique on public.profiles (username);
 create unique index if not exists profiles_username_unique_lower on public.profiles (lower(username));
+alter table public.profiles
+  drop constraint if exists profiles_username_length_check;
 alter table public.profiles
   add constraint profiles_username_length_check
   check (char_length(username) >= 2 and char_length(username) <= 32);
@@ -227,6 +238,33 @@ create table if not exists public.audit_logs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.articles (
+  id uuid primary key default gen_random_uuid(),
+  clan_id uuid not null references public.clans(id) on delete cascade,
+  title text not null,
+  content text not null,
+  type text not null,
+  is_pinned boolean not null default false,
+  status text not null default 'published',
+  tags text[] not null default '{}',
+  created_by uuid not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  clan_id uuid not null references public.clans(id) on delete cascade,
+  title text not null,
+  description text not null,
+  location text,
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  created_by uuid not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create or replace function public.is_clan_member(target_clan uuid)
 returns boolean
 language sql
@@ -236,10 +274,11 @@ set row_security = off
 as $$
   select exists (
     select 1
-    from public.clan_memberships
-    where clan_id = target_clan
-      and user_id = auth.uid()
-      and is_active = true
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = target_clan
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
   );
 $$;
 
@@ -252,11 +291,12 @@ set row_security = off
 as $$
   select exists (
     select 1
-    from public.clan_memberships
-    where clan_id = target_clan
-      and user_id = auth.uid()
-      and is_active = true
-      and role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = target_clan
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   );
 $$;
 
@@ -269,20 +309,30 @@ set row_security = off
 as $$
   select exists (
     select 1
-    from public.clan_memberships
-    where user_id = auth.uid()
-      and is_active = true
-      and role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   );
 $$;
 
 create index if not exists chest_entries_clan_idx on public.chest_entries (clan_id);
 create index if not exists chest_entries_collected_date_idx on public.chest_entries (collected_date);
 create index if not exists chest_entries_player_idx on public.chest_entries (player);
+create index if not exists game_accounts_user_idx on public.game_accounts (user_id);
+create index if not exists game_account_clan_memberships_clan_idx on public.game_account_clan_memberships (clan_id);
+create index if not exists game_account_clan_memberships_account_idx on public.game_account_clan_memberships (game_account_id);
+create index if not exists articles_clan_idx on public.articles (clan_id);
+create index if not exists articles_created_at_idx on public.articles (created_at);
+create index if not exists events_clan_idx on public.events (clan_id);
+create index if not exists events_starts_at_idx on public.events (starts_at);
 
 alter table public.chest_entries enable row level security;
-alter table public.clan_memberships enable row level security;
+-- Legacy: clan_memberships replaced by game_account_clan_memberships
 alter table public.profiles enable row level security;
+alter table public.game_accounts enable row level security;
+alter table public.game_account_clan_memberships enable row level security;
 alter table public.roles enable row level security;
 alter table public.ranks enable row level security;
 alter table public.permissions enable row level security;
@@ -293,6 +343,57 @@ alter table public.validation_rules enable row level security;
 alter table public.correction_rules enable row level security;
 alter table public.scoring_rules enable row level security;
 alter table public.audit_logs enable row level security;
+alter table public.articles enable row level security;
+alter table public.events enable row level security;
+
+drop policy if exists "chest_entries_select_by_membership" on public.chest_entries;
+drop policy if exists "chest_entries_insert_by_membership" on public.chest_entries;
+drop policy if exists "chest_entries_update_by_role" on public.chest_entries;
+drop policy if exists "chest_entries_delete_by_role" on public.chest_entries;
+drop policy if exists "roles_read" on public.roles;
+drop policy if exists "ranks_read" on public.ranks;
+drop policy if exists "permissions_read" on public.permissions;
+drop policy if exists "role_permissions_read" on public.role_permissions;
+drop policy if exists "rank_permissions_read" on public.rank_permissions;
+drop policy if exists "cross_clan_permissions_read" on public.cross_clan_permissions;
+-- Legacy: clan_memberships policies removed
+drop policy if exists "profiles_select" on public.profiles;
+drop policy if exists "profiles_update" on public.profiles;
+drop policy if exists "profiles_insert" on public.profiles;
+drop policy if exists "game_accounts_select" on public.game_accounts;
+drop policy if exists "game_accounts_insert" on public.game_accounts;
+drop policy if exists "game_accounts_update" on public.game_accounts;
+drop policy if exists "game_accounts_delete" on public.game_accounts;
+drop policy if exists "game_account_clan_memberships_select" on public.game_account_clan_memberships;
+drop policy if exists "game_account_clan_memberships_insert" on public.game_account_clan_memberships;
+drop policy if exists "game_account_clan_memberships_update" on public.game_account_clan_memberships;
+drop policy if exists "game_account_clan_memberships_delete" on public.game_account_clan_memberships;
+drop policy if exists "validation_rules_select" on public.validation_rules;
+drop policy if exists "correction_rules_select" on public.correction_rules;
+drop policy if exists "scoring_rules_select" on public.scoring_rules;
+drop policy if exists "audit_logs_select" on public.audit_logs;
+drop policy if exists "audit_logs_insert" on public.audit_logs;
+drop policy if exists "validation_rules_write" on public.validation_rules;
+drop policy if exists "validation_rules_update" on public.validation_rules;
+drop policy if exists "validation_rules_delete" on public.validation_rules;
+drop policy if exists "correction_rules_write" on public.correction_rules;
+drop policy if exists "correction_rules_update" on public.correction_rules;
+drop policy if exists "correction_rules_delete" on public.correction_rules;
+drop policy if exists "scoring_rules_write" on public.scoring_rules;
+drop policy if exists "scoring_rules_update" on public.scoring_rules;
+drop policy if exists "scoring_rules_delete" on public.scoring_rules;
+drop policy if exists "clans_select" on public.clans;
+drop policy if exists "clans_insert" on public.clans;
+drop policy if exists "clans_update_by_role" on public.clans;
+drop policy if exists "clans_delete_by_role" on public.clans;
+drop policy if exists "articles_select" on public.articles;
+drop policy if exists "articles_insert" on public.articles;
+drop policy if exists "articles_update" on public.articles;
+drop policy if exists "articles_delete" on public.articles;
+drop policy if exists "events_select" on public.events;
+drop policy if exists "events_insert" on public.events;
+drop policy if exists "events_update" on public.events;
+drop policy if exists "events_delete" on public.events;
 
 create policy "chest_entries_select_by_membership"
 on public.chest_entries
@@ -301,10 +402,11 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = chest_entries.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = chest_entries.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
   )
 );
 
@@ -317,10 +419,11 @@ with check (
   and auth.uid() = updated_by
   and exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = chest_entries.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = chest_entries.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
   )
 );
 
@@ -332,11 +435,12 @@ using (
   auth.uid() = created_by
   or exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = chest_entries.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin', 'moderator')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = chest_entries.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin', 'moderator')
   )
 )
 with check (auth.uid() = updated_by);
@@ -349,11 +453,12 @@ using (
   auth.uid() = created_by
   or exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = chest_entries.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = chest_entries.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -393,46 +498,7 @@ for select
 to authenticated
 using (auth.uid() = user_id);
 
-create policy "clan_memberships_select"
-on public.clan_memberships
-for select
-to authenticated
-using (
-  user_id = auth.uid()
-  or public.is_clan_admin(clan_id)
-);
-
-create policy "clan_memberships_insert"
-on public.clan_memberships
-for insert
-to authenticated
-with check (
-  user_id = auth.uid()
-  or public.is_clan_admin(clan_id)
-);
-
-create policy "clan_memberships_update"
-on public.clan_memberships
-for update
-to authenticated
-using (
-  user_id = auth.uid()
-  or public.is_clan_admin(clan_id)
-)
-with check (
-  user_id = auth.uid()
-  or public.is_clan_admin(clan_id)
-);
-
-create policy "clan_memberships_delete"
-on public.clan_memberships
-for delete
-to authenticated
-using (
-  user_id = auth.uid()
-  or public.is_clan_admin(clan_id)
-);
-
+-- Legacy: clan_memberships policies removed
 create policy "profiles_select"
 on public.profiles
 for select
@@ -451,6 +517,76 @@ on public.profiles
 for insert
 to authenticated
 with check (auth.uid() = id);
+
+create policy "game_accounts_select"
+on public.game_accounts
+for select
+to authenticated
+using (
+  user_id = auth.uid()
+  or public.is_any_admin()
+);
+
+create policy "game_accounts_insert"
+on public.game_accounts
+for insert
+to authenticated
+with check (
+  user_id = auth.uid()
+  or public.is_any_admin()
+);
+
+create policy "game_accounts_update"
+on public.game_accounts
+for update
+to authenticated
+using (
+  user_id = auth.uid()
+  or public.is_any_admin()
+)
+with check (
+  user_id = auth.uid()
+  or public.is_any_admin()
+);
+
+create policy "game_accounts_delete"
+on public.game_accounts
+for delete
+to authenticated
+using (public.is_any_admin());
+
+create policy "game_account_clan_memberships_select"
+on public.game_account_clan_memberships
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.game_accounts
+    where game_accounts.id = game_account_clan_memberships.game_account_id
+      and game_accounts.user_id = auth.uid()
+  )
+  or public.is_clan_admin(game_account_clan_memberships.clan_id)
+);
+
+create policy "game_account_clan_memberships_insert"
+on public.game_account_clan_memberships
+for insert
+to authenticated
+with check (public.is_clan_admin(game_account_clan_memberships.clan_id));
+
+create policy "game_account_clan_memberships_update"
+on public.game_account_clan_memberships
+for update
+to authenticated
+using (public.is_clan_admin(game_account_clan_memberships.clan_id))
+with check (public.is_clan_admin(game_account_clan_memberships.clan_id));
+
+create policy "game_account_clan_memberships_delete"
+on public.game_account_clan_memberships
+for delete
+to authenticated
+using (public.is_clan_admin(game_account_clan_memberships.clan_id));
 
 create or replace function public.get_email_for_username(input_username text)
 returns text
@@ -474,10 +610,11 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = validation_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = validation_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
   )
 );
 
@@ -488,10 +625,11 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = correction_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = correction_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
   )
 );
 
@@ -502,10 +640,11 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = scoring_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = scoring_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
   )
 );
 
@@ -516,10 +655,11 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = audit_logs.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = audit_logs.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
   )
 );
 
@@ -531,12 +671,69 @@ with check (
   actor_id = auth.uid()
   and exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = audit_logs.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = audit_logs.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
   )
 );
+
+create policy "articles_select"
+on public.articles
+for select
+to authenticated
+using (public.is_clan_member(clan_id));
+
+create policy "articles_insert"
+on public.articles
+for insert
+to authenticated
+with check (
+  created_by = auth.uid()
+  and public.is_clan_admin(clan_id)
+);
+
+create policy "articles_update"
+on public.articles
+for update
+to authenticated
+using (public.is_clan_admin(clan_id))
+with check (public.is_clan_admin(clan_id));
+
+create policy "articles_delete"
+on public.articles
+for delete
+to authenticated
+using (public.is_clan_admin(clan_id));
+
+create policy "events_select"
+on public.events
+for select
+to authenticated
+using (public.is_clan_member(clan_id));
+
+create policy "events_insert"
+on public.events
+for insert
+to authenticated
+with check (
+  created_by = auth.uid()
+  and public.is_clan_admin(clan_id)
+);
+
+create policy "events_update"
+on public.events
+for update
+to authenticated
+using (public.is_clan_admin(clan_id))
+with check (public.is_clan_admin(clan_id));
+
+create policy "events_delete"
+on public.events
+for delete
+to authenticated
+using (public.is_clan_admin(clan_id));
 
 create policy "validation_rules_write"
 on public.validation_rules
@@ -545,11 +742,12 @@ to authenticated
 with check (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = validation_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = validation_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -560,21 +758,23 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = validation_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = validation_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 )
 with check (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = validation_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = validation_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -585,11 +785,12 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = validation_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = validation_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -600,11 +801,12 @@ to authenticated
 with check (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = correction_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = correction_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -615,21 +817,23 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = correction_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = correction_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 )
 with check (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = correction_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = correction_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -640,11 +844,12 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = correction_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = correction_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -655,11 +860,12 @@ to authenticated
 with check (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = scoring_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = scoring_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -670,21 +876,23 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = scoring_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = scoring_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 )
 with check (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = scoring_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = scoring_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -695,11 +903,12 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = scoring_rules.clan_id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = scoring_rules.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 create policy "clans_select"
@@ -721,11 +930,12 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = clans.id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = clans.id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner', 'admin')
   )
 );
 
@@ -736,75 +946,12 @@ to authenticated
 using (
   exists (
     select 1
-    from public.clan_memberships
-    where clan_memberships.clan_id = clans.id
-      and clan_memberships.user_id = auth.uid()
-      and clan_memberships.is_active = true
-      and clan_memberships.role in ('owner')
-  )
-);
-
-create policy "clan_memberships_select"
-on public.clan_memberships
-for select
-to authenticated
-using (
-  auth.uid() = user_id
-  or exists (
-    select 1
-    from public.clan_memberships as memberships
-    where memberships.clan_id = clan_memberships.clan_id
-      and memberships.user_id = auth.uid()
-      and memberships.is_active = true
-      and memberships.role in ('owner', 'admin')
-  )
-);
-
-create policy "clan_memberships_insert"
-on public.clan_memberships
-for insert
-to authenticated
-with check (
-  auth.uid() = user_id
-  or exists (
-    select 1
-    from public.clan_memberships as memberships
-    where memberships.clan_id = clan_memberships.clan_id
-      and memberships.user_id = auth.uid()
-      and memberships.is_active = true
-      and memberships.role in ('owner', 'admin')
-  )
-);
-
-create policy "clan_memberships_update_by_role"
-on public.clan_memberships
-for update
-to authenticated
-using (
-  auth.uid() = user_id
-  or exists (
-    select 1
-    from public.clan_memberships as memberships
-    where memberships.clan_id = clan_memberships.clan_id
-      and memberships.user_id = auth.uid()
-      and memberships.is_active = true
-      and memberships.role in ('owner', 'admin')
-  )
-);
-
-create policy "clan_memberships_delete_by_role"
-on public.clan_memberships
-for delete
-to authenticated
-using (
-  auth.uid() = user_id
-  or exists (
-    select 1
-    from public.clan_memberships as memberships
-    where memberships.clan_id = clan_memberships.clan_id
-      and memberships.user_id = auth.uid()
-      and memberships.is_active = true
-      and memberships.role in ('owner', 'admin')
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = clans.id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+      and game_account_clan_memberships.role in ('owner')
   )
 );
 
@@ -824,11 +971,7 @@ create trigger set_chest_entries_updated_at
 before update on public.chest_entries
 for each row execute function public.set_updated_at();
 
-drop trigger if exists set_clan_memberships_updated_at on public.clan_memberships;
-
-create trigger set_clan_memberships_updated_at
-before update on public.clan_memberships
-for each row execute function public.set_updated_at();
+-- Legacy: clan_memberships updated_at trigger removed
 
 drop trigger if exists set_clans_updated_at on public.clans;
 
@@ -840,6 +983,18 @@ drop trigger if exists set_profiles_updated_at on public.profiles;
 
 create trigger set_profiles_updated_at
 before update on public.profiles
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_game_accounts_updated_at on public.game_accounts;
+
+create trigger set_game_accounts_updated_at
+before update on public.game_accounts
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_game_account_clan_memberships_updated_at on public.game_account_clan_memberships;
+
+create trigger set_game_account_clan_memberships_updated_at
+before update on public.game_account_clan_memberships
 for each row execute function public.set_updated_at();
 
 drop trigger if exists set_validation_rules_updated_at on public.validation_rules;
@@ -858,6 +1013,18 @@ drop trigger if exists set_scoring_rules_updated_at on public.scoring_rules;
 
 create trigger set_scoring_rules_updated_at
 before update on public.scoring_rules
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_articles_updated_at on public.articles;
+
+create trigger set_articles_updated_at
+before update on public.articles
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_events_updated_at on public.events;
+
+create trigger set_events_updated_at
+before update on public.events
 for each row execute function public.set_updated_at();
 
 create or replace function public.handle_new_user()

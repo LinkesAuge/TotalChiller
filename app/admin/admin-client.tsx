@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useToast } from "../components/toast-provider";
 
 interface ClanRow {
   readonly id: string;
@@ -10,13 +11,21 @@ interface ClanRow {
   readonly description: string | null;
 }
 
+interface GameAccountRow {
+  readonly id: string;
+  readonly user_id: string;
+  readonly game_username: string;
+  readonly display_name: string | null;
+}
+
 interface MembershipRow {
   readonly id: string;
   readonly clan_id: string;
-  readonly user_id: string;
+  readonly game_account_id: string;
   readonly role: string;
   readonly is_active: boolean;
   readonly rank: string | null;
+  readonly game_accounts: GameAccountRow | null;
 }
 
 interface MembershipEditState {
@@ -25,11 +34,18 @@ interface MembershipEditState {
   readonly rank?: string | null;
   readonly clan_id?: string;
   readonly display_name?: string;
-  readonly username?: string;
-  readonly email?: string;
+  readonly game_username?: string;
 }
 
 interface ProfileRow {
+  readonly id: string;
+  readonly email: string;
+  readonly display_name: string | null;
+  readonly username: string | null;
+  readonly username_display: string | null;
+}
+
+interface UserRow {
   readonly id: string;
   readonly email: string;
   readonly display_name: string | null;
@@ -82,9 +98,6 @@ const scoringSortOptions: readonly { value: "rule_order" | "score" | "chest_matc
     { value: "chest_match", label: "Chest" },
     { value: "source_match", label: "Source" },
   ];
-const EMAIL_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_MIN_LENGTH: number = 2;
-const USERNAME_MAX_LENGTH: number = 32;
 
 /**
  * Admin UI for clan and membership management.
@@ -93,12 +106,14 @@ function AdminClient(): JSX.Element {
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { pushToast } = useToast();
   const [clans, setClans] = useState<readonly ClanRow[]>([]);
   const [memberships, setMemberships] = useState<readonly MembershipRow[]>([]);
   const [selectedClanId, setSelectedClanId] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [memberUsername, setMemberUsername] = useState<string>("");
   const [memberEmail, setMemberEmail] = useState<string>("");
+  const [memberGameUsername, setMemberGameUsername] = useState<string>("");
   const [memberDisplayName, setMemberDisplayName] = useState<string>("");
   const [memberRole, setMemberRole] = useState<string>("member");
   const [memberActive, setMemberActive] = useState<boolean>(true);
@@ -144,6 +159,7 @@ function AdminClient(): JSX.Element {
   const [auditActionFilter, setAuditActionFilter] = useState<string>("all");
   const [auditEntityFilter, setAuditEntityFilter] = useState<string>("all");
   const [auditActorFilter, setAuditActorFilter] = useState<string>("all");
+  const [auditClanFilter, setAuditClanFilter] = useState<string>("");
   const [validationField, setValidationField] = useState<string>("source");
   const [validationMatch, setValidationMatch] = useState<string>("");
   const [validationStatus, setValidationStatus] = useState<string>("valid");
@@ -159,12 +175,23 @@ function AdminClient(): JSX.Element {
   const [scoringScore, setScoringScore] = useState<string>("");
   const [scoringOrder, setScoringOrder] = useState<string>("1");
   const [scoringEditingId, setScoringEditingId] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"clans" | "rules" | "logs">("clans");
+  const [activeSection, setActiveSection] = useState<"clans" | "rules" | "logs" | "users">("clans");
   const [isClanModalOpen, setIsClanModalOpen] = useState<boolean>(false);
   const [clanModalMode, setClanModalMode] = useState<"create" | "edit">("create");
   const [clanModalName, setClanModalName] = useState<string>("");
   const [clanModalDescription, setClanModalDescription] = useState<string>("");
   const [defaultClanId, setDefaultClanId] = useState<string>("");
+  const [userSearch, setUserSearch] = useState<string>("");
+  const [userRows, setUserRows] = useState<readonly UserRow[]>([]);
+  const [gameAccountsByUserId, setGameAccountsByUserId] = useState<Record<string, GameAccountRow[]>>({});
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [newGameUsername, setNewGameUsername] = useState<string>("");
+  const [newGameDisplayName, setNewGameDisplayName] = useState<string>("");
+  const [userStatus, setUserStatus] = useState<string>("");
+  const [createUserEmail, setCreateUserEmail] = useState<string>("");
+  const [createUserUsername, setCreateUserUsername] = useState<string>("");
+  const [createUserDisplayName, setCreateUserDisplayName] = useState<string>("");
+  const [createUserStatus, setCreateUserStatus] = useState<string>("");
 
   const selectedClan = useMemo(
     () => clans.find((clan) => clan.id === selectedClanId),
@@ -343,13 +370,16 @@ function AdminClient(): JSX.Element {
       if (!normalizedSearch) {
         return true;
       }
-      const profile = profilesById[membership.user_id];
+      const userId = membership.game_accounts?.user_id ?? "";
+      const profile = userId ? profilesById[userId] : undefined;
       const searchText = [
+        membership.game_accounts?.display_name,
+        membership.game_accounts?.game_username,
         profile?.display_name,
         profile?.username_display,
         profile?.username,
         profile?.email,
-        membership.user_id,
+        userId,
       ]
         .filter((value): value is string => Boolean(value))
         .join(" ")
@@ -358,14 +388,14 @@ function AdminClient(): JSX.Element {
     });
   }, [memberRoleFilter, memberSearch, memberStatusFilter, memberships, profilesById]);
 
-  function resolveSection(value: string | null): "clans" | "rules" | "logs" {
-    if (value === "rules" || value === "logs") {
+  function resolveSection(value: string | null): "clans" | "rules" | "logs" | "users" {
+    if (value === "rules" || value === "logs" || value === "users") {
       return value;
     }
     return "clans";
   }
 
-  function updateActiveSection(nextSection: "clans" | "rules" | "logs"): void {
+  function updateActiveSection(nextSection: "clans" | "rules" | "logs" | "users"): void {
     setActiveSection(nextSection);
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", nextSection);
@@ -399,7 +429,9 @@ function AdminClient(): JSX.Element {
     }
     setClans(data ?? []);
     if (!selectedClanId && data && data.length > 0) {
-      setSelectedClanId(data[0].id);
+      const storedClanId = window.localStorage.getItem("tc.currentClanId") ?? "";
+      const matchedClan = storedClanId ? data.find((clan) => clan.id === storedClanId) : undefined;
+      setSelectedClanId(matchedClan?.id ?? data[0].id);
     }
   }
 
@@ -419,8 +451,8 @@ function AdminClient(): JSX.Element {
       return;
     }
     const { data, error } = await supabase
-      .from("clan_memberships")
-      .select("id,clan_id,user_id,role,is_active,rank")
+      .from("game_account_clan_memberships")
+      .select("id,clan_id,game_account_id,role,is_active,rank,game_accounts(id,user_id,game_username,display_name)")
       .eq("clan_id", clanId)
       .order("role");
     if (error) {
@@ -429,7 +461,9 @@ function AdminClient(): JSX.Element {
     }
     const membershipRows = data ?? [];
     setMemberships(membershipRows);
-    const userIds = membershipRows.map((row) => row.user_id);
+    const userIds = membershipRows
+      .map((row) => row.game_accounts?.user_id)
+      .filter((value): value is string => Boolean(value));
     if (userIds.length === 0) {
       setProfilesById({});
       return;
@@ -491,8 +525,12 @@ function AdminClient(): JSX.Element {
     const toIndex = fromIndex + pageSize - 1;
     let query = supabase
       .from("audit_logs")
-      .select("id,clan_id,actor_id,action,entity,entity_id,diff,created_at", { count: "exact" })
-      .eq("clan_id", clanId);
+      .select("id,clan_id,actor_id,action,entity,entity_id,diff,created_at", { count: "exact" });
+    const clanFilterValue =
+      auditClanFilter && auditClanFilter !== "all" ? auditClanFilter : clanId;
+    if (clanFilterValue) {
+      query = query.eq("clan_id", clanFilterValue);
+    }
     if (auditActionFilter !== "all") {
       query = query.eq("action", auditActionFilter);
     }
@@ -534,6 +572,127 @@ function AdminClient(): JSX.Element {
     setAuditActorsById(actorMap);
   }
 
+  async function loadUsers(): Promise<void> {
+    const query = supabase
+      .from("profiles")
+      .select("id,email,display_name,username,username_display")
+      .order("email")
+      .limit(25);
+    if (userSearch.trim()) {
+      const pattern = `%${userSearch.trim()}%`;
+      query.or(`email.ilike.${pattern},username.ilike.${pattern},display_name.ilike.${pattern}`);
+    }
+    const { data, error } = await query;
+    if (error) {
+      setUserStatus(`Failed to load users: ${error.message}`);
+      return;
+    }
+    const rows = (data ?? []) as UserRow[];
+    setUserRows(rows);
+    const userIds = rows.map((row) => row.id);
+    if (userIds.length === 0) {
+      setGameAccountsByUserId({});
+      return;
+    }
+    const { data: gameAccountData, error: gameAccountError } = await supabase
+      .from("game_accounts")
+      .select("id,user_id,game_username,display_name")
+      .in("user_id", userIds)
+      .order("game_username");
+    if (gameAccountError) {
+      setUserStatus(`Failed to load game accounts: ${gameAccountError.message}`);
+      return;
+    }
+    const mapped = (gameAccountData ?? []).reduce<Record<string, GameAccountRow[]>>((acc, account) => {
+      const list = acc[account.user_id] ?? [];
+      list.push(account);
+      acc[account.user_id] = list;
+      return acc;
+    }, {});
+    setGameAccountsByUserId(mapped);
+  }
+
+  async function handleAddGameAccount(): Promise<void> {
+    if (!selectedUserId) {
+      setUserStatus("Select a user first.");
+      return;
+    }
+    if (!newGameUsername.trim()) {
+      setUserStatus("Game username is required.");
+      return;
+    }
+    const displayNameValue = newGameDisplayName.trim() || newGameUsername.trim();
+    setUserStatus("Adding game account...");
+    const { error } = await supabase
+      .from("game_accounts")
+      .upsert(
+        {
+          user_id: selectedUserId,
+          game_username: newGameUsername.trim(),
+          display_name: displayNameValue,
+        },
+        { onConflict: "user_id,game_username" },
+      );
+    if (error) {
+      setUserStatus(`Failed to add game account: ${error.message}`);
+      return;
+    }
+    setNewGameUsername("");
+    setNewGameDisplayName("");
+    setUserStatus("Game account added.");
+    await loadUsers();
+  }
+
+  async function handleCreateUser(): Promise<void> {
+    if (!createUserEmail.trim()) {
+      setCreateUserStatus("Email is required.");
+      return;
+    }
+    setCreateUserStatus("Creating user...");
+    const response = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: createUserEmail.trim(),
+        username: createUserUsername.trim() || undefined,
+        displayName: createUserDisplayName.trim() || undefined,
+      }),
+    });
+    const payload = (await response.json()) as { id?: string; error?: string };
+    if (!response.ok) {
+      setCreateUserStatus(payload.error ?? "Failed to create user.");
+      return;
+    }
+    setCreateUserEmail("");
+    setCreateUserUsername("");
+    setCreateUserDisplayName("");
+    setCreateUserStatus("User created.");
+    await loadUsers();
+  }
+
+  async function handleResendInvite(email: string): Promise<void> {
+    if (!email) {
+      setCreateUserStatus("User email is required to resend invite.");
+      return;
+    }
+    const confirmResend = window.confirm(`Resend invite to ${email}?`);
+    if (!confirmResend) {
+      return;
+    }
+    setCreateUserStatus("Resending invite...");
+    const response = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const payload = (await response.json()) as { id?: string; error?: string };
+    if (!response.ok) {
+      setCreateUserStatus(payload.error ?? "Failed to resend invite.");
+      return;
+    }
+    setCreateUserStatus("Invite resent.");
+  }
+
   useEffect(() => {
     void loadClans();
     void loadDefaultClan();
@@ -545,21 +704,49 @@ function AdminClient(): JSX.Element {
   }, [searchParams]);
 
   useEffect(() => {
+    if (status) {
+      pushToast(status);
+    }
+  }, [pushToast, status]);
+
+  useEffect(() => {
     void loadMemberships(selectedClanId);
     void loadRules(selectedClanId);
   }, [selectedClanId]);
 
   useEffect(() => {
+    if (activeSection !== "users") {
+      return;
+    }
+    void loadUsers();
+  }, [activeSection, userSearch]);
+
+  useEffect(() => {
     setAuditPage(1);
   }, [selectedClanId]);
 
   useEffect(() => {
+    if (!auditClanFilter) {
+      setAuditClanFilter("all");
+    }
+  }, [auditClanFilter, selectedClanId]);
+
+  useEffect(() => {
     void loadAuditLogs(selectedClanId, auditPage, auditPageSize);
-  }, [auditActionFilter, auditActorFilter, auditEntityFilter, auditPage, auditPageSize, auditSearch, selectedClanId]);
+  }, [
+    auditActionFilter,
+    auditActorFilter,
+    auditClanFilter,
+    auditEntityFilter,
+    auditPage,
+    auditPageSize,
+    auditSearch,
+    selectedClanId,
+  ]);
 
   useEffect(() => {
     setAuditPage(1);
-  }, [auditActionFilter, auditActorFilter, auditEntityFilter, auditSearch]);
+  }, [auditActionFilter, auditActorFilter, auditClanFilter, auditEntityFilter, auditSearch]);
 
   useEffect(() => {
     if (clans.length === 0) {
@@ -676,6 +863,10 @@ function AdminClient(): JSX.Element {
       setMemberModalStatus("Username or email is required.");
       return;
     }
+    if (!memberGameUsername.trim()) {
+      setMemberModalStatus("Game username is required.");
+      return;
+    }
     let resolvedUserId = "";
     if (identifier) {
       const response = await fetch("/api/admin/user-lookup", {
@@ -700,86 +891,66 @@ function AdminClient(): JSX.Element {
       return;
     }
     setMemberModalStatus("Adding member...");
-    const payload = {
+    const displayNameValue = memberDisplayName.trim() || memberGameUsername.trim() || null;
+    const { data: gameAccountData, error: gameAccountError } = await supabase
+      .from("game_accounts")
+      .upsert(
+        {
+          user_id: resolvedUserId,
+          game_username: memberGameUsername.trim(),
+          display_name: displayNameValue,
+        },
+        { onConflict: "user_id,game_username" },
+      )
+      .select("id")
+      .single();
+    if (gameAccountError) {
+      setMemberModalStatus(`Failed to create game account: ${gameAccountError.message}`);
+      return;
+    }
+    const membershipPayload = {
       clan_id: selectedClanId,
-      user_id: resolvedUserId,
+      game_account_id: gameAccountData?.id ?? "",
       role: memberRole,
       is_active: memberActive,
       rank: memberRank.trim() || null,
     };
-    const previousMembership = membershipEditingId
-      ? memberships.find((membership) => membership.id === membershipEditingId)
-      : undefined;
-    const { data, error } = membershipEditingId
-      ? await supabase
-          .from("clan_memberships")
-          .update(payload)
-          .eq("id", membershipEditingId)
-          .select("id")
-          .single()
-      : await supabase
-          .from("clan_memberships")
-          .upsert(payload, { onConflict: "clan_id,user_id" })
-          .select("id")
-          .single();
-    if (error) {
-      setMemberModalStatus(`Failed to add member: ${error.message}`);
+    const { data: membershipData, error: membershipError } = await supabase
+      .from("game_account_clan_memberships")
+      .upsert(membershipPayload, { onConflict: "game_account_id,clan_id" })
+      .select("id")
+      .single();
+    if (membershipError) {
+      setMemberModalStatus(`Failed to add member: ${membershipError.message}`);
       return;
     }
-    const displayNameValue = memberDisplayName.trim() || memberUsername.trim() || null;
-    let shouldCloseModal = true;
-    if (displayNameValue) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ display_name: displayNameValue })
-        .eq("id", resolvedUserId);
-      if (profileError) {
-        setMemberModalStatus(
-          `Member added. Display name update failed: ${profileError.message}`,
-        );
-        shouldCloseModal = false;
-      }
-    }
-    const membershipId = data?.id ?? membershipEditingId;
+    const membershipId = membershipData?.id ?? "";
     const actorId = await getCurrentUserId();
-    const roleChanged = previousMembership?.role !== undefined && previousMembership.role !== payload.role;
-    const activeChanged =
-      previousMembership?.is_active !== undefined && previousMembership.is_active !== payload.is_active;
-    const isNewMembership = !previousMembership;
-    if (actorId && membershipId && (isNewMembership || roleChanged || activeChanged)) {
+    if (actorId && membershipId) {
       await insertAuditLogs([
         {
           clan_id: selectedClanId,
           actor_id: actorId,
-          action: membershipEditingId ? "update" : "upsert",
-          entity: "clan_memberships",
+          action: "upsert",
+          entity: "game_account_clan_memberships",
           entity_id: membershipId,
           diff: {
-            user_id: payload.user_id,
-            role: {
-              from: previousMembership?.role ?? null,
-              to: payload.role,
-            },
-            is_active: {
-              from: previousMembership?.is_active ?? null,
-              to: payload.is_active,
-            },
+            game_account_id: membershipPayload.game_account_id,
+            role: membershipPayload.role,
+            is_active: membershipPayload.is_active,
+            rank: membershipPayload.rank,
           },
         },
       ]);
     }
     setMemberUsername("");
     setMemberEmail("");
+    setMemberGameUsername("");
     setMemberDisplayName("");
     setMembershipEditingId("");
-    if (shouldCloseModal) {
-      setMemberModalStatus("Member updated.");
-      setIsMemberModalOpen(false);
-    }
+    setMemberModalStatus("Member updated.");
+    setIsMemberModalOpen(false);
     await loadMemberships(selectedClanId);
-    if (!shouldCloseModal) {
-      return;
-    }
   }
 
   async function handleDeleteMembership(membershipId: string): Promise<void> {
@@ -793,7 +964,7 @@ function AdminClient(): JSX.Element {
       return;
     }
     const membership = memberships.find((entry) => entry.id === membershipId);
-    const { error } = await supabase.from("clan_memberships").delete().eq("id", membershipId);
+    const { error } = await supabase.from("game_account_clan_memberships").delete().eq("id", membershipId);
     if (error) {
       setStatus(`Failed to delete membership: ${error.message}`);
       return;
@@ -804,10 +975,10 @@ function AdminClient(): JSX.Element {
           clan_id: membership.clan_id,
           actor_id: actorId,
           action: "delete",
-          entity: "clan_memberships",
+          entity: "game_account_clan_memberships",
           entity_id: membershipId,
           diff: {
-            user_id: membership.user_id,
+            game_account_id: membership.game_account_id,
             role: membership.role,
             is_active: membership.is_active,
           },
@@ -829,15 +1000,15 @@ function AdminClient(): JSX.Element {
   function updateMembershipEdit(membershipId: string, field: keyof MembershipEditState, value: string): void {
     setMembershipEdits((current) => {
       const baseMembership = memberships.find((entry) => entry.id === membershipId);
-      const baseProfile = baseMembership ? profilesById[baseMembership.user_id] : undefined;
+      const baseUserId = baseMembership?.game_accounts?.user_id;
+      const baseProfile = baseUserId ? profilesById[baseUserId] : undefined;
       const existing = current[membershipId] ?? {
         role: baseMembership?.role ?? "member",
         is_active: baseMembership?.is_active ?? true,
         rank: baseMembership?.rank ?? "",
         clan_id: baseMembership?.clan_id ?? selectedClanId,
-        display_name: baseProfile?.display_name ?? "",
-        username: baseProfile?.username_display ?? baseProfile?.username ?? "",
-        email: baseProfile?.email ?? "",
+        display_name: baseMembership?.game_accounts?.display_name ?? "",
+        game_username: baseMembership?.game_accounts?.game_username ?? "",
       };
       const nextValue = field === "is_active" ? value === "true" : value;
       return {
@@ -882,7 +1053,7 @@ function AdminClient(): JSX.Element {
     if (!edits || edits[field] === undefined) {
       return false;
     }
-    const baseProfile = profilesById[membership.user_id];
+    const baseGameAccount = membership.game_accounts;
     const nextValue = edits[field];
     if (field === "role") {
       return String(nextValue ?? "") !== membership.role;
@@ -896,56 +1067,34 @@ function AdminClient(): JSX.Element {
     if (field === "clan_id") {
       return String(nextValue ?? "") !== membership.clan_id;
     }
-    if (field === "username") {
-      const baseValue = baseProfile?.username_display ?? baseProfile?.username ?? "";
+    if (field === "game_username") {
+      const baseValue = baseGameAccount?.game_username ?? "";
       return String(nextValue ?? "") !== baseValue;
     }
     if (field === "display_name") {
-      const baseValue = baseProfile?.display_name ?? "";
-      return String(nextValue ?? "") !== baseValue;
-    }
-    if (field === "email") {
-      const baseValue = baseProfile?.email ?? "";
+      const baseValue = baseGameAccount?.display_name ?? "";
       return String(nextValue ?? "") !== baseValue;
     }
     return false;
   }
 
   function getMembershipEditValue(membership: MembershipRow): MembershipEditState {
-    const profile = profilesById[membership.user_id];
+    const baseGameAccount = membership.game_accounts;
     return {
       role: membershipEdits[membership.id]?.role ?? membership.role,
       is_active: membershipEdits[membership.id]?.is_active ?? membership.is_active,
       rank: membershipEdits[membership.id]?.rank ?? membership.rank ?? "",
       clan_id: membershipEdits[membership.id]?.clan_id ?? membership.clan_id,
-      display_name: membershipEdits[membership.id]?.display_name ?? profile?.display_name ?? "",
-      username:
-        membershipEdits[membership.id]?.username ??
-        profile?.username_display ??
-        profile?.username ??
-        "",
-      email: membershipEdits[membership.id]?.email ?? profile?.email ?? "",
+      display_name: membershipEdits[membership.id]?.display_name ?? baseGameAccount?.display_name ?? "",
+      game_username: membershipEdits[membership.id]?.game_username ?? baseGameAccount?.game_username ?? "",
     };
   }
 
   function validateMembershipEdit(membership: MembershipRow): string | null {
     const edits = getMembershipEditValue(membership);
-    const nextEmail = edits.email?.trim() ?? "";
-    if (!nextEmail) {
-      return "Email is required.";
-    }
-    if (!EMAIL_REGEX.test(nextEmail)) {
-      return "Email must be valid.";
-    }
-    const nextUsername = edits.username?.trim() ?? "";
-    if (!nextUsername) {
-      return "Username is required.";
-    }
-    if (nextUsername.length < USERNAME_MIN_LENGTH || nextUsername.length > USERNAME_MAX_LENGTH) {
-      return `Username must be ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} characters.`;
-    }
-    if (/\s/.test(nextUsername)) {
-      return "Username cannot contain spaces.";
+    const nextGameUsername = edits.game_username?.trim() ?? "";
+    if (!nextGameUsername) {
+      return "Game username is required.";
     }
     if (!edits.role?.trim()) {
       return "Role is required.";
@@ -975,33 +1124,35 @@ function AdminClient(): JSX.Element {
     const nextEdits = getMembershipEditValue(membership);
     const membershipPayload = {
       clan_id: nextEdits.clan_id ?? membership.clan_id,
-      user_id: membership.user_id,
+      game_account_id: membership.game_account_id,
       role: nextEdits.role ?? membership.role,
       is_active: nextEdits.is_active ?? membership.is_active,
       rank: nextEdits.rank ?? membership.rank,
     };
-    const { error } = await supabase.from("clan_memberships").update(membershipPayload).eq("id", membership.id);
+    const { error } = await supabase
+      .from("game_account_clan_memberships")
+      .update(membershipPayload)
+      .eq("id", membership.id);
     if (error) {
       setStatus(`Failed to update member: ${error.message}`);
       return;
     }
-    const profilePayload = {
-      id: membership.user_id,
-      email: nextEdits.email ?? profilesById[membership.user_id]?.email ?? "",
-      display_name: nextEdits.display_name ?? profilesById[membership.user_id]?.display_name ?? null,
-      username: nextEdits.username ? nextEdits.username.toLowerCase() : profilesById[membership.user_id]?.username,
-      username_display: nextEdits.username ?? profilesById[membership.user_id]?.username_display ?? null,
-    };
-    await supabase.from("profiles").upsert(profilePayload, { onConflict: "id" });
+    if (membership.game_accounts?.id) {
+      const gameAccountPayload = {
+        display_name: nextEdits.display_name ?? membership.game_accounts.display_name ?? null,
+        game_username: nextEdits.game_username ?? membership.game_accounts.game_username,
+      };
+      await supabase.from("game_accounts").update(gameAccountPayload).eq("id", membership.game_accounts.id);
+    }
     await insertAuditLogs([
       {
         clan_id: membership.clan_id,
         actor_id: actorId,
         action: "update",
-        entity: "clan_memberships",
+        entity: "game_account_clan_memberships",
         entity_id: membership.id,
         diff: {
-          user_id: membership.user_id,
+          game_account_id: membership.game_account_id,
           role: {
             from: membership.role,
             to: membershipPayload.role,
@@ -1069,6 +1220,7 @@ function AdminClient(): JSX.Element {
     setMembershipEditingId("");
     setMemberUsername("");
     setMemberEmail("");
+    setMemberGameUsername("");
     setMemberDisplayName("");
     setMemberRole("member");
     setMemberActive(true);
@@ -1083,20 +1235,19 @@ function AdminClient(): JSX.Element {
   }
 
   function getMembershipLabel(membership: MembershipRow): string {
-    const profile = profilesById[membership.user_id];
-    if (!profile) {
-      return membership.user_id;
+    const gameAccount = membership.game_accounts;
+    if (!gameAccount) {
+      return membership.game_account_id;
     }
-    if (profile.display_name && profile.display_name.trim()) {
-      return profile.display_name;
+    if (gameAccount.display_name && gameAccount.display_name.trim()) {
+      return gameAccount.display_name;
     }
-    if (profile.username_display && profile.username_display.trim()) {
-      return profile.username_display;
+    if (gameAccount.game_username && gameAccount.game_username.trim()) {
+      return gameAccount.game_username;
     }
-    if (profile.username && profile.username.trim()) {
-      return profile.username;
-    }
-    return profile.email;
+    const userId = gameAccount.user_id;
+    const profile = userId ? profilesById[userId] : undefined;
+    return profile?.email ?? gameAccount.id;
   }
 
   function getAuditActorLabel(actorId: string): string {
@@ -1326,6 +1477,13 @@ function AdminClient(): JSX.Element {
             Clans & Members
           </button>
           <button
+            className={`tab ${activeSection === "users" ? "active" : ""}`}
+            type="button"
+            onClick={() => updateActiveSection("users")}
+          >
+            Users
+          </button>
+          <button
             className={`tab ${activeSection === "rules" ? "active" : ""}`}
             type="button"
             onClick={() => updateActiveSection("rules")}
@@ -1506,9 +1664,9 @@ function AdminClient(): JSX.Element {
         ) : (
           <div className="table members">
             <header>
-              <span>Username</span>
+              <span>Game Username</span>
               <span>Role</span>
-              <span>Email</span>
+              <span>User Email</span>
               <span>Display name</span>
               <span>Clan</span>
               <span>Rank</span>
@@ -1518,10 +1676,10 @@ function AdminClient(): JSX.Element {
             {filteredMemberships.map((membership) => (
               <div className="row" key={membership.id}>
                 <input
-                  className={isMembershipFieldChanged(membership, "username") ? "is-edited" : undefined}
-                  value={getMembershipEditValue(membership).username ?? ""}
-                  onChange={(event) => updateMembershipEdit(membership.id, "username", event.target.value)}
-                  placeholder="Username"
+                  className={isMembershipFieldChanged(membership, "game_username") ? "is-edited" : undefined}
+                  value={getMembershipEditValue(membership).game_username ?? ""}
+                  onChange={(event) => updateMembershipEdit(membership.id, "game_username", event.target.value)}
+                  placeholder="Game username"
                 />
                 <select
                   className={isMembershipFieldChanged(membership, "role") ? "is-edited" : undefined}
@@ -1534,12 +1692,11 @@ function AdminClient(): JSX.Element {
                     </option>
                   ))}
                 </select>
-                <input
-                  className={isMembershipFieldChanged(membership, "email") ? "is-edited" : undefined}
-                  value={getMembershipEditValue(membership).email ?? ""}
-                  onChange={(event) => updateMembershipEdit(membership.id, "email", event.target.value)}
-                  placeholder="Email"
-                />
+                <span className="text-muted">
+                  {membership.game_accounts?.user_id
+                    ? profilesById[membership.game_accounts.user_id]?.email ?? "-"
+                    : "-"}
+                </span>
                 <input
                   className={isMembershipFieldChanged(membership, "display_name") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).display_name ?? ""}
@@ -1599,6 +1756,167 @@ function AdminClient(): JSX.Element {
             ))}
           </div>
         )}
+      </section>
+      ) : null}
+      {activeSection === "users" ? (
+      <section className="card" style={{ gridColumn: "span 12" }}>
+        <div className="card-header">
+          <div>
+            <div className="card-title">Users & Game Accounts</div>
+            <div className="card-subtitle">Manage users and their game accounts</div>
+          </div>
+          <span className="badge">{userRows.length}</span>
+        </div>
+        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <label htmlFor="userSearch" className="text-muted">
+            Search
+          </label>
+          <input
+            id="userSearch"
+            value={userSearch}
+            onChange={(event) => setUserSearch(event.target.value)}
+            placeholder="Email, username, or display name"
+          />
+        </div>
+        <div className="list">
+          {userRows.length === 0 ? (
+            <div className="list-item">
+              <span>No users found</span>
+              <span className="badge">Adjust search</span>
+            </div>
+          ) : (
+            userRows.map((user) => (
+              <div className="list-item" key={user.id}>
+                <div>
+                  <div>{user.email}</div>
+                  <div className="text-muted">
+                    {user.display_name ?? user.username_display ?? user.username ?? user.id}
+                  </div>
+                </div>
+                <div className="list">
+                  <span className="badge">
+                    {(gameAccountsByUserId[user.id] ?? []).length} game account(s)
+                  </span>
+                  <button
+                    className="button"
+                    type="button"
+                    onClick={() => setSelectedUserId(user.id)}
+                  >
+                    Select
+                  </button>
+                  <button
+                    className="button"
+                    type="button"
+                    onClick={() => handleResendInvite(user.email)}
+                  >
+                    Resend Invite
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="card-header">
+          <div>
+            <div className="card-title">Add Game Account</div>
+            <div className="card-subtitle">Attach a new game account to a user</div>
+          </div>
+        </div>
+        <div className="form-group">
+          <label htmlFor="selectedUser">Selected user</label>
+          <select
+            id="selectedUser"
+            value={selectedUserId}
+            onChange={(event) => setSelectedUserId(event.target.value)}
+          >
+            <option value="">Select a user</option>
+            {userRows.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.email}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label htmlFor="newGameUsername">Game username</label>
+          <input
+            id="newGameUsername"
+            value={newGameUsername}
+            onChange={(event) => setNewGameUsername(event.target.value)}
+            placeholder="In-game account name"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="newGameDisplayName">Display name</label>
+          <input
+            id="newGameDisplayName"
+            value={newGameDisplayName}
+            onChange={(event) => setNewGameDisplayName(event.target.value)}
+            placeholder="Defaults to game username"
+          />
+        </div>
+        <div className="list">
+          {userStatus ? <div className="alert info">{userStatus}</div> : null}
+          <button className="button primary" type="button" onClick={handleAddGameAccount}>
+            Add Game Account
+          </button>
+        </div>
+        <div className="list">
+          {selectedUserId ? (
+            (gameAccountsByUserId[selectedUserId] ?? []).map((account) => (
+              <div className="list-item" key={account.id}>
+                <div>
+                  <div>{account.game_username}</div>
+                  <div className="text-muted">{account.display_name ?? "-"}</div>
+                </div>
+                <span className="badge">Game Account</span>
+              </div>
+            ))
+          ) : (
+            <div className="list-item">
+              <span>Select a user to view game accounts</span>
+            </div>
+          )}
+        </div>
+        <div className="card-header">
+          <div>
+            <div className="card-title">Create User</div>
+            <div className="card-subtitle">Provision a new account</div>
+          </div>
+        </div>
+        <div className="form-group">
+          <label htmlFor="createUserEmail">Email</label>
+          <input
+            id="createUserEmail"
+            value={createUserEmail}
+            onChange={(event) => setCreateUserEmail(event.target.value)}
+            placeholder="user@example.com"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="createUserUsername">Username (optional)</label>
+          <input
+            id="createUserUsername"
+            value={createUserUsername}
+            onChange={(event) => setCreateUserUsername(event.target.value)}
+            placeholder="username"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="createUserDisplayName">Display name (optional)</label>
+          <input
+            id="createUserDisplayName"
+            value={createUserDisplayName}
+            onChange={(event) => setCreateUserDisplayName(event.target.value)}
+            placeholder="Display name"
+          />
+        </div>
+        <div className="list">
+          {createUserStatus ? <div className="alert info">{createUserStatus}</div> : null}
+          <button className="button primary" type="button" onClick={handleCreateUser}>
+            Create User
+          </button>
+        </div>
       </section>
       ) : null}
       {activeSection === "rules" ? (
@@ -2276,6 +2594,21 @@ function AdminClient(): JSX.Element {
             onChange={(event) => setAuditSearch(event.target.value)}
             placeholder="Action, entity, or id"
           />
+          <label htmlFor="auditClanFilter" className="text-muted">
+            Clan
+          </label>
+          <select
+            id="auditClanFilter"
+            value={auditClanFilter || "all"}
+            onChange={(event) => setAuditClanFilter(event.target.value)}
+          >
+            <option value="all">All</option>
+            {clans.map((clan) => (
+              <option key={clan.id} value={clan.id}>
+                {clan.name}
+              </option>
+            ))}
+          </select>
           <label htmlFor="auditActionFilter" className="text-muted">
             Action
           </label>
@@ -2326,6 +2659,7 @@ function AdminClient(): JSX.Element {
             type="button"
             onClick={() => {
               setAuditSearch("");
+              setAuditClanFilter("all");
               setAuditActionFilter("all");
               setAuditEntityFilter("all");
               setAuditActorFilter("all");
@@ -2454,7 +2788,7 @@ function AdminClient(): JSX.Element {
             <div className="card-header">
               <div>
                 <div className="card-title">Add Member</div>
-                <div className="card-subtitle">Use username, email, or user ID</div>
+                <div className="card-subtitle">Link an existing user to a game account</div>
               </div>
             </div>
             <form onSubmit={handleAddMember}>
@@ -2481,12 +2815,21 @@ function AdminClient(): JSX.Element {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="displayName">Display name</label>
+                <label htmlFor="gameUsername">Game username</label>
+                <input
+                  id="gameUsername"
+                  value={memberGameUsername}
+                  onChange={(event) => setMemberGameUsername(event.target.value)}
+                  placeholder="In-game account name"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="displayName">Game display name</label>
                 <input
                   id="displayName"
                   value={memberDisplayName}
                   onChange={(event) => setMemberDisplayName(event.target.value)}
-                  placeholder="Optional display name"
+                  placeholder="Defaults to game username"
                 />
               </div>
               <div className="form-group">

@@ -15,6 +15,7 @@ interface MembershipView {
   readonly clan_id: string;
   readonly role: string;
   readonly is_active: boolean;
+  readonly game_accounts: { readonly game_username: string; readonly display_name: string | null } | null;
 }
 
 interface ClanView {
@@ -75,9 +76,9 @@ async function ProfilePage(): Promise<JSX.Element> {
       "Unknown",
   };
   const { data: membershipData } = await supabase
-    .from("clan_memberships")
-    .select("clan_id,role,is_active")
-    .eq("user_id", userId)
+    .from("game_account_clan_memberships")
+    .select("clan_id,role,is_active,game_accounts(game_username,display_name)")
+    .eq("game_accounts.user_id", userId)
     .eq("is_active", true)
     .order("role");
   const memberships = membershipData ?? [];
@@ -171,6 +172,13 @@ async function ProfilePage(): Promise<JSX.Element> {
                   <div>
                     <div>{clansById[membership.clan_id]?.name ?? membership.clan_id}</div>
                     <div className="text-muted">{membership.clan_id}</div>
+                    {membership.game_accounts ? (
+                      <div className="text-muted">
+                        {membership.game_accounts.display_name ??
+                          membership.game_accounts.game_username ??
+                          "Game account"}
+                      </div>
+                    ) : null}
                   </div>
                   <span className="badge">{membership.role}</span>
                 </div>

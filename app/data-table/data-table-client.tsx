@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import DatePicker from "../components/date-picker";
+import { useToast } from "../components/toast-provider";
 
 interface ChestEntryRow {
   readonly id: string;
@@ -51,6 +52,7 @@ const DATE_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}$/;
  */
 function DataTableClient(): JSX.Element {
   const supabase = createSupabaseBrowserClient();
+  const { pushToast } = useToast();
   const [rows, setRows] = useState<readonly ChestEntryRow[]>([]);
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
   const [editMap, setEditMap] = useState<Record<string, EditableRow>>({});
@@ -235,6 +237,25 @@ function DataTableClient(): JSX.Element {
   ]);
 
   useEffect(() => {
+    const storedClanId = window.localStorage.getItem("tc.currentClanId") ?? "";
+    if (storedClanId && filterClanId === "all") {
+      setFilterClanId(storedClanId);
+      setPage(1);
+    }
+    function handleContextChange(): void {
+      const nextClanId = window.localStorage.getItem("tc.currentClanId") ?? "";
+      if (nextClanId) {
+        setFilterClanId(nextClanId);
+        setPage(1);
+      }
+    }
+    window.addEventListener("clan-context-change", handleContextChange);
+    return () => {
+      window.removeEventListener("clan-context-change", handleContextChange);
+    };
+  }, [filterClanId]);
+
+  useEffect(() => {
     async function loadClans(): Promise<void> {
       const { data, error } = await supabase.from("clans").select("id,name").order("name");
       if (error) {
@@ -244,6 +265,12 @@ function DataTableClient(): JSX.Element {
     }
     void loadClans();
   }, [supabase]);
+
+  useEffect(() => {
+    if (status) {
+      pushToast(status);
+    }
+  }, [pushToast, status]);
 
   useEffect(() => {
     if (!selectAllRef.current) {
@@ -516,6 +543,8 @@ function DataTableClient(): JSX.Element {
     if (!confirmSave) {
       return;
     }
+    let hasValidationError = false;
+    const nextErrors: Record<string, string> = {};
     const userId = await getCurrentUserId();
     if (!userId) {
       setStatus("You must be logged in to update rows.");
@@ -530,10 +559,16 @@ function DataTableClient(): JSX.Element {
       const edits = editMap[rowId];
       const errorMessage = validateRow(row, edits);
       if (errorMessage) {
-        setRowErrors((current) => ({ ...current, [rowId]: errorMessage }));
+        nextErrors[rowId] = errorMessage;
+        hasValidationError = true;
         continue;
       }
       await handleSaveRow(row);
+    }
+    if (hasValidationError) {
+      setRowErrors((current) => ({ ...current, ...nextErrors }));
+      setStatus("Some rows need fixes before saving.");
+      return;
     }
     setStatus("All changes saved.");
   }

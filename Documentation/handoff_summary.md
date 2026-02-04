@@ -64,7 +64,7 @@ This file is a compact context transfer for a new chat.
 
 ## Supabase SQL (Important)
 Run `Documentation/supabase_chest_entries.sql` in Supabase SQL Editor:
-- Creates: `clans`, `clan_memberships`, `profiles`, `roles`, `ranks`, `permissions`,
+- Creates: `clans`, `game_accounts`, `game_account_clan_memberships`, `profiles`, `roles`, `ranks`, `permissions`,
   `role_permissions`, `rank_permissions`, `cross_clan_permissions`,
   `validation_rules`, `correction_rules`, `scoring_rules`, `chest_entries`, `audit_logs`
 - Adds RLS policies and `updated_at` triggers.
@@ -72,7 +72,7 @@ Run `Documentation/supabase_chest_entries.sql` in Supabase SQL Editor:
 - Adds username casing enforcement and admin‑only username change trigger.
 - Adds `get_email_for_username` RPC for username login.
 - Adds global default clan (`clans.is_default`) + single‑default trigger.
-- Adds `rank` column on `clan_memberships`.
+- Adds `rank` column on `game_account_clan_memberships`.
 
 ## SQL Migrations Checklist (re‑run safe)
 Run these if the base SQL has not been run or if upgrades were applied incrementally:
@@ -83,8 +83,8 @@ Run these if the base SQL has not been run or if upgrades were applied increment
    - Username case‑insensitive unique index + length constraint.
 2. **Audit logs**
    - `audit_logs` table + RLS policies.
-3. **Clan memberships**
-   - `rank` column on `clan_memberships`.
+3. **Game account clan memberships**
+   - `rank` column on `game_account_clan_memberships`.
 4. **Global default clan**
    - `clans.is_default` column + single‑default trigger.
 
@@ -119,5 +119,5 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 - `get_email_for_username` RPC + grant.
 - `is_any_admin` + `prevent_username_change` trigger.
 - `clans.is_default` column + single‑default trigger.
-- `rank` column on `clan_memberships`.
+- `rank` column on `game_account_clan_memberships`.
 

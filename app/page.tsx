@@ -1,4 +1,5 @@
 import AuthActions from "./components/auth-actions";
+import ClanScopeBanner from "./components/clan-scope-banner";
 
 /**
  * Renders the dashboard landing page layout.
@@ -16,6 +17,7 @@ function HomePage(): JSX.Element {
         </div>
       </section>
       <div className="grid">
+        <ClanScopeBanner />
         <section className="card">
           <div className="card-header">
             <div>

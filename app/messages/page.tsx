@@ -15,6 +15,9 @@ function MessagesPage(): JSX.Element {
         </div>
       </section>
       <div className="grid">
+        <div className="alert info" style={{ gridColumn: "span 12" }}>
+          Messages are global to your user account.
+        </div>
         <section className="card">
           <div className="card-header">
             <div>

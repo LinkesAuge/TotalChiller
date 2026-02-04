@@ -18,6 +18,16 @@ interface NavSection {
   readonly adminOnly?: boolean;
 }
 
+interface ClanContextOption {
+  readonly clanId: string;
+  readonly gameAccountId: string;
+  readonly clanName: string;
+  readonly gameLabel: string;
+}
+
+const CLAN_STORAGE_KEY: string = "tc.currentClanId";
+const GAME_ACCOUNT_STORAGE_KEY: string = "tc.currentGameAccountId";
+
 const navSections: readonly NavSection[] = [
   {
     title: "Main",
@@ -63,6 +73,8 @@ function SidebarNav(): JSX.Element {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [clanOptions, setClanOptions] = useState<readonly ClanContextOption[]>([]);
+  const [selectedClanKey, setSelectedClanKey] = useState<string>("");
 
   useEffect(() => {
     let isActive = true;
@@ -95,6 +107,57 @@ function SidebarNav(): JSX.Element {
     };
   }, [supabase]);
 
+  useEffect(() => {
+    let isActive = true;
+    async function loadClanOptions(): Promise<void> {
+      if (!isAuthenticated) {
+        return;
+      }
+      const { data, error } = await supabase
+        .from("game_account_clan_memberships")
+        .select("clan_id,game_account_id,clans(name),game_accounts(game_username,display_name)")
+        .eq("is_active", true);
+      if (!isActive || error) {
+        return;
+      }
+      const options =
+        data?.map((row) => ({
+          clanId: row.clan_id as string,
+          gameAccountId: row.game_account_id as string,
+          clanName: (row.clans as { name: string } | null)?.name ?? "Clan",
+          gameLabel:
+            (row.game_accounts as { display_name: string | null; game_username: string } | null)
+              ?.display_name ??
+            (row.game_accounts as { display_name: string | null; game_username: string } | null)
+              ?.game_username ??
+            "Game account",
+        })) ?? [];
+      setClanOptions(options);
+      const storedClanId = window.localStorage.getItem(CLAN_STORAGE_KEY) ?? "";
+      const storedGameAccountId = window.localStorage.getItem(GAME_ACCOUNT_STORAGE_KEY) ?? "";
+      const storedKey =
+        storedClanId && storedGameAccountId ? `${storedClanId}:${storedGameAccountId}` : "";
+      const hasStored = options.some(
+        (option) => `${option.clanId}:${option.gameAccountId}` === storedKey,
+      );
+      if (hasStored) {
+        setSelectedClanKey(storedKey);
+        return;
+      }
+      const first = options[0];
+      if (first) {
+        const nextKey = `${first.clanId}:${first.gameAccountId}`;
+        window.localStorage.setItem(CLAN_STORAGE_KEY, first.clanId);
+        window.localStorage.setItem(GAME_ACCOUNT_STORAGE_KEY, first.gameAccountId);
+        setSelectedClanKey(nextKey);
+      }
+    }
+    void loadClanOptions();
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated, supabase]);
+
   if (isLoading) {
     return <nav className="nav" />;
   }
@@ -110,6 +173,32 @@ function SidebarNav(): JSX.Element {
         </div>
       ) : (
         <>
+          <div className="nav-group">
+            <div className="nav-group-title">Current Clan</div>
+            {clanOptions.length === 0 ? (
+              <span className="text-muted">No clan access yet</span>
+            ) : (
+              <select
+                value={selectedClanKey}
+                onChange={(event) => {
+                  const nextKey = event.target.value;
+                  setSelectedClanKey(nextKey);
+                  const [clanId, gameAccountId] = nextKey.split(":");
+                  if (clanId && gameAccountId) {
+                    window.localStorage.setItem(CLAN_STORAGE_KEY, clanId);
+                    window.localStorage.setItem(GAME_ACCOUNT_STORAGE_KEY, gameAccountId);
+                    window.dispatchEvent(new Event("clan-context-change"));
+                  }
+                }}
+              >
+                {clanOptions.map((option) => (
+                  <option key={`${option.clanId}:${option.gameAccountId}`} value={`${option.clanId}:${option.gameAccountId}`}>
+                    {option.clanName} • {option.gameLabel}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           {navSections.map((section) => {
             if (section.adminOnly && !isAdmin) {
               return null;

@@ -590,15 +590,47 @@ function DataImportClient(): JSX.Element {
     const clanIdByName = new Map<string, string>(
       (finalClans ?? []).map((clan) => [clan.name, clan.id]),
     );
+    const { data: existingGameAccount } = await supabase
+      .from("game_accounts")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    let gameAccountId = existingGameAccount?.id ?? "";
+    if (!gameAccountId) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("username,username_display")
+        .eq("id", userId)
+        .maybeSingle();
+      const fallbackUsername = profileData?.username_display ?? profileData?.username ?? "game-account";
+      const { data: gameAccountData, error: gameAccountError } = await supabase
+        .from("game_accounts")
+        .upsert(
+          {
+            user_id: userId,
+            game_username: fallbackUsername,
+            display_name: profileData?.username_display ?? profileData?.username ?? null,
+          },
+          { onConflict: "user_id,game_username" },
+        )
+        .select("id")
+        .single();
+      if (gameAccountError) {
+        setCommitStatus(`Failed to ensure game account: ${gameAccountError.message}`);
+        setIsCommitting(false);
+        return;
+      }
+      gameAccountId = gameAccountData?.id ?? "";
+    }
     const membershipPayload = Array.from(clanIdByName.values()).map((clanId) => ({
       clan_id: clanId,
-      user_id: userId,
+      game_account_id: gameAccountId,
       role: "member",
       is_active: true,
     }));
     const { error: membershipError } = await supabase
-      .from("clan_memberships")
-      .upsert(membershipPayload, { onConflict: "clan_id,user_id" });
+      .from("game_account_clan_memberships")
+      .upsert(membershipPayload, { onConflict: "game_account_id,clan_id" });
     if (membershipError) {
       setCommitStatus(`Failed to ensure clan membership: ${membershipError.message}`);
       setIsCommitting(false);

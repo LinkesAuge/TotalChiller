@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import DatePicker from "../components/date-picker";
 import { useToast } from "../components/toast-provider";
+import RadixSelect from "../components/ui/radix-select";
 
 interface ChestEntryRow {
   readonly id: string;
@@ -635,21 +636,19 @@ function DataTableClient(): JSX.Element {
               </div>
               <div className="form-group">
                 <label htmlFor="filterClan">Clan</label>
-                <select
+                <RadixSelect
                   id="filterClan"
+                  ariaLabel="Clan"
                   value={filterClanId}
-                  onChange={(event) => {
-                    setFilterClanId(event.target.value);
+                  onValueChange={(value) => {
+                    setFilterClanId(value);
                     setPage(1);
                   }}
-                >
-                  <option value="all">All</option>
-                  {availableClans.map((clan) => (
-                    <option key={clan.id} value={clan.id}>
-                      {clan.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "all", label: "All" },
+                    ...availableClans.map((clan) => ({ value: clan.id, label: clan.name })),
+                  ]}
+                />
               </div>
               <div className="form-group">
                 <label htmlFor="filterDateFrom">Date from</label>
@@ -731,17 +730,19 @@ function DataTableClient(): JSX.Element {
         {status ? <p className="text-muted">{status}</p> : null}
         <div className="list-item">
           <span>Page size</span>
-          <select
-            value={pageSize}
-            onChange={(event) => {
-              setPageSize(Number(event.target.value));
+          <RadixSelect
+            ariaLabel="Page size"
+            value={String(pageSize)}
+            onValueChange={(value) => {
+              setPageSize(Number(value));
               setPage(1);
             }}
-          >
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
+            options={[
+              { value: "10", label: "10" },
+              { value: "20", label: "20" },
+              { value: "50", label: "50" },
+            ]}
+          />
         </div>
       </section>
       <div className="table-toolbar">
@@ -828,16 +829,12 @@ function DataTableClient(): JSX.Element {
                 value={getRowValue(row, "score")}
                 onChange={(event) => updateEditValue(row.id, "score", event.target.value)}
               />
-              <select
+              <RadixSelect
+                ariaLabel="Clan"
                 value={getRowValue(row, "clan_id")}
-                onChange={(event) => updateEditValue(row.id, "clan_id", event.target.value)}
-              >
-                {availableClans.map((clan) => (
-                  <option key={clan.id} value={clan.id}>
-                    {clan.name}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(value) => updateEditValue(row.id, "clan_id", value)}
+                options={availableClans.map((clan) => ({ value: clan.id, label: clan.name }))}
+              />
               <div className="list inline">
                 <button className="button" type="button" onClick={() => handleSaveRow(row)}>
                   Save

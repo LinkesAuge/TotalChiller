@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import getIsAdminAccess from "../../lib/supabase/admin-access";
+import RadixSelect from "./ui/radix-select";
 
 interface NavItem {
   readonly href: string;
@@ -177,25 +178,23 @@ function SidebarNav(): JSX.Element {
             {clanOptions.length === 0 ? (
               <span className="text-muted">No clan access yet</span>
             ) : (
-              <select
+              <RadixSelect
+                ariaLabel="Current clan"
                 value={selectedClanKey}
-                onChange={(event) => {
-                  const nextKey = event.target.value;
-                  setSelectedClanKey(nextKey);
-                  const [clanId, gameAccountId] = nextKey.split(":");
+                onValueChange={(value) => {
+                  setSelectedClanKey(value);
+                  const [clanId, gameAccountId] = value.split(":");
                   if (clanId && gameAccountId) {
                     window.localStorage.setItem(CLAN_STORAGE_KEY, clanId);
                     window.localStorage.setItem(GAME_ACCOUNT_STORAGE_KEY, gameAccountId);
                     window.dispatchEvent(new Event("clan-context-change"));
                   }
                 }}
-              >
-                {clanOptions.map((option) => (
-                  <option key={`${option.clanId}:${option.gameAccountId}`} value={`${option.clanId}:${option.gameAccountId}`}>
-                    {option.clanName} • {option.gameLabel}
-                  </option>
-                ))}
-              </select>
+                options={clanOptions.map((option) => ({
+                  value: `${option.clanId}:${option.gameAccountId}`,
+                  label: `${option.clanName} • ${option.gameLabel}`,
+                }))}
+              />
             )}
           </div>
           {navSections.map((section) => {

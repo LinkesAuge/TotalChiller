@@ -24,16 +24,12 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - created_at (timestamp)
 - updated_at (timestamp)
 
-### user_aliases
-- id (uuid, pk)
-- user_id (uuid, fk users)
-- alias (text)
-- created_at (timestamp)
-
 ### clans
 - id (uuid, pk)
 - name (text, unique)
 - description (text)
+- is_default (boolean, default: false)
+- is_unassigned (boolean, default: false)
 - created_at (timestamp)
 - updated_at (timestamp)
 
@@ -41,7 +37,6 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - id (uuid, pk)
 - user_id (uuid, fk users)
 - game_username (text)
-- display_name (text, nullable)
 - created_at (timestamp)
 - updated_at (timestamp)
 
@@ -50,10 +45,15 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - game_account_id (uuid, fk game_accounts)
 - clan_id (uuid, fk clans)
 - rank (text, enum: leader, superior, officer, veteran, soldier)
-- role (text, enum: owner, admin, moderator, editor, member, guest)
 - is_active (bool)
 - created_at (timestamp)
 - updated_at (timestamp)
+
+### user_roles
+- id (uuid, pk)
+- user_id (uuid, fk users)
+- role (text, enum: owner, admin, moderator, editor, member, guest)
+- created_at (timestamp)
 
 ### roles
 - id (uuid, pk)
@@ -173,16 +173,6 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - diff (jsonb)
 - created_at (timestamp)
 
-### events
-- id (uuid, pk)
-- clan_id (uuid, fk clans)
-- title (text)
-- description (text)
-- start_at (timestamp)
-- end_at (timestamp)
-- created_by (uuid, fk users)
-- created_at (timestamp)
-
 ### messages
 - id (uuid, pk)
 - clan_id (uuid, fk clans)
@@ -241,3 +231,4 @@ Permissions are additive: Role + Rank + Cross‑Clan overrides.
 ## Notes
 - All clan-scoped permissions should be enforced by Supabase RLS.
 - Global access should be modeled via `cross_clan_permissions`.
+- Roles are global per user via `user_roles`; memberships track rank and active status only.

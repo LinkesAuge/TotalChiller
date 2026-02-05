@@ -14,14 +14,19 @@ This file is a compact context transfer for a new chat.
   - New tables: `game_accounts`, `game_account_clan_memberships`.
   - RLS updated to use game-account memberships.
 - **Clan context selector**
-  - Sidebar dropdown selects current clan + game account.
+  - Sidebar dropdown selects current clan + game account (custom Radix select).
   - Stored in `localStorage`; `ClanScopeBanner` shows current context.
   - Files: `app/components/sidebar-nav.tsx`, `app/components/clan-scope-banner.tsx`, `app/components/use-clan-context.ts`
+- **Admin gating**
+  - Admin routes protected by `proxy.ts` with `/not-authorized` fallback.
+  - Admin toggle + safeguard to keep at least one admin.
+  - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
 - **Admin UI**
-  - Tabs: Clans & Members, Users, Rules, Audit Logs, Data Import, Data Table.
-  - Clans & Members now manages **game accounts** (not users).
-  - Users tab supports search, add game accounts, create users (invite), resend invite.
-  - Files: `app/admin/admin-client.tsx`, `app/api/admin/create-user/route.ts`
+  - Tabs: Clan Management, Users, Rules, Audit Logs, Data Import, Data Table.
+  - Clan Management manages **game accounts** (not users) and supports assign‑to‑clan modal.
+  - Users tab supports search/filters, inline edits, add game accounts, create users (invite), delete users.
+  - Global save/cancel applies to user + game account edits.
+  - Files: `app/admin/admin-client.tsx`, `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`
 - **Data import (Pattern 1)**
   - Creates missing clans, ensures a default game account for uploader.
   - Writes memberships to `game_account_clan_memberships`.
@@ -39,20 +44,24 @@ This file is a compact context transfer for a new chat.
 - **Toasts**
   - Global toast provider for status messages.
   - `app/components/toast-provider.tsx`
+- **Custom dropdowns**
+  - Replaced native selects with Radix select styling globally.
+  - `app/components/ui/radix-select.tsx`, `app/globals.css`
 
 ## Supabase SQL (Important)
 
 Run `Documentation/supabase_chest_entries.sql` in Supabase SQL Editor:
 
 - Creates: `clans`, `game_accounts`, `game_account_clan_memberships`, `profiles`, `roles`, `ranks`, `permissions`,
-  `role_permissions`, `rank_permissions`, `cross_clan_permissions`, `validation_rules`, `correction_rules`,
-  `scoring_rules`, `chest_entries`, `audit_logs`, `articles`, `events`
+  `role_permissions`, `rank_permissions`, `cross_clan_permissions`, `user_roles`, `validation_rules`,
+  `correction_rules`, `scoring_rules`, `chest_entries`, `audit_logs`, `articles`, `events`
 - Adds RLS policies and `updated_at` triggers.
 - Adds trigger to sync `auth.users` → `profiles`.
 - Adds username casing enforcement and admin‑only username change trigger.
 - Adds `get_email_for_username` RPC for username login.
 - Adds global default clan (`clans.is_default`) + single‑default trigger.
 - Adds `rank` column on `game_account_clan_memberships`.
+- Moves roles to `user_roles` (no membership role column).
 
 ## SQL Migrations Checklist (re‑run safe)
 
@@ -82,11 +91,9 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Remaining TODOs (Suggested Next Steps)
 
-1. **Admin gating**
-   - Replace open admin access with proper permissions (decide model).
-2. **Charts implementation**
+1. **Charts implementation**
    - Replace placeholders with real charts.
-3. **Messages**
+2. **Messages**
    - Decide data model (global per user) and build real UI.
 
 ## Known Behaviors

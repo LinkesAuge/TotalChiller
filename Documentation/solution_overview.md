@@ -29,7 +29,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 
 - **users**: profile, status, language.
 - **game_accounts**: per-user game accounts.
-- **game_account_clan_memberships**: clan membership per game account.
+- **game_account_clan_memberships**: clan membership per game account (rank, status).
 - **clans**: metadata.
 - **roles**: base permissions.
 - **ranks**: rank-based permission add-ons.
@@ -38,6 +38,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **rules**: validation, correction, scoring with precedence.
 - **audit_logs**: edit/delete/batch operations tracking.
 - **profiles**: user_db (case‑insensitive), username, display_name.
+- **user_roles**: global user role per user.
 - **clans**: global default flag (`is_default`).
 - **articles**: news/announcements per clan.
 - **events**: clan events.
@@ -105,7 +106,7 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Route pages: `news`, `charts`, `events`, `messages`, `admin`, `admin/data-import`, `admin/data-table`.
 - Supabase Auth wiring in `lib/supabase/` and `app/auth/login`.
 - Auth pages: `app/auth/register`, `app/auth/forgot`.
-- Middleware guard: `middleware.ts` redirects unauthenticated users to `/home`. Admin gating is currently open to authenticated users.
+- Proxy guard: `proxy.ts` redirects unauthenticated users to `/home`, enforces admin access for admin routes with `/not-authorized` fallback.
 - Added `app/auth/update` for reset flows and `app/components/auth-actions.tsx` for sign-out.
 - Protected example: `app/profile` (middleware enforces auth).
 
@@ -142,7 +143,10 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Admin user lookup by email via `app/api/admin/user-lookup`.
 - Rules now support create, edit, and delete in admin UI.
 - Admin tabs include Clans & Members, Users, Rules, Audit Logs, Data Import, Data Table.
-- Membership table now manages game accounts (game username, display name, clan, rank, role, status).
+- Membership table now manages game accounts (game username, clan, rank, status).
+- Roles are assigned globally via `user_roles`.
+- Clan Management supports assign‑to‑clan modal and batch save/cancel.
+- Custom Radix selects replace native dropdowns across the app.
 - Global default clan is stored in `clans.is_default`.
 - Clan context selector in sidebar scopes clan data views.
 
@@ -166,6 +170,6 @@ Reference image: `Documentation/totalbattle_ui.png`
 
 ## Outstanding/Follow-up
 
-- Decide admin gating model (currently open to authenticated users).
+- Admin gating is enforced; review if permissions need tightening.
 - Implement real charts (Recharts/Nivo).
 - Decide messages data model (global per user) and build real UI.

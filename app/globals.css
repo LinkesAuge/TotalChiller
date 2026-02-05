@@ -393,11 +393,13 @@ body {
   row-gap: 6px;
 }
 
+
 .table.users .row .user-actions {
   row-gap: 6px;
 }
 
-.table.users input.editable-field.is-edited {
+.table.users input.editable-field.is-edited,
+.table.users .select-trigger.is-edited {
   border-color: var(--color-gold);
   box-shadow: 0 0 0 2px rgba(201, 163, 74, 0.2);
   background-color: rgba(20, 44, 65, 0.85);
@@ -754,7 +756,7 @@ body {
 }
 
 .table.users input,
-.table.users select,
+.table.users .select-trigger,
 .table.users .editable-button {
   width: 100%;
   min-width: 0;
@@ -771,14 +773,14 @@ body {
   justify-content: flex-start;
 }
 
-.table.members select,
+.table.members .select-trigger,
 .table.members input {
   background-color: rgba(8, 18, 28, 0.95);
   border-color: rgba(201, 163, 74, 0.35);
   color: var(--color-text);
 }
 
-.table.members select[data-role="status-select"] {
+.table.members .select-trigger[data-role="status-select"] {
   min-width: 120px;
 }
 
@@ -787,14 +789,15 @@ body {
   align-items: center;
 }
 
-.table.members select.is-edited,
+.table.members .select-trigger.is-edited,
 .table.members input.is-edited {
   border-color: var(--color-gold);
   box-shadow: 0 0 0 2px rgba(201, 163, 74, 0.2);
   background-color: rgba(20, 44, 65, 0.85);
 }
 
-.table.members select:focus,
+.table.members .select-trigger:focus-visible,
+.table.members .select-trigger[data-state="open"],
 .table.members input:focus {
   border-color: var(--color-gold);
   box-shadow: 0 0 0 2px rgba(201, 163, 74, 0.25);
@@ -872,6 +875,85 @@ select {
   background-size: 12px 8px;
 }
 
+.select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background-color: rgba(8, 13, 20, 0.6);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  min-width: 220px;
+  transition: var(--transition-fast);
+}
+
+.select-trigger:focus-visible,
+.select-trigger[data-state="open"] {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(201, 163, 74, 0.15);
+  background-color: rgba(8, 13, 20, 0.8);
+  outline: none;
+}
+
+.select-icon {
+  display: inline-flex;
+  color: var(--color-gold);
+}
+
+.select-content {
+  background-color: rgba(8, 13, 20, 0.95);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+}
+
+.select-viewport {
+  display: grid;
+  gap: 4px;
+}
+
+.select-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.select-item[data-highlighted] {
+  background-color: rgba(33, 42, 62, 0.7);
+  outline: none;
+}
+
+.select-item[data-state="checked"] {
+  background-color: rgba(33, 42, 62, 0.4);
+}
+
+.select-item-indicator {
+  color: var(--color-gold);
+  display: inline-flex;
+}
+
+.select-item-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+}
+
 .date-picker-input {
   width: 100%;
   padding-right: 40px;
@@ -897,7 +979,8 @@ textarea::placeholder {
 
 input:disabled,
 textarea:disabled,
-select:disabled {
+select:disabled,
+.select-trigger:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -1053,7 +1136,7 @@ select:disabled {
   min-width: 60px;
 }
 
-.admin-clan-row select {
+.admin-clan-row .select-trigger {
   min-width: 220px;
 }
 

@@ -34,6 +34,7 @@ This plan outlines the minimum testing coverage for the data import flow, role-b
 - Admin can manage users and rules.
 - RLS policies block unauthorized access at DB level.
 - User with multiple game accounts can access multiple clans.
+- Admin routes reject non-admin users and show `/not-authorized`.
 
 ## 3. Data Editing & Audit Logs
 
@@ -62,6 +63,7 @@ This plan outlines the minimum testing coverage for the data import flow, role-b
 - News create flow attaches selected clan.
 - Events create flow attaches selected clan.
 - Data table defaults to selected clan filter.
+- Clan Management assign modal assigns selected accounts to active clan.
 
 ## 5. UI Smoke Tests
 
@@ -69,3 +71,4 @@ This plan outlines the minimum testing coverage for the data import flow, role-b
 - Auth screens render and submit without errors (mocked).
 - Data table pagination and filters do not crash.
 - News/events CRUD flows function with clan context.
+- Custom dropdowns render and allow selection without layout issues.

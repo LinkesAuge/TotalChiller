@@ -5,6 +5,7 @@ import { z } from "zod";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import useClanContext from "../components/use-clan-context";
 import { useToast } from "../components/toast-provider";
+import RadixSelect from "../components/ui/radix-select";
 
 interface ArticleRow {
   readonly id: string;
@@ -196,18 +197,30 @@ function NewsClient(): JSX.Element {
           </div>
           <div className="form-group">
             <label htmlFor="newsType">Type</label>
-            <select id="newsType" value={type} onChange={(event) => setType(event.target.value as "news" | "announcement")}>
-              <option value="news">news</option>
-              <option value="announcement">announcement</option>
-            </select>
+            <RadixSelect
+              id="newsType"
+              ariaLabel="Type"
+              value={type}
+              onValueChange={(value) => setType(value as "news" | "announcement")}
+              options={[
+                { value: "news", label: "news" },
+                { value: "announcement", label: "announcement" },
+              ]}
+            />
           </div>
           <div className="form-group">
             <label htmlFor="newsStatus">Status</label>
-            <select id="newsStatus" value={status} onChange={(event) => setStatus(event.target.value as "draft" | "pending" | "published")}>
-              <option value="draft">draft</option>
-              <option value="pending">pending</option>
-              <option value="published">published</option>
-            </select>
+            <RadixSelect
+              id="newsStatus"
+              ariaLabel="Status"
+              value={status}
+              onValueChange={(value) => setStatus(value as "draft" | "pending" | "published")}
+              options={[
+                { value: "draft", label: "draft" },
+                { value: "pending", label: "pending" },
+                { value: "published", label: "published" },
+              ]}
+            />
           </div>
           <div className="form-group">
             <label htmlFor="newsTags">Tags</label>
@@ -261,18 +274,16 @@ function NewsClient(): JSX.Element {
         </div>
         <div className="form-group">
           <label htmlFor="tagFilter">Tag</label>
-          <select
+          <RadixSelect
             id="tagFilter"
+            ariaLabel="Tag"
             value={tagFilter}
-            onChange={(event) => setTagFilter(event.target.value)}
-          >
-            <option value="all">All</option>
-            {availableTags.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => setTagFilter(value)}
+            options={[
+              { value: "all", label: "All" },
+              ...availableTags.map((tag) => ({ value: tag, label: tag })),
+            ]}
+          />
         </div>
       </section>
       {articles.length === 0 ? (

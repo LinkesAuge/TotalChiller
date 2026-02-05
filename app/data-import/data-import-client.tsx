@@ -4,6 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { z } from "zod";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import DatePicker from "../components/date-picker";
+import RadixSelect from "../components/ui/radix-select";
 
 interface CsvRow {
   readonly date: string;
@@ -704,10 +705,11 @@ function DataImportClient(): JSX.Element {
           </div>
             <div className="list-item">
               <span>Apply corrections</span>
-              <select
+              <RadixSelect
+                ariaLabel="Apply corrections"
                 value={applyCorrections ? "true" : "false"}
-                onChange={(event) => {
-                  const nextValue = event.target.value === "true";
+                onValueChange={(value) => {
+                  const nextValue = value === "true";
                   setApplyCorrections(nextValue);
                   const baseRows = nextValue ? originalRows.map(applyRuleCorrections) : originalRows;
                   const nextRows = applyManualEdits(baseRows, manualEdits);
@@ -717,20 +719,23 @@ function DataImportClient(): JSX.Element {
                   setValidationMessages(warnings);
                   setValidationErrors(validationIssues);
                 }}
-              >
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
+                options={[
+                  { value: "true", label: "true" },
+                  { value: "false", label: "false" },
+                ]}
+              />
             </div>
             <div className="list-item">
               <span>Apply scoring</span>
-              <select
+              <RadixSelect
+                ariaLabel="Apply scoring"
                 value={applyScoring ? "true" : "false"}
-                onChange={(event) => setApplyScoring(event.target.value === "true")}
-              >
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
+                onValueChange={(value) => setApplyScoring(value === "true")}
+                options={[
+                  { value: "true", label: "true" },
+                  { value: "false", label: "false" },
+                ]}
+              />
             </div>
         </div>
         {statusMessage ? <p className="text-muted">{statusMessage}</p> : null}
@@ -861,19 +866,15 @@ function DataImportClient(): JSX.Element {
                   onChange={(event) => updateRowValue(index, "score", event.target.value)}
                   disabled={applyScoring}
                 />
-                <select
+                <RadixSelect
+                  ariaLabel="Clan"
                   value={row.clan}
-                  onChange={(event) => updateRowValue(index, "clan", event.target.value)}
-                >
-                  {!availableClans.includes(row.clan) ? (
-                    <option value={row.clan}>{row.clan}</option>
-                  ) : null}
-                  {availableClans.map((clan) => (
-                    <option key={clan} value={clan}>
-                      {clan}
-                    </option>
-                  ))}
-                </select>
+                  onValueChange={(value) => updateRowValue(index, "clan", value)}
+                  options={[
+                    ...(!availableClans.includes(row.clan) ? [{ value: row.clan, label: row.clan }] : []),
+                    ...availableClans.map((clan) => ({ value: clan, label: clan })),
+                  ]}
+                />
               </div>
             ))
           )}

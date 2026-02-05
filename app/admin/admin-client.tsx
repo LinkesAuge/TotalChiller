@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import RadixSelect from "../components/ui/radix-select";
 import { useRouter, useSearchParams } from "next/navigation";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import { useToast } from "../components/toast-provider";
@@ -35,6 +36,15 @@ interface MembershipEditState {
 
 interface GameAccountEditState {
   readonly game_username?: string;
+}
+
+interface AssignableGameAccount {
+  readonly id: string;
+  readonly user_id: string;
+  readonly game_username: string;
+  readonly clan_id: string | null;
+  readonly user_email: string;
+  readonly user_display: string;
 }
 
 interface ProfileRow {
@@ -208,6 +218,21 @@ function AdminClient(): JSX.Element {
   const [userErrors, setUserErrors] = useState<Record<string, string>>({});
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [activeEditingUserId, setActiveEditingUserId] = useState<string>("");
+  const [assignAccounts, setAssignAccounts] = useState<readonly AssignableGameAccount[]>([]);
+  const [assignSelectedIds, setAssignSelectedIds] = useState<readonly string[]>([]);
+  const [assignSearch, setAssignSearch] = useState<string>("");
+  const [assignFilter, setAssignFilter] = useState<"unassigned" | "current" | "other" | "all">("unassigned");
+  const [assignStatus, setAssignStatus] = useState<string>("");
+  const [isAssignAccountsModalOpen, setIsAssignAccountsModalOpen] = useState<boolean>(false);
+  const clanSelectNone = "__none__";
+  const clanSelectValue = selectedClanId || clanSelectNone;
+  const clanSelectOptions = useMemo(
+    () => [
+      { value: clanSelectNone, label: "Select a clan" },
+      ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
+    ],
+    [clans, clanSelectNone],
+  );
   const [createUserEmail, setCreateUserEmail] = useState<string>("");
   const [createUserUsername, setCreateUserUsername] = useState<string>("");
   const [createUserDisplayName, setCreateUserDisplayName] = useState<string>("");
@@ -274,15 +299,128 @@ function AdminClient(): JSX.Element {
 
   function handleUserRowClick(userId: string): void {
     if (activeEditingUserId && activeEditingUserId !== userId) {
-      setUserEdits({});
-      setUserErrors({});
-      setGameAccountEdits({});
-      setMembershipEdits({});
-      setMembershipErrors({});
       setActiveGameAccountId("");
       setActiveEditingUserId("");
     }
     toggleUserExpanded(userId);
+  }
+
+  function openAssignAccountsModal(): void {
+    if (!selectedClanId) {
+      setStatus("Select a clan before assigning game accounts.");
+      return;
+    }
+    setAssignSelectedIds([]);
+    setAssignSearch("");
+    setAssignFilter("unassigned");
+    setAssignStatus("");
+    setIsAssignAccountsModalOpen(true);
+    void loadAssignableGameAccounts();
+  }
+
+  function closeAssignAccountsModal(): void {
+    setIsAssignAccountsModalOpen(false);
+    setAssignSelectedIds([]);
+    setAssignSearch("");
+    setAssignStatus("");
+  }
+
+  async function handleAssignAccounts(): Promise<void> {
+    if (!selectedClanId) {
+      setAssignStatus("Select a clan before assigning.");
+      return;
+    }
+    if (assignSelectedIds.length === 0) {
+      setAssignStatus("Select at least one game account to assign.");
+      return;
+    }
+    setAssignStatus("Assigning game accounts...");
+    const { error } = await supabase
+      .from("game_account_clan_memberships")
+      .update({ clan_id: selectedClanId })
+      .in("game_account_id", assignSelectedIds);
+    if (error) {
+      setAssignStatus(`Failed to assign: ${error.message}`);
+      return;
+    }
+    setAssignStatus("Assignments updated.");
+    await loadMemberships(selectedClanId);
+    await loadUsers();
+    closeAssignAccountsModal();
+  }
+
+  const filteredAssignableAccounts = useMemo(() => {
+    const normalizedSearch = assignSearch.trim().toLowerCase();
+    return assignAccounts.filter((account) => {
+      if (assignFilter === "unassigned" && account.clan_id !== unassignedClanId) {
+        return false;
+      }
+      if (assignFilter === "current" && account.clan_id !== selectedClanId) {
+        return false;
+      }
+      if (assignFilter === "other" && (!account.clan_id || account.clan_id === selectedClanId)) {
+        return false;
+      }
+      if (!normalizedSearch) {
+        return true;
+      }
+      const target = `${account.game_username} ${account.user_email} ${account.user_display}`.toLowerCase();
+      return target.includes(normalizedSearch);
+    });
+  }, [assignAccounts, assignFilter, assignSearch, selectedClanId, unassignedClanId]);
+
+  function toggleAssignSelection(accountId: string): void {
+    setAssignSelectedIds((current) => {
+      if (current.includes(accountId)) {
+        return current.filter((id) => id !== accountId);
+      }
+      return [...current, accountId];
+    });
+  }
+
+  function updateGameAccountState(accountId: string, nextUsername: string): void {
+    setGameAccountsByUserId((current) => {
+      const updated: Record<string, GameAccountRow[]> = {};
+      Object.entries(current).forEach(([userId, accounts]) => {
+        updated[userId] = accounts.map((account) =>
+          account.id === accountId ? { ...account, game_username: nextUsername } : account,
+        );
+      });
+      return updated;
+    });
+    setUserMembershipsByAccountId((current) => {
+      const membership = current[accountId];
+      if (!membership || !membership.game_accounts) {
+        return current;
+      }
+      return {
+        ...current,
+        [accountId]: {
+          ...membership,
+          game_accounts: {
+            ...membership.game_accounts,
+            game_username: nextUsername,
+          },
+        },
+      };
+    });
+    setMemberships((current) =>
+      current.map((membership) => {
+        if (membership.game_accounts?.id !== accountId || !membership.game_accounts) {
+          return membership;
+        }
+        return {
+          ...membership,
+          game_accounts: {
+            ...membership.game_accounts,
+            game_username: nextUsername,
+          },
+        };
+      }),
+    );
+    setAssignAccounts((current) =>
+      current.map((account) => (account.id === accountId ? { ...account, game_username: nextUsername } : account)),
+    );
   }
 
   const filteredValidationRules = useMemo(() => {
@@ -683,6 +821,63 @@ function AdminClient(): JSX.Element {
       return acc;
     }, {});
     setAuditActorsById(actorMap);
+  }
+
+  async function loadAssignableGameAccounts(): Promise<void> {
+    if (unassignedClanId) {
+      await ensureUnassignedMemberships();
+    }
+    const { data: accountData, error: accountError } = await supabase
+      .from("game_accounts")
+      .select("id,user_id,game_username")
+      .order("game_username");
+    if (accountError) {
+      setAssignStatus(`Failed to load game accounts: ${accountError.message}`);
+      return;
+    }
+    const accounts = accountData ?? [];
+    const accountIds = accounts.map((account) => account.id);
+    const userIds = accounts.map((account) => account.user_id);
+    if (accountIds.length === 0 || userIds.length === 0) {
+      setAssignAccounts([]);
+      return;
+    }
+    const { data: membershipData, error: membershipError } = await supabase
+      .from("game_account_clan_memberships")
+      .select("game_account_id,clan_id")
+      .in("game_account_id", accountIds);
+    if (membershipError) {
+      setAssignStatus(`Failed to load memberships: ${membershipError.message}`);
+      return;
+    }
+    const membershipMap = (membershipData ?? []).reduce<Record<string, string | null>>((acc, membership) => {
+      acc[membership.game_account_id] = membership.clan_id;
+      return acc;
+    }, {});
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("id,email,display_name,username")
+      .in("id", userIds);
+    if (profileError) {
+      setAssignStatus(`Failed to load profiles: ${profileError.message}`);
+      return;
+    }
+    const profileMap = (profileData ?? []).reduce<Record<string, ProfileRow>>((acc, profile) => {
+      acc[profile.id] = profile;
+      return acc;
+    }, {});
+    const assignable = accounts.map<AssignableGameAccount>((account) => {
+      const profile = profileMap[account.user_id];
+      return {
+        id: account.id,
+        user_id: account.user_id,
+        game_username: account.game_username,
+        clan_id: membershipMap[account.id] ?? null,
+        user_email: profile?.email ?? "",
+        user_display: profile?.display_name ?? profile?.username ?? "",
+      };
+    });
+    setAssignAccounts(assignable);
   }
 
   async function loadUsers(): Promise<void> {
@@ -1335,6 +1530,7 @@ function AdminClient(): JSX.Element {
       setUserStatus(`Failed to update game account: ${error.message}`);
       return false;
     }
+    updateGameAccountState(account.id, nextUsername);
     cancelGameAccountEdit(account.id);
     setActiveGameAccountId("");
     setUserStatus("Game account updated.");
@@ -1712,13 +1908,14 @@ function AdminClient(): JSX.Element {
       }
     }
     if (membership.game_accounts?.id && gameAccountEdits[membership.game_accounts.id]) {
+      const shouldReloadUsers = shouldReload && activeSection === "users";
       await handleSaveGameAccountEdit(
         {
           id: membership.game_accounts.id,
           user_id: membership.game_accounts.user_id ?? "",
           game_username: membership.game_accounts.game_username,
         },
-        false,
+        shouldReloadUsers,
       );
     }
     if (membershipPayload) {
@@ -2087,86 +2284,168 @@ function AdminClient(): JSX.Element {
             <div className="card-title">Clan Management</div>
             <div className="card-subtitle">{selectedClan ? selectedClan.name : "Select a clan"}</div>
           </div>
+          <button
+            className="button icon-button danger"
+            type="button"
+            onClick={openClanDeleteConfirm}
+            disabled={!selectedClanId || selectedClanId === unassignedClanId}
+            title="Delete clan"
+            aria-label="Delete clan"
+          >
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M8 2.5L13.5 12.5H2.5L8 2.5Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+              <path d="M8 6V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M8 11.2H8.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
         <div className="admin-clan-row">
           <label htmlFor="selectedClan">Clan</label>
-          <select
+          <RadixSelect
             id="selectedClan"
-            value={selectedClanId}
-            onChange={(event) => setSelectedClanId(event.target.value)}
-          >
-            <option value="">Select a clan</option>
-            {clans.map((clan) => (
-              <option key={clan.id} value={clan.id}>
-                {clan.name}
-              </option>
-            ))}
-          </select>
+            ariaLabel="Clan"
+            value={clanSelectValue}
+            onValueChange={(value) => setSelectedClanId(value === clanSelectNone ? "" : value)}
+            options={clanSelectOptions}
+            renderOptionContent={(option) => {
+              if (option.value === clanSelectNone) {
+                return option.label;
+              }
+              return (
+                <span className="select-item-content">
+                  <span>{option.label}</span>
+                  {defaultClanId && option.value === defaultClanId ? (
+                    <span className="badge select-badge">Default</span>
+                  ) : null}
+                </span>
+              );
+            }}
+          />
           <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
             <span className="text-muted">Clan actions</span>
             <div className="list inline">
-            <button className="button primary" type="button" onClick={openCreateClanModal}>
-              Create Clan
-            </button>
-            <button className="button" type="button" onClick={openEditClanModal} disabled={!selectedClanId}>
-              Edit Clan
-            </button>
-            <button
-              className="button danger"
-              type="button"
-              onClick={openClanDeleteConfirm}
-              disabled={!selectedClanId || selectedClanId === unassignedClanId}
-            >
-              Delete Clan
-            </button>
-            <button
-              className="button"
-              type="button"
-              onClick={() => {
-                if (!selectedClanId) {
-                  setStatus("Select a clan to set default.");
-                  return;
-                }
-                void supabase
-                  .from("clans")
-                  .update({ is_default: true })
-                  .eq("id", selectedClanId)
-                  .then(({ error }) => {
-                    if (error) {
-                      setStatus(`Failed to set default: ${error.message}`);
-                      return;
-                    }
-                    setDefaultClanId(selectedClanId);
-                    setStatus("Default clan saved.");
-                  });
-              }}
-              disabled={!selectedClanId}
-            >
-              Set Default
-            </button>
-            {selectedClanId && selectedClanId === defaultClanId ? <span className="badge">Default</span> : null}
-            {selectedClanId && selectedClanId === defaultClanId ? (
               <button
-                className="button"
+                className="button icon-button primary"
+                type="button"
+                onClick={openCreateClanModal}
+                title="Create clan"
+                aria-label="Create clan"
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+              <button
+                className="button icon-button"
+                type="button"
+                onClick={openEditClanModal}
+                disabled={!selectedClanId}
+                title="Edit clan"
+                aria-label="Edit clan"
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M3 11.5L4 8.5L10.5 2L14 5.5L7.5 12L3 11.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M9.5 3L13 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+              <button
+                className="button icon-button"
+                type="button"
+                onClick={openAssignAccountsModal}
+                disabled={!selectedClanId}
+                title="Assign game accounts"
+                aria-label="Assign game accounts"
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M5 6.5C6.1 6.5 7 5.6 7 4.5C7 3.4 6.1 2.5 5 2.5C3.9 2.5 3 3.4 3 4.5C3 5.6 3.9 6.5 5 6.5Z" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M1.5 12.5C1.5 10.6 3.1 9 5 9C6.9 9 8.5 10.6 8.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M11 5V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M8.5 8H13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+              <button
+                className="button icon-button"
                 type="button"
                 onClick={() => {
+                  if (!selectedClanId) {
+                    setStatus("Select a clan to set default.");
+                    return;
+                  }
                   void supabase
                     .from("clans")
-                    .update({ is_default: false })
+                    .update({ is_default: true })
                     .eq("id", selectedClanId)
                     .then(({ error }) => {
                       if (error) {
-                        setStatus(`Failed to clear default: ${error.message}`);
+                        setStatus(`Failed to set default: ${error.message}`);
                         return;
                       }
-                      setDefaultClanId("");
-                      setStatus("Default clan cleared.");
+                      setDefaultClanId(selectedClanId);
+                      setStatus("Default clan saved.");
                     });
                 }}
+                disabled={!selectedClanId}
+                title="Set default clan"
+                aria-label="Set default clan"
               >
-                Clear Default
+                <svg
+                  aria-hidden="true"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill={selectedClanId && selectedClanId === defaultClanId ? "currentColor" : "none"}
+                >
+                  <path
+                    d="M8 2.5L9.7 6.1L13.5 6.6L10.7 9.2L11.4 13L8 11.1L4.6 13L5.3 9.2L2.5 6.6L6.3 6.1L8 2.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
-            ) : null}
+              {selectedClanId && selectedClanId === defaultClanId ? (
+                <button
+                  className="button icon-button"
+                  type="button"
+                  onClick={() => {
+                    void supabase
+                      .from("clans")
+                      .update({ is_default: false })
+                      .eq("id", selectedClanId)
+                      .then(({ error }) => {
+                        if (error) {
+                          setStatus(`Failed to clear default: ${error.message}`);
+                          return;
+                        }
+                        setDefaultClanId("");
+                        setStatus("Default clan cleared.");
+                      });
+                  }}
+                  title="Clear default clan"
+                  aria-label="Clear default clan"
+                >
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M8 2.5L9.7 6.1L13.5 6.6L10.7 9.2L11.4 13L8 11.1L4.6 13L5.3 9.2L2.5 6.6L6.3 6.1L8 2.5Z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                    <path d="M3 13L13 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -2184,31 +2463,31 @@ function AdminClient(): JSX.Element {
           <label htmlFor="memberRankFilter" className="text-muted">
             Rank
           </label>
-          <select
+          <RadixSelect
             id="memberRankFilter"
+            ariaLabel="Rank filter"
             value={memberRankFilter}
-            onChange={(event) => setMemberRankFilter(event.target.value)}
-          >
-            <option value="all">All</option>
-            <option value="">None</option>
-            {rankOptions.map((rank) => (
-              <option key={rank} value={rank}>
-                {formatLabel(rank)}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => setMemberRankFilter(value)}
+            options={[
+              { value: "all", label: "All" },
+              { value: "", label: "None" },
+              ...rankOptions.map((rank) => ({ value: rank, label: formatLabel(rank) })),
+            ]}
+          />
           <label htmlFor="memberStatusFilter" className="text-muted">
             Status
           </label>
-          <select
+          <RadixSelect
             id="memberStatusFilter"
+            ariaLabel="Status filter"
             value={memberStatusFilter}
-            onChange={(event) => setMemberStatusFilter(event.target.value)}
-          >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+            onValueChange={(value) => setMemberStatusFilter(value)}
+            options={[
+              { value: "all", label: "All" },
+              { value: "active", label: "Active" },
+              { value: "inactive", label: "Inactive" },
+            ]}
+          />
           <button
             className="button"
             type="button"
@@ -2312,38 +2591,34 @@ function AdminClient(): JSX.Element {
                       : "-"}
                   </div>
                 </div>
-                <select
-                  className={isMembershipFieldChanged(membership, "clan_id") ? "is-edited" : undefined}
+                <RadixSelect
+                  ariaLabel="Clan"
                   value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
-                  onChange={(event) => updateMembershipEdit(membership.id, "clan_id", event.target.value)}
-                >
-                  {clans.map((clan) => (
-                    <option key={clan.id} value={clan.id}>
-                      {clan.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className={isMembershipFieldChanged(membership, "rank") ? "is-edited" : undefined}
+                  onValueChange={(value) => updateMembershipEdit(membership.id, "clan_id", value)}
+                  options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
+                  triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "clan_id") ? " is-edited" : ""}`}
+                />
+                <RadixSelect
+                  ariaLabel="Rank"
                   value={getMembershipEditValue(membership).rank ?? ""}
-                  onChange={(event) => updateMembershipEdit(membership.id, "rank", event.target.value)}
-                >
-                  <option value="">None</option>
-                  {rankOptions.map((rank) => (
-                    <option key={rank} value={rank}>
-                      {formatLabel(rank)}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className={isMembershipFieldChanged(membership, "is_active") ? "is-edited" : undefined}
+                  onValueChange={(value) => updateMembershipEdit(membership.id, "rank", value)}
+                  options={[
+                    { value: "", label: "None" },
+                    ...rankOptions.map((rank) => ({ value: rank, label: formatLabel(rank) })),
+                  ]}
+                  triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "rank") ? " is-edited" : ""}`}
+                />
+                <RadixSelect
+                  ariaLabel="Status"
                   value={getMembershipEditValue(membership).is_active ? "true" : "false"}
-                  onChange={(event) => updateMembershipEdit(membership.id, "is_active", event.target.value)}
-                  data-role="status-select"
-                >
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
+                  onValueChange={(value) => updateMembershipEdit(membership.id, "is_active", value)}
+                  options={[
+                    { value: "true", label: "Active" },
+                    { value: "false", label: "Inactive" },
+                  ]}
+                  triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
+                  triggerDataRole="status-select"
+                />
                 <div className="list inline">
                   <button
                     className="button icon-button"
@@ -2421,30 +2696,30 @@ function AdminClient(): JSX.Element {
           <label htmlFor="userRoleFilter" className="text-muted">
             Role
           </label>
-          <select
+          <RadixSelect
             id="userRoleFilter"
+            ariaLabel="Role filter"
             value={userRoleFilter}
-            onChange={(event) => setUserRoleFilter(event.target.value)}
-          >
-            <option value="all">All</option>
-            {roleOptions.map((role) => (
-              <option key={role} value={role}>
-                {formatLabel(role)}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => setUserRoleFilter(value)}
+            options={[
+              { value: "all", label: "All" },
+              ...roleOptions.map((role) => ({ value: role, label: formatLabel(role) })),
+            ]}
+          />
           <label htmlFor="userAdminFilter" className="text-muted">
             Admin
           </label>
-          <select
+          <RadixSelect
             id="userAdminFilter"
+            ariaLabel="Admin filter"
             value={userAdminFilter}
-            onChange={(event) => setUserAdminFilter(event.target.value)}
-          >
-            <option value="all">All</option>
-            <option value="admin">Admin</option>
-            <option value="member">Non-admin</option>
-          </select>
+            onValueChange={(value) => setUserAdminFilter(value)}
+            options={[
+              { value: "all", label: "All" },
+              { value: "admin", label: "Admin" },
+              { value: "member", label: "Non-admin" },
+            ]}
+          />
           <button
             className="button"
             type="button"
@@ -2517,7 +2792,7 @@ function AdminClient(): JSX.Element {
               const isExpanded = expandedUserIds.includes(user.id);
               const accounts = gameAccountsByUserId[user.id] ?? [];
               const edits = getUserEditValue(user);
-              const isEditing = Boolean(userEdits[user.id]);
+              const isEditing = activeEditingUserId === user.id;
               return (
                 <div key={user.id}>
                   <div
@@ -2561,7 +2836,7 @@ function AdminClient(): JSX.Element {
                             beginUserEdit(user);
                           }}
                         >
-                          {user.username ?? "-"}
+                        {edits.username || "-"}
                         </button>
                       )}
                     </div>
@@ -2582,21 +2857,18 @@ function AdminClient(): JSX.Element {
                           beginUserEdit(user);
                         }}
                       >
-                        {user.display_name ?? "-"}
+                        {edits.display_name || "-"}
                       </button>
                     )}
-                    <select
-                      className={isUserFieldChanged(user, "role") ? "is-edited" : undefined}
-                      value={edits.role ?? getUserRole(user.id)}
-                      onClick={(event) => event.stopPropagation()}
-                      onChange={(event) => updateUserEdit(user.id, "role", event.target.value)}
-                    >
-                      {roleOptions.map((role) => (
-                        <option key={role} value={role}>
-                          {formatLabel(role)}
-                        </option>
-                      ))}
-                    </select>
+                    <div onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+                      <RadixSelect
+                        ariaLabel="Role"
+                        value={edits.role ?? getUserRole(user.id)}
+                        onValueChange={(value) => updateUserEdit(user.id, "role", value)}
+                        options={roleOptions.map((role) => ({ value: role, label: formatLabel(role) }))}
+                        triggerClassName={`select-trigger${isUserFieldChanged(user, "role") ? " is-edited" : ""}`}
+                      />
+                    </div>
                     <div>{user.is_admin ? "Yes" : "No"}</div>
                     <div className="text-muted" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <span className="badge" aria-label={`${accounts.length} game accounts`}>
@@ -2857,38 +3129,34 @@ function AdminClient(): JSX.Element {
                                     <div>{user.email}</div>
                                     <div className="text-muted">{user.display_name ?? user.username ?? "-"}</div>
                                   </div>
-                                  <select
-                                    className={isMembershipFieldChanged(membership, "clan_id") ? "is-edited" : undefined}
+                                  <RadixSelect
+                                    ariaLabel="Clan"
                                     value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
-                                    onChange={(event) => updateMembershipEdit(membership.id, "clan_id", event.target.value)}
-                                  >
-                                    {clans.map((clan) => (
-                                      <option key={clan.id} value={clan.id}>
-                                        {clan.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <select
-                                    className={isMembershipFieldChanged(membership, "rank") ? "is-edited" : undefined}
+                                    onValueChange={(value) => updateMembershipEdit(membership.id, "clan_id", value)}
+                                    options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
+                                    triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "clan_id") ? " is-edited" : ""}`}
+                                  />
+                                  <RadixSelect
+                                    ariaLabel="Rank"
                                     value={getMembershipEditValue(membership).rank ?? ""}
-                                    onChange={(event) => updateMembershipEdit(membership.id, "rank", event.target.value)}
-                                  >
-                                    <option value="">None</option>
-                                    {rankOptions.map((rank) => (
-                                      <option key={rank} value={rank}>
-                                        {formatLabel(rank)}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <select
-                                    className={isMembershipFieldChanged(membership, "is_active") ? "is-edited" : undefined}
+                                    onValueChange={(value) => updateMembershipEdit(membership.id, "rank", value)}
+                                    options={[
+                                      { value: "", label: "None" },
+                                      ...rankOptions.map((rank) => ({ value: rank, label: formatLabel(rank) })),
+                                    ]}
+                                    triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "rank") ? " is-edited" : ""}`}
+                                  />
+                                  <RadixSelect
+                                    ariaLabel="Status"
                                     value={getMembershipEditValue(membership).is_active ? "true" : "false"}
-                                    onChange={(event) => updateMembershipEdit(membership.id, "is_active", event.target.value)}
-                                    data-role="status-select"
-                                  >
-                                    <option value="true">Active</option>
-                                    <option value="false">Inactive</option>
-                                  </select>
+                                    onValueChange={(value) => updateMembershipEdit(membership.id, "is_active", value)}
+                                    options={[
+                                      { value: "true", label: "Active" },
+                                      { value: "false", label: "Inactive" },
+                                    ]}
+                                    triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
+                                    triggerDataRole="status-select"
+                                  />
                 <div className="list inline action-icons">
                                     <button
                                       className="button icon-button"
@@ -2987,17 +3255,13 @@ function AdminClient(): JSX.Element {
         <form onSubmit={handleAddValidationRule}>
           <div className="form-group">
             <label htmlFor="validationField">Field</label>
-            <select
-              id="validationField"
-              value={validationField || "source"}
-              onChange={(event) => setValidationField(event.target.value)}
-            >
-              {ruleFieldOptions.map((field) => (
-                <option key={field} value={field}>
-                  {field}
-                </option>
-              ))}
-            </select>
+          <RadixSelect
+            id="validationField"
+            ariaLabel="Field"
+            value={validationField || "source"}
+            onValueChange={(value) => setValidationField(value)}
+            options={ruleFieldOptions.map((field) => ({ value: field, label: field }))}
+          />
           </div>
           <div className="form-group">
             <label htmlFor="validationMatch">Match value</label>
@@ -3010,14 +3274,16 @@ function AdminClient(): JSX.Element {
           </div>
           <div className="form-group">
             <label htmlFor="validationStatus">Status</label>
-            <select
-              id="validationStatus"
-              value={validationStatus}
-              onChange={(event) => setValidationStatus(event.target.value)}
-            >
-              <option value="valid">valid</option>
-              <option value="invalid">invalid</option>
-            </select>
+          <RadixSelect
+            id="validationStatus"
+            ariaLabel="Status"
+            value={validationStatus}
+            onValueChange={(value) => setValidationStatus(value)}
+            options={[
+              { value: "valid", label: "valid" },
+              { value: "invalid", label: "invalid" },
+            ]}
+          />
           </div>
           <div className="list">
             <button className="button primary" type="submit">
@@ -3055,64 +3321,61 @@ function AdminClient(): JSX.Element {
           <label htmlFor="validationFieldFilter" className="text-muted">
             Field
           </label>
-          <select
+          <RadixSelect
             id="validationFieldFilter"
+            ariaLabel="Field filter"
             value={validationFieldFilter}
-            onChange={(event) => {
-              setValidationFieldFilter(event.target.value);
+            onValueChange={(value) => {
+              setValidationFieldFilter(value);
               setValidationPage(1);
             }}
-          >
-            <option value="all">All</option>
-            {ruleFieldOptions.map((field) => (
-              <option key={field} value={field}>
-                {field}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: "all", label: "All" },
+              ...ruleFieldOptions.map((field) => ({ value: field, label: field })),
+            ]}
+          />
           <label htmlFor="validationStatusFilter" className="text-muted">
             Status
           </label>
-          <select
+          <RadixSelect
             id="validationStatusFilter"
+            ariaLabel="Status filter"
             value={validationStatusFilter}
-            onChange={(event) => {
-              setValidationStatusFilter(event.target.value);
+            onValueChange={(value) => {
+              setValidationStatusFilter(value);
               setValidationPage(1);
             }}
-          >
-            <option value="all">All</option>
-            <option value="valid">valid</option>
-            <option value="invalid">invalid</option>
-          </select>
+            options={[
+              { value: "all", label: "All" },
+              { value: "valid", label: "valid" },
+              { value: "invalid", label: "invalid" },
+            ]}
+          />
           <label htmlFor="validationSort" className="text-muted">
             Sort
           </label>
-          <select
+          <RadixSelect
             id="validationSort"
+            ariaLabel="Sort"
             value={validationSortKey}
-            onChange={(event) => {
-              setValidationSortKey(event.target.value as "field" | "status" | "match_value");
+            onValueChange={(value) => {
+              setValidationSortKey(value as "field" | "status" | "match_value");
               setValidationPage(1);
             }}
-          >
-            {validationSortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Validation sort direction"
+            options={validationSortOptions.map((option) => ({ value: option.value, label: option.label }))}
+          />
+          <RadixSelect
+            ariaLabel="Validation sort direction"
             value={validationSortDirection}
-            onChange={(event) => {
-              setValidationSortDirection(event.target.value as "asc" | "desc");
+            onValueChange={(value) => {
+              setValidationSortDirection(value as "asc" | "desc");
               setValidationPage(1);
             }}
-          >
-            <option value="asc">Asc</option>
-            <option value="desc">Desc</option>
-          </select>
+            options={[
+              { value: "asc", label: "Asc" },
+              { value: "desc", label: "Desc" },
+            ]}
+          />
           <button
             className="button"
             type="button"
@@ -3187,18 +3450,20 @@ function AdminClient(): JSX.Element {
               <label htmlFor="validationPageSize" className="text-muted">
                 Page size
               </label>
-              <select
+              <RadixSelect
                 id="validationPageSize"
-                value={validationPageSize}
-                onChange={(event) => {
-                  setValidationPageSize(Number(event.target.value));
+                ariaLabel="Page size"
+                value={String(validationPageSize)}
+                onValueChange={(value) => {
+                  setValidationPageSize(Number(value));
                   setValidationPage(1);
                 }}
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-              </select>
+                options={[
+                  { value: "5", label: "5" },
+                  { value: "10", label: "10" },
+                  { value: "20", label: "20" },
+                ]}
+              />
             </div>
           </div>
         ) : null}
@@ -3215,17 +3480,13 @@ function AdminClient(): JSX.Element {
         <form onSubmit={handleAddCorrectionRule}>
           <div className="form-group">
             <label htmlFor="correctionField">Field</label>
-            <select
+            <RadixSelect
               id="correctionField"
+              ariaLabel="Field"
               value={correctionField || "source"}
-              onChange={(event) => setCorrectionField(event.target.value)}
-            >
-              {ruleFieldOptions.map((field) => (
-                <option key={field} value={field}>
-                  {field}
-                </option>
-              ))}
-            </select>
+              onValueChange={(value) => setCorrectionField(value)}
+              options={ruleFieldOptions.map((field) => ({ value: field, label: field }))}
+            />
           </div>
           <div className="form-group">
             <label htmlFor="correctionMatch">Match value</label>
@@ -3281,49 +3542,44 @@ function AdminClient(): JSX.Element {
           <label htmlFor="correctionFieldFilter" className="text-muted">
             Field
           </label>
-          <select
+          <RadixSelect
             id="correctionFieldFilter"
+            ariaLabel="Field filter"
             value={correctionFieldFilter}
-            onChange={(event) => {
-              setCorrectionFieldFilter(event.target.value);
+            onValueChange={(value) => {
+              setCorrectionFieldFilter(value);
               setCorrectionPage(1);
             }}
-          >
-            <option value="all">All</option>
-            {ruleFieldOptions.map((field) => (
-              <option key={field} value={field}>
-                {field}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: "all", label: "All" },
+              ...ruleFieldOptions.map((field) => ({ value: field, label: field })),
+            ]}
+          />
           <label htmlFor="correctionSort" className="text-muted">
             Sort
           </label>
-          <select
+          <RadixSelect
             id="correctionSort"
+            ariaLabel="Sort"
             value={correctionSortKey}
-            onChange={(event) => {
-              setCorrectionSortKey(event.target.value as "field" | "match_value" | "replacement_value");
+            onValueChange={(value) => {
+              setCorrectionSortKey(value as "field" | "match_value" | "replacement_value");
               setCorrectionPage(1);
             }}
-          >
-            {correctionSortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Correction sort direction"
+            options={correctionSortOptions.map((option) => ({ value: option.value, label: option.label }))}
+          />
+          <RadixSelect
+            ariaLabel="Correction sort direction"
             value={correctionSortDirection}
-            onChange={(event) => {
-              setCorrectionSortDirection(event.target.value as "asc" | "desc");
+            onValueChange={(value) => {
+              setCorrectionSortDirection(value as "asc" | "desc");
               setCorrectionPage(1);
             }}
-          >
-            <option value="asc">Asc</option>
-            <option value="desc">Desc</option>
-          </select>
+            options={[
+              { value: "asc", label: "Asc" },
+              { value: "desc", label: "Desc" },
+            ]}
+          />
           <button
             className="button"
             type="button"
@@ -3397,18 +3653,20 @@ function AdminClient(): JSX.Element {
               <label htmlFor="correctionPageSize" className="text-muted">
                 Page size
               </label>
-              <select
+              <RadixSelect
                 id="correctionPageSize"
-                value={correctionPageSize}
-                onChange={(event) => {
-                  setCorrectionPageSize(Number(event.target.value));
+                ariaLabel="Page size"
+                value={String(correctionPageSize)}
+                onValueChange={(value) => {
+                  setCorrectionPageSize(Number(value));
                   setCorrectionPage(1);
                 }}
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-              </select>
+                options={[
+                  { value: "5", label: "5" },
+                  { value: "10", label: "10" },
+                  { value: "20", label: "20" },
+                ]}
+              />
             </div>
           </div>
         ) : null}
@@ -3516,31 +3774,28 @@ function AdminClient(): JSX.Element {
           <label htmlFor="scoringSort" className="text-muted">
             Sort
           </label>
-          <select
+          <RadixSelect
             id="scoringSort"
+            ariaLabel="Sort"
             value={scoringSortKey}
-            onChange={(event) => {
-              setScoringSortKey(event.target.value as "rule_order" | "score" | "chest_match" | "source_match");
+            onValueChange={(value) => {
+              setScoringSortKey(value as "rule_order" | "score" | "chest_match" | "source_match");
               setScoringPage(1);
             }}
-          >
-            {scoringSortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Scoring sort direction"
+            options={scoringSortOptions.map((option) => ({ value: option.value, label: option.label }))}
+          />
+          <RadixSelect
+            ariaLabel="Scoring sort direction"
             value={scoringSortDirection}
-            onChange={(event) => {
-              setScoringSortDirection(event.target.value as "asc" | "desc");
+            onValueChange={(value) => {
+              setScoringSortDirection(value as "asc" | "desc");
               setScoringPage(1);
             }}
-          >
-            <option value="asc">Asc</option>
-            <option value="desc">Desc</option>
-          </select>
+            options={[
+              { value: "asc", label: "Asc" },
+              { value: "desc", label: "Desc" },
+            ]}
+          />
           <button
             className="button"
             type="button"
@@ -3615,18 +3870,20 @@ function AdminClient(): JSX.Element {
               <label htmlFor="scoringPageSize" className="text-muted">
                 Page size
               </label>
-              <select
+              <RadixSelect
                 id="scoringPageSize"
-                value={scoringPageSize}
-                onChange={(event) => {
-                  setScoringPageSize(Number(event.target.value));
+                ariaLabel="Page size"
+                value={String(scoringPageSize)}
+                onValueChange={(value) => {
+                  setScoringPageSize(Number(value));
                   setScoringPage(1);
                 }}
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-              </select>
+                options={[
+                  { value: "5", label: "5" },
+                  { value: "10", label: "10" },
+                  { value: "20", label: "20" },
+                ]}
+              />
             </div>
           </div>
         ) : null}
@@ -3654,63 +3911,58 @@ function AdminClient(): JSX.Element {
           <label htmlFor="auditClanFilter" className="text-muted">
             Clan
           </label>
-          <select
+          <RadixSelect
             id="auditClanFilter"
+            ariaLabel="Clan filter"
             value={auditClanFilter || "all"}
-            onChange={(event) => setAuditClanFilter(event.target.value)}
-          >
-            <option value="all">All</option>
-            {clans.map((clan) => (
-              <option key={clan.id} value={clan.id}>
-                {clan.name}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => setAuditClanFilter(value)}
+            options={[
+              { value: "all", label: "All" },
+              ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
+            ]}
+          />
           <label htmlFor="auditActionFilter" className="text-muted">
             Action
           </label>
-          <select
+          <RadixSelect
             id="auditActionFilter"
+            ariaLabel="Action filter"
             value={auditActionFilter}
-            onChange={(event) => setAuditActionFilter(event.target.value)}
-          >
-            <option value="all">All</option>
-            {auditActionOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => setAuditActionFilter(value)}
+            options={[
+              { value: "all", label: "All" },
+              ...auditActionOptions.map((option) => ({ value: option, label: option })),
+            ]}
+          />
           <label htmlFor="auditEntityFilter" className="text-muted">
             Entity
           </label>
-          <select
+          <RadixSelect
             id="auditEntityFilter"
+            ariaLabel="Entity filter"
             value={auditEntityFilter}
-            onChange={(event) => setAuditEntityFilter(event.target.value)}
-          >
-            <option value="all">All</option>
-            {auditEntityOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => setAuditEntityFilter(value)}
+            options={[
+              { value: "all", label: "All" },
+              ...auditEntityOptions.map((option) => ({ value: option, label: option })),
+            ]}
+          />
           <label htmlFor="auditActorFilter" className="text-muted">
             Actor
           </label>
-          <select
+          <RadixSelect
             id="auditActorFilter"
+            ariaLabel="Actor filter"
             value={auditActorFilter}
-            onChange={(event) => setAuditActorFilter(event.target.value)}
-          >
-            <option value="all">All</option>
-            {auditActorOptions.map((actorId) => (
-              <option key={actorId} value={actorId}>
-                {getAuditActorLabel(actorId)}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => setAuditActorFilter(value)}
+            options={[
+              { value: "all", label: "All" },
+              ...auditActorOptions.map((actorId) => ({
+                value: actorId,
+                label: getAuditActorLabel(actorId),
+              })),
+            ]}
+          />
           <button
             className="button"
             type="button"
@@ -3781,18 +4033,20 @@ function AdminClient(): JSX.Element {
               <label htmlFor="auditPageSize" className="text-muted">
                 Page size
               </label>
-              <select
+              <RadixSelect
                 id="auditPageSize"
-                value={auditPageSize}
-                onChange={(event) => {
-                  setAuditPageSize(Number(event.target.value));
+                ariaLabel="Page size"
+                value={String(auditPageSize)}
+                onValueChange={(value) => {
+                  setAuditPageSize(Number(value));
                   setAuditPage(1);
                 }}
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-              </select>
+                options={[
+                  { value: "10", label: "10" },
+                  { value: "25", label: "25" },
+                  { value: "50", label: "50" },
+                ]}
+              />
             </div>
           </div>
         ) : null}
@@ -4027,42 +4281,36 @@ function AdminClient(): JSX.Element {
             </div>
             <div className="form-group">
               <label htmlFor="createGameAccountClan">Clan</label>
-              <select
+              <RadixSelect
                 id="createGameAccountClan"
+                ariaLabel="Clan"
                 value={createGameAccountClanId}
-                onChange={(event) => setCreateGameAccountClanId(event.target.value)}
-              >
-                {clans.map((clan) => (
-                  <option key={clan.id} value={clan.id}>
-                    {clan.name}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(value) => setCreateGameAccountClanId(value)}
+                options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
+              />
             </div>
             <div className="form-group">
               <label htmlFor="createGameAccountRank">Rank</label>
-              <select
+              <RadixSelect
                 id="createGameAccountRank"
+                ariaLabel="Rank"
                 value={createGameAccountRank}
-                onChange={(event) => setCreateGameAccountRank(event.target.value)}
-              >
-                {rankOptions.map((rank) => (
-                  <option key={rank} value={rank}>
-                    {formatLabel(rank)}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(value) => setCreateGameAccountRank(value)}
+                options={rankOptions.map((rank) => ({ value: rank, label: formatLabel(rank) }))}
+              />
             </div>
             <div className="form-group">
               <label htmlFor="createGameAccountStatus">Status</label>
-              <select
+              <RadixSelect
                 id="createGameAccountStatus"
+                ariaLabel="Status"
                 value={createGameAccountStatus}
-                onChange={(event) => setCreateGameAccountStatus(event.target.value)}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+                onValueChange={(value) => setCreateGameAccountStatus(value)}
+                options={[
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
+              />
             </div>
             {createGameAccountMessage ? <div className="alert info">{createGameAccountMessage}</div> : null}
             <div className="list inline">
@@ -4070,6 +4318,90 @@ function AdminClient(): JSX.Element {
                 Add Game Account
               </button>
               <button className="button" type="button" onClick={closeCreateGameAccountModal}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isAssignAccountsModalOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">Assign Game Accounts</div>
+                <div className="card-subtitle">
+                  {selectedClan ? `Assign to ${selectedClan.name}` : "Select a clan"}
+                </div>
+              </div>
+            </div>
+            <div className="list inline" style={{ alignItems: "center" }}>
+              <div className="form-group" style={{ minWidth: 240 }}>
+                <label htmlFor="assignSearch">Search</label>
+                <input
+                  id="assignSearch"
+                  value={assignSearch}
+                  onChange={(event) => setAssignSearch(event.target.value)}
+                  placeholder="Search accounts or users"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="assignFilter">Show</label>
+                <RadixSelect
+                  id="assignFilter"
+                  ariaLabel="Show"
+                  value={assignFilter}
+                  onValueChange={(value) => setAssignFilter(value as "unassigned" | "current" | "other" | "all")}
+                  options={[
+                    { value: "unassigned", label: "Unassigned" },
+                    { value: "current", label: "Current clan" },
+                    { value: "other", label: "Other clans" },
+                    { value: "all", label: "All" },
+                  ]}
+                />
+              </div>
+              <span className="text-muted">
+                {assignSelectedIds.length} selected
+              </span>
+            </div>
+            {assignStatus ? <div className="alert info">{assignStatus}</div> : null}
+            {filteredAssignableAccounts.length === 0 ? (
+              <div className="list">
+                <div className="list-item">
+                  <span>No game accounts match the filters</span>
+                </div>
+              </div>
+            ) : (
+              <div className="list">
+                {filteredAssignableAccounts.map((account) => {
+                  const clanName =
+                    clans.find((clan) => clan.id === account.clan_id)?.name ??
+                    (account.clan_id ? "Unknown clan" : "Unassigned");
+                  const isSelected = assignSelectedIds.includes(account.id);
+                  return (
+                    <label key={account.id} className="list-item" style={{ cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleAssignSelection(account.id)}
+                      />
+                      <div>
+                        <div>{account.game_username}</div>
+                        <div className="text-muted">
+                          {account.user_display || account.user_email || account.user_id}
+                        </div>
+                      </div>
+                      <span className="badge">{clanName}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <div className="list inline">
+              <button className="button primary" type="button" onClick={handleAssignAccounts}>
+                Assign Selected
+              </button>
+              <button className="button" type="button" onClick={closeAssignAccountsModal}>
                 Cancel
               </button>
             </div>

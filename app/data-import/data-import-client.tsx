@@ -32,9 +32,7 @@ interface CommitRow {
   readonly source: string;
   readonly chest: string;
   readonly score: number;
-  readonly clan_id: string;
-  readonly created_by: string;
-  readonly updated_by: string;
+  readonly clan: string;
 }
 
 interface RuleSummary {
@@ -479,16 +477,14 @@ function DataImportClient(): JSX.Element {
     setStatusMessage(`Parsed ${result.rows.length} rows.`);
   }
 
-  function getCommitRows(userId: string, clanIdByName: Map<string, string>): CommitRow[] {
+  function getCommitRows(): CommitRow[] {
     return rows.map((row, index) => ({
       collected_date: batchDate || row.date,
       player: row.player,
       source: row.source,
       chest: row.chest,
       score: applyScoring ? computedScores[index] ?? row.score : row.score,
-      clan_id: clanIdByName.get(row.clan) ?? "",
-      created_by: userId,
-      updated_by: userId,
+      clan: row.clan,
     }));
   }
 
@@ -550,104 +546,20 @@ function DataImportClient(): JSX.Element {
     }
     setIsCommitting(true);
     setCommitStatus("Committing rows to Supabase...");
-    const { data } = await supabase.auth.getUser();
-    const userId = data.user?.id;
-    if (!userId) {
-      setCommitStatus("You must be logged in to commit data.");
+    const payload = getCommitRows();
+    const response = await fetch("/api/data-import/commit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rows: payload }),
+    });
+    if (!response.ok) {
+      const data = (await response.json()) as { error?: string };
+      setCommitStatus(data.error ?? "Commit failed.");
       setIsCommitting(false);
       return;
     }
-    const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
-    const { data: clanRows, error: clanFetchError } = await supabase
-      .from("clans")
-      .select("id,name")
-      .in("name", clanNames);
-    if (clanFetchError) {
-      setCommitStatus(`Failed to load clans: ${clanFetchError.message}`);
-      setIsCommitting(false);
-      return;
-    }
-    const existingClanNames = new Set((clanRows ?? []).map((row) => row.name));
-    const missingClanNames = clanNames.filter((name) => !existingClanNames.has(name));
-    if (missingClanNames.length > 0) {
-      const { error: clanInsertError } = await supabase
-        .from("clans")
-        .insert(missingClanNames.map((name) => ({ name })));
-      if (clanInsertError) {
-        setCommitStatus(`Failed to create clans: ${clanInsertError.message}`);
-        setIsCommitting(false);
-        return;
-      }
-    }
-    const { data: finalClans, error: clanReloadError } = await supabase
-      .from("clans")
-      .select("id,name")
-      .in("name", clanNames);
-    if (clanReloadError) {
-      setCommitStatus(`Failed to load clans: ${clanReloadError.message}`);
-      setIsCommitting(false);
-      return;
-    }
-    const clanIdByName = new Map<string, string>(
-      (finalClans ?? []).map((clan) => [clan.name, clan.id]),
-    );
-    const { data: existingGameAccount } = await supabase
-      .from("game_accounts")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    let gameAccountId = existingGameAccount?.id ?? "";
-    if (!gameAccountId) {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("user_db,username")
-        .eq("id", userId)
-        .maybeSingle();
-      const fallbackUsername = profileData?.username ?? profileData?.user_db ?? "game-account";
-      const { data: gameAccountData, error: gameAccountError } = await supabase
-        .from("game_accounts")
-        .upsert(
-          {
-            user_id: userId,
-            game_username: fallbackUsername,
-          },
-          { onConflict: "user_id,game_username" },
-        )
-        .select("id")
-        .single();
-      if (gameAccountError) {
-        setCommitStatus(`Failed to ensure game account: ${gameAccountError.message}`);
-        setIsCommitting(false);
-        return;
-      }
-      gameAccountId = gameAccountData?.id ?? "";
-    }
-    const membershipPayload = Array.from(clanIdByName.values()).map((clanId) => ({
-      clan_id: clanId,
-      game_account_id: gameAccountId,
-      is_active: true,
-    }));
-    const { error: membershipError } = await supabase
-      .from("game_account_clan_memberships")
-      .upsert(membershipPayload, { onConflict: "game_account_id,clan_id" });
-    if (membershipError) {
-      setCommitStatus(`Failed to ensure clan membership: ${membershipError.message}`);
-      setIsCommitting(false);
-      return;
-    }
-    const payload = getCommitRows(userId, clanIdByName);
-    if (payload.some((row) => !row.clan_id)) {
-      setCommitStatus("Some rows have unknown clan names.");
-      setIsCommitting(false);
-      return;
-    }
-    const { error } = await supabase.from("chest_entries").insert(payload);
-    if (error) {
-      setCommitStatus(`Commit failed: ${error.message}`);
-      setIsCommitting(false);
-      return;
-    }
-    setCommitStatus(`Committed ${payload.length} rows.`);
+    const data = (await response.json()) as { insertedCount: number };
+    setCommitStatus(`Committed ${data.insertedCount} rows.`);
     setIsCommitting(false);
   }
 

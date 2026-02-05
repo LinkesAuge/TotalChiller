@@ -17,7 +17,7 @@ This plan outlines the minimum testing coverage for the data import flow, role-b
 
 - Upload CSV → preview table renders with correct row count.
 - Apply validation rules and highlight statuses.
-- Apply correction rules and update values in preview.
+- Import does not require player/game account matching.
 - Commit data → entries persisted in database with created_by/created_at.
 
 ## 2. RBAC & Permissions
@@ -43,7 +43,7 @@ This plan outlines the minimum testing coverage for the data import flow, role-b
 - Single row edit updates updated_by/updated_at.
 - Batch edit applies to all selected rows.
 - Batch delete removes rows and logs audit entries.
-- Re‑scoring applies latest rule order precedence.
+- Re‑scoring applies latest rule order precedence (until validation-only refactor).
 
 ### Integration Tests (Editing)
 

@@ -23,7 +23,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **Frontend**: Next.js App Router, server components by default, client components for interactive tables, editors, and charts.
 - **Auth**: Supabase Auth with email verification and password reset.
 - **Backend**: Supabase Postgres with RLS for clan-scoped data and permissions (via game accounts).
-- **Validation/Correction/Scoring**: Zod schemas for import validation; rules stored per clan and applied during preview and re-scoring.
+- **Validation/Correction/Scoring**: Zod schemas for import validation; rules stored per clan and applied during preview and re-scoring (validation rules will be refactored to list-based checks).
 
 ### Core Data Model (Outline)
 
@@ -132,7 +132,8 @@ Reference image: `Documentation/totalbattle_ui.png`
 
 ## Data Import & Table
 
-- Data import commits to Supabase `chest_entries` with clan mapping.
+- Data import commits to Supabase `chest_entries` via an admin API using a service role client.
+- Import does not validate players against game accounts; chest data is treated as raw OCR input.
 - Data table reads `chest_entries` via server client.
 - Data table supports inline edit validation and batch operations.
 - Data import and data table use a shared date picker (flatpickr) with dd.mm.yyyy display.
@@ -141,7 +142,7 @@ Reference image: `Documentation/totalbattle_ui.png`
 ## Admin Enhancements
 
 - Admin user lookup by email via `app/api/admin/user-lookup`.
-- Rules now support create, edit, and delete in admin UI.
+- Rules currently support create, edit, and delete in admin UI (scheduled for validation-only refactor).
 - Admin tabs include Clans & Members, Users, Rules, Audit Logs, Data Import, Data Table.
 - Membership table now manages game accounts (game username, clan, rank, status).
 - Roles are assigned globally via `user_roles`.

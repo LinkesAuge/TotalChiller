@@ -74,6 +74,10 @@ function DataTableClient(): JSX.Element {
   const [pageSize, setPageSize] = useState<number>(20);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [availableClans, setAvailableClans] = useState<readonly { id: string; name: string }[]>([]);
+  const [isBatchUpdateConfirmOpen, setIsBatchUpdateConfirmOpen] = useState<boolean>(false);
+  const [isBatchDeleteConfirmOpen, setIsBatchDeleteConfirmOpen] = useState<boolean>(false);
+  const [isBatchDeleteInputOpen, setIsBatchDeleteInputOpen] = useState<boolean>(false);
+  const [batchDeleteInput, setBatchDeleteInput] = useState<string>("");
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectAllRef = useRef<HTMLInputElement | null>(null);
@@ -142,8 +146,13 @@ function DataTableClient(): JSX.Element {
     setPage(1);
   }
 
-  async function loadRows(): Promise<void> {
-    const fromIndex = (page - 1) * pageSize;
+  interface LoadRowsParams {
+    readonly pageNumber: number;
+    readonly allowRetry?: boolean;
+  }
+
+  async function loadRows({ pageNumber, allowRetry = true }: LoadRowsParams): Promise<void> {
+    const fromIndex = (pageNumber - 1) * pageSize;
     const toIndex = fromIndex + pageSize - 1;
     const query = supabase
       .from("chest_entries")
@@ -202,6 +211,14 @@ function DataTableClient(): JSX.Element {
         clan_name: entry.clans?.name ?? "",
       };
     });
+    if (mappedRows.length === 0 && count && count > 0 && pageNumber > 1 && allowRetry) {
+      const maxPage = Math.max(1, Math.ceil(count / pageSize));
+      if (maxPage !== pageNumber) {
+        setPage(maxPage);
+        await loadRows({ pageNumber: maxPage, allowRetry: false });
+        return;
+      }
+    }
     setRows(mappedRows);
     setTotalCount(count ?? 0);
   }
@@ -222,70 +239,7 @@ function DataTableClient(): JSX.Element {
   }
 
   useEffect(() => {
-    async function executeLoad(): Promise<void> {
-      const fromIndex = (page - 1) * pageSize;
-      const toIndex = fromIndex + pageSize - 1;
-      const query = supabase
-        .from("chest_entries")
-        .select("id,collected_date,player,source,chest,score,clan_id,clans(name)", { count: "exact" })
-        .order("collected_date", { ascending: false })
-        .range(fromIndex, toIndex);
-      if (searchTerm.trim()) {
-        const pattern = `%${searchTerm.trim()}%`;
-        query.or(`player.ilike.${pattern},source.ilike.${pattern},chest.ilike.${pattern}`);
-      }
-      if (filterPlayer.trim()) {
-        query.ilike("player", `%${filterPlayer.trim()}%`);
-      }
-      if (filterSource.trim()) {
-        query.ilike("source", `%${filterSource.trim()}%`);
-      }
-      if (filterChest.trim()) {
-        query.ilike("chest", `%${filterChest.trim()}%`);
-      }
-      if (filterClanId !== "all") {
-        query.eq("clan_id", filterClanId);
-      }
-      if (filterDateFrom.trim()) {
-        query.gte("collected_date", filterDateFrom.trim());
-      }
-      if (filterDateTo.trim()) {
-        query.lte("collected_date", filterDateTo.trim());
-      }
-      if (filterScoreMin.trim()) {
-        const minValue = Number(filterScoreMin);
-        if (!Number.isNaN(minValue)) {
-          query.gte("score", minValue);
-        }
-      }
-      if (filterScoreMax.trim()) {
-        const maxValue = Number(filterScoreMax);
-        if (!Number.isNaN(maxValue)) {
-          query.lte("score", maxValue);
-        }
-      }
-      const { data, error, count } = await query;
-      if (error) {
-        setStatus(`Failed to load data: ${error.message}`);
-        return;
-      }
-      const mappedRows = (data ?? []).map((row) => {
-        const entry = row as ChestEntryQueryRow;
-        return {
-          id: entry.id,
-          collected_date: entry.collected_date,
-          player: entry.player,
-          source: entry.source,
-          chest: entry.chest,
-          score: entry.score,
-          clan_id: entry.clan_id,
-          clan_name: entry.clans?.name ?? "",
-        };
-      });
-      setRows(mappedRows);
-      setTotalCount(count ?? 0);
-    }
-    void executeLoad();
+    void loadRows({ pageNumber: page });
   }, [
     filterChest,
     filterClanId,
@@ -382,6 +336,37 @@ function DataTableClient(): JSX.Element {
       delete updated[id];
       return updated;
     });
+  }
+
+  function clearRowEdits(rowId: string): void {
+    setEditMap((current) => {
+      if (!current[rowId]) {
+        return current;
+      }
+      const updated = { ...current };
+      delete updated[rowId];
+      return updated;
+    });
+    setRowErrors((current) => {
+      if (!current[rowId]) {
+        return current;
+      }
+      const updated = { ...current };
+      delete updated[rowId];
+      return updated;
+    });
+  }
+
+  function getNextPageAfterDelete(deleteCount: number): number {
+    const nextTotal = Math.max(0, totalCount - deleteCount);
+    const maxPage = Math.max(1, Math.ceil(nextTotal / pageSize));
+    return Math.min(page, maxPage);
+  }
+
+  function refreshAfterDelete(deleteCount: number): void {
+    const nextPage = getNextPageAfterDelete(deleteCount);
+    setPage(nextPage);
+    void loadRows({ pageNumber: nextPage });
   }
 
   function getRowValue(row: ChestEntryRow, field: keyof EditableRow): string {
@@ -506,7 +491,50 @@ function DataTableClient(): JSX.Element {
       delete updated[row.id];
       return updated;
     });
-    await loadRows();
+    await loadRows({ pageNumber: page });
+  }
+
+  async function handleDeleteRow(row: ChestEntryRow): Promise<void> {
+    const confirmDelete = window.confirm(`Delete row for ${row.player} on ${row.collected_date}?`);
+    if (!confirmDelete) {
+      return;
+    }
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      setStatus("You must be logged in to delete rows.");
+      return;
+    }
+    const { error } = await supabase.from("chest_entries").delete().eq("id", row.id);
+    if (error) {
+      setStatus(`Delete failed: ${error.message}`);
+      return;
+    }
+    await insertAuditLogs([
+      {
+        clan_id: row.clan_id,
+        actor_id: userId,
+        action: "delete",
+        entity: "chest_entries",
+        entity_id: row.id,
+        diff: {
+          collected_date: row.collected_date,
+          player: row.player,
+          source: row.source,
+          chest: row.chest,
+          score: row.score,
+        },
+      },
+    ]);
+    const remainingRows = rows.filter((entry) => entry.id !== row.id);
+    setStatus("Row deleted.");
+    clearRowEdits(row.id);
+    setSelectedIds((current) => current.filter((id) => id !== row.id));
+    if (remainingRows.length > 0) {
+      setRows(remainingRows);
+      setTotalCount((current) => Math.max(0, current - 1));
+      return;
+    }
+    refreshAfterDelete(1);
   }
 
   async function handleBatchUpdate(): Promise<void> {
@@ -518,10 +546,15 @@ function DataTableClient(): JSX.Element {
       setStatus("Enter a source value.");
       return;
     }
-    const confirmUpdate = window.confirm(`Apply source update to ${selectedIds.length} row(s)?`);
-    if (!confirmUpdate) {
-      return;
-    }
+    setIsBatchUpdateConfirmOpen(true);
+  }
+
+  function closeBatchUpdateConfirm(): void {
+    setIsBatchUpdateConfirmOpen(false);
+  }
+
+  async function confirmBatchUpdate(): Promise<void> {
+    setIsBatchUpdateConfirmOpen(false);
     const userId = await getCurrentUserId();
     if (!userId) {
       setStatus("You must be logged in to update rows.");
@@ -554,7 +587,7 @@ function DataTableClient(): JSX.Element {
     setStatus("Batch update complete.");
     setSelectedIds([]);
     setBatchSource("");
-    await loadRows();
+    await loadRows({ pageNumber: page });
   }
 
   async function handleBatchDelete(): Promise<void> {
@@ -562,10 +595,31 @@ function DataTableClient(): JSX.Element {
       setStatus("Select rows to delete.");
       return;
     }
-    const confirmDelete = window.confirm(`Delete ${selectedIds.length} selected row(s)?`);
-    if (!confirmDelete) {
+    setIsBatchDeleteConfirmOpen(true);
+  }
+
+  function closeBatchDeleteConfirm(): void {
+    setIsBatchDeleteConfirmOpen(false);
+  }
+
+  function openBatchDeleteInput(): void {
+    setIsBatchDeleteConfirmOpen(false);
+    setIsBatchDeleteInputOpen(true);
+    setBatchDeleteInput("");
+  }
+
+  function closeBatchDeleteInput(): void {
+    setIsBatchDeleteInputOpen(false);
+    setBatchDeleteInput("");
+  }
+
+  async function confirmBatchDelete(): Promise<void> {
+    const confirmationPhrase = "DELETE ROWS";
+    if (batchDeleteInput.trim().toUpperCase() !== confirmationPhrase) {
+      setStatus("Confirmation phrase does not match.");
       return;
     }
+    setIsBatchDeleteInputOpen(false);
     const userId = await getCurrentUserId();
     if (!userId) {
       setStatus("You must be logged in to delete rows.");
@@ -593,9 +647,16 @@ function DataTableClient(): JSX.Element {
         },
       })),
     );
+    const deleteIdSet = new Set(selectedIds);
+    const remainingRows = rows.filter((row) => !deleteIdSet.has(row.id));
     setStatus("Rows deleted.");
     setSelectedIds([]);
-    await loadRows();
+    if (remainingRows.length > 0) {
+      setRows(remainingRows);
+      setTotalCount((current) => Math.max(0, current - selectedIds.length));
+      return;
+    }
+    refreshAfterDelete(selectedIds.length);
   }
 
   async function handleSaveAllRows(): Promise<void> {
@@ -813,15 +874,42 @@ function DataTableClient(): JSX.Element {
         <button className="button" type="button" onClick={() => setIsFiltersOpen((current) => !current)}>
           {isFiltersOpen ? "Hide Filters" : "Filters"}
         </button>
-        <button className="button" type="button" onClick={handleBatchUpdate}>
-          Batch Edit
-        </button>
-        <button className="button" type="button" onClick={handleSaveAllRows} disabled={Object.keys(editMap).length === 0}>
-          Save All
-        </button>
-        <button className="button primary" type="button" onClick={handleBatchDelete}>
-          Batch Delete
-        </button>
+        <div className="list inline action-icons">
+          <button className="button" type="button" onClick={handleBatchUpdate}>
+            Batch Edit
+          </button>
+          <button
+            className="button icon-button"
+            type="button"
+            onClick={handleSaveAllRows}
+            disabled={Object.keys(editMap).length === 0}
+            title="Save all"
+            aria-label="Save all"
+          >
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M4 8.5L7 11.5L12 5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <button
+            className="button icon-button danger"
+            type="button"
+            onClick={handleBatchDelete}
+            title="Batch delete"
+            aria-label="Batch delete"
+          >
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </div>
       {activeFilters.length > 0 ? (
         <div className="filter-chips">
@@ -868,15 +956,19 @@ function DataTableClient(): JSX.Element {
         ) : (
           rows.map((row) => (
             <div className="row" key={row.id}>
-              <input
-                type="checkbox"
-                checked={selectedSet.has(row.id)}
-                onChange={() => toggleSelect(row.id)}
-              />
-              <DatePicker
-                value={getRowValue(row, "collected_date")}
-                onChange={(value) => updateEditValue(row.id, "collected_date", value)}
-              />
+              <span>
+                <input
+                  type="checkbox"
+                  checked={selectedSet.has(row.id)}
+                  onChange={() => toggleSelect(row.id)}
+                />
+              </span>
+              <span>
+                <DatePicker
+                  value={getRowValue(row, "collected_date")}
+                  onChange={(value) => updateEditValue(row.id, "collected_date", value)}
+                />
+              </span>
               <input
                 value={getRowValue(row, "player")}
                 onChange={(event) => updateEditValue(row.id, "player", event.target.value)}
@@ -899,10 +991,58 @@ function DataTableClient(): JSX.Element {
                 onValueChange={(value) => updateEditValue(row.id, "clan_id", value)}
                 options={availableClans.map((clan) => ({ value: clan.id, label: clan.name }))}
               />
-              <div className="list inline">
-                <button className="button" type="button" onClick={() => handleSaveRow(row)}>
-                  Save
-                </button>
+              <div className="list inline action-icons">
+                {(() => {
+                  const hasRowEdits = Boolean(editMap[row.id]);
+                  return (
+                    <>
+                      <button
+                        className="button icon-button"
+                        type="button"
+                        onClick={() => handleSaveRow(row)}
+                        title="Save changes"
+                        aria-label="Save changes"
+                        disabled={!hasRowEdits}
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M4 8.5L7 11.5L12 5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        className="button icon-button"
+                        type="button"
+                        onClick={() => clearRowEdits(row.id)}
+                        title="Cancel changes"
+                        aria-label="Cancel changes"
+                        disabled={!hasRowEdits}
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                      <button
+                        className="button icon-button danger"
+                        type="button"
+                        onClick={() => handleDeleteRow(row)}
+                        title="Delete row"
+                        aria-label="Delete row"
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                          <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                          <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </>
+                  );
+                })()}
                 {rowErrors[row.id] ? <span className="text-muted">{rowErrors[row.id]}</span> : null}
               </div>
             </div>
@@ -934,6 +1074,93 @@ function DataTableClient(): JSX.Element {
           </div>
         </div>
       </section>
+      {isBatchUpdateConfirmOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">Confirm batch edit</div>
+                <div className="card-subtitle">Apply the source value to selected rows.</div>
+              </div>
+            </div>
+            <div className="list">
+              <div className="list-item">
+                <span>Rows selected</span>
+                <span>{selectedIds.length}</span>
+              </div>
+              <div className="list-item">
+                <span>New source</span>
+                <strong>{batchSource.trim()}</strong>
+              </div>
+            </div>
+            <div className="list inline">
+              <button className="button primary" type="button" onClick={confirmBatchUpdate}>
+                Confirm
+              </button>
+              <button className="button" type="button" onClick={closeBatchUpdateConfirm}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isBatchDeleteConfirmOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Delete selected rows</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="list">
+              <div className="alert danger">This will permanently delete the selected rows from the data table.</div>
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={openBatchDeleteInput}>
+                Continue
+              </button>
+              <button className="button" type="button" onClick={closeBatchDeleteConfirm}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isBatchDeleteInputOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Confirm deletion</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="alert danger">
+              Deleting these rows will remove them permanently. Make sure you intend to proceed.
+            </div>
+            <div className="form-group">
+              <label htmlFor="batchDeleteInput">Confirmation phrase</label>
+              <input
+                id="batchDeleteInput"
+                value={batchDeleteInput}
+                onChange={(event) => setBatchDeleteInput(event.target.value)}
+                placeholder="DELETE ROWS"
+              />
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={confirmBatchDelete}>
+                Delete Rows
+              </button>
+              <button className="button" type="button" onClick={closeBatchDeleteInput}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

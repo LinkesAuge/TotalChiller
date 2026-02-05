@@ -15,6 +15,7 @@ Create `.env.local` in the project root:
 ```
 NEXT_PUBLIC_SUPABASE_URL=YOUR_PROJECT_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 ```
 
 ## 3) Install + Run
@@ -48,7 +49,7 @@ Open: `http://localhost:3000`
 2. Upload a Pattern 1 CSV (DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN)
 3. Optional: toggle **Apply Corrections** and **Apply Scoring**
 4. Review preview + diff
-5. Click **Commit Data**
+5. Click **Commit Data** (uses admin API with service role)
 
 ## 8) Admin: Clans + Memberships
 1. Go to `/admin`
@@ -59,8 +60,7 @@ Open: `http://localhost:3000`
 ## 9) Admin: Rules
 In `/admin`:
 - Create/edit/delete validation rules
-- Create/edit/delete correction rules
-- Create/edit/delete scoring rules
+- Correction/scoring rules are present but will be refactored (validation-only lists)
 
 ## 10) Data Table
 In `/data-table`:

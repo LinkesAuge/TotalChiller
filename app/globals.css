@@ -51,6 +51,7 @@
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --scrollbar-size: 8px;
 }
 
 * {
@@ -661,6 +662,7 @@ body {
   color: var(--color-text);
   border-radius: var(--radius-lg);
   overflow: auto;
+  scrollbar-gutter: stable;
   border: 1px solid rgba(201, 163, 74, 0.45);
   box-shadow: var(--shadow-lg), 0 0 0 1px rgba(201, 163, 74, 0.12);
 }
@@ -673,6 +675,7 @@ body {
   align-items: center;
   font-size: 0.875rem;
   min-width: max-content;
+  position: relative;
 }
 
 .table header > *,
@@ -687,7 +690,24 @@ body {
 
 .table.data-table header,
 .table.data-table .row {
-  grid-template-columns: 90px 130px 1fr 1fr 1fr 120px 1fr 200px;
+  grid-template-columns:
+    90px
+    130px
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    120px
+    minmax(0, 1fr)
+    200px;
+  min-width: 100%;
+  width: 100%;
+}
+
+.table.data-table input,
+.table.data-table .select-trigger,
+.table.data-table .date-picker-input {
+  width: 100%;
+  min-width: 0;
 }
 
 .table header {
@@ -698,6 +718,18 @@ body {
   letter-spacing: 0.04em;
   color: var(--color-gold-2);
   border-bottom: 1px solid rgba(201, 163, 74, 0.55);
+}
+
+.table header::after,
+.table .row::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: calc(var(--scrollbar-size) * -1);
+  width: var(--scrollbar-size);
+  height: 100%;
+  background: inherit;
+  pointer-events: none;
 }
 
 .table .row {
@@ -731,7 +763,7 @@ body {
 .table.users header,
 .table.users .row {
   grid-template-columns: minmax(180px, 1.4fr) minmax(200px, 1.6fr) minmax(160px, 1.2fr) 120px 90px 120px 160px;
-  min-width: 100%;
+  min-width: max-content;
 }
 
 .table.users .row {
@@ -888,7 +920,16 @@ select {
   font-size: 0.9rem;
   font-family: inherit;
   min-width: 220px;
+  overflow: hidden;
   transition: var(--transition-fast);
+}
+
+.select-trigger > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .select-trigger:focus-visible,
@@ -902,6 +943,7 @@ select {
 .select-icon {
   display: inline-flex;
   color: var(--color-gold);
+  flex: 0 0 auto;
 }
 
 .select-content {

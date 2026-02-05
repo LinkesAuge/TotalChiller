@@ -28,11 +28,12 @@ This file is a compact context transfer for a new chat.
   - Global save/cancel applies to user + game account edits.
   - Files: `app/admin/admin-client.tsx`, `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`
 - **Data import (Pattern 1)**
-  - Creates missing clans, ensures a default game account for uploader.
-  - Writes memberships to `game_account_clan_memberships`.
-  - `app/data-import/data-import-client.tsx`
+  - Creates missing clans and commits chest data via an admin API endpoint.
+  - Does not validate players against game accounts on import.
+  - Files: `app/data-import/data-import-client.tsx`, `app/api/data-import/commit/route.ts`
 - **Data table**
-  - Filters, batch ops, select-all, confirmation guards.
+  - Filters, batch ops, select-all, confirmation modals.
+  - Row actions use icon buttons; batch delete/edits are confirmed.
   - Clan filter defaults to current clan context.
   - `app/data-table/data-table-client.tsx`
 - **News + Events (DB-backed, clan-scoped)**
@@ -47,6 +48,12 @@ This file is a compact context transfer for a new chat.
 - **Custom dropdowns**
   - Replaced native selects with Radix select styling globally.
   - `app/components/ui/radix-select.tsx`, `app/globals.css`
+
+## Recent UI Fixes
+
+- Admin users table: header/rows align on small screens (horizontal scroll fixes).
+- Admin data table: header alignment fixed under vertical scrollbar.
+- Radix select trigger keeps icon inside on small screens.
 - **Linting**
   - ESLint configured with Next.js flat config.
   - Run `npx eslint .`

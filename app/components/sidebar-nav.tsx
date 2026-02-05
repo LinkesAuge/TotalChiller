@@ -51,7 +51,7 @@ const navSections: readonly NavSection[] = [
       { href: "/admin?tab=rules", label: "Rules", tab: "rules", isSubItem: true },
       { href: "/admin?tab=logs", label: "Audit Logs", tab: "logs", isSubItem: true },
       { href: "/admin/data-import", label: "Data Import", isSubItem: true },
-      { href: "/admin/data-table", label: "Data Table", isSubItem: true },
+      { href: "/admin/data-table", label: "Chest Database", isSubItem: true },
     ],
   },
 ];

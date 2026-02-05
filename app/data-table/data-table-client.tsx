@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import DatePicker from "../components/date-picker";
+import { createValidationEvaluator } from "../components/validation-evaluator";
 import { useToast } from "../components/toast-provider";
+import IconButton from "../components/ui/icon-button";
+import LabeledSelect from "../components/ui/labeled-select";
 import RadixSelect from "../components/ui/radix-select";
+import SearchInput from "../components/ui/search-input";
 
 interface ChestEntryRow {
   readonly id: string;
@@ -26,6 +30,9 @@ interface EditableRow {
   readonly clan_id: string;
 }
 
+type SortDirection = "asc" | "desc" | null;
+type SortKey = "collected_date" | "player" | "source" | "chest" | "score" | "clan";
+
 interface ChestEntryQueryRow {
   readonly id: string;
   readonly collected_date: string;
@@ -35,6 +42,14 @@ interface ChestEntryQueryRow {
   readonly score: number;
   readonly clan_id: string;
   readonly clans: { readonly name: string } | null;
+}
+
+interface ValidationRuleRow {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly field: string;
+  readonly match_value: string;
+  readonly status: string;
 }
 
 interface AuditLogEntry {
@@ -57,11 +72,10 @@ function DataTableClient(): JSX.Element {
   const [rows, setRows] = useState<readonly ChestEntryRow[]>([]);
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
   const [editMap, setEditMap] = useState<Record<string, EditableRow>>({});
-  const [batchSource, setBatchSource] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [isFiltersOpen, setIsFiltersOpen] = useState<boolean>(false);
+  const [isBatchOpsOpen, setIsBatchOpsOpen] = useState<boolean>(false);
   const [filterPlayer, setFilterPlayer] = useState<string>("");
   const [filterSource, setFilterSource] = useState<string>("");
   const [filterChest, setFilterChest] = useState<string>("");
@@ -71,15 +85,24 @@ function DataTableClient(): JSX.Element {
   const [filterScoreMin, setFilterScoreMin] = useState<string>("");
   const [filterScoreMax, setFilterScoreMax] = useState<string>("");
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(20);
+  const [pageSize, setPageSize] = useState<number>(25);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const totalPages: number = Math.max(1, Math.ceil(totalCount / pageSize));
   const [availableClans, setAvailableClans] = useState<readonly { id: string; name: string }[]>([]);
-  const [isBatchUpdateConfirmOpen, setIsBatchUpdateConfirmOpen] = useState<boolean>(false);
+  const [validationRules, setValidationRules] = useState<readonly ValidationRuleRow[]>([]);
+  const [isBatchEditOpen, setIsBatchEditOpen] = useState<boolean>(false);
+  const [batchEditField, setBatchEditField] = useState<keyof EditableRow>("player");
+  const [batchEditValue, setBatchEditValue] = useState<string>("");
+  const [batchEditDate, setBatchEditDate] = useState<string>("");
+  const [batchEditClanId, setBatchEditClanId] = useState<string>("");
   const [isBatchDeleteConfirmOpen, setIsBatchDeleteConfirmOpen] = useState<boolean>(false);
   const [isBatchDeleteInputOpen, setIsBatchDeleteInputOpen] = useState<boolean>(false);
   const [batchDeleteInput, setBatchDeleteInput] = useState<string>("");
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedRows = useMemo(() => rows.filter((row) => selectedSet.has(row.id)), [rows, selectedSet]);
   const selectAllRef = useRef<HTMLInputElement | null>(null);
   const areAllRowsSelected = useMemo(
     () => rows.length > 0 && rows.every((row) => selectedSet.has(row.id)),
@@ -95,56 +118,52 @@ function DataTableClient(): JSX.Element {
       return acc;
     }, {});
   }, [availableClans]);
-  const activeFilters = useMemo(() => {
-    const filters: { key: string; label: string }[] = [];
-    if (filterPlayer.trim()) {
-      filters.push({ key: "player", label: `Player: ${filterPlayer.trim()}` });
-    }
-    if (filterSource.trim()) {
-      filters.push({ key: "source", label: `Source: ${filterSource.trim()}` });
-    }
-    if (filterChest.trim()) {
-      filters.push({ key: "chest", label: `Chest: ${filterChest.trim()}` });
-    }
-    if (filterClanId !== "all") {
-      filters.push({ key: "clan", label: `Clan: ${clanNameById[filterClanId] ?? filterClanId}` });
-    }
-    if (filterDateFrom.trim()) {
-      filters.push({ key: "dateFrom", label: `From: ${filterDateFrom.trim()}` });
-    }
-    if (filterDateTo.trim()) {
-      filters.push({ key: "dateTo", label: `To: ${filterDateTo.trim()}` });
-    }
-    if (filterScoreMin.trim()) {
-      filters.push({ key: "scoreMin", label: `Score ≥ ${filterScoreMin.trim()}` });
-    }
-    if (filterScoreMax.trim()) {
-      filters.push({ key: "scoreMax", label: `Score ≤ ${filterScoreMax.trim()}` });
-    }
-    return filters;
-  }, [
-    clanNameById,
-    filterChest,
-    filterClanId,
-    filterDateFrom,
-    filterDateTo,
-    filterPlayer,
-    filterScoreMax,
-    filterScoreMin,
-    filterSource,
-  ]);
-
-  function clearAllFilters(): void {
-    setFilterPlayer("");
-    setFilterSource("");
-    setFilterChest("");
-    setFilterClanId("all");
-    setFilterDateFrom("");
-    setFilterDateTo("");
-    setFilterScoreMin("");
-    setFilterScoreMax("");
-    setPage(1);
-  }
+  const validationEvaluator = useMemo(
+    () => createValidationEvaluator(validationRules),
+    [validationRules],
+  );
+  const playerFilterOptions = useMemo(() => {
+    const values = new Set<string>();
+    validationRules.forEach((rule) => {
+      if (rule.field.toLowerCase() === "player" && rule.match_value.trim()) {
+        values.add(rule.match_value.trim());
+      }
+    });
+    return [{ value: "", label: "All" }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
+  }, [validationRules]);
+  const sourceFilterOptions = useMemo(() => {
+    const values = new Set<string>();
+    validationRules.forEach((rule) => {
+      if (rule.field.toLowerCase() === "source" && rule.match_value.trim()) {
+        values.add(rule.match_value.trim());
+      }
+    });
+    return [{ value: "", label: "All" }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
+  }, [validationRules]);
+  const chestFilterOptions = useMemo(() => {
+    const values = new Set<string>();
+    validationRules.forEach((rule) => {
+      if (rule.field.toLowerCase() === "chest" && rule.match_value.trim()) {
+        values.add(rule.match_value.trim());
+      }
+    });
+    return [{ value: "", label: "All" }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
+  }, [validationRules]);
+  const rowValidationResults = useMemo(() => {
+    return rows.reduce<Record<string, ReturnType<typeof validationEvaluator>>>((acc, row) => {
+      const clanId = getRowValue(row, "clan_id");
+      const clanName = clanNameById[clanId] ?? row.clan_name;
+      acc[row.id] = validationEvaluator({
+        player: getRowValue(row, "player"),
+        source: getRowValue(row, "source"),
+        chest: getRowValue(row, "chest"),
+        clan: clanName,
+        clanId,
+      });
+      return acc;
+    }, {});
+  }, [clanNameById, editMap, rows, validationEvaluator]);
+  
 
   interface LoadRowsParams {
     readonly pageNumber: number;
@@ -256,25 +275,6 @@ function DataTableClient(): JSX.Element {
   ]);
 
   useEffect(() => {
-    const storedClanId = window.localStorage.getItem("tc.currentClanId") ?? "";
-    if (storedClanId && filterClanId === "all") {
-      setFilterClanId(storedClanId);
-      setPage(1);
-    }
-    function handleContextChange(): void {
-      const nextClanId = window.localStorage.getItem("tc.currentClanId") ?? "";
-      if (nextClanId) {
-        setFilterClanId(nextClanId);
-        setPage(1);
-      }
-    }
-    window.addEventListener("clan-context-change", handleContextChange);
-    return () => {
-      window.removeEventListener("clan-context-change", handleContextChange);
-    };
-  }, [filterClanId]);
-
-  useEffect(() => {
     async function loadClans(): Promise<void> {
       const { data, error } = await supabase.from("clans").select("id,name").order("name");
       if (error) {
@@ -284,6 +284,25 @@ function DataTableClient(): JSX.Element {
     }
     void loadClans();
   }, [supabase]);
+
+  useEffect(() => {
+    async function loadValidationRules(): Promise<void> {
+      const clanIds = Array.from(new Set(rows.map((row) => row.clan_id).filter(Boolean)));
+      if (clanIds.length === 0) {
+        setValidationRules([]);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("validation_rules")
+        .select("id,clan_id,field,match_value,status")
+        .in("clan_id", clanIds);
+      if (error) {
+        return;
+      }
+      setValidationRules(data ?? []);
+    }
+    void loadValidationRules();
+  }, [rows, supabase]);
 
   useEffect(() => {
     if (status) {
@@ -313,6 +332,84 @@ function DataTableClient(): JSX.Element {
       return;
     }
     setSelectedIds(rows.map((row) => row.id));
+  }
+
+  function toggleSort(nextKey: SortKey): void {
+    if (sortKey !== nextKey) {
+      setSortKey(nextKey);
+      setSortDirection("asc");
+      return;
+    }
+    if (sortDirection === "asc") {
+      setSortDirection("desc");
+      return;
+    }
+    setSortKey(null);
+    setSortDirection(null);
+  }
+
+  function getSortValue(row: ChestEntryRow, key: SortKey): string | number {
+    if (key === "score") {
+      return Number(getRowValue(row, "score"));
+    }
+    if (key === "clan") {
+      const clanId = getRowValue(row, "clan_id");
+      return (clanNameById[clanId] ?? row.clan_name ?? "").toLowerCase();
+    }
+    if (key === "collected_date") {
+      return getRowValue(row, "collected_date");
+    }
+    return getRowValue(row, key).toLowerCase();
+  }
+
+  function sortRows(inputRows: readonly ChestEntryRow[]): ChestEntryRow[] {
+    if (!sortKey || !sortDirection) {
+      return [...inputRows];
+    }
+    const direction = sortDirection === "asc" ? 1 : -1;
+    return [...inputRows].sort((a, b) => {
+      const aValue = getSortValue(a, sortKey);
+      const bValue = getSortValue(b, sortKey);
+      if (aValue < bValue) {
+        return -1 * direction;
+      }
+      if (aValue > bValue) {
+        return 1 * direction;
+      }
+      return 0;
+    });
+  }
+
+  function openBatchEdit(): void {
+    if (selectedIds.length === 0) {
+      pushToast("Select rows for batch edit.");
+      return;
+    }
+    setIsBatchEditOpen(true);
+  }
+
+  function closeBatchEdit(): void {
+    setIsBatchEditOpen(false);
+  }
+
+  function handleBatchFieldChange(nextField: keyof EditableRow): void {
+    setBatchEditField(nextField);
+    setBatchEditValue("");
+    setBatchEditDate("");
+    setBatchEditClanId("");
+  }
+
+  function clearFilters(): void {
+    setSearchTerm("");
+    setFilterPlayer("");
+    setFilterSource("");
+    setFilterChest("");
+    setFilterClanId("all");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterScoreMin("");
+    setFilterScoreMax("");
+    setPage(1);
   }
 
   function updateEditValue(id: string, field: keyof EditableRow, value: string): void {
@@ -384,6 +481,44 @@ function DataTableClient(): JSX.Element {
       return row.clan_id;
     }
     return row[field];
+  }
+
+  function getBatchPreviewValue(row: ChestEntryRow, field: keyof EditableRow): string {
+    const baseValue = getRowValue(row, field);
+    if (batchEditField !== field) {
+      return baseValue;
+    }
+    if (field === "collected_date") {
+      return batchEditDate ? batchEditDate : baseValue;
+    }
+    if (field === "clan_id") {
+      return batchEditClanId ? batchEditClanId : baseValue;
+    }
+    if (batchEditValue === "") {
+      return baseValue;
+    }
+    return batchEditValue;
+  }
+
+  function renderSortButton(label: string, key: SortKey): JSX.Element {
+    const isActive = sortKey === key && sortDirection;
+    return (
+      <button className="table-sort-button" type="button" onClick={() => toggleSort(key)}>
+        <span>{label}</span>
+        {isActive ? (
+          <svg
+            aria-hidden="true"
+            className={`table-sort-indicator ${sortDirection === "desc" ? "is-desc" : ""}`.trim()}
+            width="10"
+            height="10"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        ) : null}
+      </button>
+    );
   }
 
   function validateRow(row: ChestEntryRow, edits: EditableRow): string | null {
@@ -537,57 +672,43 @@ function DataTableClient(): JSX.Element {
     refreshAfterDelete(1);
   }
 
-  async function handleBatchUpdate(): Promise<void> {
-    if (selectedIds.length === 0) {
+  function handlePageInputChange(nextValue: string): void {
+    const nextPage = Number(nextValue);
+    if (Number.isNaN(nextPage)) {
+      return;
+    }
+    const clampedPage = Math.min(Math.max(1, nextPage), totalPages);
+    setPage(clampedPage);
+  }
+
+  function confirmBatchEdit(): void {
+    if (selectedRows.length === 0) {
       setStatus("Select rows for batch edit.");
       return;
     }
-    if (!batchSource.trim()) {
-      setStatus("Enter a source value.");
+    if (batchEditField === "collected_date" && !batchEditDate) {
+      setStatus("Select a date value.");
       return;
     }
-    setIsBatchUpdateConfirmOpen(true);
-  }
-
-  function closeBatchUpdateConfirm(): void {
-    setIsBatchUpdateConfirmOpen(false);
-  }
-
-  async function confirmBatchUpdate(): Promise<void> {
-    setIsBatchUpdateConfirmOpen(false);
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      setStatus("You must be logged in to update rows.");
+    if (batchEditField === "clan_id" && !batchEditClanId) {
+      setStatus("Select a clan.");
       return;
     }
-    const nextSource = batchSource.trim();
-    const selectedRows = rows.filter((row) => selectedIds.includes(row.id));
-    const { error } = await supabase
-      .from("chest_entries")
-      .update({ source: nextSource, updated_by: userId })
-      .in("id", selectedIds);
-    if (error) {
-      setStatus(`Batch update failed: ${error.message}`);
+    if (batchEditField !== "collected_date" && batchEditField !== "clan_id" && batchEditValue === "") {
+      setStatus("Enter a value.");
       return;
     }
-    await insertAuditLogs(
-      selectedRows
-        .filter((row) => row.source !== nextSource)
-        .map((row) => ({
-          clan_id: row.clan_id,
-          actor_id: userId,
-          action: "batch_update",
-          entity: "chest_entries",
-          entity_id: row.id,
-          diff: {
-            source: { from: row.source, to: nextSource },
-          },
-        })),
-    );
-    setStatus("Batch update complete.");
-    setSelectedIds([]);
-    setBatchSource("");
-    await loadRows({ pageNumber: page });
+    const nextValue =
+      batchEditField === "collected_date"
+        ? batchEditDate
+        : batchEditField === "clan_id"
+          ? batchEditClanId
+          : batchEditValue;
+    selectedRows.forEach((row) => {
+      updateEditValue(row.id, batchEditField, nextValue);
+    });
+    setIsBatchEditOpen(false);
+    setStatus("Batch edits applied. Review changes and save.");
   }
 
   async function handleBatchDelete(): Promise<void> {
@@ -701,82 +822,73 @@ function DataTableClient(): JSX.Element {
 
   return (
     <div className="grid">
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <div className="card-title">Batch Operations</div>
-            <div className="card-subtitle">Apply changes to selected rows</div>
+      {isBatchOpsOpen ? (
+        <section className="card batch-ops">
+          <div className="card-header">
+            <div>
+              <div className="card-title">Search & Filters</div>
+              <div className="card-subtitle">Apply filters to narrow results</div>
+            </div>
           </div>
-        </div>
-        <div className="form-group">
-          <label htmlFor="searchTerm">Search</label>
-          <input
-            id="searchTerm"
-            value={searchTerm}
-            onChange={(event: ChangeEvent<HTMLInputElement>) => {
-              setSearchTerm(event.target.value);
-              setPage(1);
-            }}
-            placeholder="Search player, source, or chest"
-          />
-        </div>
-        {isFiltersOpen ? (
           <div className="card-section">
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="filterPlayer">Player</label>
-                <input
+            <div className="batch-ops-rows">
+              <div className="list inline admin-members-filters filter-bar batch-ops-row">
+                <LabeledSelect
                   id="filterPlayer"
+                  label="Player"
                   value={filterPlayer}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                    setFilterPlayer(event.target.value);
+                  onValueChange={(value) => {
+                    setFilterPlayer(value);
                     setPage(1);
                   }}
-                  placeholder="Player name"
+                  enableSearch
+                  searchPlaceholder="Search player"
+                  options={playerFilterOptions}
                 />
-              </div>
-              <div className="form-group">
-                <label htmlFor="filterSource">Source</label>
-                <input
+                <LabeledSelect
                   id="filterSource"
+                  label="Source"
                   value={filterSource}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                    setFilterSource(event.target.value);
+                  onValueChange={(value) => {
+                    setFilterSource(value);
                     setPage(1);
                   }}
-                  placeholder="Source"
+                  enableSearch
+                  searchPlaceholder="Search source"
+                  options={sourceFilterOptions}
                 />
-              </div>
-              <div className="form-group">
-                <label htmlFor="filterChest">Chest</label>
-                <input
+                <LabeledSelect
                   id="filterChest"
+                  label="Chest"
                   value={filterChest}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                    setFilterChest(event.target.value);
+                  onValueChange={(value) => {
+                    setFilterChest(value);
                     setPage(1);
                   }}
-                  placeholder="Chest"
+                  enableSearch
+                  searchPlaceholder="Search chest"
+                  options={chestFilterOptions}
                 />
-              </div>
-              <div className="form-group">
-                <label htmlFor="filterClan">Clan</label>
-                <RadixSelect
+                <LabeledSelect
                   id="filterClan"
-                  ariaLabel="Clan"
+                  label="Clan"
                   value={filterClanId}
                   onValueChange={(value) => {
                     setFilterClanId(value);
                     setPage(1);
                   }}
+                  enableSearch
+                  searchPlaceholder="Search clan"
                   options={[
                     { value: "all", label: "All" },
                     ...availableClans.map((clan) => ({ value: clan.id, label: clan.name })),
                   ]}
                 />
               </div>
-              <div className="form-group">
-                <label htmlFor="filterDateFrom">Date from</label>
+              <div className="list inline admin-members-filters filter-bar batch-ops-row">
+                <label htmlFor="filterDateFrom" className="text-muted">
+                  Date from
+                </label>
                 <input
                   id="filterDateFrom"
                   type="date"
@@ -786,9 +898,9 @@ function DataTableClient(): JSX.Element {
                     setPage(1);
                   }}
                 />
-              </div>
-              <div className="form-group">
-                <label htmlFor="filterDateTo">Date to</label>
+                <label htmlFor="filterDateTo" className="text-muted">
+                  Date to
+                </label>
                 <input
                   id="filterDateTo"
                   type="date"
@@ -798,9 +910,9 @@ function DataTableClient(): JSX.Element {
                     setPage(1);
                   }}
                 />
-              </div>
-              <div className="form-group">
-                <label htmlFor="filterScoreMin">Score min</label>
+                <label htmlFor="filterScoreMin" className="text-muted">
+                  Score min
+                </label>
                 <input
                   id="filterScoreMin"
                   value={filterScoreMin}
@@ -810,9 +922,9 @@ function DataTableClient(): JSX.Element {
                   }}
                   placeholder="0"
                 />
-              </div>
-              <div className="form-group">
-                <label htmlFor="filterScoreMax">Score max</label>
+                <label htmlFor="filterScoreMax" className="text-muted">
+                  Score max
+                </label>
                 <input
                   id="filterScoreMax"
                   value={filterScoreMax}
@@ -823,68 +935,41 @@ function DataTableClient(): JSX.Element {
                   placeholder="100"
                 />
               </div>
-            </div>
-            <div className="list inline">
-              <button
-                className="button"
-                type="button"
-                onClick={clearAllFilters}
-              >
-                Clear filters
-              </button>
+              <div className="list inline admin-members-filters filter-bar batch-ops-row">
+                <SearchInput
+                  id="searchTerm"
+                  label="Search"
+                  value={searchTerm}
+                  onChange={(value) => {
+                    setSearchTerm(value);
+                    setPage(1);
+                  }}
+                  placeholder="Search player, source, or chest"
+                  inputClassName="batch-search-input"
+                />
+              </div>
             </div>
           </div>
-        ) : null}
-        <div className="form-group">
-          <label htmlFor="batchSource">Batch Source</label>
-          <input
-            id="batchSource"
-            value={batchSource}
-            onChange={(event: ChangeEvent<HTMLInputElement>) => setBatchSource(event.target.value)}
-            placeholder="Level 25 Crypt"
-          />
-        </div>
-        <div className="list">
-          <button className="button" type="button" onClick={handleBatchUpdate}>
-            Apply Source to Selected
-          </button>
-          <button className="button danger" type="button" onClick={handleBatchDelete}>
-            Delete Selected
-          </button>
-        </div>
-        {status ? <p className="text-muted">{status}</p> : null}
-        <div className="list-item">
-          <span>Page size</span>
-          <RadixSelect
-            ariaLabel="Page size"
-            value={String(pageSize)}
-            onValueChange={(value) => {
-              setPageSize(Number(value));
-              setPage(1);
-            }}
-            options={[
-              { value: "10", label: "10" },
-              { value: "20", label: "20" },
-              { value: "50", label: "50" },
-            ]}
-          />
-        </div>
-      </section>
+        </section>
+      ) : null}
       <div className="table-toolbar">
-        <button className="button" type="button" onClick={() => setIsFiltersOpen((current) => !current)}>
-          {isFiltersOpen ? "Hide Filters" : "Filters"}
+        <button className="button" type="button" onClick={() => setIsBatchOpsOpen((current) => !current)}>
+          {isBatchOpsOpen ? "Hide Search & Filters" : "Search & Filters"}
         </button>
+        <IconButton ariaLabel="Clear filters" onClick={clearFilters}>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 4L12 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <path d="M12 4L4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </IconButton>
         <div className="list inline action-icons">
-          <button className="button" type="button" onClick={handleBatchUpdate}>
+          <button className="button" type="button" onClick={openBatchEdit}>
             Batch Edit
           </button>
-          <button
-            className="button icon-button"
-            type="button"
+          <IconButton
+            ariaLabel="Save all"
             onClick={handleSaveAllRows}
             disabled={Object.keys(editMap).length === 0}
-            title="Save all"
-            aria-label="Save all"
           >
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
@@ -895,35 +980,18 @@ function DataTableClient(): JSX.Element {
                 strokeLinejoin="round"
               />
             </svg>
-          </button>
-          <button
-            className="button icon-button danger"
-            type="button"
-            onClick={handleBatchDelete}
-            title="Batch delete"
-            aria-label="Batch delete"
-          >
+          </IconButton>
+          <IconButton ariaLabel="Batch delete" onClick={handleBatchDelete} variant="danger">
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
               <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
               <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
             </svg>
-          </button>
+          </IconButton>
         </div>
       </div>
-      {activeFilters.length > 0 ? (
-        <div className="filter-chips">
-          {activeFilters.map((filter) => (
-            <span className="badge" key={filter.key}>
-              {filter.label}
-            </span>
-          ))}
-          <button className="button" type="button" onClick={clearAllFilters}>
-            Clear all
-          </button>
-        </div>
-      ) : null}
-      <section className="table data-table">
+      <div className="table-scroll">
+        <section className="table data-table">
         <header>
           <span>
             <input
@@ -934,12 +1002,12 @@ function DataTableClient(): JSX.Element {
               aria-label="Select all rows on this page"
             />
           </span>
-          <span>Date</span>
-          <span>Player</span>
-          <span>Source</span>
-          <span>Chest</span>
-          <span>Score</span>
-          <span>Clan</span>
+          <span>{renderSortButton("Date", "collected_date")}</span>
+          <span>{renderSortButton("Player", "player")}</span>
+          <span>{renderSortButton("Source", "source")}</span>
+          <span>{renderSortButton("Chest", "chest")}</span>
+          <span>{renderSortButton("Score", "score")}</span>
+          <span>{renderSortButton("Clan", "clan")}</span>
           <span>Actions</span>
         </header>
         {rows.length === 0 ? (
@@ -954,8 +1022,15 @@ function DataTableClient(): JSX.Element {
             <span />
           </div>
         ) : (
-          rows.map((row) => (
-            <div className="row" key={row.id}>
+          sortRows(rows).map((row) => {
+            const validation = rowValidationResults[row.id];
+            const rowStatus = validation?.rowStatus ?? "neutral";
+            const fieldStatus = validation?.fieldStatus ?? { player: "neutral", source: "neutral", chest: "neutral", clan: "neutral" };
+            return (
+            <div
+              className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
+              key={row.id}
+            >
               <span>
                 <input
                   type="checkbox"
@@ -971,14 +1046,17 @@ function DataTableClient(): JSX.Element {
               </span>
               <input
                 value={getRowValue(row, "player")}
+                className={fieldStatus.player === "invalid" ? "validation-cell-invalid" : ""}
                 onChange={(event) => updateEditValue(row.id, "player", event.target.value)}
               />
               <input
                 value={getRowValue(row, "source")}
+                className={fieldStatus.source === "invalid" ? "validation-cell-invalid" : ""}
                 onChange={(event) => updateEditValue(row.id, "source", event.target.value)}
               />
               <input
                 value={getRowValue(row, "chest")}
+                className={fieldStatus.chest === "invalid" ? "validation-cell-invalid" : ""}
                 onChange={(event) => updateEditValue(row.id, "chest", event.target.value)}
               />
               <input
@@ -989,6 +1067,7 @@ function DataTableClient(): JSX.Element {
                 ariaLabel="Clan"
                 value={getRowValue(row, "clan_id")}
                 onValueChange={(value) => updateEditValue(row.id, "clan_id", value)}
+                triggerClassName={fieldStatus.clan === "invalid" ? "select-trigger validation-cell-invalid" : undefined}
                 options={availableClans.map((clan) => ({ value: clan.id, label: clan.name }))}
               />
               <div className="list inline action-icons">
@@ -996,14 +1075,7 @@ function DataTableClient(): JSX.Element {
                   const hasRowEdits = Boolean(editMap[row.id]);
                   return (
                     <>
-                      <button
-                        className="button icon-button"
-                        type="button"
-                        onClick={() => handleSaveRow(row)}
-                        title="Save changes"
-                        aria-label="Save changes"
-                        disabled={!hasRowEdits}
-                      >
+                      <IconButton ariaLabel="Save changes" onClick={() => handleSaveRow(row)} disabled={!hasRowEdits}>
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
                             d="M4 8.5L7 11.5L12 5"
@@ -1013,91 +1085,212 @@ function DataTableClient(): JSX.Element {
                             strokeLinejoin="round"
                           />
                         </svg>
-                      </button>
-                      <button
-                        className="button icon-button"
-                        type="button"
-                        onClick={() => clearRowEdits(row.id)}
-                        title="Cancel changes"
-                        aria-label="Cancel changes"
-                        disabled={!hasRowEdits}
-                      >
+                      </IconButton>
+                      <IconButton ariaLabel="Cancel changes" onClick={() => clearRowEdits(row.id)} disabled={!hasRowEdits}>
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                           <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
-                      </button>
-                      <button
-                        className="button icon-button danger"
-                        type="button"
-                        onClick={() => handleDeleteRow(row)}
-                        title="Delete row"
-                        aria-label="Delete row"
-                      >
+                      </IconButton>
+                      <IconButton ariaLabel="Delete row" onClick={() => handleDeleteRow(row)} variant="danger">
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                           <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                           <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                         </svg>
-                      </button>
+                      </IconButton>
                     </>
                   );
                 })()}
                 {rowErrors[row.id] ? <span className="text-muted">{rowErrors[row.id]}</span> : null}
               </div>
             </div>
-          ))
+            );
+          })
         )}
-      </section>
+        </section>
+      </div>
       <section className="card" style={{ gridColumn: "span 12" }}>
-        <div className="list-item">
-          <span>
-            Page {page} of {Math.max(1, Math.ceil(totalCount / pageSize))}
+        <div className="pagination-bar">
+          <div className="pagination-page-size">
+            <label htmlFor="pageSize" className="text-muted">
+              Page size
+            </label>
+            <RadixSelect
+              id="pageSize"
+              ariaLabel="Page size"
+              value={String(pageSize)}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setPage(1);
+              }}
+              options={[
+                { value: "25", label: "25" },
+                { value: "50", label: "50" },
+                { value: "100", label: "100" },
+              ]}
+            />
+          </div>
+          <span className="text-muted">
+            Showing {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–
+            {Math.min(page * pageSize, totalCount)} of {totalCount}
           </span>
-          <div className="list">
-            <button
-              className="button"
-              type="button"
-              disabled={page === 1}
+          <div className="pagination-actions">
+            <div className="pagination-page-indicator">
+              <label htmlFor="pageJump" className="text-muted">
+                Page
+              </label>
+              <input
+                id="pageJump"
+                className="pagination-page-input"
+                type="number"
+                min={1}
+                max={totalPages}
+                value={page}
+                onChange={(event) => handlePageInputChange(event.target.value)}
+              />
+              <span className="text-muted">/ {totalPages}</span>
+            </div>
+            <IconButton
+              ariaLabel="Previous page"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page === 1}
             >
-              Previous
-            </button>
-            <button
-              className="button"
-              type="button"
-              disabled={page >= Math.ceil(totalCount / pageSize)}
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </IconButton>
+            <IconButton
+              ariaLabel="Next page"
               onClick={() => setPage((current) => current + 1)}
+              disabled={page >= totalPages}
             >
-              Next
-            </button>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </IconButton>
           </div>
         </div>
       </section>
-      {isBatchUpdateConfirmOpen ? (
+      {isBatchEditOpen ? (
         <div className="modal-backdrop">
-          <div className="modal card">
+          <div className="modal card wide">
             <div className="card-header">
               <div>
-                <div className="card-title">Confirm batch edit</div>
-                <div className="card-subtitle">Apply the source value to selected rows.</div>
+                <div className="card-title">Batch edit selected rows</div>
+                <div className="card-subtitle">Review changes before applying them to the table.</div>
               </div>
             </div>
-            <div className="list">
-              <div className="list-item">
-                <span>Rows selected</span>
-                <span>{selectedIds.length}</span>
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="batchEditField">Column</label>
+                <RadixSelect
+                  id="batchEditField"
+                  ariaLabel="Batch edit column"
+                  value={batchEditField}
+                  onValueChange={(value) => handleBatchFieldChange(value as keyof EditableRow)}
+                  options={[
+                    { value: "collected_date", label: "Date" },
+                    { value: "player", label: "Player" },
+                    { value: "source", label: "Source" },
+                    { value: "chest", label: "Chest" },
+                    { value: "score", label: "Score" },
+                    { value: "clan_id", label: "Clan" },
+                  ]}
+                />
               </div>
-              <div className="list-item">
-                <span>New source</span>
-                <strong>{batchSource.trim()}</strong>
+              <div className="form-group">
+                <label htmlFor="batchEditValue">New value</label>
+                {batchEditField === "collected_date" ? (
+                  <DatePicker value={batchEditDate} onChange={setBatchEditDate} />
+                ) : batchEditField === "clan_id" ? (
+                  <RadixSelect
+                    id="batchEditClan"
+                    ariaLabel="Batch edit clan"
+                    value={batchEditClanId}
+                    onValueChange={setBatchEditClanId}
+                    enableSearch
+                    searchPlaceholder="Search clan"
+                    options={availableClans.map((clan) => ({ value: clan.id, label: clan.name }))}
+                  />
+                ) : (
+                  <input
+                    id="batchEditValue"
+                    type={batchEditField === "score" ? "number" : "text"}
+                    value={batchEditValue}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => setBatchEditValue(event.target.value)}
+                    placeholder={batchEditField === "score" ? "0" : "New value"}
+                  />
+                )}
               </div>
+            </div>
+            <div className="modal-table-scroll">
+              <section className="table batch-preview">
+                <header>
+                  <span>{renderSortButton("Date", "collected_date")}</span>
+                  <span>{renderSortButton("Player", "player")}</span>
+                  <span>{renderSortButton("Source", "source")}</span>
+                  <span>{renderSortButton("Chest", "chest")}</span>
+                  <span>{renderSortButton("Score", "score")}</span>
+                  <span>{renderSortButton("Clan", "clan")}</span>
+                </header>
+                {selectedRows.length === 0 ? (
+                  <div className="row">
+                    <span>No rows selected</span>
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                ) : (
+                  sortRows(selectedRows).map((row) => {
+                    const previewClanId = getBatchPreviewValue(row, "clan_id");
+                    const previewClanName = clanNameById[previewClanId] ?? row.clan_name;
+                    const validation = validationEvaluator({
+                      player: getBatchPreviewValue(row, "player"),
+                      source: getBatchPreviewValue(row, "source"),
+                      chest: getBatchPreviewValue(row, "chest"),
+                      clan: previewClanName,
+                      clanId: previewClanId,
+                    });
+                    const rowStatus = validation?.rowStatus ?? "neutral";
+                    const fieldStatus = validation?.fieldStatus ?? {
+                      player: "neutral",
+                      source: "neutral",
+                      chest: "neutral",
+                      clan: "neutral",
+                    };
+                    return (
+                      <div
+                        className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
+                        key={row.id}
+                      >
+                        <span>{getBatchPreviewValue(row, "collected_date")}</span>
+                        <span className={fieldStatus.player === "invalid" ? "validation-cell-invalid" : ""}>
+                          {getBatchPreviewValue(row, "player")}
+                        </span>
+                        <span className={fieldStatus.source === "invalid" ? "validation-cell-invalid" : ""}>
+                          {getBatchPreviewValue(row, "source")}
+                        </span>
+                        <span className={fieldStatus.chest === "invalid" ? "validation-cell-invalid" : ""}>
+                          {getBatchPreviewValue(row, "chest")}
+                        </span>
+                        <span>{getBatchPreviewValue(row, "score")}</span>
+                        <span className={fieldStatus.clan === "invalid" ? "validation-cell-invalid" : ""}>
+                          {previewClanName}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </section>
             </div>
             <div className="list inline">
-              <button className="button primary" type="button" onClick={confirmBatchUpdate}>
-                Confirm
+              <button className="button primary" type="button" onClick={confirmBatchEdit}>
+                Apply changes
               </button>
-              <button className="button" type="button" onClick={closeBatchUpdateConfirm}>
+              <button className="button" type="button" onClick={closeBatchEdit}>
                 Cancel
               </button>
             </div>

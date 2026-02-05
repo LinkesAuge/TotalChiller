@@ -10,7 +10,7 @@ This document defines the screen-by-screen prototype for the clan community webs
 
 ### Navigation
 - Public: Home, About, Recruitment, Login, Register.
-- Member: Dashboard, News, Data Import, Data Table, Charts, Events, Directory, Messages.
+- Member: Dashboard, News, Data Import, Chest Database, Charts, Events, Directory, Messages.
 - Admin: Users, Clans, Roles/Ranks, Rules, Audit Log.
 
 ### Shared Components
@@ -19,6 +19,9 @@ This document defines the screen-by-screen prototype for the clan community webs
 - Gold-outlined primary buttons.
 - Data table with parchment-like surface and dark header row.
 - Badge/medallion for rank.
+- Reusable UI primitives for filters/actions:
+  - Icon-only buttons, labeled search inputs, and labeled dropdowns.
+  - Dropdowns support search and consistent chevron alignment.
 
 ## Screen Inventory
 ### 1. Public Landing
@@ -74,7 +77,7 @@ This document defines the screen-by-screen prototype for the clan community webs
 - Preview table with validation/correction highlights.
 - Commit button with progress state.
 
-### 9. Data Table
+### 9. Chest Database
 **Purpose:** View and edit committed data.
 **Components:**
 - Filter bar (date range, player, source, clan).

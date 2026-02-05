@@ -8,7 +8,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Data import supports Pattern 1 CSV only (DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN), aligned to `Documentation/data_example.csv`.
 - Pattern 2 is deprecated and removed from scope.
 - Usernames are required and case‑insensitive. Display names are optional.
-- Admin routes include data import, data table, and user management.
+- Admin routes include data import, chest database, and user management.
 
 ## Updated PRD Areas
 
@@ -47,7 +47,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 
 - Public landing, auth, member dashboard.
 - Data import + preview (Pattern 1 only).
-- Data table (view/edit/batch) with audit log.
+- Chest database (view/edit/batch) with audit log.
 - Admin panel for users/clans/ranks/permissions and rule management.
 - i18n (de/en) for UI text.
 
@@ -57,7 +57,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Auth flows: register, email verify, login, forgot password.
 - Member dashboard: announcements, news feed, personal stats, clan stats, quick links.
 - Data import: upload CSV, parse errors, preview table, corrections, commit confirmation.
-- Data table: filters, pagination, inline edit, batch operations, audit log access.
+- Chest database: filters, pagination, inline edit, batch operations, audit log access.
 - Admin: users/clans/ranks, permissions, rule management, cross-clan access.
 
 ## UI Style Reference (Total Battle Feel)
@@ -130,24 +130,27 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Game account clan memberships: `rank` column.
 - Default clan: `clans.is_default` + single‑default trigger.
 
-## Data Import & Table
+## Data Import & Chest Database
 
 - Data import commits to Supabase `chest_entries` via an admin API using a service role client.
 - Import does not validate players against game accounts; chest data is treated as raw OCR input.
-- Data table reads `chest_entries` via server client.
-- Data table supports inline edit validation and batch operations.
-- Data import and data table use a shared date picker (flatpickr) with dd.mm.yyyy display.
+- Chest database reads `chest_entries` via server client.
+- Chest database supports inline edit validation and batch operations.
+- Data import and chest database use a shared date picker (flatpickr) with dd.mm.yyyy display.
 - Data import supports inline edits for date, player, source, chest, score, clan and row removal.
 
 ## Admin Enhancements
 
 - Admin user lookup by email via `app/api/admin/user-lookup`.
 - Rules currently support create, edit, and delete in admin UI (scheduled for validation-only refactor).
-- Admin tabs include Clans & Members, Users, Rules, Audit Logs, Data Import, Data Table.
+- Admin tabs include Clans & Members, Users, Rules, Audit Logs, Data Import, Chest Database.
 - Membership table now manages game accounts (game username, clan, rank, status).
 - Roles are assigned globally via `user_roles`.
 - Clan Management supports assign‑to‑clan modal and batch save/cancel.
-- Custom Radix selects replace native dropdowns across the app.
+- Reusable UI primitives for filters/actions:
+  - `icon-button` for icon-only actions.
+  - `search-input` for labeled search fields.
+  - `labeled-select` and `radix-select` for consistent dropdowns (with optional search).
 - Global default clan is stored in `clans.is_default`.
 - Clan context selector in sidebar scopes clan data views.
 - ESLint uses Next.js flat config (`eslint.config.js`); run `npx eslint .`.
@@ -166,7 +169,7 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Implement Supabase Auth and protected routes.
 - Build Pattern 1 CSV parser and preview table.
 - Implement validation/correction/scoring rules and admin UI.
-- Build data table with edit + batch operations + audit logging.
+- Build chest database with edit + batch operations + audit logging.
 - Add dashboard widgets and basic charts.
 - Add i18n for UI strings (de/en).
 

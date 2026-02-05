@@ -15,7 +15,7 @@ const adminTabs: readonly AdminTabItem[] = [
   { label: "Rules", href: "/admin?tab=rules", tab: "rules" },
   { label: "Audit Logs", href: "/admin?tab=logs", tab: "logs" },
   { label: "Data Import", href: "/admin/data-import" },
-  { label: "Data Table", href: "/admin/data-table" },
+  { label: "Chest Database", href: "/admin/data-table" },
 ];
 
 function isAdminTabActive(pathname: string, activeTab: string | null, item: AdminTabItem): boolean {

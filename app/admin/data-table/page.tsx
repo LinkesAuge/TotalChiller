@@ -9,8 +9,9 @@ function AdminDataTablePage(): JSX.Element {
   return (
     <>
       <section className="header header-inline">
-        <div className="title">Admin • Data Table</div>
+        <div className="title">Admin • Chest Database</div>
         <div className="actions">
+          <span className="badge">Chest Database</span>
           <AuthActions />
         </div>
       </section>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type ChangeEvent } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import { z } from "zod";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import DatePicker from "../components/date-picker";
 import RadixSelect from "../components/ui/radix-select";
+import { createValidationEvaluator } from "../components/validation-evaluator";
 
 interface CsvRow {
   readonly date: string;
@@ -35,21 +36,12 @@ interface CommitRow {
   readonly clan: string;
 }
 
-interface RuleSummary {
-  readonly id?: string;
+interface ValidationRuleRow {
+  readonly id: string;
+  readonly clan_id: string;
   readonly field: string;
   readonly match_value: string;
-  readonly status?: string;
-  readonly replacement_value?: string;
-}
-
-interface ScoringRule {
-  readonly chest_match: string;
-  readonly source_match: string;
-  readonly min_level: number | null;
-  readonly max_level: number | null;
-  readonly score: number;
-  readonly rule_order: number;
+  readonly status: string;
 }
 
 type RowEdits = Partial<CsvRow>;
@@ -204,9 +196,7 @@ function DataImportClient(): JSX.Element {
   const [rows, setRows] = useState<readonly CsvRow[]>([]);
   const [errors, setErrors] = useState<readonly ParseError[]>([]);
   const [headerErrors, setHeaderErrors] = useState<readonly string[]>([]);
-  const [validationRules, setValidationRules] = useState<readonly RuleSummary[]>([]);
-  const [correctionRules, setCorrectionRules] = useState<readonly RuleSummary[]>([]);
-  const [scoringRules, setScoringRules] = useState<readonly ScoringRule[]>([]);
+  const [validationRules, setValidationRules] = useState<readonly ValidationRuleRow[]>([]);
   const [validationMessages, setValidationMessages] = useState<readonly string[]>([]);
   const [validationErrors, setValidationErrors] = useState<readonly string[]>([]);
   const [availableClans, setAvailableClans] = useState<readonly string[]>([]);
@@ -215,141 +205,40 @@ function DataImportClient(): JSX.Element {
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [commitStatus, setCommitStatus] = useState<string>("");
   const [isCommitting, setIsCommitting] = useState<boolean>(false);
-  const [applyCorrections, setApplyCorrections] = useState<boolean>(false);
-  const [applyScoring, setApplyScoring] = useState<boolean>(false);
-  const [showDiff, setShowDiff] = useState<boolean>(false);
-  const [computedScores, setComputedScores] = useState<readonly number[]>([]);
+  const [clanIdByName, setClanIdByName] = useState<Map<string, string>>(new Map());
   const [manualEdits, setManualEdits] = useState<Record<number, RowEdits>>({});
   const [selectedRows, setSelectedRows] = useState<readonly number[]>([]);
   const supabase = createSupabaseBrowserClient();
 
-  function getCorrectionSuggestion(row: CsvRow): string | null {
-    for (const rule of correctionRules) {
-      if (rule.field === "source" && matchesRuleValue(rule.match_value, row.source, false)) {
-        return `source: ${row.source} → ${rule.replacement_value ?? ""}`;
-      }
-      if (rule.field === "chest" && matchesRuleValue(rule.match_value, row.chest, false)) {
-        return `chest: ${row.chest} → ${rule.replacement_value ?? ""}`;
-      }
-      if (rule.field === "player" && matchesRuleValue(rule.match_value, row.player, false)) {
-        return `player: ${row.player} → ${rule.replacement_value ?? ""}`;
-      }
-      if (rule.field === "clan" && matchesRuleValue(rule.match_value, row.clan, false)) {
-        return `clan: ${row.clan} → ${rule.replacement_value ?? ""}`;
-      }
-    }
-    return null;
-  }
-
-  function applyRuleCorrections(row: CsvRow): CsvRow {
-    let nextRow = { ...row };
-    correctionRules.forEach((rule) => {
-      if (rule.field === "source" && matchesRuleValue(rule.match_value, nextRow.source, false)) {
-        nextRow = { ...nextRow, source: rule.replacement_value ?? nextRow.source };
-      }
-      if (rule.field === "chest" && matchesRuleValue(rule.match_value, nextRow.chest, false)) {
-        nextRow = { ...nextRow, chest: rule.replacement_value ?? nextRow.chest };
-      }
-      if (rule.field === "player" && matchesRuleValue(rule.match_value, nextRow.player, false)) {
-        nextRow = { ...nextRow, player: rule.replacement_value ?? nextRow.player };
-      }
-      if (rule.field === "clan" && matchesRuleValue(rule.match_value, nextRow.clan, false)) {
-        nextRow = { ...nextRow, clan: rule.replacement_value ?? nextRow.clan };
-      }
-    });
-    return nextRow;
-  }
-
-  function parseLevelFromSource(source: string): number | null {
-    const match = source.match(/level\s+(\d+)/i);
-    if (!match) {
-      return null;
-    }
-    const value = Number(match[1]);
-    return Number.isNaN(value) ? null : value;
-  }
-
-  function escapeRegexValue(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
-  function matchesRuleValue(ruleValue: string, targetValue: string, allowEmpty: boolean): boolean {
-    const trimmedRule = ruleValue.trim();
-    if (!trimmedRule) {
-      return allowEmpty;
-    }
-    if (trimmedRule.includes("*")) {
-      const regexPattern = `^${escapeRegexValue(trimmedRule).replace(/\\\*/g, ".*")}$`;
-      const matcher = new RegExp(regexPattern, "i");
-      return matcher.test(targetValue);
-    }
-    if (trimmedRule.startsWith("~")) {
-      const partial = trimmedRule.slice(1).trim();
-      if (!partial) {
-        return allowEmpty;
-      }
-      return targetValue.toLowerCase().includes(partial.toLowerCase());
-    }
-    return targetValue.toLowerCase() === trimmedRule.toLowerCase();
-  }
-
-  function getScoredValue(row: CsvRow): number | null {
-    if (scoringRules.length === 0) {
-      return null;
-    }
-    const level = parseLevelFromSource(row.source);
-    const orderedRules = [...scoringRules].sort((a, b) => a.rule_order - b.rule_order);
-    for (const rule of orderedRules) {
-      if (!matchesRuleValue(rule.chest_match, row.chest, true)) {
-        continue;
-      }
-      if (!matchesRuleValue(rule.source_match, row.source, true)) {
-        continue;
-      }
-      if (rule.min_level !== null && level !== null && level < rule.min_level) {
-        continue;
-      }
-      if (rule.max_level !== null && level !== null && level > rule.max_level) {
-        continue;
-      }
-      return rule.score;
-    }
-    return null;
-  }
+  const validationEvaluator = useMemo(
+    () => createValidationEvaluator(validationRules),
+    [validationRules],
+  );
 
   function evaluateValidationResults(nextRows: readonly CsvRow[]): { warnings: string[]; errors: string[] } {
     const warnings: string[] = [];
     const errors: string[] = [];
-    const clanValidRules = validationRules.filter((rule) => rule.field === "clan" && rule.status === "valid");
-    const clanInvalidRules = validationRules.filter((rule) => rule.field === "clan" && rule.status === "invalid");
     nextRows.forEach((row) => {
-      if (clanValidRules.length > 0) {
-        const hasAllowedClan = clanValidRules.some((rule) =>
-          matchesRuleValue(rule.match_value, row.clan, false),
-        );
-        if (!hasAllowedClan) {
-          errors.push(`Clan not allowed: ${row.clan}`);
-        }
+      const clanId = clanIdByName.get(row.clan) ?? "";
+      const result = validationEvaluator({
+        player: row.player,
+        source: row.source,
+        chest: row.chest,
+        clan: row.clan,
+        clanId,
+      });
+      if (result.fieldStatus.player === "invalid") {
+        errors.push(`Invalid player: ${row.player}`);
       }
-      clanInvalidRules.forEach((rule) => {
-        if (matchesRuleValue(rule.match_value, row.clan, false)) {
-          errors.push(`Invalid clan: ${row.clan}`);
-        }
-      });
-      validationRules.forEach((rule) => {
-        if (rule.status !== "invalid") {
-          return;
-        }
-        if (rule.field === "source" && matchesRuleValue(rule.match_value, row.source, false)) {
-          errors.push(`Invalid source: ${row.source}`);
-        }
-        if (rule.field === "chest" && matchesRuleValue(rule.match_value, row.chest, false)) {
-          errors.push(`Invalid chest: ${row.chest}`);
-        }
-        if (rule.field === "player" && matchesRuleValue(rule.match_value, row.player, false)) {
-          errors.push(`Invalid player: ${row.player}`);
-        }
-      });
+      if (result.fieldStatus.source === "invalid") {
+        errors.push(`Invalid source: ${row.source}`);
+      }
+      if (result.fieldStatus.chest === "invalid") {
+        errors.push(`Invalid chest: ${row.chest}`);
+      }
+      if (result.fieldStatus.clan === "invalid") {
+        errors.push(`Invalid clan: ${row.clan}`);
+      }
     });
     return { warnings, errors };
   }
@@ -357,8 +246,8 @@ function DataImportClient(): JSX.Element {
   async function loadRulesForClans(clanNames: readonly string[]): Promise<void> {
     if (clanNames.length === 0) {
       setValidationRules([]);
-      setCorrectionRules([]);
       setAvailableClans([]);
+      setClanIdByName(new Map());
       return;
     }
     const { data: clanRows, error: clanError } = await supabase
@@ -367,8 +256,8 @@ function DataImportClient(): JSX.Element {
       .in("name", clanNames);
     if (clanError || !clanRows) {
       setValidationRules([]);
-      setCorrectionRules([]);
       setAvailableClans([]);
+      setClanIdByName(new Map());
       return;
     }
     const { data: availableClanRows } = await supabase.from("clans").select("name").order("name");
@@ -381,39 +270,10 @@ function DataImportClient(): JSX.Element {
     const clanIds = clanRows.map((clan) => clan.id);
     const { data: validationData } = await supabase
       .from("validation_rules")
-      .select("id,field,match_value,status")
+      .select("id,clan_id,field,match_value,status")
       .in("clan_id", clanIds);
-    const { data: correctionData } = await supabase
-      .from("correction_rules")
-      .select("id,field,match_value,replacement_value")
-      .in("clan_id", clanIds);
-    const { data: scoringData } = await supabase
-      .from("scoring_rules")
-      .select("chest_match,source_match,min_level,max_level,score,rule_order")
-      .in("clan_id", clanIds);
-    const { data: clanValidationData } = await supabase
-      .from("validation_rules")
-      .select("id,field,match_value,status")
-      .eq("field", "clan");
-    const { data: clanCorrectionData } = await supabase
-      .from("correction_rules")
-      .select("id,field,match_value,replacement_value")
-      .eq("field", "clan");
-    const mergeRules = (base: readonly RuleSummary[], extras: readonly RuleSummary[]): RuleSummary[] => {
-      const combined = [...base, ...extras];
-      const seen = new Set<string>();
-      return combined.filter((rule) => {
-        const key = `${rule.field}-${rule.match_value}-${rule.status ?? ""}-${rule.replacement_value ?? ""}`;
-        if (seen.has(key)) {
-          return false;
-        }
-        seen.add(key);
-        return true;
-      });
-    };
-    setValidationRules(mergeRules(validationData ?? [], clanValidationData ?? []));
-    setCorrectionRules(mergeRules(correctionData ?? [], clanCorrectionData ?? []));
-    setScoringRules(scoringData ?? []);
+    setValidationRules(validationData ?? []);
+    setClanIdByName(new Map(clanRows.map((clan) => [clan.name, clan.id])));
   }
 
   function applyManualEdits(baseRows: readonly CsvRow[], edits: Record<number, RowEdits>): CsvRow[] {
@@ -435,8 +295,6 @@ function DataImportClient(): JSX.Element {
       }
       const nextValue = field === "score" ? Number(value || 0) : value;
       updated[index] = { ...target, [field]: nextValue };
-      const updatedScores = updated.map((row) => getScoredValue(row) ?? row.score);
-      setComputedScores(updatedScores);
       const { warnings, errors } = evaluateValidationResults(updated);
       setValidationMessages(warnings);
       setValidationErrors(errors);
@@ -448,6 +306,18 @@ function DataImportClient(): JSX.Element {
     }));
   }
 
+  const rowValidationResults = useMemo(() => {
+    return rows.map((row) =>
+      validationEvaluator({
+        player: row.player,
+        source: row.source,
+        chest: row.chest,
+        clan: row.clan,
+        clanId: clanIdByName.get(row.clan) ?? "",
+      }),
+    );
+  }, [clanIdByName, rows, validationEvaluator]);
+
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0];
     if (!file) {
@@ -458,10 +328,7 @@ function DataImportClient(): JSX.Element {
     const result = parseCsvText(text);
     const clanNames = Array.from(new Set(result.rows.map((row) => row.clan)));
     await loadRulesForClans(clanNames);
-    const correctedRows = result.rows.map(applyRuleCorrections);
-    const nextRows = applyCorrections ? correctedRows : result.rows;
-    const scoreValues = nextRows.map((row) => getScoredValue(row) ?? row.score);
-    setComputedScores(scoreValues);
+    const nextRows = result.rows;
     setOriginalRows(result.rows);
     setRows(nextRows);
     setManualEdits({});
@@ -483,7 +350,7 @@ function DataImportClient(): JSX.Element {
       player: row.player,
       source: row.source,
       chest: row.chest,
-      score: applyScoring ? computedScores[index] ?? row.score : row.score,
+      score: row.score,
       clan: row.clan,
     }));
   }
@@ -512,8 +379,6 @@ function DataImportClient(): JSX.Element {
     setRows(nextRows);
     setManualEdits(nextManual);
     setSelectedRows([]);
-    const scoreValues = nextRows.map((row) => getScoredValue(row) ?? row.score);
-    setComputedScores(scoreValues);
     const { warnings, errors: validationIssues } = evaluateValidationResults(nextRows);
     setValidationMessages(warnings);
     setValidationErrors(validationIssues);
@@ -585,9 +450,6 @@ function DataImportClient(): JSX.Element {
         >
           Remove Selected
         </button>
-        <button className="button" type="button" onClick={() => setShowDiff((value) => !value)}>
-          {showDiff ? "Hide Diff" : "Preview Diff"}
-        </button>
       </div>
       <div className="grid">
         <section className="card">
@@ -615,87 +477,10 @@ function DataImportClient(): JSX.Element {
               onChange={(event) => setBatchDate(event.target.value)}
             />
           </div>
-            <div className="list-item">
-              <span>Apply corrections</span>
-              <RadixSelect
-                ariaLabel="Apply corrections"
-                value={applyCorrections ? "true" : "false"}
-                onValueChange={(value) => {
-                  const nextValue = value === "true";
-                  setApplyCorrections(nextValue);
-                  const baseRows = nextValue ? originalRows.map(applyRuleCorrections) : originalRows;
-                  const nextRows = applyManualEdits(baseRows, manualEdits);
-                  setRows(nextRows);
-                  setComputedScores(nextRows.map((row) => getScoredValue(row) ?? row.score));
-                  const { warnings, errors: validationIssues } = evaluateValidationResults(nextRows);
-                  setValidationMessages(warnings);
-                  setValidationErrors(validationIssues);
-                }}
-                options={[
-                  { value: "true", label: "true" },
-                  { value: "false", label: "false" },
-                ]}
-              />
-            </div>
-            <div className="list-item">
-              <span>Apply scoring</span>
-              <RadixSelect
-                ariaLabel="Apply scoring"
-                value={applyScoring ? "true" : "false"}
-                onValueChange={(value) => setApplyScoring(value === "true")}
-                options={[
-                  { value: "true", label: "true" },
-                  { value: "false", label: "false" },
-                ]}
-              />
-            </div>
         </div>
         {statusMessage ? <p className="text-muted">{statusMessage}</p> : null}
           {commitStatus ? <p className="text-muted">{commitStatus}</p> : null}
         </section>
-        {showDiff ? (
-          <section className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">Preview Diff</div>
-                <div className="card-subtitle">Corrections and scoring changes</div>
-              </div>
-            </div>
-            <div className="list">
-              {rows.length === 0 ? (
-                <div className="list-item">
-                  <span>No rows to compare</span>
-                </div>
-              ) : (
-                rows.slice(0, 6).map((row, index) => {
-                  const originalRow = originalRows[index] ?? row;
-                  const diffParts: string[] = [];
-                  if (originalRow.player !== row.player) {
-                    diffParts.push(`player: ${originalRow.player} → ${row.player}`);
-                  }
-                  if (originalRow.source !== row.source) {
-                    diffParts.push(`source: ${originalRow.source} → ${row.source}`);
-                  }
-                  if (originalRow.chest !== row.chest) {
-                    diffParts.push(`chest: ${originalRow.chest} → ${row.chest}`);
-                  }
-                  if (originalRow.clan !== row.clan) {
-                    diffParts.push(`clan: ${originalRow.clan} → ${row.clan}`);
-                  }
-                  if (applyScoring && computedScores[index] !== undefined && computedScores[index] !== row.score) {
-                    diffParts.push(`score: ${row.score} → ${computedScores[index]}`);
-                  }
-                  return (
-                    <div key={`${row.date}-${row.player}-${row.chest}`} className="list-item">
-                      <span>{diffParts.length ? diffParts.join(" • ") : "No changes"}</span>
-                      <span className="badge">{row.player}</span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-        ) : null}
         <section className="card">
           <div className="card-header">
             <div>
@@ -732,6 +517,7 @@ function DataImportClient(): JSX.Element {
             </div>
           )}
       </section>
+        <div className="table-scroll">
         <section className="table data-import">
           <header>
             <span>Select</span>
@@ -753,8 +539,15 @@ function DataImportClient(): JSX.Element {
               <span />
             </div>
           ) : (
-            rows.slice(0, 50).map((row, index) => (
-              <div className="row" key={`${row.date}-${row.player}-${row.chest}-${index}`}>
+            rows.slice(0, 50).map((row, index) => {
+              const validation = rowValidationResults[index];
+              const rowStatus = validation?.rowStatus ?? "neutral";
+              const fieldStatus = validation?.fieldStatus ?? { player: "neutral", source: "neutral", chest: "neutral", clan: "neutral" };
+              return (
+              <div
+                className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
+                key={`${row.date}-${row.player}-${row.chest}-${index}`}
+              >
                 <input
                   type="checkbox"
                   checked={selectedRows.includes(index)}
@@ -763,34 +556,39 @@ function DataImportClient(): JSX.Element {
                 <DatePicker value={row.date} onChange={(value) => updateRowValue(index, "date", value)} />
                 <input
                   value={row.player}
+                  className={fieldStatus.player === "invalid" ? "validation-cell-invalid" : ""}
                   onChange={(event) => updateRowValue(index, "player", event.target.value)}
                 />
                 <input
                   value={row.source}
+                  className={fieldStatus.source === "invalid" ? "validation-cell-invalid" : ""}
                   onChange={(event) => updateRowValue(index, "source", event.target.value)}
                 />
                 <input
                   value={row.chest}
+                  className={fieldStatus.chest === "invalid" ? "validation-cell-invalid" : ""}
                   onChange={(event) => updateRowValue(index, "chest", event.target.value)}
                 />
                 <input
-                  value={applyScoring ? String(computedScores[index] ?? row.score) : String(row.score)}
+                  value={String(row.score)}
                   onChange={(event) => updateRowValue(index, "score", event.target.value)}
-                  disabled={applyScoring}
                 />
                 <RadixSelect
                   ariaLabel="Clan"
                   value={row.clan}
                   onValueChange={(value) => updateRowValue(index, "clan", value)}
+                  triggerClassName={fieldStatus.clan === "invalid" ? "select-trigger validation-cell-invalid" : undefined}
                   options={[
                     ...(!availableClans.includes(row.clan) ? [{ value: row.clan, label: row.clan }] : []),
                     ...availableClans.map((clan) => ({ value: clan, label: clan })),
                   ]}
                 />
               </div>
-            ))
+              );
+            })
           )}
         </section>
+        </div>
       </div>
     </>
   );

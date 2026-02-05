@@ -11,7 +11,7 @@ function AdminDataImportPage(): JSX.Element {
       <section className="header header-inline">
         <div className="title">Admin • Data Import</div>
         <div className="actions">
-          <span className="badge">Clan Data</span>
+          <span className="badge">Data Import</span>
           <AuthActions />
         </div>
       </section>

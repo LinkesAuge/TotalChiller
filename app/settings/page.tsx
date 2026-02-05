@@ -207,7 +207,6 @@ function SettingsPage(): JSX.Element {
       <section className="header header-inline">
         <div className="title">Settings</div>
         <div className="actions">
-          <span className="badge">Account</span>
           <AuthActions />
         </div>
       </section>

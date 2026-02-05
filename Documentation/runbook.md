@@ -40,7 +40,7 @@ Open: `http://localhost:3000`
 - Dashboard: `/`
 - Admin: `/admin`
 - Data Import: `/data-import`
-- Data Table: `/data-table`
+- Chest Database: `/data-table`
 - Profile: `/profile`
 - Settings: `/settings`
 
@@ -62,12 +62,11 @@ In `/admin`:
 - Create/edit/delete validation rules
 - Correction/scoring rules are present but will be refactored (validation-only lists)
 
-## 10) Data Table
+## 10) Chest Database
 In `/data-table`:
 - Inline edit rows and save
-- Batch update source
-- Batch delete
-- Search + pagination
+- Batch edit/delete
+- Search + filters + pagination
 
 ## 11) Troubleshooting
 - If data insert fails: check RLS policies and membership

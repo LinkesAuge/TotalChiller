@@ -22,7 +22,7 @@ This file is a compact context transfer for a new chat.
   - Admin toggle + safeguard to keep at least one admin.
   - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
 - **Admin UI**
-  - Tabs: Clan Management, Users, Rules, Audit Logs, Data Import, Data Table.
+  - Tabs: Clan Management, Users, Rules, Audit Logs, Data Import, Chest Database.
   - Clan Management manages **game accounts** (not users) and supports assign‑to‑clan modal.
   - Users tab supports search/filters, inline edits, add game accounts, create users (invite), delete users.
   - Global save/cancel applies to user + game account edits.
@@ -31,10 +31,10 @@ This file is a compact context transfer for a new chat.
   - Creates missing clans and commits chest data via an admin API endpoint.
   - Does not validate players against game accounts on import.
   - Files: `app/data-import/data-import-client.tsx`, `app/api/data-import/commit/route.ts`
-- **Data table**
+- **Chest Database**
   - Filters, batch ops, select-all, confirmation modals.
   - Row actions use icon buttons; batch delete/edits are confirmed.
-  - Clan filter defaults to current clan context.
+  - Clan filter defaults to all clans unless manually filtered.
   - `app/data-table/data-table-client.tsx`
 - **News + Events (DB-backed, clan-scoped)**
   - Create/edit/delete posts and events.
@@ -45,9 +45,10 @@ This file is a compact context transfer for a new chat.
 - **Toasts**
   - Global toast provider for status messages.
   - `app/components/toast-provider.tsx`
-- **Custom dropdowns**
-  - Replaced native selects with Radix select styling globally.
-  - `app/components/ui/radix-select.tsx`, `app/globals.css`
+- **Reusable UI components**
+  - Standardized icon-only actions and search inputs across admin and data views.
+  - Dropdowns and labeled dropdowns share consistent styling and behavior.
+  - `app/components/ui/icon-button.tsx`, `app/components/ui/search-input.tsx`, `app/components/ui/labeled-select.tsx`, `app/components/ui/radix-select.tsx`
 
 ## Recent UI Fixes
 

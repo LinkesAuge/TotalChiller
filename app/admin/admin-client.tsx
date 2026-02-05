@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import RadixSelect from "../components/ui/radix-select";
+import SearchInput from "../components/ui/search-input";
+import IconButton from "../components/ui/icon-button";
+import LabeledSelect from "../components/ui/labeled-select";
 import { useRouter, useSearchParams } from "next/navigation";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import { useToast } from "../components/toast-provider";
@@ -96,7 +99,8 @@ interface AuditLogRow {
 
 const roleOptions: readonly string[] = ["owner", "admin", "moderator", "editor", "member"];
 const rankOptions: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier"];
-const ruleFieldOptions: readonly string[] = ["source", "chest", "player", "clan"];
+const ruleFieldOptions: readonly string[] = ["player", "source", "chest", "clan"];
+const NEW_VALIDATION_ID = "validation-new";
 const validationSortOptions: readonly { value: "field" | "status" | "match_value"; label: string }[] = [
   { value: "field", label: "Field" },
   { value: "status", label: "Status" },
@@ -151,10 +155,19 @@ function AdminClient(): JSX.Element {
   const [correctionRules, setCorrectionRules] = useState<readonly RuleRow[]>([]);
   const [scoringRules, setScoringRules] = useState<readonly RuleRow[]>([]);
   const [validationSearch, setValidationSearch] = useState<string>("");
-  const [validationFieldFilter, setValidationFieldFilter] = useState<string>("all");
+  const [validationListField, setValidationListField] = useState<string>("player");
   const [validationStatusFilter, setValidationStatusFilter] = useState<string>("all");
   const [validationSortKey, setValidationSortKey] = useState<"field" | "status" | "match_value">("field");
   const [validationSortDirection, setValidationSortDirection] = useState<"asc" | "desc">("asc");
+  const [validationImportStatus, setValidationImportStatus] = useState<string>("");
+  const [validationImportMode, setValidationImportMode] = useState<"append" | "replace">("append");
+  const [validationIgnoreDuplicates, setValidationIgnoreDuplicates] = useState<boolean>(true);
+  const [isValidationImportOpen, setIsValidationImportOpen] = useState<boolean>(false);
+  const [isValidationReplaceConfirmOpen, setIsValidationReplaceConfirmOpen] = useState<boolean>(false);
+  const [validationImportFileName, setValidationImportFileName] = useState<string>("");
+  const [validationImportEntries, setValidationImportEntries] = useState<readonly RuleRow[]>([]);
+  const [validationImportErrors, setValidationImportErrors] = useState<readonly string[]>([]);
+  const [validationImportSelected, setValidationImportSelected] = useState<readonly number[]>([]);
   const [correctionSearch, setCorrectionSearch] = useState<string>("");
   const [correctionFieldFilter, setCorrectionFieldFilter] = useState<string>("all");
   const [correctionSortKey, setCorrectionSortKey] =
@@ -167,13 +180,13 @@ function AdminClient(): JSX.Element {
   const [validationPage, setValidationPage] = useState<number>(1);
   const [correctionPage, setCorrectionPage] = useState<number>(1);
   const [scoringPage, setScoringPage] = useState<number>(1);
-  const [validationPageSize, setValidationPageSize] = useState<number>(5);
+  const [validationPageSize, setValidationPageSize] = useState<number>(25);
   const [correctionPageSize, setCorrectionPageSize] = useState<number>(5);
   const [scoringPageSize, setScoringPageSize] = useState<number>(5);
   const [auditLogs, setAuditLogs] = useState<readonly AuditLogRow[]>([]);
   const [auditActorsById, setAuditActorsById] = useState<Record<string, ProfileRow>>({});
   const [auditPage, setAuditPage] = useState<number>(1);
-  const [auditPageSize, setAuditPageSize] = useState<number>(10);
+  const [auditPageSize, setAuditPageSize] = useState<number>(25);
   const [auditTotalCount, setAuditTotalCount] = useState<number>(0);
   const [auditSearch, setAuditSearch] = useState<string>("");
   const [auditActionFilter, setAuditActionFilter] = useState<string>("all");
@@ -426,7 +439,7 @@ function AdminClient(): JSX.Element {
   const filteredValidationRules = useMemo(() => {
     const normalizedSearch = validationSearch.trim().toLowerCase();
     return validationRules.filter((rule) => {
-      if (validationFieldFilter !== "all" && rule.field !== validationFieldFilter) {
+      if (validationListField && rule.field !== validationListField) {
         return false;
       }
       if (validationStatusFilter !== "all" && rule.status !== validationStatusFilter) {
@@ -441,7 +454,7 @@ function AdminClient(): JSX.Element {
         .toLowerCase();
       return searchText.includes(normalizedSearch);
     });
-  }, [validationFieldFilter, validationRules, validationSearch, validationStatusFilter]);
+  }, [validationListField, validationRules, validationSearch, validationStatusFilter]);
 
   const sortedValidationRules = useMemo(() => {
     const sorted = [...filteredValidationRules];
@@ -539,6 +552,20 @@ function AdminClient(): JSX.Element {
     () => Math.max(1, Math.ceil(auditTotalCount / auditPageSize)),
     [auditPageSize, auditTotalCount],
   );
+
+  function clampPageValue(nextValue: string, maxPage: number): number | null {
+    const numericValue = Number(nextValue);
+    if (Number.isNaN(numericValue)) {
+      return null;
+    }
+    if (numericValue < 1) {
+      return 1;
+    }
+    if (numericValue > maxPage) {
+      return maxPage;
+    }
+    return numericValue;
+  }
   const auditActionOptions = useMemo(() => {
     const options = new Set(auditLogs.map((entry) => entry.action));
     return Array.from(options);
@@ -737,11 +764,7 @@ function AdminClient(): JSX.Element {
   async function loadRules(clanId: string): Promise<void> {
     if (!clanId) {
       setValidationRules([]);
-      setCorrectionRules([]);
-      setScoringRules([]);
       setValidationPage(1);
-      setCorrectionPage(1);
-      setScoringPage(1);
       return;
     }
     const { data: validationData } = await supabase
@@ -750,18 +773,6 @@ function AdminClient(): JSX.Element {
       .eq("clan_id", clanId)
       .order("field");
     setValidationRules(validationData ?? []);
-    const { data: correctionData } = await supabase
-      .from("correction_rules")
-      .select("id,field,match_value,replacement_value")
-      .eq("clan_id", clanId)
-      .order("field");
-    setCorrectionRules(correctionData ?? []);
-    const { data: scoringData } = await supabase
-      .from("scoring_rules")
-      .select("id,chest_match,source_match,min_level,max_level,score,rule_order")
-      .eq("clan_id", clanId)
-      .order("rule_order");
-    setScoringRules(scoringData ?? []);
   }
 
   async function loadAuditLogs(clanId: string, nextPage: number, pageSize: number): Promise<void> {
@@ -1605,11 +1616,7 @@ function AdminClient(): JSX.Element {
         setMemberships([]);
         setProfilesById({});
         setValidationRules([]);
-        setCorrectionRules([]);
-        setScoringRules([]);
         setValidationPage(1);
-        setCorrectionPage(1);
-        setScoringPage(1);
         return;
       }
       if (selectedClanId === unassignedClanId) {
@@ -1668,18 +1675,6 @@ function AdminClient(): JSX.Element {
         .eq("clan_id", selectedClanId)
         .order("field");
       setValidationRules(validationData ?? []);
-      const { data: correctionData } = await supabase
-        .from("correction_rules")
-        .select("id,field,match_value,replacement_value")
-        .eq("clan_id", selectedClanId)
-        .order("field");
-      setCorrectionRules(correctionData ?? []);
-      const { data: scoringData } = await supabase
-        .from("scoring_rules")
-        .select("id,chest_match,source_match,min_level,max_level,score,rule_order")
-        .eq("clan_id", selectedClanId)
-        .order("rule_order");
-      setScoringRules(scoringData ?? []);
     }
     void loadClanData();
   }, [selectedClanId, supabase, unassignedClanId]);
@@ -2297,27 +2292,25 @@ function AdminClient(): JSX.Element {
     return parsed.toLocaleString();
   }
 
-  async function handleAddValidationRule(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
+  async function handleSaveValidationRow(): Promise<void> {
     if (!selectedClanId) {
       setStatus("Select a clan first.");
       return;
     }
-    if (validationEditingId) {
-      const confirmUpdate = window.confirm("Update this validation rule?");
-      if (!confirmUpdate) {
-        return;
-      }
+    if (!validationMatch.trim()) {
+      setStatus("Match value is required.");
+      return;
     }
     const payload = {
       clan_id: selectedClanId,
-      field: validationField.trim(),
+      field: validationField.trim() || validationListField,
       match_value: validationMatch.trim(),
       status: validationStatus.trim(),
     };
-    const { error } = validationEditingId
-      ? await supabase.from("validation_rules").update(payload).eq("id", validationEditingId)
-      : await supabase.from("validation_rules").insert(payload);
+    const isNew = validationEditingId === NEW_VALIDATION_ID;
+    const { error } = isNew
+      ? await supabase.from("validation_rules").insert(payload)
+      : await supabase.from("validation_rules").update(payload).eq("id", validationEditingId);
     if (error) {
       setStatus(`Failed to add validation rule: ${error.message}`);
       return;
@@ -2325,7 +2318,7 @@ function AdminClient(): JSX.Element {
     setValidationField("");
     setValidationMatch("");
     setValidationEditingId("");
-    setStatus("Validation rule added.");
+    setStatus(isNew ? "Validation rule added." : "Validation rule updated.");
     await loadRules(selectedClanId);
   }
 
@@ -2348,6 +2341,244 @@ function AdminClient(): JSX.Element {
     setValidationMatch(rule.match_value ?? "");
     setValidationStatus(rule.status ?? "valid");
     setValidationEditingId(rule.id);
+  }
+
+  function handleCreateValidationRow(): void {
+    setValidationField(validationListField);
+    setValidationMatch("");
+    setValidationStatus("valid");
+    setValidationEditingId(NEW_VALIDATION_ID);
+  }
+
+  function handleCancelValidationEdit(): void {
+    setValidationEditingId("");
+    setValidationMatch("");
+    setValidationStatus("valid");
+  }
+
+  function normalizeValidationValue(value: string): string {
+    return value.trim().toLowerCase();
+  }
+
+  function normalizeImportedStatus(value: string): string {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "active") {
+      return "valid";
+    }
+    if (normalized === "inactive") {
+      return "invalid";
+    }
+    return normalized;
+  }
+
+  function parseValidationListText(
+    text: string,
+    expectedField: string,
+  ): { entries: RuleRow[]; errors: string[] } {
+    const allowedStatuses = new Set(["valid", "invalid", "active", "inactive"]);
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    const errors: string[] = [];
+    const entries: RuleRow[] = [];
+    const seenValues = new Set<string>();
+    const startIndex =
+      lines.length > 0 && lines[0].toLowerCase().startsWith("value") ? 1 : 0;
+    for (let index = startIndex; index < lines.length; index += 1) {
+      const parts = lines[index].split(/[;,]/).map((part) => part.trim());
+      if (parts.length < 1) {
+        continue;
+      }
+      const matchValue = parts[0];
+      const rawStatus = parts.length > 1 ? parts[1] : "active";
+      const status = normalizeImportedStatus(rawStatus);
+      if (!matchValue) {
+        errors.push(`Line ${index + 1}: Missing value.`);
+        continue;
+      }
+      if (!allowedStatuses.has(status)) {
+        errors.push(`Line ${index + 1}: Invalid status ${rawStatus}.`);
+        continue;
+      }
+      const normalized = normalizeValidationValue(matchValue);
+      if (seenValues.has(normalized)) {
+        continue;
+      }
+      seenValues.add(normalized);
+      entries.push({ id: "", field: expectedField, match_value: matchValue, status });
+    }
+    return { entries, errors };
+  }
+
+  function buildValidationCsv(rules: readonly RuleRow[]): string {
+    const header = "Value,Status";
+    const lines = rules.map((rule) => `${rule.match_value ?? ""},${rule.status ?? ""}`);
+    return [header, ...lines].join("\n");
+  }
+
+  function downloadValidationCsv(filename: string, content: string): void {
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImportValidationList(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    if (!selectedClanId) {
+      setValidationImportStatus("Select a clan before importing.");
+      event.target.value = "";
+      return;
+    }
+    const text = await file.text();
+    const { entries, errors } = parseValidationListText(text, validationListField);
+    setValidationImportFileName(file.name);
+    setValidationImportEntries(entries);
+    setValidationImportErrors(errors);
+    setValidationImportSelected([]);
+    event.target.value = "";
+  }
+  async function handleApplyValidationImport(): Promise<void> {
+    if (!selectedClanId) {
+      setValidationImportStatus("Select a clan before importing.");
+      return;
+    }
+    if (validationImportErrors.length > 0) {
+      setValidationImportStatus(validationImportErrors.slice(0, 3).join(" "));
+      return;
+    }
+    if (validationImportEntries.length === 0) {
+      setValidationImportStatus("No valid entries found in file.");
+      return;
+    }
+    if (validationImportMode === "replace") {
+      setIsValidationReplaceConfirmOpen(true);
+      return;
+    }
+    await executeValidationImport();
+  }
+
+  async function executeValidationImport(): Promise<void> {
+    if (!selectedClanId) {
+      return;
+    }
+    if (validationImportMode === "replace") {
+      const { error: deleteError } = await supabase
+        .from("validation_rules")
+        .delete()
+        .eq("clan_id", selectedClanId)
+        .eq("field", validationListField);
+      if (deleteError) {
+        setValidationImportStatus(`Failed to clear list: ${deleteError.message}`);
+        return;
+      }
+    }
+    const existingValues = new Set(
+      validationRules
+        .filter((rule) => rule.field === validationListField)
+        .map((rule) => normalizeValidationValue(rule.match_value ?? "")),
+    );
+    const payload = validationImportEntries
+      .filter((entry) => {
+        if (!validationIgnoreDuplicates) {
+          return true;
+        }
+        const normalized = normalizeValidationValue(entry.match_value ?? "");
+        return !existingValues.has(normalized);
+      })
+      .map((entry) => ({
+        clan_id: selectedClanId,
+        field: entry.field?.trim(),
+        match_value: entry.match_value?.trim(),
+        status: entry.status?.trim(),
+      }));
+    const uniquePayload = Array.from(
+      new Map(payload.map((entry) => [`${entry.match_value}-${entry.status}`, entry])).values(),
+    );
+    const { error: insertError } = await supabase.from("validation_rules").insert(uniquePayload);
+    if (insertError) {
+      setValidationImportStatus(`Failed to import list: ${insertError.message}`);
+      return;
+    }
+    setValidationImportStatus(`Imported ${uniquePayload.length} entries.`);
+    setIsValidationImportOpen(false);
+    setValidationImportEntries([]);
+    setValidationImportSelected([]);
+    setValidationImportFileName("");
+    setValidationImportErrors([]);
+    await loadRules(selectedClanId);
+  }
+
+  function handleCloseValidationImport(): void {
+    setIsValidationImportOpen(false);
+    setValidationImportEntries([]);
+    setValidationImportSelected([]);
+    setValidationImportFileName("");
+    setValidationImportErrors([]);
+  }
+
+  async function handleConfirmReplaceImport(): Promise<void> {
+    setIsValidationReplaceConfirmOpen(false);
+    await executeValidationImport();
+  }
+
+  function toggleValidationImportSelected(index: number): void {
+    setValidationImportSelected((current) =>
+      current.includes(index) ? current.filter((value) => value !== index) : [...current, index],
+    );
+  }
+
+  function handleRemoveSelectedImportEntries(): void {
+    if (validationImportSelected.length === 0) {
+      return;
+    }
+    const selectedSet = new Set(validationImportSelected);
+    const nextEntries = validationImportEntries.filter((_entry, index) => !selectedSet.has(index));
+    setValidationImportEntries(nextEntries);
+    setValidationImportSelected([]);
+  }
+
+  function handleUpdateImportEntry(index: number, field: "match_value" | "status", value: string): void {
+    setValidationImportEntries((current) =>
+      current.map((entry, entryIndex) => {
+        if (entryIndex !== index) {
+          return entry;
+        }
+        return { ...entry, [field]: value };
+      }),
+    );
+  }
+
+  function handleExportValidationList(): void {
+    if (!selectedClanId) {
+      setValidationImportStatus("Select a clan before exporting.");
+      return;
+    }
+    const clanName = clans.find((clan) => clan.id === selectedClanId)?.name ?? "clan";
+    const listRules = validationRules.filter((rule) => rule.field === validationListField);
+    const csv = buildValidationCsv(listRules);
+    downloadValidationCsv(`validation-list-${validationListField}-${clanName}.csv`, csv);
+  }
+
+  function handleBackupValidationList(): void {
+    if (!selectedClanId) {
+      setValidationImportStatus("Select a clan before creating a backup.");
+      return;
+    }
+    const clanName = clans.find((clan) => clan.id === selectedClanId)?.name ?? "clan";
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const listRules = validationRules.filter((rule) => rule.field === validationListField);
+    const csv = buildValidationCsv(listRules);
+    downloadValidationCsv(`validation-backup-${validationListField}-${clanName}-${timestamp}.csv`, csv);
   }
 
   async function handleAddCorrectionRule(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -2515,7 +2746,7 @@ function AdminClient(): JSX.Element {
             Data Import
           </button>
           <button className="tab" type="button" onClick={() => handleNavigateAdmin("/admin/data-table")}>
-            Data Table
+            Chest Database
           </button>
         </div>
       </section>
@@ -2526,13 +2757,11 @@ function AdminClient(): JSX.Element {
             <div className="card-title">Clan Management</div>
             <div className="card-subtitle">{selectedClan ? selectedClan.name : "Select a clan"}</div>
           </div>
-          <button
-            className="button icon-button danger"
-            type="button"
+          <IconButton
+            ariaLabel="Delete clan"
             onClick={openClanDeleteConfirm}
             disabled={!selectedClanId || selectedClanId === unassignedClanId}
-            title="Delete clan"
-            aria-label="Delete clan"
+            variant="danger"
           >
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
@@ -2544,7 +2773,7 @@ function AdminClient(): JSX.Element {
               <path d="M8 6V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               <path d="M8 11.2H8.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
-          </button>
+          </IconButton>
         </div>
         <div className="admin-clan-row">
           <label htmlFor="selectedClan">Clan</label>
@@ -2571,26 +2800,13 @@ function AdminClient(): JSX.Element {
           <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
             <span className="text-muted">Clan actions</span>
             <div className="list inline">
-              <button
-                className="button icon-button primary"
-                type="button"
-                onClick={openCreateClanModal}
-                title="Create clan"
-                aria-label="Create clan"
-              >
+              <IconButton ariaLabel="Create clan" onClick={openCreateClanModal} variant="primary">
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-              </button>
-              <button
-                className="button icon-button"
-                type="button"
-                onClick={openEditClanModal}
-                disabled={!selectedClanId}
-                title="Edit clan"
-                aria-label="Edit clan"
-              >
+              </IconButton>
+              <IconButton ariaLabel="Edit clan" onClick={openEditClanModal} disabled={!selectedClanId}>
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path
                     d="M3 11.5L4 8.5L10.5 2L14 5.5L7.5 12L3 11.5Z"
@@ -2600,25 +2816,17 @@ function AdminClient(): JSX.Element {
                   />
                   <path d="M9.5 3L13 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-              </button>
-              <button
-                className="button icon-button"
-                type="button"
-                onClick={openAssignAccountsModal}
-                disabled={!selectedClanId}
-                title="Assign game accounts"
-                aria-label="Assign game accounts"
-              >
+              </IconButton>
+              <IconButton ariaLabel="Assign game accounts" onClick={openAssignAccountsModal} disabled={!selectedClanId}>
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M5 6.5C6.1 6.5 7 5.6 7 4.5C7 3.4 6.1 2.5 5 2.5C3.9 2.5 3 3.4 3 4.5C3 5.6 3.9 6.5 5 6.5Z" stroke="currentColor" strokeWidth="1.5" />
                   <path d="M1.5 12.5C1.5 10.6 3.1 9 5 9C6.9 9 8.5 10.6 8.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   <path d="M11 5V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   <path d="M8.5 8H13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-              </button>
-              <button
-                className="button icon-button"
-                type="button"
+              </IconButton>
+              <IconButton
+                ariaLabel="Set default clan"
                 onClick={() => {
                   if (!selectedClanId) {
                     setStatus("Select a clan to set default.");
@@ -2638,8 +2846,6 @@ function AdminClient(): JSX.Element {
                     });
                 }}
                 disabled={!selectedClanId}
-                title="Set default clan"
-                aria-label="Set default clan"
               >
                 <svg
                   aria-hidden="true"
@@ -2655,11 +2861,10 @@ function AdminClient(): JSX.Element {
                     strokeLinejoin="round"
                   />
                 </svg>
-              </button>
+              </IconButton>
               {selectedClanId && selectedClanId === defaultClanId ? (
-                <button
-                  className="button icon-button"
-                  type="button"
+                <IconButton
+                  ariaLabel="Clear default clan"
                   onClick={() => {
                     void supabase
                       .from("clans")
@@ -2674,8 +2879,6 @@ function AdminClient(): JSX.Element {
                         setStatus("Default clan cleared.");
                       });
                   }}
-                  title="Clear default clan"
-                  aria-label="Clear default clan"
                 >
                   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path
@@ -2686,28 +2889,23 @@ function AdminClient(): JSX.Element {
                     />
                     <path d="M3 13L13 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                </button>
+                </IconButton>
               ) : null}
             </div>
           </div>
         </div>
         <div className="card-section" />
-        <div className="list inline admin-members-filters" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <label htmlFor="memberSearch" className="text-muted">
-            Search
-          </label>
-          <input
+        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <SearchInput
             id="memberSearch"
+            label="Search"
             value={memberSearch}
-            onChange={(event) => setMemberSearch(event.target.value)}
+            onChange={setMemberSearch}
             placeholder="Game account, username, email, or user id"
           />
-          <label htmlFor="memberRankFilter" className="text-muted">
-            Rank
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="memberRankFilter"
-            ariaLabel="Rank filter"
+            label="Rank"
             value={memberRankFilter}
             onValueChange={(value) => setMemberRankFilter(value)}
             options={[
@@ -2716,12 +2914,9 @@ function AdminClient(): JSX.Element {
               ...rankOptions.map((rank) => ({ value: rank, label: formatLabel(rank) })),
             ]}
           />
-          <label htmlFor="memberStatusFilter" className="text-muted">
-            Status
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="memberStatusFilter"
-            ariaLabel="Status filter"
+            label="Status"
             value={memberStatusFilter}
             onValueChange={(value) => setMemberStatusFilter(value)}
             options={[
@@ -2776,7 +2971,8 @@ function AdminClient(): JSX.Element {
             </div>
           </div>
         ) : (
-          <div className="table members">
+          <div className="table-scroll">
+            <div className="table members">
             <header>
               <span>Game Account</span>
               <span>User</span>
@@ -2862,33 +3058,20 @@ function AdminClient(): JSX.Element {
                   triggerDataRole="status-select"
                 />
                 <div className="list inline">
-                  <button
-                    className="button icon-button"
-                    type="button"
-                    onClick={() => handleSaveMembershipEdit(membership)}
-                    title="Save changes"
-                    aria-label="Save changes"
-                  >
+                  <IconButton ariaLabel="Save changes" onClick={() => handleSaveMembershipEdit(membership)}>
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M4 8.5L7 11.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                  </button>
-                  <button
-                    className="button icon-button"
-                    type="button"
-                    onClick={() => cancelMembershipEdits(membership.id)}
-                    title="Cancel changes"
-                    aria-label="Cancel changes"
-                  >
+                  </IconButton>
+                  <IconButton ariaLabel="Cancel changes" onClick={() => cancelMembershipEdits(membership.id)}>
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                       <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
-                  </button>
+                  </IconButton>
                   {membership.game_accounts?.id ? (
-                    <button
-                      className="button icon-button danger"
-                      type="button"
+                    <IconButton
+                      ariaLabel="Delete game account"
                       onClick={() =>
                         openGameAccountDeleteConfirm({
                           id: membership.game_accounts?.id ?? "",
@@ -2896,15 +3079,14 @@ function AdminClient(): JSX.Element {
                           game_username: membership.game_accounts?.game_username ?? "",
                         })
                       }
-                      title="Delete game account"
-                      aria-label="Delete game account"
+                      variant="danger"
                     >
                       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                         <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                         <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                       </svg>
-                    </button>
+                    </IconButton>
                   ) : null}
                   {membershipErrors[membership.id] ? (
                     <span className="text-muted">{membershipErrors[membership.id]}</span>
@@ -2912,6 +3094,7 @@ function AdminClient(): JSX.Element {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         )}
       </section>
@@ -2925,22 +3108,17 @@ function AdminClient(): JSX.Element {
           </div>
           <span className="badge">{filteredUserRows.length}</span>
         </div>
-        <div className="list inline admin-members-filters" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <label htmlFor="userSearch" className="text-muted">
-            Search
-          </label>
-          <input
+        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <SearchInput
             id="userSearch"
+            label="Search"
             value={userSearch}
-            onChange={(event) => setUserSearch(event.target.value)}
+            onChange={setUserSearch}
             placeholder="Email, username, or nickname"
           />
-          <label htmlFor="userRoleFilter" className="text-muted">
-            Role
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="userRoleFilter"
-            ariaLabel="Role filter"
+            label="Role"
             value={userRoleFilter}
             onValueChange={(value) => setUserRoleFilter(value)}
             options={[
@@ -2948,12 +3126,9 @@ function AdminClient(): JSX.Element {
               ...roleOptions.map((role) => ({ value: role, label: formatLabel(role) })),
             ]}
           />
-          <label htmlFor="userAdminFilter" className="text-muted">
-            Admin
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="userAdminFilter"
-            ariaLabel="Admin filter"
+            label="Admin"
             value={userAdminFilter}
             onValueChange={(value) => setUserAdminFilter(value)}
             options={[
@@ -3020,7 +3195,8 @@ function AdminClient(): JSX.Element {
             </div>
           </div>
         ) : (
-          <div className="table users">
+          <div className="table-scroll">
+            <div className="table users">
             <header>
               <span>Username</span>
               <span>Email</span>
@@ -3123,18 +3299,8 @@ function AdminClient(): JSX.Element {
                         <div
                           className={`list inline user-actions action-icons ${actionCount > 4 ? "action-icons-wrap" : ""}`.trim()}
                         >
-                      <button
-                        className="button icon-button"
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleToggleAdmin(user);
-                        }}
-                        disabled={
-                          !currentUserId ||
-                          (Boolean(user.is_admin) && user.id === currentUserId) ||
-                          (Boolean(user.is_admin) && userRows.filter((row) => Boolean(row.is_admin)).length <= 1)
-                        }
+                      <IconButton
+                        ariaLabel={user.is_admin ? "Revoke admin" : "Grant admin"}
                         title={
                           user.is_admin && user.id === currentUserId
                             ? "You cannot revoke your own admin access."
@@ -3144,7 +3310,12 @@ function AdminClient(): JSX.Element {
                                 ? "Revoke admin"
                                 : "Grant admin"
                         }
-                        aria-label={user.is_admin ? "Revoke admin" : "Grant admin"}
+                        onClick={() => handleToggleAdmin(user)}
+                        disabled={
+                          !currentUserId ||
+                          (Boolean(user.is_admin) && user.id === currentUserId) ||
+                          (Boolean(user.is_admin) && userRows.filter((row) => Boolean(row.is_admin)).length <= 1)
+                        }
                       >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
@@ -3170,16 +3341,10 @@ function AdminClient(): JSX.Element {
                             />
                           )}
                         </svg>
-                      </button>
-                      <button
-                        className="button icon-button"
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleResendInvite(user.email);
-                        }}
-                        title="Resend invite"
-                        aria-label="Resend invite"
+                      </IconButton>
+                      <IconButton
+                        ariaLabel="Resend invite"
+                        onClick={() => handleResendInvite(user.email)}
                       >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
@@ -3196,17 +3361,8 @@ function AdminClient(): JSX.Element {
                             strokeLinejoin="round"
                           />
                         </svg>
-                      </button>
-                      <button
-                        className="button icon-button"
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openCreateGameAccountModal(user);
-                        }}
-                        title="Add game account"
-                        aria-label="Add game account"
-                      >
+                      </IconButton>
+                      <IconButton ariaLabel="Add game account" onClick={() => openCreateGameAccountModal(user)}>
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
                             d="M4.2 6.5H11.8"
@@ -3232,50 +3388,23 @@ function AdminClient(): JSX.Element {
                             strokeLinecap="round"
                           />
                         </svg>
-                      </button>
+                      </IconButton>
                       {isEditing ? (
                         <>
-                          <button
-                            className="button icon-button"
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleSaveUserEdit(user);
-                            }}
-                            title="Save changes"
-                            aria-label="Save changes"
-                          >
+                          <IconButton ariaLabel="Save changes" onClick={() => handleSaveUserEdit(user)}>
                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                               <path d="M4 8.5L7 11.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                          </button>
-                          <button
-                            className="button icon-button"
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              cancelUserEdit(user.id);
-                            }}
-                            title="Cancel changes"
-                            aria-label="Cancel changes"
-                          >
+                          </IconButton>
+                          <IconButton ariaLabel="Cancel changes" onClick={() => cancelUserEdit(user.id)}>
                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                               <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                               <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                             </svg>
-                          </button>
+                          </IconButton>
                         </>
                       ) : null}
-                      <button
-                        className="button icon-button danger"
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openUserDeleteConfirm(user);
-                        }}
-                        title="Delete user"
-                        aria-label="Delete user"
-                      >
+                      <IconButton ariaLabel="Delete user" onClick={() => openUserDeleteConfirm(user)} variant="danger">
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
                             d="M3.5 5.5H12.5"
@@ -3296,7 +3425,7 @@ function AdminClient(): JSX.Element {
                             strokeLinecap="round"
                           />
                         </svg>
-                      </button>
+                      </IconButton>
                     </div>
                       );
                     })()}
@@ -3307,7 +3436,8 @@ function AdminClient(): JSX.Element {
                         {accounts.length === 0 ? (
                           <div className="text-muted">No game accounts yet.</div>
                         ) : (
-                          <div className="table members">
+                          <div className="table-scroll">
+                            <div className="table members">
                             <header>
                               <span>Game Account</span>
                               <span>User</span>
@@ -3330,7 +3460,8 @@ function AdminClient(): JSX.Element {
                                     </div>
                                     <div className="text-muted">-</div>
                                     <div className="text-muted">-</div>
-                                    <div className="text-muted">Missing membership</div>
+                                  <div className="text-muted">Missing membership</div>
+                                  <div />
                                   </div>
                                 );
                               }
@@ -3401,13 +3532,7 @@ function AdminClient(): JSX.Element {
                                     triggerDataRole="status-select"
                                   />
                 <div className="list inline action-icons">
-                                    <button
-                                      className="button icon-button"
-                                      type="button"
-                                      onClick={() => handleSaveMembershipEdit(membership)}
-                                      title="Save changes"
-                                      aria-label="Save changes"
-                                    >
+                                    <IconButton ariaLabel="Save changes" onClick={() => handleSaveMembershipEdit(membership)}>
                                       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                                         <path
                                           d="M4 8.5L7 11.5L12 5"
@@ -3417,13 +3542,10 @@ function AdminClient(): JSX.Element {
                                           strokeLinejoin="round"
                                         />
                                       </svg>
-                                    </button>
-                                    <button
-                                      className="button icon-button"
-                                      type="button"
+                                    </IconButton>
+                                    <IconButton
+                                      ariaLabel="Cancel changes"
                                       onClick={() => cancelMembershipEdits(membership.id)}
-                                      title="Cancel changes"
-                                      aria-label="Cancel changes"
                                     >
                                       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                                         <path
@@ -3439,11 +3561,10 @@ function AdminClient(): JSX.Element {
                                           strokeLinecap="round"
                                         />
                                       </svg>
-                                    </button>
+                                    </IconButton>
                   {membership.game_accounts?.id ? (
-                    <button
-                      className="button icon-button danger"
-                      type="button"
+                    <IconButton
+                      ariaLabel="Delete game account"
                       onClick={() =>
                         openGameAccountDeleteConfirm({
                           id: membership.game_accounts?.id ?? "",
@@ -3451,15 +3572,14 @@ function AdminClient(): JSX.Element {
                           game_username: membership.game_accounts?.game_username ?? "",
                         })
                       }
-                      title="Delete game account"
-                      aria-label="Delete game account"
+                      variant="danger"
                     >
                       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                         <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                         <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                       </svg>
-                    </button>
+                    </IconButton>
                   ) : null}
                                     {membershipErrors[membership.id] ? (
                                       <span className="text-muted">{membershipErrors[membership.id]}</span>
@@ -3468,6 +3588,7 @@ function AdminClient(): JSX.Element {
                                 </div>
                               );
                             })}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -3483,106 +3604,83 @@ function AdminClient(): JSX.Element {
                 </div>
               );
             })}
+            </div>
           </div>
         )}
       </section>
       ) : null}
       {activeSection === "rules" ? (
-      <section className="card">
+      <section className="card" style={{ gridColumn: "span 12" }}>
         <div className="card-header">
           <div>
             <div className="card-title">Validation Rules</div>
             <div className="card-subtitle">Exact match validation</div>
           </div>
         </div>
-        <form onSubmit={handleAddValidationRule}>
-          <div className="form-group">
-            <label htmlFor="validationField">Field</label>
-          <RadixSelect
-            id="validationField"
-            ariaLabel="Field"
-            value={validationField || "source"}
-            onValueChange={(value) => setValidationField(value)}
-            options={ruleFieldOptions.map((field) => ({ value: field, label: field }))}
-          />
-          </div>
-          <div className="form-group">
-            <label htmlFor="validationMatch">Match value</label>
-            <input
-              id="validationMatch"
-              value={validationMatch}
-              onChange={(event) => setValidationMatch(event.target.value)}
-              placeholder="Level 25 Crypt"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="validationStatus">Status</label>
-          <RadixSelect
-            id="validationStatus"
-            ariaLabel="Status"
-            value={validationStatus}
-            onValueChange={(value) => setValidationStatus(value)}
-            options={[
-              { value: "valid", label: "valid" },
-              { value: "invalid", label: "invalid" },
-            ]}
-          />
-          </div>
-          <div className="list">
-            <button className="button primary" type="submit">
-              {validationEditingId ? "Update Validation Rule" : "Add Validation Rule"}
-            </button>
-            {validationEditingId ? (
+        <div className="rule-bar">
+          <div className="tabs">
+            {ruleFieldOptions.map((field) => (
               <button
-                className="button"
+                key={field}
+                className={`tab ${validationListField === field ? "active" : ""}`}
                 type="button"
                 onClick={() => {
-                  setValidationEditingId("");
-                  setValidationField("source");
-                  setValidationMatch("");
-                  setValidationStatus("valid");
+                  setValidationListField(field);
+                  setValidationField(field);
+                  handleCancelValidationEdit();
+                  setValidationPage(1);
                 }}
               >
-                Cancel
+                {formatLabel(field)}
               </button>
-            ) : null}
+            ))}
           </div>
-        </form>
-        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <label htmlFor="validationSearch" className="text-muted">
-            Search
-          </label>
-          <input
+          <div className="list inline action-icons">
+            <IconButton ariaLabel="Add rule" onClick={handleCreateValidationRow}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+            <IconButton ariaLabel="Backup Rules List" onClick={handleBackupValidationList}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 4.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M4.5 4.5V12C4.5 12.6 5 13 5.6 13H10.4C11 13 11.5 12.6 11.5 12V4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M6.5 7.5H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+            <span className="rule-bar-separator" aria-hidden="true" />
+            <IconButton ariaLabel="Import Rules List" onClick={() => setIsValidationImportOpen(true)}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 11.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M8 3.5V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M5.5 8L8 10.5L10.5 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+            <IconButton ariaLabel="Export Rules List" onClick={handleExportValidationList}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 12.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M8 12V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M5.5 6.5L8 4L10.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+          </div>
+        </div>
+        {validationImportStatus ? <div className="alert info">{validationImportStatus}</div> : null}
+        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <SearchInput
             id="validationSearch"
+            label="Search"
             value={validationSearch}
-            onChange={(event) => {
-              setValidationSearch(event.target.value);
+            onChange={(value) => {
+              setValidationSearch(value);
               setValidationPage(1);
             }}
-            placeholder="Field or match value"
+            placeholder="Value or status"
           />
-          <label htmlFor="validationFieldFilter" className="text-muted">
-            Field
-          </label>
-          <RadixSelect
-            id="validationFieldFilter"
-            ariaLabel="Field filter"
-            value={validationFieldFilter}
-            onValueChange={(value) => {
-              setValidationFieldFilter(value);
-              setValidationPage(1);
-            }}
-            options={[
-              { value: "all", label: "All" },
-              ...ruleFieldOptions.map((field) => ({ value: field, label: field })),
-            ]}
-          />
-          <label htmlFor="validationStatusFilter" className="text-muted">
-            Status
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="validationStatusFilter"
-            ariaLabel="Status filter"
+            label="Status"
             value={validationStatusFilter}
             onValueChange={(value) => {
               setValidationStatusFilter(value);
@@ -3594,12 +3692,9 @@ function AdminClient(): JSX.Element {
               { value: "invalid", label: "invalid" },
             ]}
           />
-          <label htmlFor="validationSort" className="text-muted">
-            Sort
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="validationSort"
-            ariaLabel="Sort"
+            label="Sort"
             value={validationSortKey}
             onValueChange={(value) => {
               setValidationSortKey(value as "field" | "status" | "match_value");
@@ -3624,11 +3719,10 @@ function AdminClient(): JSX.Element {
             type="button"
             onClick={() => {
               setValidationSearch("");
-              setValidationFieldFilter("all");
               setValidationStatusFilter("all");
               setValidationSortKey("field");
               setValidationSortDirection("asc");
-              setValidationPageSize(5);
+              setValidationPageSize(25);
               setValidationPage(1);
             }}
           >
@@ -3638,58 +3732,123 @@ function AdminClient(): JSX.Element {
             {filteredValidationRules.length} / {validationRules.length}
           </span>
         </div>
-        <div className="list">
-          {validationRules.length === 0 ? (
-            <div className="list-item">
-              <span>No validation rules</span>
-              <span className="badge">Add one</span>
+        <div className="table-scroll">
+          <div className="table validation-list">
+          <header>
+            <span>Value</span>
+            <span>Status</span>
+            <span>Actions</span>
+          </header>
+          {[
+            ...(validationEditingId === NEW_VALIDATION_ID
+              ? [
+                  {
+                    id: NEW_VALIDATION_ID,
+                    field: validationField,
+                    match_value: validationMatch,
+                    status: validationStatus,
+                  },
+                ]
+              : []),
+            ...pagedValidationRules,
+          ].length === 0 ? (
+            <div className="row">
+              <span>No validation entries</span>
+              <span />
+              <span />
             </div>
-          ) : filteredValidationRules.length === 0 ? (
-            <div className="list-item">
-              <span>No validation rules match the filters</span>
-              <span className="badge">Adjust filters</span>
+          ) : filteredValidationRules.length === 0 && validationEditingId !== NEW_VALIDATION_ID ? (
+            <div className="row">
+              <span>No entries match the filters</span>
+              <span />
+              <span />
             </div>
           ) : (
-            pagedValidationRules.map((rule) => (
-              <div className="list-item" key={rule.id}>
-                <span>{rule.field}: {rule.match_value}</span>
-                <div className="list">
-                  <span className="badge">{rule.status}</span>
-                  <button className="button" type="button" onClick={() => handleEditValidationRule(rule)}>
-                    Edit
-                  </button>
-                  <button className="button danger" type="button" onClick={() => handleDeleteValidationRule(rule.id)}>
-                    Delete
-                  </button>
+            [
+              ...(validationEditingId === NEW_VALIDATION_ID
+                ? [
+                    {
+                      id: NEW_VALIDATION_ID,
+                      field: validationField,
+                      match_value: validationMatch,
+                      status: validationStatus,
+                    },
+                  ]
+                : []),
+              ...pagedValidationRules,
+            ].map((rule) => {
+              const isEditing = validationEditingId === rule.id;
+              return (
+                <div className="row" key={rule.id}>
+                  {isEditing ? (
+                    <input
+                      value={validationMatch}
+                      onChange={(event) => setValidationMatch(event.target.value)}
+                    />
+                  ) : (
+                    <span>{rule.match_value}</span>
+                  )}
+                  {isEditing ? (
+                    <RadixSelect
+                      ariaLabel="Status"
+                      value={validationStatus}
+                      onValueChange={(value) => setValidationStatus(value)}
+                      options={[
+                        { value: "valid", label: "valid" },
+                        { value: "invalid", label: "invalid" },
+                      ]}
+                    />
+                  ) : (
+                    <span className="badge">{rule.status}</span>
+                  )}
+                  <div className="list inline action-icons">
+                    {isEditing ? (
+                      <>
+                        <IconButton ariaLabel="Save changes" onClick={handleSaveValidationRow}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M4 8.5L7 11.5L12 5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </IconButton>
+                        <IconButton ariaLabel="Cancel changes" onClick={handleCancelValidationEdit}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </IconButton>
+                      </>
+                    ) : (
+                      <>
+                        <IconButton ariaLabel="Edit rule" onClick={() => handleEditValidationRule(rule)}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 11.5L11.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </IconButton>
+                        <IconButton ariaLabel="Delete rule" onClick={() => handleDeleteValidationRule(rule.id)} variant="danger">
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                            <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                            <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                          </svg>
+                        </IconButton>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
+          </div>
         </div>
         {filteredValidationRules.length > 0 ? (
-          <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-                                  <div className="list inline action-icons">
-              <button
-                className="button"
-                type="button"
-                disabled={validationPage === 1}
-                onClick={() => setValidationPage((current) => Math.max(1, current - 1))}
-              >
-                Previous
-              </button>
-              <button
-                className="button"
-                type="button"
-                disabled={validationPage >= validationTotalPages}
-                onClick={() => setValidationPage((current) => current + 1)}
-              >
-                Next
-              </button>
-            </div>
-            <span className="text-muted">
-              Page {validationPage} of {validationTotalPages}
-            </span>
-            <div className="list inline">
+          <div className="pagination-bar">
+            <div className="pagination-page-size">
               <label htmlFor="validationPageSize" className="text-muted">
                 Page size
               </label>
@@ -3702,431 +3861,55 @@ function AdminClient(): JSX.Element {
                   setValidationPage(1);
                 }}
                 options={[
-                  { value: "5", label: "5" },
-                  { value: "10", label: "10" },
-                  { value: "20", label: "20" },
+                  { value: "25", label: "25" },
+                  { value: "50", label: "50" },
+                  { value: "100", label: "100" },
                 ]}
               />
-            </div>
-          </div>
-        ) : null}
-      </section>
-      ) : null}
-      {activeSection === "rules" ? (
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <div className="card-title">Correction Rules</div>
-            <div className="card-subtitle">Exact match corrections</div>
-          </div>
-        </div>
-        <form onSubmit={handleAddCorrectionRule}>
-          <div className="form-group">
-            <label htmlFor="correctionField">Field</label>
-            <RadixSelect
-              id="correctionField"
-              ariaLabel="Field"
-              value={correctionField || "source"}
-              onValueChange={(value) => setCorrectionField(value)}
-              options={ruleFieldOptions.map((field) => ({ value: field, label: field }))}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="correctionMatch">Match value</label>
-            <input
-              id="correctionMatch"
-              value={correctionMatch}
-              onChange={(event) => setCorrectionMatch(event.target.value)}
-              placeholder="Level 20 epic Crypt"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="correctionReplacement">Replacement value</label>
-            <input
-              id="correctionReplacement"
-              value={correctionReplacement}
-              onChange={(event) => setCorrectionReplacement(event.target.value)}
-              placeholder="Level 20 Epic Crypt"
-            />
-          </div>
-          <div className="list">
-            <button className="button primary" type="submit">
-              {correctionEditingId ? "Update Correction Rule" : "Add Correction Rule"}
-            </button>
-            {correctionEditingId ? (
-              <button
-                className="button"
-                type="button"
-                onClick={() => {
-                  setCorrectionEditingId("");
-                  setCorrectionField("source");
-                  setCorrectionMatch("");
-                  setCorrectionReplacement("");
-                }}
-              >
-                Cancel
-              </button>
-            ) : null}
-          </div>
-        </form>
-        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <label htmlFor="correctionSearch" className="text-muted">
-            Search
-          </label>
-          <input
-            id="correctionSearch"
-            value={correctionSearch}
-            onChange={(event) => {
-              setCorrectionSearch(event.target.value);
-              setCorrectionPage(1);
-            }}
-            placeholder="Field, match, or replacement"
-          />
-          <label htmlFor="correctionFieldFilter" className="text-muted">
-            Field
-          </label>
-          <RadixSelect
-            id="correctionFieldFilter"
-            ariaLabel="Field filter"
-            value={correctionFieldFilter}
-            onValueChange={(value) => {
-              setCorrectionFieldFilter(value);
-              setCorrectionPage(1);
-            }}
-            options={[
-              { value: "all", label: "All" },
-              ...ruleFieldOptions.map((field) => ({ value: field, label: field })),
-            ]}
-          />
-          <label htmlFor="correctionSort" className="text-muted">
-            Sort
-          </label>
-          <RadixSelect
-            id="correctionSort"
-            ariaLabel="Sort"
-            value={correctionSortKey}
-            onValueChange={(value) => {
-              setCorrectionSortKey(value as "field" | "match_value" | "replacement_value");
-              setCorrectionPage(1);
-            }}
-            options={correctionSortOptions.map((option) => ({ value: option.value, label: option.label }))}
-          />
-          <RadixSelect
-            ariaLabel="Correction sort direction"
-            value={correctionSortDirection}
-            onValueChange={(value) => {
-              setCorrectionSortDirection(value as "asc" | "desc");
-              setCorrectionPage(1);
-            }}
-            options={[
-              { value: "asc", label: "Asc" },
-              { value: "desc", label: "Desc" },
-            ]}
-          />
-          <button
-            className="button"
-            type="button"
-            onClick={() => {
-              setCorrectionSearch("");
-              setCorrectionFieldFilter("all");
-              setCorrectionSortKey("field");
-              setCorrectionSortDirection("asc");
-              setCorrectionPageSize(5);
-              setCorrectionPage(1);
-            }}
-          >
-            Reset
-          </button>
-          <span className="text-muted">
-            {filteredCorrectionRules.length} / {correctionRules.length}
-          </span>
-        </div>
-        <div className="list">
-          {correctionRules.length === 0 ? (
-            <div className="list-item">
-              <span>No correction rules</span>
-              <span className="badge">Add one</span>
-            </div>
-          ) : filteredCorrectionRules.length === 0 ? (
-            <div className="list-item">
-              <span>No correction rules match the filters</span>
-              <span className="badge">Adjust filters</span>
-            </div>
-          ) : (
-            pagedCorrectionRules.map((rule) => (
-              <div className="list-item" key={rule.id}>
-                <span>{rule.field}: {rule.match_value}</span>
-                <div className="list">
-                  <span className="badge">→ {rule.replacement_value}</span>
-                  <button className="button" type="button" onClick={() => handleEditCorrectionRule(rule)}>
-                    Edit
-                  </button>
-                  <button className="button danger" type="button" onClick={() => handleDeleteCorrectionRule(rule.id)}>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        {filteredCorrectionRules.length > 0 ? (
-          <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-            <div className="list inline">
-              <button
-                className="button"
-                type="button"
-                disabled={correctionPage === 1}
-                onClick={() => setCorrectionPage((current) => Math.max(1, current - 1))}
-              >
-                Previous
-              </button>
-              <button
-                className="button"
-                type="button"
-                disabled={correctionPage >= correctionTotalPages}
-                onClick={() => setCorrectionPage((current) => current + 1)}
-              >
-                Next
-              </button>
             </div>
             <span className="text-muted">
-              Page {correctionPage} of {correctionTotalPages}
+              Showing {filteredValidationRules.length === 0 ? 0 : (validationPage - 1) * validationPageSize + 1}–
+              {Math.min(validationPage * validationPageSize, filteredValidationRules.length)} of {filteredValidationRules.length}
             </span>
-            <div className="list inline">
-              <label htmlFor="correctionPageSize" className="text-muted">
-                Page size
-              </label>
-              <RadixSelect
-                id="correctionPageSize"
-                ariaLabel="Page size"
-                value={String(correctionPageSize)}
-                onValueChange={(value) => {
-                  setCorrectionPageSize(Number(value));
-                  setCorrectionPage(1);
-                }}
-                options={[
-                  { value: "5", label: "5" },
-                  { value: "10", label: "10" },
-                  { value: "20", label: "20" },
-                ]}
-              />
-            </div>
-          </div>
-        ) : null}
-      </section>
-      ) : null}
-      {activeSection === "rules" ? (
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <div className="card-title">Scoring Rules</div>
-            <div className="card-subtitle">Ordered scoring precedence</div>
-          </div>
-        </div>
-        <form onSubmit={handleAddScoringRule}>
-          <div className="form-group">
-            <label htmlFor="scoringChest">Chest match</label>
-            <input
-              id="scoringChest"
-              value={scoringChest}
-              onChange={(event) => setScoringChest(event.target.value)}
-              placeholder="Elegant Chest or *Chest*"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="scoringSource">Source match</label>
-            <input
-              id="scoringSource"
-              value={scoringSource}
-              onChange={(event) => setScoringSource(event.target.value)}
-              placeholder="Level 25 Crypt or ~crypt"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="scoringMin">Min level</label>
-            <input
-              id="scoringMin"
-              value={scoringMinLevel}
-              onChange={(event) => setScoringMinLevel(event.target.value)}
-              placeholder="20"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="scoringMax">Max level</label>
-            <input
-              id="scoringMax"
-              value={scoringMaxLevel}
-              onChange={(event) => setScoringMaxLevel(event.target.value)}
-              placeholder="30"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="scoringScore">Score</label>
-            <input
-              id="scoringScore"
-              value={scoringScore}
-              onChange={(event) => setScoringScore(event.target.value)}
-              placeholder="25"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="scoringOrder">Order</label>
-            <input
-              id="scoringOrder"
-              value={scoringOrder}
-              onChange={(event) => setScoringOrder(event.target.value)}
-              placeholder="1"
-            />
-          </div>
-          <div className="list">
-            <button className="button primary" type="submit">
-              {scoringEditingId ? "Update Scoring Rule" : "Add Scoring Rule"}
-            </button>
-            {scoringEditingId ? (
-              <button
-                className="button"
-                type="button"
-                onClick={() => {
-                  setScoringEditingId("");
-                  setScoringChest("");
-                  setScoringSource("");
-                  setScoringMinLevel("");
-                  setScoringMaxLevel("");
-                  setScoringScore("");
-                  setScoringOrder("1");
-                }}
-              >
-                Cancel
-              </button>
-            ) : null}
-          </div>
-        </form>
-        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <label htmlFor="scoringSearch" className="text-muted">
-            Search
-          </label>
-          <input
-            id="scoringSearch"
-            value={scoringSearch}
-            onChange={(event) => {
-              setScoringSearch(event.target.value);
-              setScoringPage(1);
-            }}
-            placeholder="Chest, source, level, or score"
-          />
-          <label htmlFor="scoringSort" className="text-muted">
-            Sort
-          </label>
-          <RadixSelect
-            id="scoringSort"
-            ariaLabel="Sort"
-            value={scoringSortKey}
-            onValueChange={(value) => {
-              setScoringSortKey(value as "rule_order" | "score" | "chest_match" | "source_match");
-              setScoringPage(1);
-            }}
-            options={scoringSortOptions.map((option) => ({ value: option.value, label: option.label }))}
-          />
-          <RadixSelect
-            ariaLabel="Scoring sort direction"
-            value={scoringSortDirection}
-            onValueChange={(value) => {
-              setScoringSortDirection(value as "asc" | "desc");
-              setScoringPage(1);
-            }}
-            options={[
-              { value: "asc", label: "Asc" },
-              { value: "desc", label: "Desc" },
-            ]}
-          />
-          <button
-            className="button"
-            type="button"
-            onClick={() => {
-              setScoringSearch("");
-              setScoringSortKey("rule_order");
-              setScoringSortDirection("asc");
-              setScoringPageSize(5);
-              setScoringPage(1);
-            }}
-          >
-            Reset
-          </button>
-          <span className="text-muted">
-            {filteredScoringRules.length} / {scoringRules.length}
-          </span>
-        </div>
-        <div className="list">
-          {scoringRules.length === 0 ? (
-            <div className="list-item">
-              <span>No scoring rules</span>
-              <span className="badge">Add one</span>
-            </div>
-          ) : filteredScoringRules.length === 0 ? (
-            <div className="list-item">
-              <span>No scoring rules match the filters</span>
-              <span className="badge">Adjust filters</span>
-            </div>
-          ) : (
-            pagedScoringRules.map((rule) => (
-              <div className="list-item" key={rule.id}>
-                <span>
-                  {rule.chest_match} / {rule.source_match}
-                </span>
-                <div className="list">
-                  <span className="badge">Score {rule.score}</span>
-                  <button className="button" type="button" onClick={() => handleEditScoringRule(rule)}>
-                    Edit
-                  </button>
-                  <button className="button danger" type="button" onClick={() => handleDeleteScoringRule(rule.id)}>
-                    Delete
-                  </button>
-                </div>
+            <div className="pagination-actions">
+              <div className="pagination-page-indicator">
+                <label htmlFor="validationPageJump" className="text-muted">
+                  Page
+                </label>
+                <input
+                  id="validationPageJump"
+                  className="pagination-page-input"
+                  type="number"
+                  min={1}
+                  max={validationTotalPages}
+                  value={validationPage}
+                  onChange={(event) => {
+                    const nextPage = clampPageValue(event.target.value, validationTotalPages);
+                    if (nextPage !== null) {
+                      setValidationPage(nextPage);
+                    }
+                  }}
+                />
+                <span className="text-muted">/ {validationTotalPages}</span>
               </div>
-            ))
-          )}
-        </div>
-        {filteredScoringRules.length > 0 ? (
-          <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-            <div className="list inline">
-              <button
-                className="button"
-                type="button"
-                disabled={scoringPage === 1}
-                onClick={() => setScoringPage((current) => Math.max(1, current - 1))}
+              <IconButton
+                ariaLabel="Previous page"
+                onClick={() => setValidationPage((current) => Math.max(1, current - 1))}
+                disabled={validationPage === 1}
               >
-                Previous
-              </button>
-              <button
-                className="button"
-                type="button"
-                disabled={scoringPage >= scoringTotalPages}
-                onClick={() => setScoringPage((current) => current + 1)}
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </IconButton>
+              <IconButton
+                ariaLabel="Next page"
+                onClick={() => setValidationPage((current) => current + 1)}
+                disabled={validationPage >= validationTotalPages}
               >
-                Next
-              </button>
-            </div>
-            <span className="text-muted">
-              Page {scoringPage} of {scoringTotalPages}
-            </span>
-            <div className="list inline">
-              <label htmlFor="scoringPageSize" className="text-muted">
-                Page size
-              </label>
-              <RadixSelect
-                id="scoringPageSize"
-                ariaLabel="Page size"
-                value={String(scoringPageSize)}
-                onValueChange={(value) => {
-                  setScoringPageSize(Number(value));
-                  setScoringPage(1);
-                }}
-                options={[
-                  { value: "5", label: "5" },
-                  { value: "10", label: "10" },
-                  { value: "20", label: "20" },
-                ]}
-              />
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </IconButton>
             </div>
           </div>
         ) : null}
@@ -4141,22 +3924,17 @@ function AdminClient(): JSX.Element {
           </div>
           <span className="badge">{auditTotalCount} total</span>
         </div>
-        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <label htmlFor="auditSearch" className="text-muted">
-            Search
-          </label>
-          <input
+        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <SearchInput
             id="auditSearch"
+            label="Search"
             value={auditSearch}
-            onChange={(event) => setAuditSearch(event.target.value)}
+            onChange={setAuditSearch}
             placeholder="Action, entity, or id"
           />
-          <label htmlFor="auditClanFilter" className="text-muted">
-            Clan
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="auditClanFilter"
-            ariaLabel="Clan filter"
+            label="Clan"
             value={auditClanFilter || "all"}
             onValueChange={(value) => setAuditClanFilter(value)}
             options={[
@@ -4164,12 +3942,9 @@ function AdminClient(): JSX.Element {
               ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
             ]}
           />
-          <label htmlFor="auditActionFilter" className="text-muted">
-            Action
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="auditActionFilter"
-            ariaLabel="Action filter"
+            label="Action"
             value={auditActionFilter}
             onValueChange={(value) => setAuditActionFilter(value)}
             options={[
@@ -4177,12 +3952,9 @@ function AdminClient(): JSX.Element {
               ...auditActionOptions.map((option) => ({ value: option, label: option })),
             ]}
           />
-          <label htmlFor="auditEntityFilter" className="text-muted">
-            Entity
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="auditEntityFilter"
-            ariaLabel="Entity filter"
+            label="Entity"
             value={auditEntityFilter}
             onValueChange={(value) => setAuditEntityFilter(value)}
             options={[
@@ -4190,12 +3962,9 @@ function AdminClient(): JSX.Element {
               ...auditEntityOptions.map((option) => ({ value: option, label: option })),
             ]}
           />
-          <label htmlFor="auditActorFilter" className="text-muted">
-            Actor
-          </label>
-          <RadixSelect
+          <LabeledSelect
             id="auditActorFilter"
-            ariaLabel="Actor filter"
+            label="Actor"
             value={auditActorFilter}
             onValueChange={(value) => setAuditActorFilter(value)}
             options={[
@@ -4250,29 +4019,8 @@ function AdminClient(): JSX.Element {
           )}
         </div>
         {auditTotalCount > 0 ? (
-          <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-            <div className="list inline">
-              <button
-                className="button"
-                type="button"
-                disabled={auditPage === 1}
-                onClick={() => setAuditPage((current) => Math.max(1, current - 1))}
-              >
-                Previous
-              </button>
-              <button
-                className="button"
-                type="button"
-                disabled={auditPage >= auditTotalPages}
-                onClick={() => setAuditPage((current) => current + 1)}
-              >
-                Next
-              </button>
-            </div>
-            <span className="text-muted">
-              Page {auditPage} of {auditTotalPages}
-            </span>
-            <div className="list inline">
+          <div className="pagination-bar">
+            <div className="pagination-page-size">
               <label htmlFor="auditPageSize" className="text-muted">
                 Page size
               </label>
@@ -4285,15 +4033,206 @@ function AdminClient(): JSX.Element {
                   setAuditPage(1);
                 }}
                 options={[
-                  { value: "10", label: "10" },
                   { value: "25", label: "25" },
                   { value: "50", label: "50" },
+                  { value: "100", label: "100" },
                 ]}
               />
+            </div>
+            <span className="text-muted">
+              Showing {auditTotalCount === 0 ? 0 : (auditPage - 1) * auditPageSize + 1}–
+              {Math.min(auditPage * auditPageSize, auditTotalCount)} of {auditTotalCount}
+            </span>
+            <div className="pagination-actions">
+              <div className="pagination-page-indicator">
+                <label htmlFor="auditPageJump" className="text-muted">
+                  Page
+                </label>
+                <input
+                  id="auditPageJump"
+                  className="pagination-page-input"
+                  type="number"
+                  min={1}
+                  max={auditTotalPages}
+                  value={auditPage}
+                  onChange={(event) => {
+                    const nextPage = clampPageValue(event.target.value, auditTotalPages);
+                    if (nextPage !== null) {
+                      setAuditPage(nextPage);
+                    }
+                  }}
+                />
+                <span className="text-muted">/ {auditTotalPages}</span>
+              </div>
+              <IconButton
+                ariaLabel="Previous page"
+                onClick={() => setAuditPage((current) => Math.max(1, current - 1))}
+                disabled={auditPage === 1}
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </IconButton>
+              <IconButton
+                ariaLabel="Next page"
+                onClick={() => setAuditPage((current) => current + 1)}
+                disabled={auditPage >= auditTotalPages}
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </IconButton>
             </div>
           </div>
         ) : null}
       </section>
+      ) : null}
+      {isValidationImportOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card wide">
+            <div className="card-header">
+              <div>
+                <div className="card-title">Import validation list</div>
+                <div className="card-subtitle">Upload one value per line or Value,Status</div>
+              </div>
+            </div>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>File</label>
+                <input
+                  id="validationImportFile"
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={handleImportValidationList}
+                  style={{ display: "none" }}
+                />
+                <div className="list inline" style={{ alignItems: "center" }}>
+                  <label className="button" htmlFor="validationImportFile">
+                    Choose file
+                  </label>
+                  <span className="text-muted">{validationImportFileName || "No file selected"}</span>
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="validationImportMode">Mode</label>
+                <RadixSelect
+                  id="validationImportMode"
+                  ariaLabel="Import mode"
+                  value={validationImportMode}
+                  onValueChange={(value) => setValidationImportMode(value as "append" | "replace")}
+                  triggerClassName="select-trigger compact"
+                  options={[
+                    { value: "append", label: "Append" },
+                    { value: "replace", label: "Replace" },
+                  ]}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="validationIgnoreDuplicates">Ignore duplicates</label>
+                <div className="list inline" style={{ alignItems: "center" }}>
+                  <input
+                    id="validationIgnoreDuplicates"
+                    type="checkbox"
+                    checked={validationIgnoreDuplicates}
+                    onChange={(event) => setValidationIgnoreDuplicates(event.target.checked)}
+                  />
+                </div>
+              </div>
+            </div>
+            {validationImportErrors.length > 0 ? (
+              <div className="alert danger">{validationImportErrors.slice(0, 3).join(" ")}</div>
+            ) : null}
+            <div className="list-item">
+              <span>Imported entries</span>
+              <span className="badge">{validationImportEntries.length}</span>
+            </div>
+            <div className="validation-import-table">
+              <div className="table validation-import-list">
+                <header>
+                  <span>Select</span>
+                  <span>Value</span>
+                  <span>Status</span>
+                  <span>Field</span>
+                </header>
+                {validationImportEntries.length === 0 ? (
+                  <div className="row">
+                    <span>No entries loaded</span>
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                ) : (
+                  validationImportEntries.map((entry, index) => (
+                    <div className="row" key={`${entry.field}-${entry.match_value}-${index}`}>
+                      <input
+                        type="checkbox"
+                        checked={validationImportSelected.includes(index)}
+                        onChange={() => toggleValidationImportSelected(index)}
+                      />
+                      <input
+                        value={entry.match_value ?? ""}
+                        onChange={(event) => handleUpdateImportEntry(index, "match_value", event.target.value)}
+                      />
+                      <RadixSelect
+                        ariaLabel="Status"
+                        value={entry.status ?? "valid"}
+                        onValueChange={(value) => handleUpdateImportEntry(index, "status", value)}
+                        triggerClassName="select-trigger compact"
+                        options={[
+                          { value: "valid", label: "valid" },
+                          { value: "invalid", label: "invalid" },
+                        ]}
+                      />
+                      <span>{formatLabel(entry.field ?? "")}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap", marginTop: "16px" }}>
+              <button
+                className="button danger"
+                type="button"
+                onClick={handleRemoveSelectedImportEntries}
+                disabled={validationImportSelected.length === 0}
+              >
+                Delete selected
+              </button>
+              <div className="list inline">
+                <button className="button primary" type="button" onClick={handleApplyValidationImport}>
+                  Import
+                </button>
+                <button className="button" type="button" onClick={handleCloseValidationImport}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isValidationReplaceConfirmOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Replace validation list</div>
+                <div className="card-subtitle">This will remove the current list before importing.</div>
+              </div>
+            </div>
+            <div className="alert danger">
+              Replace will delete all entries in the {formatLabel(validationListField)} list.
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={handleConfirmReplaceImport}>
+                Replace List
+              </button>
+              <button className="button" type="button" onClick={() => setIsValidationReplaceConfirmOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
       {isClanModalOpen ? (
         <div className="modal-backdrop">
@@ -4578,13 +4517,13 @@ function AdminClient(): JSX.Element {
                 </div>
               </div>
             </div>
-            <div className="list inline" style={{ alignItems: "center" }}>
+            <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center" }}>
               <div className="form-group" style={{ minWidth: 240 }}>
-                <label htmlFor="assignSearch">Search</label>
-                <input
+                <SearchInput
                   id="assignSearch"
+                  label="Search"
                   value={assignSearch}
-                  onChange={(event) => setAssignSearch(event.target.value)}
+                  onChange={setAssignSearch}
                   placeholder="Search accounts or users"
                 />
               </div>

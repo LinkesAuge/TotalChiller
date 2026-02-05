@@ -72,3 +72,4 @@ This plan outlines the minimum testing coverage for the data import flow, role-b
 - Data table pagination and filters do not crash.
 - News/events CRUD flows function with clan context.
 - Custom dropdowns render and allow selection without layout issues.
+- ESLint runs clean: `npx eslint .`.

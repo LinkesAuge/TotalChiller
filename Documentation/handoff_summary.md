@@ -47,6 +47,10 @@ This file is a compact context transfer for a new chat.
 - **Custom dropdowns**
   - Replaced native selects with Radix select styling globally.
   - `app/components/ui/radix-select.tsx`, `app/globals.css`
+- **Linting**
+  - ESLint configured with Next.js flat config.
+  - Run `npx eslint .`
+  - `eslint.config.js`
 
 ## Supabase SQL (Important)
 

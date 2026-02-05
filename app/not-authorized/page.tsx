@@ -1,3 +1,4 @@
+import Link from "next/link";
 import AuthActions from "../components/auth-actions";
 
 /**
@@ -25,15 +26,15 @@ function NotAuthorizedPage(): JSX.Element {
             </div>
           </div>
           <div className="list">
-            <a className="button primary" href="/home">
+            <Link className="button primary" href="/home">
               Go to Home
-            </a>
-            <a className="button" href="/">
+            </Link>
+            <Link className="button" href="/">
               Open Dashboard
-            </a>
-            <a className="button" href="/settings">
+            </Link>
+            <Link className="button" href="/settings">
               Account Settings
-            </a>
+            </Link>
           </div>
         </section>
       </div>

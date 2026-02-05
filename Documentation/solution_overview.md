@@ -149,6 +149,7 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Custom Radix selects replace native dropdowns across the app.
 - Global default clan is stored in `clans.is_default`.
 - Clan context selector in sidebar scopes clan data views.
+- ESLint uses Next.js flat config (`eslint.config.js`); run `npx eslint .`.
 
 ## Handoff Summary
 

@@ -222,7 +222,70 @@ function DataTableClient(): JSX.Element {
   }
 
   useEffect(() => {
-    void loadRows();
+    async function executeLoad(): Promise<void> {
+      const fromIndex = (page - 1) * pageSize;
+      const toIndex = fromIndex + pageSize - 1;
+      const query = supabase
+        .from("chest_entries")
+        .select("id,collected_date,player,source,chest,score,clan_id,clans(name)", { count: "exact" })
+        .order("collected_date", { ascending: false })
+        .range(fromIndex, toIndex);
+      if (searchTerm.trim()) {
+        const pattern = `%${searchTerm.trim()}%`;
+        query.or(`player.ilike.${pattern},source.ilike.${pattern},chest.ilike.${pattern}`);
+      }
+      if (filterPlayer.trim()) {
+        query.ilike("player", `%${filterPlayer.trim()}%`);
+      }
+      if (filterSource.trim()) {
+        query.ilike("source", `%${filterSource.trim()}%`);
+      }
+      if (filterChest.trim()) {
+        query.ilike("chest", `%${filterChest.trim()}%`);
+      }
+      if (filterClanId !== "all") {
+        query.eq("clan_id", filterClanId);
+      }
+      if (filterDateFrom.trim()) {
+        query.gte("collected_date", filterDateFrom.trim());
+      }
+      if (filterDateTo.trim()) {
+        query.lte("collected_date", filterDateTo.trim());
+      }
+      if (filterScoreMin.trim()) {
+        const minValue = Number(filterScoreMin);
+        if (!Number.isNaN(minValue)) {
+          query.gte("score", minValue);
+        }
+      }
+      if (filterScoreMax.trim()) {
+        const maxValue = Number(filterScoreMax);
+        if (!Number.isNaN(maxValue)) {
+          query.lte("score", maxValue);
+        }
+      }
+      const { data, error, count } = await query;
+      if (error) {
+        setStatus(`Failed to load data: ${error.message}`);
+        return;
+      }
+      const mappedRows = (data ?? []).map((row) => {
+        const entry = row as ChestEntryQueryRow;
+        return {
+          id: entry.id,
+          collected_date: entry.collected_date,
+          player: entry.player,
+          source: entry.source,
+          chest: entry.chest,
+          score: entry.score,
+          clan_id: entry.clan_id,
+          clan_name: entry.clans?.name ?? "",
+        };
+      });
+      setRows(mappedRows);
+      setTotalCount(count ?? 0);
+    }
+    void executeLoad();
   }, [
     filterChest,
     filterClanId,
@@ -235,6 +298,7 @@ function DataTableClient(): JSX.Element {
     page,
     pageSize,
     searchTerm,
+    supabase,
   ]);
 
   useEffect(() => {

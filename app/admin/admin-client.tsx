@@ -1558,10 +1558,35 @@ function AdminClient(): JSX.Element {
   }
 
   useEffect(() => {
-    void loadClans();
-    void loadDefaultClan();
-    void loadCurrentUserId();
-  }, []);
+    async function initializeAdmin(): Promise<void> {
+      const { data, error } = await supabase
+        .from("clans")
+        .select("id,name,description,is_unassigned")
+        .order("name");
+      if (error) {
+        setStatus(`Failed to load clans: ${error.message}`);
+        return;
+      }
+      const clanRows = data ?? [];
+      setClans(clanRows);
+      const unassignedClan = clanRows.find((clan) => clan.is_unassigned);
+      setUnassignedClanId(unassignedClan?.id ?? "");
+      if (!selectedClanId && clanRows.length > 0) {
+        const storedClanId = window.localStorage.getItem("tc.currentClanId") ?? "";
+        const matchedClan = storedClanId ? clanRows.find((clan) => clan.id === storedClanId) : undefined;
+        setSelectedClanId(matchedClan?.id ?? clanRows[0].id);
+      }
+      const { data: defaultClan } = await supabase
+        .from("clans")
+        .select("id")
+        .eq("is_default", true)
+        .maybeSingle();
+      setDefaultClanId(defaultClan?.id ?? "");
+      const { data: authData } = await supabase.auth.getUser();
+      setCurrentUserId(authData.user?.id ?? "");
+    }
+    void initializeAdmin();
+  }, [selectedClanId, supabase]);
 
   useEffect(() => {
     const nextSection = resolveSection(searchParams.get("tab"));
@@ -1575,16 +1600,174 @@ function AdminClient(): JSX.Element {
   }, [pushToast, status]);
 
   useEffect(() => {
-    void loadMemberships(selectedClanId);
-    void loadRules(selectedClanId);
-  }, [selectedClanId]);
+    async function loadClanData(): Promise<void> {
+      if (!selectedClanId) {
+        setMemberships([]);
+        setProfilesById({});
+        setValidationRules([]);
+        setCorrectionRules([]);
+        setScoringRules([]);
+        setValidationPage(1);
+        setCorrectionPage(1);
+        setScoringPage(1);
+        return;
+      }
+      if (selectedClanId === unassignedClanId) {
+        const { error: unassignedError } = await supabase.rpc("ensure_unassigned_memberships");
+        if (unassignedError) {
+          setStatus(`Failed to sync unassigned accounts: ${unassignedError.message}`);
+        }
+      }
+      const { data: membershipData, error: membershipError } = await supabase
+        .from("game_account_clan_memberships")
+        .select("id,clan_id,game_account_id,is_active,rank,game_accounts(id,user_id,game_username)")
+        .eq("clan_id", selectedClanId)
+        .order("game_account_id");
+      if (membershipError) {
+        setStatus(`Failed to load memberships: ${membershipError.message}`);
+        return;
+      }
+      const membershipRows = membershipData ?? [];
+      setMemberships(membershipRows);
+      const userIds = membershipRows
+        .map((row) => row.game_accounts?.user_id)
+        .filter((value): value is string => Boolean(value));
+      if (userIds.length === 0) {
+        setProfilesById({});
+      } else {
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("id,email,display_name,username")
+          .in("id", userIds);
+        if (profileError) {
+          setStatus(`Failed to load profiles: ${profileError.message}`);
+          return;
+        }
+        const profileMap = (profileData ?? []).reduce<Record<string, ProfileRow>>((acc, profile) => {
+          acc[profile.id] = profile;
+          return acc;
+        }, {});
+        setProfilesById(profileMap);
+        const { data: roleData, error: roleError } = await supabase
+          .from("user_roles")
+          .select("user_id,role")
+          .in("user_id", userIds);
+        if (roleError) {
+          setStatus(`Failed to load user roles: ${roleError.message}`);
+          return;
+        }
+        const roleMap = (roleData ?? []).reduce<Record<string, string>>((acc, row) => {
+          acc[row.user_id] = row.role;
+          return acc;
+        }, {});
+        setUserRolesById((current) => ({ ...current, ...roleMap }));
+      }
+      const { data: validationData } = await supabase
+        .from("validation_rules")
+        .select("id,field,match_value,status")
+        .eq("clan_id", selectedClanId)
+        .order("field");
+      setValidationRules(validationData ?? []);
+      const { data: correctionData } = await supabase
+        .from("correction_rules")
+        .select("id,field,match_value,replacement_value")
+        .eq("clan_id", selectedClanId)
+        .order("field");
+      setCorrectionRules(correctionData ?? []);
+      const { data: scoringData } = await supabase
+        .from("scoring_rules")
+        .select("id,chest_match,source_match,min_level,max_level,score,rule_order")
+        .eq("clan_id", selectedClanId)
+        .order("rule_order");
+      setScoringRules(scoringData ?? []);
+    }
+    void loadClanData();
+  }, [selectedClanId, supabase, unassignedClanId]);
 
   useEffect(() => {
-    if (activeSection !== "users") {
-      return;
+    async function loadUserSection(): Promise<void> {
+      if (activeSection !== "users") {
+        return;
+      }
+      const query = supabase
+        .from("profiles")
+        .select("id,email,display_name,username,user_db,is_admin")
+        .order("email")
+        .limit(25);
+      if (userSearch.trim()) {
+        const pattern = `%${userSearch.trim()}%`;
+        query.or(`email.ilike.${pattern},username.ilike.${pattern},display_name.ilike.${pattern}`);
+      }
+      const { data, error } = await query;
+      if (error) {
+        setUserStatus(`Failed to load users: ${error.message}`);
+        return;
+      }
+      const rows = (data ?? []) as UserRow[];
+      setUserRows(rows);
+      const userIds = rows.map((row) => row.id);
+      if (userIds.length === 0) {
+        setGameAccountsByUserId({});
+        setUserMembershipsByAccountId({});
+        setUserRolesById({});
+        return;
+      }
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("user_id,role")
+        .in("user_id", userIds);
+      if (roleError) {
+        setUserStatus(`Failed to load user roles: ${roleError.message}`);
+        return;
+      }
+      const roleMap = (roleData ?? []).reduce<Record<string, string>>((acc, row) => {
+        acc[row.user_id] = row.role;
+        return acc;
+      }, {});
+      setUserRolesById(roleMap);
+      const { data: gameAccountData, error: gameAccountError } = await supabase
+        .from("game_accounts")
+        .select("id,user_id,game_username")
+        .in("user_id", userIds)
+        .order("game_username");
+      if (gameAccountError) {
+        setUserStatus(`Failed to load game accounts: ${gameAccountError.message}`);
+        return;
+      }
+      const mapped = (gameAccountData ?? []).reduce<Record<string, GameAccountRow[]>>((acc, account) => {
+        const list = acc[account.user_id] ?? [];
+        list.push(account);
+        acc[account.user_id] = list;
+        return acc;
+      }, {});
+      setGameAccountsByUserId(mapped);
+      const accountIds = (gameAccountData ?? []).map((account) => account.id);
+      if (accountIds.length === 0) {
+        setUserMembershipsByAccountId({});
+        return;
+      }
+      if (unassignedClanId) {
+        const { error: unassignedError } = await supabase.rpc("ensure_unassigned_memberships");
+        if (unassignedError) {
+          setUserStatus(`Failed to sync unassigned accounts: ${unassignedError.message}`);
+        }
+      }
+      const { data: membershipData, error: membershipError } = await supabase
+        .from("game_account_clan_memberships")
+        .select("id,clan_id,game_account_id,is_active,rank,game_accounts(id,user_id,game_username)")
+        .in("game_account_id", accountIds);
+      if (membershipError) {
+        setUserStatus(`Failed to load memberships: ${membershipError.message}`);
+        return;
+      }
+      const membershipMap = (membershipData ?? []).reduce<Record<string, MembershipRow>>((acc, membership) => {
+        acc[membership.game_account_id] = membership;
+        return acc;
+      }, {});
+      setUserMembershipsByAccountId(membershipMap);
     }
-    void loadUsers();
-  }, [activeSection, userSearch]);
+    void loadUserSection();
+  }, [activeSection, supabase, unassignedClanId, userSearch]);
 
   useEffect(() => {
     setAuditPage(1);
@@ -1597,7 +1780,65 @@ function AdminClient(): JSX.Element {
   }, [auditClanFilter, selectedClanId]);
 
   useEffect(() => {
-    void loadAuditLogs(selectedClanId, auditPage, auditPageSize);
+    async function loadAuditSection(): Promise<void> {
+      if (!selectedClanId) {
+        setAuditLogs([]);
+        setAuditActorsById({});
+        setAuditPage(1);
+        setAuditTotalCount(0);
+        return;
+      }
+      const fromIndex = (auditPage - 1) * auditPageSize;
+      const toIndex = fromIndex + auditPageSize - 1;
+      let query = supabase
+        .from("audit_logs")
+        .select("id,clan_id,actor_id,action,entity,entity_id,diff,created_at", { count: "exact" });
+      const clanFilterValue =
+        auditClanFilter && auditClanFilter !== "all" ? auditClanFilter : selectedClanId;
+      if (clanFilterValue) {
+        query = query.eq("clan_id", clanFilterValue);
+      }
+      if (auditActionFilter !== "all") {
+        query = query.eq("action", auditActionFilter);
+      }
+      if (auditEntityFilter !== "all") {
+        query = query.eq("entity", auditEntityFilter);
+      }
+      if (auditActorFilter !== "all") {
+        query = query.eq("actor_id", auditActorFilter);
+      }
+      if (auditSearch.trim()) {
+        const pattern = `%${auditSearch.trim()}%`;
+        query = query.or(`action.ilike.${pattern},entity.ilike.${pattern},entity_id.ilike.${pattern}`);
+      }
+      const { data, error, count } = await query.order("created_at", { ascending: false }).range(fromIndex, toIndex);
+      if (error) {
+        setStatus(`Failed to load audit logs: ${error.message}`);
+        return;
+      }
+      const rows = data ?? [];
+      setAuditTotalCount(count ?? 0);
+      setAuditLogs(rows);
+      const actorIds = Array.from(new Set(rows.map((row) => row.actor_id)));
+      if (actorIds.length === 0) {
+        setAuditActorsById({});
+        return;
+      }
+      const { data: actorData, error: actorError } = await supabase
+        .from("profiles")
+        .select("id,email,display_name")
+        .in("id", actorIds);
+      if (actorError) {
+        setStatus(`Failed to load audit actors: ${actorError.message}`);
+        return;
+      }
+      const actorMap = (actorData ?? []).reduce<Record<string, ProfileRow>>((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {});
+      setAuditActorsById(actorMap);
+    }
+    void loadAuditSection();
   }, [
     auditActionFilter,
     auditActorFilter,
@@ -1607,6 +1848,7 @@ function AdminClient(): JSX.Element {
     auditPageSize,
     auditSearch,
     selectedClanId,
+    supabase,
   ]);
 
   useEffect(() => {
@@ -2898,9 +3140,10 @@ function AdminClient(): JSX.Element {
                             ? "You cannot revoke your own admin access."
                             : user.is_admin && userRows.filter((row) => Boolean(row.is_admin)).length <= 1
                               ? "At least one admin is required."
-                              : undefined
+                              : user.is_admin
+                                ? "Revoke admin"
+                                : "Grant admin"
                         }
-                        title={user.is_admin ? "Revoke admin" : "Grant admin"}
                         aria-label={user.is_admin ? "Revoke admin" : "Grant admin"}
                       >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">

@@ -38,6 +38,10 @@ function SettingsPage(): JSX.Element {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const supabase = createSupabaseBrowserClient();
 
+  function updateFormState(nextState: Partial<SettingsFormState>): void {
+    setFormState((currentState) => ({ ...currentState, ...nextState }));
+  }
+
   useEffect(() => {
     let isMounted = true;
     async function loadUser(): Promise<void> {
@@ -90,10 +94,6 @@ function SettingsPage(): JSX.Element {
       isMounted = false;
     };
   }, [supabase]);
-
-  function updateFormState(nextState: Partial<SettingsFormState>): void {
-    setFormState((currentState) => ({ ...currentState, ...nextState }));
-  }
 
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();

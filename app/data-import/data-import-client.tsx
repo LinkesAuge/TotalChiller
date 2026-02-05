@@ -599,17 +599,16 @@ function DataImportClient(): JSX.Element {
     if (!gameAccountId) {
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("username,username_display")
+        .select("user_db,username")
         .eq("id", userId)
         .maybeSingle();
-      const fallbackUsername = profileData?.username_display ?? profileData?.username ?? "game-account";
+      const fallbackUsername = profileData?.username ?? profileData?.user_db ?? "game-account";
       const { data: gameAccountData, error: gameAccountError } = await supabase
         .from("game_accounts")
         .upsert(
           {
             user_id: userId,
             game_username: fallbackUsername,
-            display_name: profileData?.username_display ?? profileData?.username ?? null,
           },
           { onConflict: "user_id,game_username" },
         )
@@ -625,7 +624,6 @@ function DataImportClient(): JSX.Element {
     const membershipPayload = Array.from(clanIdByName.values()).map((clanId) => ({
       clan_id: clanId,
       game_account_id: gameAccountId,
-      role: "member",
       is_active: true,
     }));
     const { error: membershipError } = await supabase

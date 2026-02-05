@@ -13,9 +13,8 @@ interface UserProfileView {
 
 interface MembershipView {
   readonly clan_id: string;
-  readonly role: string;
   readonly is_active: boolean;
-  readonly game_accounts: { readonly game_username: string; readonly display_name: string | null } | null;
+  readonly game_accounts: { readonly game_username: string } | null;
 }
 
 interface ClanView {
@@ -38,7 +37,7 @@ async function ProfilePage(): Promise<JSX.Element> {
   const userId = data.user?.id ?? "Unknown";
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("username,username_display,display_name")
+    .select("user_db,username,display_name")
     .eq("id", userId)
     .maybeSingle();
   const emailPrefix = userEmail && userEmail !== "Unknown" ? userEmail.split("@")[0] : "user";
@@ -52,13 +51,13 @@ async function ProfilePage(): Promise<JSX.Element> {
             {
               id: userId,
               email: userEmail,
-              username: fallbackUsername,
-              username_display: emailPrefix,
+              user_db: fallbackUsername,
+              username: emailPrefix,
               display_name: emailPrefix,
             },
             { onConflict: "id" },
           )
-          .select("username,username_display,display_name")
+          .select("user_db,username,display_name")
           .single()
       : { data: profileData };
   const userView: UserProfileView = {
@@ -66,23 +65,28 @@ async function ProfilePage(): Promise<JSX.Element> {
     email: userEmail,
     username: ensuredProfile?.username ?? "Unknown",
     usernameDisplay:
-      ensuredProfile?.username_display ??
       ensuredProfile?.username ??
       (userEmail && userEmail !== "Unknown" ? userEmail.split("@")[0] : "Unknown"),
     displayName:
       ensuredProfile?.display_name ??
-      ensuredProfile?.username_display ??
       ensuredProfile?.username ??
       "Unknown",
   };
   const { data: membershipData } = await supabase
     .from("game_account_clan_memberships")
-    .select("clan_id,role,is_active,game_accounts(game_username,display_name)")
+    .select("clan_id,is_active,game_accounts(game_username)")
     .eq("game_accounts.user_id", userId)
     .eq("is_active", true)
-    .order("role");
+    .order("clan_id");
   const memberships = membershipData ?? [];
-  const isAdmin = memberships.some((membership) => ["owner", "admin"].includes(membership.role));
+  const { data: userRoleData } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const userRole = userRoleData?.role ?? "member";
+  const { data: isAdminData } = await supabase.rpc("is_any_admin");
+  const isAdmin = Boolean(isAdminData);
   const clanIds = memberships.map((membership) => membership.clan_id);
   const { data: clanData } = clanIds.length
     ? await supabase.from("clans").select("id,name").in("id", clanIds)
@@ -93,7 +97,7 @@ async function ProfilePage(): Promise<JSX.Element> {
   }, {});
   const primaryMembership: MembershipView | null = memberships[0] ?? null;
   const primaryClan = primaryMembership ? clansById[primaryMembership.clan_id] : null;
-  const roleLabel = primaryMembership?.role ?? "member";
+  const roleLabel = userRole;
   const clanLabel = primaryClan?.name ?? "No clan assigned";
 
   return (
@@ -122,7 +126,7 @@ async function ProfilePage(): Promise<JSX.Element> {
               <strong>{userView.usernameDisplay}</strong>
             </div>
             <div className="list-item">
-              <span>Display name</span>
+              <span>Nickname</span>
               <strong>{userView.displayName}</strong>
             </div>
             <div className="list-item">
@@ -142,7 +146,7 @@ async function ProfilePage(): Promise<JSX.Element> {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Edit Display Name</div>
+          <div className="card-title">Edit Nickname</div>
               <div className="card-subtitle">Visible to other members</div>
             </div>
           </div>
@@ -156,7 +160,7 @@ async function ProfilePage(): Promise<JSX.Element> {
           <div className="card-header">
             <div>
               <div className="card-title">Clan Memberships</div>
-              <div className="card-subtitle">Active roles</div>
+              <div className="card-subtitle">Active clans</div>
             </div>
             <span className="badge">{memberships.length}</span>
           </div>
@@ -168,19 +172,17 @@ async function ProfilePage(): Promise<JSX.Element> {
               </div>
             ) : (
               memberships.map((membership) => (
-                <div className="list-item" key={`${membership.clan_id}-${membership.role}`}>
+                <div className="list-item" key={`${membership.clan_id}-${membership.game_accounts?.game_username ?? "account"}`}>
                   <div>
                     <div>{clansById[membership.clan_id]?.name ?? membership.clan_id}</div>
                     <div className="text-muted">{membership.clan_id}</div>
                     {membership.game_accounts ? (
                       <div className="text-muted">
-                        {membership.game_accounts.display_name ??
-                          membership.game_accounts.game_username ??
-                          "Game account"}
+                        {membership.game_accounts.game_username ?? "Game account"}
                       </div>
                     ) : null}
                   </div>
-                  <span className="badge">{membership.role}</span>
+                  <span className="badge">{userRole}</span>
                 </div>
               ))
             )}

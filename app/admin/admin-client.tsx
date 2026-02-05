@@ -9,31 +9,31 @@ interface ClanRow {
   readonly id: string;
   readonly name: string;
   readonly description: string | null;
+  readonly is_unassigned?: boolean | null;
 }
 
 interface GameAccountRow {
   readonly id: string;
   readonly user_id: string;
   readonly game_username: string;
-  readonly display_name: string | null;
 }
 
 interface MembershipRow {
   readonly id: string;
   readonly clan_id: string;
   readonly game_account_id: string;
-  readonly role: string;
   readonly is_active: boolean;
   readonly rank: string | null;
   readonly game_accounts: GameAccountRow | null;
 }
 
 interface MembershipEditState {
-  readonly role?: string;
   readonly is_active?: boolean;
   readonly rank?: string | null;
   readonly clan_id?: string;
-  readonly display_name?: string;
+}
+
+interface GameAccountEditState {
   readonly game_username?: string;
 }
 
@@ -42,7 +42,6 @@ interface ProfileRow {
   readonly email: string;
   readonly display_name: string | null;
   readonly username: string | null;
-  readonly username_display: string | null;
 }
 
 interface UserRow {
@@ -50,7 +49,14 @@ interface UserRow {
   readonly email: string;
   readonly display_name: string | null;
   readonly username: string | null;
-  readonly username_display: string | null;
+  readonly user_db: string | null;
+  readonly is_admin?: boolean | null;
+}
+
+interface UserEditState {
+  readonly display_name?: string | null;
+  readonly username?: string | null;
+  readonly role?: string | null;
 }
 
 interface RuleRow {
@@ -99,8 +105,21 @@ const scoringSortOptions: readonly { value: "rule_order" | "score" | "chest_matc
     { value: "source_match", label: "Source" },
   ];
 
+function formatLabel(value: string): string {
+  if (!value) {
+    return value;
+  }
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function buildFallbackUserDb(email: string, userId: string): string {
+  const prefix = email.split("@")[0] || "user";
+  const suffix = userId.replace(/-/g, "").slice(-6);
+  return `${prefix}_${suffix}`.toLowerCase();
+}
+
 /**
- * Admin UI for clan and membership management.
+ * Admin UI for clan and game account management.
  */
 function AdminClient(): JSX.Element {
   const supabase = createSupabaseBrowserClient();
@@ -110,22 +129,13 @@ function AdminClient(): JSX.Element {
   const [clans, setClans] = useState<readonly ClanRow[]>([]);
   const [memberships, setMemberships] = useState<readonly MembershipRow[]>([]);
   const [selectedClanId, setSelectedClanId] = useState<string>("");
+  const [unassignedClanId, setUnassignedClanId] = useState<string>("");
   const [status, setStatus] = useState<string>("");
-  const [memberUsername, setMemberUsername] = useState<string>("");
-  const [memberEmail, setMemberEmail] = useState<string>("");
-  const [memberGameUsername, setMemberGameUsername] = useState<string>("");
-  const [memberDisplayName, setMemberDisplayName] = useState<string>("");
-  const [memberRole, setMemberRole] = useState<string>("member");
-  const [memberActive, setMemberActive] = useState<boolean>(true);
-  const [memberRank, setMemberRank] = useState<string>("");
-  const [memberModalStatus, setMemberModalStatus] = useState<string>("");
-  const [membershipEditingId, setMembershipEditingId] = useState<string>("");
   const [membershipEdits, setMembershipEdits] = useState<Record<string, MembershipEditState>>({});
   const [membershipErrors, setMembershipErrors] = useState<Record<string, string>>({});
-  const [isMemberModalOpen, setIsMemberModalOpen] = useState<boolean>(false);
   const [profilesById, setProfilesById] = useState<Record<string, ProfileRow>>({});
   const [memberSearch, setMemberSearch] = useState<string>("");
-  const [memberRoleFilter, setMemberRoleFilter] = useState<string>("all");
+  const [memberRankFilter, setMemberRankFilter] = useState<string>("all");
   const [memberStatusFilter, setMemberStatusFilter] = useState<string>("all");
   const [validationRules, setValidationRules] = useState<readonly RuleRow[]>([]);
   const [correctionRules, setCorrectionRules] = useState<readonly RuleRow[]>([]);
@@ -180,18 +190,45 @@ function AdminClient(): JSX.Element {
   const [clanModalMode, setClanModalMode] = useState<"create" | "edit">("create");
   const [clanModalName, setClanModalName] = useState<string>("");
   const [clanModalDescription, setClanModalDescription] = useState<string>("");
+  const [isClanDeleteConfirmOpen, setIsClanDeleteConfirmOpen] = useState<boolean>(false);
+  const [isClanDeleteInputOpen, setIsClanDeleteInputOpen] = useState<boolean>(false);
+  const [clanDeleteInput, setClanDeleteInput] = useState<string>("");
   const [defaultClanId, setDefaultClanId] = useState<string>("");
   const [userSearch, setUserSearch] = useState<string>("");
+  const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
+  const [userAdminFilter, setUserAdminFilter] = useState<string>("all");
   const [userRows, setUserRows] = useState<readonly UserRow[]>([]);
   const [gameAccountsByUserId, setGameAccountsByUserId] = useState<Record<string, GameAccountRow[]>>({});
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [newGameUsername, setNewGameUsername] = useState<string>("");
-  const [newGameDisplayName, setNewGameDisplayName] = useState<string>("");
+  const [userMembershipsByAccountId, setUserMembershipsByAccountId] = useState<Record<string, MembershipRow>>({});
+  const [userRolesById, setUserRolesById] = useState<Record<string, string>>({});
   const [userStatus, setUserStatus] = useState<string>("");
+  const [gameAccountEdits, setGameAccountEdits] = useState<Record<string, GameAccountEditState>>({});
+  const [activeGameAccountId, setActiveGameAccountId] = useState<string>("");
+  const [userEdits, setUserEdits] = useState<Record<string, UserEditState>>({});
+  const [userErrors, setUserErrors] = useState<Record<string, string>>({});
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [activeEditingUserId, setActiveEditingUserId] = useState<string>("");
   const [createUserEmail, setCreateUserEmail] = useState<string>("");
   const [createUserUsername, setCreateUserUsername] = useState<string>("");
   const [createUserDisplayName, setCreateUserDisplayName] = useState<string>("");
   const [createUserStatus, setCreateUserStatus] = useState<string>("");
+  const [expandedUserIds, setExpandedUserIds] = useState<readonly string[]>([]);
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState<boolean>(false);
+  const [isUserDeleteConfirmOpen, setIsUserDeleteConfirmOpen] = useState<boolean>(false);
+  const [isUserDeleteInputOpen, setIsUserDeleteInputOpen] = useState<boolean>(false);
+  const [userDeleteInput, setUserDeleteInput] = useState<string>("");
+  const [userToDelete, setUserToDelete] = useState<UserRow | null>(null);
+  const [isCreateGameAccountModalOpen, setIsCreateGameAccountModalOpen] = useState<boolean>(false);
+  const [createGameAccountUser, setCreateGameAccountUser] = useState<UserRow | null>(null);
+  const [createGameAccountUsername, setCreateGameAccountUsername] = useState<string>("");
+  const [createGameAccountClanId, setCreateGameAccountClanId] = useState<string>("");
+  const [createGameAccountRank, setCreateGameAccountRank] = useState<string>("soldier");
+  const [createGameAccountStatus, setCreateGameAccountStatus] = useState<string>("active");
+  const [createGameAccountMessage, setCreateGameAccountMessage] = useState<string>("");
+  const [isGameAccountDeleteConfirmOpen, setIsGameAccountDeleteConfirmOpen] = useState<boolean>(false);
+  const [isGameAccountDeleteInputOpen, setIsGameAccountDeleteInputOpen] = useState<boolean>(false);
+  const [gameAccountDeleteInput, setGameAccountDeleteInput] = useState<string>("");
+  const [gameAccountToDelete, setGameAccountToDelete] = useState<GameAccountRow | null>(null);
 
   const selectedClan = useMemo(
     () => clans.find((clan) => clan.id === selectedClanId),
@@ -224,6 +261,28 @@ function AdminClient(): JSX.Element {
     const rightText = String(right);
     const result = leftText.localeCompare(rightText, undefined, { sensitivity: "base" });
     return direction === "asc" ? result : -result;
+  }
+
+  function toggleUserExpanded(userId: string): void {
+    setExpandedUserIds((current) => {
+      if (current.includes(userId)) {
+        return current.filter((id) => id !== userId);
+      }
+      return [...current, userId];
+    });
+  }
+
+  function handleUserRowClick(userId: string): void {
+    if (activeEditingUserId && activeEditingUserId !== userId) {
+      setUserEdits({});
+      setUserErrors({});
+      setGameAccountEdits({});
+      setMembershipEdits({});
+      setMembershipErrors({});
+      setActiveGameAccountId("");
+      setActiveEditingUserId("");
+    }
+    toggleUserExpanded(userId);
   }
 
   const filteredValidationRules = useMemo(() => {
@@ -358,7 +417,9 @@ function AdminClient(): JSX.Element {
   const filteredMemberships = useMemo(() => {
     const normalizedSearch = memberSearch.trim().toLowerCase();
     return memberships.filter((membership) => {
-      if (memberRoleFilter !== "all" && membership.role !== memberRoleFilter) {
+      const userId = membership.game_accounts?.user_id ?? "";
+      const userRole = userId ? userRolesById[userId] ?? "member" : "member";
+      if (memberRankFilter !== "all" && (membership.rank ?? "") !== memberRankFilter) {
         return false;
       }
       if (memberStatusFilter !== "all") {
@@ -370,13 +431,11 @@ function AdminClient(): JSX.Element {
       if (!normalizedSearch) {
         return true;
       }
-      const userId = membership.game_accounts?.user_id ?? "";
       const profile = userId ? profilesById[userId] : undefined;
       const searchText = [
-        membership.game_accounts?.display_name,
         membership.game_accounts?.game_username,
         profile?.display_name,
-        profile?.username_display,
+        profile?.username,
         profile?.username,
         profile?.email,
         userId,
@@ -386,7 +445,23 @@ function AdminClient(): JSX.Element {
         .toLowerCase();
       return searchText.includes(normalizedSearch);
     });
-  }, [memberRoleFilter, memberSearch, memberStatusFilter, memberships, profilesById]);
+  }, [memberRankFilter, memberSearch, memberStatusFilter, memberships, profilesById, userRolesById]);
+
+  const filteredUserRows = useMemo(() => {
+    return userRows.filter((user) => {
+      const role = userRolesById[user.id] ?? "member";
+      if (userRoleFilter !== "all" && role !== userRoleFilter) {
+        return false;
+      }
+      if (userAdminFilter !== "all") {
+        const expectedAdmin = userAdminFilter === "admin";
+        if (Boolean(user.is_admin) !== expectedAdmin) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [userAdminFilter, userRoleFilter, userRows, userRolesById]);
 
   function resolveSection(value: string | null): "clans" | "rules" | "logs" | "users" {
     if (value === "rules" || value === "logs" || value === "users") {
@@ -411,6 +486,11 @@ function AdminClient(): JSX.Element {
     return data.user?.id ?? null;
   }
 
+  async function loadCurrentUserId(): Promise<void> {
+    const userId = await getCurrentUserId();
+    setCurrentUserId(userId ?? "");
+  }
+
   async function insertAuditLogs(entries: readonly Record<string, unknown>[]): Promise<void> {
     if (entries.length === 0) {
       return;
@@ -422,18 +502,35 @@ function AdminClient(): JSX.Element {
   }
 
   async function loadClans(): Promise<void> {
-    const { data, error } = await supabase.from("clans").select("id,name,description").order("name");
+    const { data, error } = await supabase
+      .from("clans")
+      .select("id,name,description,is_unassigned")
+      .order("name");
     if (error) {
       setStatus(`Failed to load clans: ${error.message}`);
       return;
     }
-    setClans(data ?? []);
+    const clanRows = data ?? [];
+    setClans(clanRows);
+    const unassignedClan = clanRows.find((clan) => clan.is_unassigned);
+    setUnassignedClanId(unassignedClan?.id ?? "");
     if (!selectedClanId && data && data.length > 0) {
       const storedClanId = window.localStorage.getItem("tc.currentClanId") ?? "";
-      const matchedClan = storedClanId ? data.find((clan) => clan.id === storedClanId) : undefined;
-      setSelectedClanId(matchedClan?.id ?? data[0].id);
+      const matchedClan = storedClanId ? clanRows.find((clan) => clan.id === storedClanId) : undefined;
+      setSelectedClanId(matchedClan?.id ?? clanRows[0].id);
     }
   }
+
+  async function ensureUnassignedMemberships(): Promise<void> {
+    if (!unassignedClanId) {
+      return;
+    }
+    const { error } = await supabase.rpc("ensure_unassigned_memberships");
+    if (error) {
+      setStatus(`Failed to sync unassigned accounts: ${error.message}`);
+    }
+  }
+
 
   async function loadDefaultClan(): Promise<void> {
     const { data: defaultClan } = await supabase
@@ -450,11 +547,14 @@ function AdminClient(): JSX.Element {
       setProfilesById({});
       return;
     }
+    if (clanId === unassignedClanId) {
+      await ensureUnassignedMemberships();
+    }
     const { data, error } = await supabase
       .from("game_account_clan_memberships")
-      .select("id,clan_id,game_account_id,role,is_active,rank,game_accounts(id,user_id,game_username,display_name)")
+      .select("id,clan_id,game_account_id,is_active,rank,game_accounts(id,user_id,game_username)")
       .eq("clan_id", clanId)
-      .order("role");
+      .order("game_account_id");
     if (error) {
       setStatus(`Failed to load memberships: ${error.message}`);
       return;
@@ -470,7 +570,7 @@ function AdminClient(): JSX.Element {
     }
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
-      .select("id,email,display_name,username,username_display")
+      .select("id,email,display_name,username")
       .in("id", userIds);
     if (profileError) {
       setStatus(`Failed to load profiles: ${profileError.message}`);
@@ -481,6 +581,19 @@ function AdminClient(): JSX.Element {
       return acc;
     }, {});
     setProfilesById(profileMap);
+    const { data: roleData, error: roleError } = await supabase
+      .from("user_roles")
+      .select("user_id,role")
+      .in("user_id", userIds);
+    if (roleError) {
+      setStatus(`Failed to load user roles: ${roleError.message}`);
+      return;
+    }
+    const roleMap = (roleData ?? []).reduce<Record<string, string>>((acc, row) => {
+      acc[row.user_id] = row.role;
+      return acc;
+    }, {});
+    setUserRolesById((current) => ({ ...current, ...roleMap }));
   }
 
   async function loadRules(clanId: string): Promise<void> {
@@ -575,7 +688,7 @@ function AdminClient(): JSX.Element {
   async function loadUsers(): Promise<void> {
     const query = supabase
       .from("profiles")
-      .select("id,email,display_name,username,username_display")
+      .select("id,email,display_name,username,user_db,is_admin")
       .order("email")
       .limit(25);
     if (userSearch.trim()) {
@@ -592,11 +705,26 @@ function AdminClient(): JSX.Element {
     const userIds = rows.map((row) => row.id);
     if (userIds.length === 0) {
       setGameAccountsByUserId({});
+      setUserMembershipsByAccountId({});
+      setUserRolesById({});
       return;
     }
+    const { data: roleData, error: roleError } = await supabase
+      .from("user_roles")
+      .select("user_id,role")
+      .in("user_id", userIds);
+    if (roleError) {
+      setUserStatus(`Failed to load user roles: ${roleError.message}`);
+      return;
+    }
+    const roleMap = (roleData ?? []).reduce<Record<string, string>>((acc, row) => {
+      acc[row.user_id] = row.role;
+      return acc;
+    }, {});
+    setUserRolesById(roleMap);
     const { data: gameAccountData, error: gameAccountError } = await supabase
       .from("game_accounts")
-      .select("id,user_id,game_username,display_name")
+      .select("id,user_id,game_username")
       .in("user_id", userIds)
       .order("game_username");
     if (gameAccountError) {
@@ -610,42 +738,40 @@ function AdminClient(): JSX.Element {
       return acc;
     }, {});
     setGameAccountsByUserId(mapped);
-  }
-
-  async function handleAddGameAccount(): Promise<void> {
-    if (!selectedUserId) {
-      setUserStatus("Select a user first.");
+    const accountIds = (gameAccountData ?? []).map((account) => account.id);
+    if (accountIds.length === 0) {
+      setUserMembershipsByAccountId({});
       return;
     }
-    if (!newGameUsername.trim()) {
-      setUserStatus("Game username is required.");
+    if (unassignedClanId) {
+      await ensureUnassignedMemberships();
+    }
+    const { data: membershipData, error: membershipError } = await supabase
+      .from("game_account_clan_memberships")
+      .select("id,clan_id,game_account_id,is_active,rank,game_accounts(id,user_id,game_username)")
+      .in("game_account_id", accountIds);
+    if (membershipError) {
+      setUserStatus(`Failed to load memberships: ${membershipError.message}`);
       return;
     }
-    const displayNameValue = newGameDisplayName.trim() || newGameUsername.trim();
-    setUserStatus("Adding game account...");
-    const { error } = await supabase
-      .from("game_accounts")
-      .upsert(
-        {
-          user_id: selectedUserId,
-          game_username: newGameUsername.trim(),
-          display_name: displayNameValue,
-        },
-        { onConflict: "user_id,game_username" },
-      );
-    if (error) {
-      setUserStatus(`Failed to add game account: ${error.message}`);
-      return;
-    }
-    setNewGameUsername("");
-    setNewGameDisplayName("");
-    setUserStatus("Game account added.");
-    await loadUsers();
+    const membershipMap = (membershipData ?? []).reduce<Record<string, MembershipRow>>((acc, membership) => {
+      acc[membership.game_account_id] = membership;
+      return acc;
+    }, {});
+    setUserMembershipsByAccountId(membershipMap);
   }
 
   async function handleCreateUser(): Promise<void> {
     if (!createUserEmail.trim()) {
       setCreateUserStatus("Email is required.");
+      return;
+    }
+    if (!createUserUsername.trim()) {
+      setCreateUserStatus("Username is required.");
+      return;
+    }
+    if (createUserUsername.trim().length < 2 || createUserUsername.trim().length > 32) {
+      setCreateUserStatus("Username must be 2-32 characters.");
       return;
     }
     setCreateUserStatus("Creating user...");
@@ -654,7 +780,7 @@ function AdminClient(): JSX.Element {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: createUserEmail.trim(),
-        username: createUserUsername.trim() || undefined,
+        username: createUserUsername.trim(),
         displayName: createUserDisplayName.trim() || undefined,
       }),
     });
@@ -667,7 +793,254 @@ function AdminClient(): JSX.Element {
     setCreateUserUsername("");
     setCreateUserDisplayName("");
     setCreateUserStatus("User created.");
+    setIsCreateUserModalOpen(false);
     await loadUsers();
+  }
+
+  function openCreateUserModal(): void {
+    setCreateUserStatus("");
+    setIsCreateUserModalOpen(true);
+  }
+
+  function closeCreateUserModal(): void {
+    setIsCreateUserModalOpen(false);
+  }
+
+  function openUserDeleteConfirm(user: UserRow): void {
+    if (user.id === currentUserId) {
+      setUserStatus("You cannot delete your own account.");
+      return;
+    }
+    if (user.is_admin && userRows.filter((row) => Boolean(row.is_admin)).length <= 1) {
+      setUserStatus("At least one admin is required.");
+      return;
+    }
+    setUserToDelete(user);
+    setIsUserDeleteConfirmOpen(true);
+  }
+
+  function closeUserDeleteConfirm(): void {
+    setIsUserDeleteConfirmOpen(false);
+  }
+
+  function openUserDeleteInput(): void {
+    setIsUserDeleteConfirmOpen(false);
+    setUserDeleteInput("");
+    setIsUserDeleteInputOpen(true);
+  }
+
+  function closeUserDeleteInput(): void {
+    setIsUserDeleteInputOpen(false);
+    setUserDeleteInput("");
+    setUserToDelete(null);
+  }
+
+  async function handleDeleteUser(): Promise<void> {
+    if (!userToDelete) {
+      setUserStatus("Select a user to delete.");
+      return;
+    }
+    const expectedPhrase = `DELETE ${userToDelete.username ?? userToDelete.email}`;
+    if (userDeleteInput.trim() !== expectedPhrase) {
+      setUserStatus("Deletion phrase does not match.");
+      return;
+    }
+    setUserStatus("Deleting user...");
+    const response = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userToDelete.id }),
+    });
+    const payload = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      setUserStatus(payload.error ?? "Failed to delete user.");
+      return;
+    }
+    closeUserDeleteInput();
+    setUserStatus("User deleted.");
+    await loadUsers();
+  }
+
+  function openCreateGameAccountModal(user: UserRow): void {
+    setCreateGameAccountUser(user);
+    setCreateGameAccountUsername("");
+    setCreateGameAccountClanId(unassignedClanId);
+    setCreateGameAccountRank("soldier");
+    setCreateGameAccountStatus("active");
+    setCreateGameAccountMessage("");
+    setIsCreateGameAccountModalOpen(true);
+  }
+
+  function closeCreateGameAccountModal(): void {
+    setIsCreateGameAccountModalOpen(false);
+    setCreateGameAccountUser(null);
+    setCreateGameAccountUsername("");
+    setCreateGameAccountClanId(unassignedClanId);
+    setCreateGameAccountRank("soldier");
+    setCreateGameAccountStatus("active");
+    setCreateGameAccountMessage("");
+  }
+
+  async function handleCreateGameAccount(): Promise<void> {
+    if (!createGameAccountUser) {
+      setCreateGameAccountMessage("Select a user first.");
+      return;
+    }
+    const nextUsername = createGameAccountUsername.trim();
+    if (!nextUsername) {
+      setCreateGameAccountMessage("Game username is required.");
+      return;
+    }
+    if (!createGameAccountClanId) {
+      setCreateGameAccountMessage("Select a clan for this account.");
+      return;
+    }
+    if (!createGameAccountRank.trim()) {
+      setCreateGameAccountMessage("Select a rank for this account.");
+      return;
+    }
+    setCreateGameAccountMessage("Creating game account...");
+    const { data: accountData, error } = await supabase
+      .from("game_accounts")
+      .insert({
+        user_id: createGameAccountUser.id,
+        game_username: nextUsername,
+      })
+      .select("id")
+      .single();
+    if (error || !accountData) {
+      setCreateGameAccountMessage(error?.message ?? "Failed to create game account.");
+      return;
+    }
+    const { error: membershipError } = await supabase.from("game_account_clan_memberships").upsert(
+      {
+        game_account_id: accountData.id,
+        clan_id: createGameAccountClanId,
+        is_active: createGameAccountStatus === "active",
+        rank: createGameAccountRank.trim() || null,
+      },
+      { onConflict: "game_account_id" },
+    );
+    if (membershipError) {
+      setCreateGameAccountMessage(`Account created, but assignment failed: ${membershipError.message}`);
+      return;
+    }
+    setCreateGameAccountMessage("Game account added.");
+    closeCreateGameAccountModal();
+    await loadUsers();
+  }
+
+  function openGameAccountDeleteConfirm(account: GameAccountRow): void {
+    setGameAccountToDelete(account);
+    setIsGameAccountDeleteConfirmOpen(true);
+  }
+
+  function closeGameAccountDeleteConfirm(): void {
+    setIsGameAccountDeleteConfirmOpen(false);
+  }
+
+  function openGameAccountDeleteInput(): void {
+    setIsGameAccountDeleteConfirmOpen(false);
+    setGameAccountDeleteInput("");
+    setIsGameAccountDeleteInputOpen(true);
+  }
+
+  function closeGameAccountDeleteInput(): void {
+    setIsGameAccountDeleteInputOpen(false);
+    setGameAccountDeleteInput("");
+    setGameAccountToDelete(null);
+  }
+
+  async function handleConfirmDeleteGameAccount(): Promise<void> {
+    if (!gameAccountToDelete) {
+      setUserStatus("Select a game account to delete.");
+      return;
+    }
+    const expectedPhrase = `DELETE ${gameAccountToDelete.game_username}`;
+    if (gameAccountDeleteInput.trim() !== expectedPhrase) {
+      setUserStatus("Deletion phrase does not match.");
+      return;
+    }
+    setUserStatus("Deleting game account...");
+    const { error } = await supabase.from("game_accounts").delete().eq("id", gameAccountToDelete.id);
+    if (error) {
+      setUserStatus(`Failed to delete game account: ${error.message}`);
+      return;
+    }
+    closeGameAccountDeleteInput();
+    setUserStatus("Game account deleted.");
+    await loadUsers();
+  }
+
+  async function handleSaveAllUserEdits(): Promise<void> {
+    const editEntries = Object.keys(userEdits);
+    const accountEntries = Object.keys(gameAccountEdits);
+    const membershipEntries = Object.keys(membershipEdits);
+    if (editEntries.length === 0 && accountEntries.length === 0 && membershipEntries.length === 0) {
+      setUserStatus("No changes to save.");
+      return;
+    }
+    const totalEdits = editEntries.length + accountEntries.length + membershipEntries.length;
+    const confirmSave = window.confirm(`Save ${totalEdits} change(s)?`);
+    if (!confirmSave) {
+      return;
+    }
+    setUserStatus("Saving changes...");
+    let hasError = false;
+    for (const userId of editEntries) {
+      const user = userRows.find((entry) => entry.id === userId);
+      if (!user) {
+        continue;
+      }
+      const success = await handleSaveUserEdit(user, false);
+      if (!success) {
+        hasError = true;
+      }
+    }
+    const accountList = Object.values(gameAccountsByUserId).flat();
+    for (const accountId of accountEntries) {
+      const account = accountList.find((entry) => entry.id === accountId);
+      if (!account) {
+        continue;
+      }
+      const success = await handleSaveGameAccountEdit(account, false);
+      if (!success) {
+        hasError = true;
+      }
+    }
+    for (const membershipId of membershipEntries) {
+      const membership = memberships.find((entry) => entry.id === membershipId);
+      if (!membership) {
+        continue;
+      }
+      const validationError = validateMembershipEdit(membership);
+      if (validationError) {
+        setMembershipErrors((current) => ({ ...current, [membership.id]: validationError }));
+        hasError = true;
+        continue;
+      }
+      await handleSaveMembershipEdit(membership, false);
+      if (membershipErrors[membershipId]) {
+        hasError = true;
+      }
+    }
+    if (hasError) {
+      setUserStatus("Some updates need fixes before saving.");
+      return;
+    }
+    setUserStatus("All changes saved.");
+    await loadUsers();
+  }
+
+  function cancelAllUserEdits(): void {
+    setUserEdits({});
+    setUserErrors({});
+    setGameAccountEdits({});
+    setMembershipEdits({});
+    setMembershipErrors({});
+    setActiveGameAccountId("");
+    setActiveEditingUserId("");
+    setUserStatus("All changes cleared.");
   }
 
   async function handleResendInvite(email: string): Promise<void> {
@@ -693,9 +1066,305 @@ function AdminClient(): JSX.Element {
     setCreateUserStatus("Invite resent.");
   }
 
+  async function handleToggleAdmin(user: UserRow): Promise<void> {
+    const nextValue = !Boolean(user.is_admin);
+    if (!nextValue && currentUserId && user.id === currentUserId) {
+      setUserStatus("You cannot revoke your own admin access.");
+      return;
+    }
+    if (!nextValue) {
+      const adminCount = userRows.filter((row) => Boolean(row.is_admin)).length;
+      if (adminCount <= 1) {
+        setUserStatus("At least one admin is required.");
+        return;
+      }
+    }
+    const confirmToggle = window.confirm(
+      `${nextValue ? "Grant" : "Revoke"} admin access for ${user.email}?`,
+    );
+    if (!confirmToggle) {
+      return;
+    }
+    setUserStatus("Updating admin access...");
+    const { error } = await supabase.from("profiles").update({ is_admin: nextValue }).eq("id", user.id);
+    if (error) {
+      setUserStatus(`Failed to update admin access: ${error.message}`);
+      return;
+    }
+    setUserStatus("Admin access updated.");
+    await loadUsers();
+  }
+
+  function updateUserEdit(userId: string, field: keyof UserEditState, value: string): void {
+    setUserEdits((current) => ({
+      ...current,
+      [userId]: {
+        ...current[userId],
+        [field]: value,
+      },
+    }));
+    setUserErrors((current) => {
+      if (!current[userId]) {
+        return current;
+      }
+      const updated = { ...current };
+      delete updated[userId];
+      return updated;
+    });
+  }
+
+  function cancelUserEdit(userId: string): void {
+    setUserEdits((current) => {
+      if (!current[userId]) {
+        return current;
+      }
+      const updated = { ...current };
+      delete updated[userId];
+      return updated;
+    });
+    setUserErrors((current) => {
+      if (!current[userId]) {
+        return current;
+      }
+      const updated = { ...current };
+      delete updated[userId];
+      return updated;
+    });
+    setActiveEditingUserId((current) => (current === userId ? "" : current));
+  }
+
+  function beginUserEdit(user: UserRow): void {
+    setActiveEditingUserId(user.id);
+    setUserEdits((current) => ({
+      ...current,
+      [user.id]: {
+        display_name: current[user.id]?.display_name ?? user.display_name ?? "",
+        username: current[user.id]?.username ?? user.username ?? "",
+        role: current[user.id]?.role ?? userRolesById[user.id] ?? "member",
+      },
+    }));
+    setUserErrors((current) => {
+      if (!current[user.id]) {
+        return current;
+      }
+      const updated = { ...current };
+      delete updated[user.id];
+      return updated;
+    });
+  }
+
+  function getUserRole(userId: string): string {
+    return userRolesById[userId] ?? "member";
+  }
+
+  function getUserEditValue(user: UserRow): UserEditState {
+    return {
+      display_name: userEdits[user.id]?.display_name ?? user.display_name ?? "",
+      username: userEdits[user.id]?.username ?? user.username ?? "",
+      role: userEdits[user.id]?.role ?? getUserRole(user.id),
+    };
+  }
+
+  function isUserFieldChanged(user: UserRow, field: keyof UserEditState): boolean {
+    const edits = userEdits[user.id];
+    if (!edits || edits[field] === undefined) {
+      return false;
+    }
+    const nextValue = edits[field] ?? "";
+    if (field === "display_name") {
+      return String(nextValue) !== String(user.display_name ?? "");
+    }
+    if (field === "username") {
+      return String(nextValue) !== String(user.username ?? "");
+    }
+    if (field === "role") {
+      return String(nextValue) !== getUserRole(user.id);
+    }
+    return false;
+  }
+
+  async function handleSaveUserEdit(user: UserRow, shouldReload: boolean = true): Promise<boolean> {
+    const edits = getUserEditValue(user);
+    const baseUsername = user.username ?? user.user_db ?? "";
+    const nextUsernameDisplay = edits.username?.trim() || baseUsername;
+    if (!nextUsernameDisplay) {
+      if (user.email) {
+        const fallback = buildFallbackUserDb(user.email, user.id);
+        updateUserEdit(user.id, "username", fallback);
+      }
+      setUserErrors((current) => ({
+        ...current,
+        [user.id]: "Username is required before updating nickname.",
+      }));
+      return false;
+    }
+    const nextUsername = nextUsernameDisplay.toLowerCase();
+    if (!nextUsername || nextUsername.length < 2 || nextUsername.length > 32) {
+      setUserErrors((current) => ({
+        ...current,
+        [user.id]: "Username must be 2-32 characters.",
+      }));
+      return false;
+    }
+    const nextRole = edits.role?.trim() || getUserRole(user.id);
+    if (!roleOptions.includes(nextRole)) {
+      setUserErrors((current) => ({
+        ...current,
+        [user.id]: "Role is invalid.",
+      }));
+      return false;
+    }
+    if (nextRole !== getUserRole(user.id)) {
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .upsert({ user_id: user.id, role: nextRole }, { onConflict: "user_id" });
+      if (roleError) {
+        setUserErrors((current) => ({
+          ...current,
+          [user.id]: roleError.message,
+        }));
+        return false;
+      }
+      setUserRolesById((current) => ({ ...current, [user.id]: nextRole }));
+    }
+    const nextDisplayName = edits.display_name?.trim() || null;
+    if (nextDisplayName) {
+      const { data: existingDisplayName, error: displayNameError } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("display_name", nextDisplayName)
+        .neq("id", user.id)
+        .maybeSingle();
+      if (displayNameError) {
+        setUserErrors((current) => ({
+          ...current,
+          [user.id]: displayNameError.message,
+        }));
+        return false;
+      }
+      if (existingDisplayName) {
+        setUserErrors((current) => ({
+          ...current,
+          [user.id]: "Nickname already exists.",
+        }));
+        return false;
+      }
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        user_db: nextUsername,
+        username: nextUsernameDisplay,
+        display_name: nextDisplayName,
+      })
+      .eq("id", user.id);
+    if (error) {
+      setUserErrors((current) => ({
+        ...current,
+        [user.id]: error.message,
+      }));
+      return false;
+    }
+    cancelUserEdit(user.id);
+    setActiveEditingUserId("");
+    if (shouldReload) {
+      await loadUsers();
+    }
+    return true;
+  }
+
+  function beginGameAccountEdit(account: GameAccountRow): void {
+    setActiveEditingUserId(account.user_id);
+    setActiveGameAccountId(account.id);
+    setGameAccountEdits((current) => {
+      const existing = current[account.id];
+      return {
+        ...current,
+        [account.id]: {
+          game_username: existing?.game_username ?? account.game_username,
+        },
+      };
+    });
+  }
+
+  function updateGameAccountEdit(
+    accountId: string,
+    field: keyof GameAccountEditState,
+    value: string,
+  ): void {
+    setGameAccountEdits((current) => ({
+      ...current,
+      [accountId]: {
+        ...current[accountId],
+        [field]: value,
+      },
+    }));
+    setUserStatus("");
+  }
+
+  function cancelGameAccountEdit(accountId: string): void {
+    setGameAccountEdits((current) => {
+      const next = { ...current };
+      delete next[accountId];
+      return next;
+    });
+    setActiveGameAccountId((current) => (current === accountId ? "" : current));
+  }
+
+  async function handleSaveGameAccountEdit(
+    account: GameAccountRow,
+    shouldReload: boolean = true,
+  ): Promise<boolean> {
+    const editState = gameAccountEdits[account.id];
+    if (!editState) {
+      return true;
+    }
+    const nextUsername = (editState.game_username ?? account.game_username).trim();
+    if (!nextUsername) {
+      setUserStatus("Game username is required.");
+      return false;
+    }
+    setUserStatus("Updating game account...");
+    const { error } = await supabase
+      .from("game_accounts")
+      .update({
+        game_username: nextUsername,
+      })
+      .eq("id", account.id);
+    if (error) {
+      setUserStatus(`Failed to update game account: ${error.message}`);
+      return false;
+    }
+    cancelGameAccountEdit(account.id);
+    setActiveGameAccountId("");
+    setUserStatus("Game account updated.");
+    if (shouldReload) {
+      await loadUsers();
+    }
+    return true;
+  }
+
+  async function handleDeleteGameAccount(account: GameAccountRow): Promise<void> {
+    const confirmDelete = window.confirm(
+      `Delete game account ${account.game_username}? This cannot be undone.`,
+    );
+    if (!confirmDelete) {
+      return;
+    }
+    setUserStatus("Deleting game account...");
+    const { error } = await supabase.from("game_accounts").delete().eq("id", account.id);
+    if (error) {
+      setUserStatus(`Failed to delete game account: ${error.message}`);
+      return;
+    }
+    setUserStatus("Game account deleted.");
+    await loadUsers();
+  }
+
   useEffect(() => {
     void loadClans();
     void loadDefaultClan();
+    void loadCurrentUserId();
   }, []);
 
   useEffect(() => {
@@ -852,163 +1521,62 @@ function AdminClient(): JSX.Element {
     setIsClanModalOpen(false);
   }
 
-  async function handleAddMember(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    if (!selectedClanId) {
-      setMemberModalStatus("Select a clan first.");
+  function openClanDeleteConfirm(): void {
+    if (!selectedClan || !selectedClanId) {
+      setStatus("Select a clan to delete.");
       return;
     }
-    const identifier = memberUsername.trim() || memberEmail.trim();
-    if (!identifier) {
-      setMemberModalStatus("Username or email is required.");
+    if (selectedClanId === unassignedClanId) {
+      setStatus("Unassigned clan cannot be deleted.");
       return;
     }
-    if (!memberGameUsername.trim()) {
-      setMemberModalStatus("Game username is required.");
-      return;
-    }
-    let resolvedUserId = "";
-    if (identifier) {
-      const response = await fetch("/api/admin/user-lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier,
-          clanId: selectedClanId,
-          email: memberEmail.trim() || undefined,
-          username: memberUsername.trim() || undefined,
-        }),
-      });
-      const payload = (await response.json()) as { id?: string; error?: string };
-      if (!response.ok) {
-        setMemberModalStatus(payload.error ?? "Failed to find user.");
-        return;
-      }
-      resolvedUserId = payload.id ?? "";
-    }
-    if (!resolvedUserId) {
-      setMemberModalStatus("Failed to resolve user.");
-      return;
-    }
-    setMemberModalStatus("Adding member...");
-    const displayNameValue = memberDisplayName.trim() || memberGameUsername.trim() || null;
-    const { data: gameAccountData, error: gameAccountError } = await supabase
-      .from("game_accounts")
-      .upsert(
-        {
-          user_id: resolvedUserId,
-          game_username: memberGameUsername.trim(),
-          display_name: displayNameValue,
-        },
-        { onConflict: "user_id,game_username" },
-      )
-      .select("id")
-      .single();
-    if (gameAccountError) {
-      setMemberModalStatus(`Failed to create game account: ${gameAccountError.message}`);
-      return;
-    }
-    const membershipPayload = {
-      clan_id: selectedClanId,
-      game_account_id: gameAccountData?.id ?? "",
-      role: memberRole,
-      is_active: memberActive,
-      rank: memberRank.trim() || null,
-    };
-    const { data: membershipData, error: membershipError } = await supabase
-      .from("game_account_clan_memberships")
-      .upsert(membershipPayload, { onConflict: "game_account_id,clan_id" })
-      .select("id")
-      .single();
-    if (membershipError) {
-      setMemberModalStatus(`Failed to add member: ${membershipError.message}`);
-      return;
-    }
-    const membershipId = membershipData?.id ?? "";
-    const actorId = await getCurrentUserId();
-    if (actorId && membershipId) {
-      await insertAuditLogs([
-        {
-          clan_id: selectedClanId,
-          actor_id: actorId,
-          action: "upsert",
-          entity: "game_account_clan_memberships",
-          entity_id: membershipId,
-          diff: {
-            game_account_id: membershipPayload.game_account_id,
-            role: membershipPayload.role,
-            is_active: membershipPayload.is_active,
-            rank: membershipPayload.rank,
-          },
-        },
-      ]);
-    }
-    setMemberUsername("");
-    setMemberEmail("");
-    setMemberGameUsername("");
-    setMemberDisplayName("");
-    setMembershipEditingId("");
-    setMemberModalStatus("Member updated.");
-    setIsMemberModalOpen(false);
-    await loadMemberships(selectedClanId);
+    setIsClanDeleteConfirmOpen(true);
   }
 
-  async function handleDeleteMembership(membershipId: string): Promise<void> {
-    const confirmDelete = window.confirm("Remove this member from the clan?");
-    if (!confirmDelete) {
+  function closeClanDeleteConfirm(): void {
+    setIsClanDeleteConfirmOpen(false);
+  }
+
+  function openClanDeleteInput(): void {
+    setIsClanDeleteConfirmOpen(false);
+    setClanDeleteInput("");
+    setIsClanDeleteInputOpen(true);
+  }
+
+  function closeClanDeleteInput(): void {
+    setIsClanDeleteInputOpen(false);
+    setClanDeleteInput("");
+  }
+
+  async function handleDeleteClan(): Promise<void> {
+    if (!selectedClan || !selectedClanId) {
+      setStatus("Select a clan to delete.");
       return;
     }
-    const actorId = await getCurrentUserId();
-    if (!actorId) {
-      setStatus("You must be logged in to remove members.");
+    const expectedPhrase = `DELETE ${selectedClan.name}`;
+    if (clanDeleteInput.trim() !== expectedPhrase) {
+      setStatus("Deletion phrase does not match.");
       return;
     }
-    const membership = memberships.find((entry) => entry.id === membershipId);
-    const { error } = await supabase.from("game_account_clan_memberships").delete().eq("id", membershipId);
+    const { error } = await supabase.from("clans").delete().eq("id", selectedClanId);
     if (error) {
-      setStatus(`Failed to delete membership: ${error.message}`);
+      setStatus(`Failed to delete clan: ${error.message}`);
       return;
     }
-    if (membership) {
-      await insertAuditLogs([
-        {
-          clan_id: membership.clan_id,
-          actor_id: actorId,
-          action: "delete",
-          entity: "game_account_clan_memberships",
-          entity_id: membershipId,
-          diff: {
-            game_account_id: membership.game_account_id,
-            role: membership.role,
-            is_active: membership.is_active,
-          },
-        },
-      ]);
-    }
-    setStatus("Membership removed.");
-    await loadMemberships(selectedClanId);
-  }
-
-  function handleEditMembership(membership: MembershipRow): void {
-    setMembershipEditingId(membership.id);
-    setMemberUsername("");
-    setMemberEmail("");
-    setMemberRole(membership.role);
-    setMemberActive(membership.is_active);
+    closeClanDeleteInput();
+    setStatus("Clan deleted.");
+    await loadClans();
   }
 
   function updateMembershipEdit(membershipId: string, field: keyof MembershipEditState, value: string): void {
     setMembershipEdits((current) => {
-      const baseMembership = memberships.find((entry) => entry.id === membershipId);
-      const baseUserId = baseMembership?.game_accounts?.user_id;
-      const baseProfile = baseUserId ? profilesById[baseUserId] : undefined;
+      const baseMembership =
+        memberships.find((entry) => entry.id === membershipId) ??
+        Object.values(userMembershipsByAccountId).find((entry) => entry.id === membershipId);
       const existing = current[membershipId] ?? {
-        role: baseMembership?.role ?? "member",
         is_active: baseMembership?.is_active ?? true,
         rank: baseMembership?.rank ?? "",
         clan_id: baseMembership?.clan_id ?? selectedClanId,
-        display_name: baseMembership?.game_accounts?.display_name ?? "",
-        game_username: baseMembership?.game_accounts?.game_username ?? "",
       };
       const nextValue = field === "is_active" ? value === "true" : value;
       return {
@@ -1024,6 +1592,15 @@ function AdminClient(): JSX.Element {
       delete updated[membershipId];
       return updated;
     });
+    const membership = memberships.find((entry) => entry.id === membershipId);
+    if (membership?.game_accounts?.id) {
+      cancelGameAccountEdit(membership.game_accounts.id);
+      return;
+    }
+    const fallbackMembership = Object.values(userMembershipsByAccountId).find((entry) => entry.id === membershipId);
+    if (fallbackMembership?.game_accounts?.id) {
+      cancelGameAccountEdit(fallbackMembership.game_accounts.id);
+    }
   }
 
   function cancelMembershipEdits(membershipId: string): void {
@@ -1043,6 +1620,21 @@ function AdminClient(): JSX.Element {
       delete updated[membershipId];
       return updated;
     });
+    const membership = memberships.find((entry) => entry.id === membershipId);
+    if (membership?.game_accounts?.id) {
+      cancelGameAccountEdit(membership.game_accounts.id);
+      return;
+    }
+    const fallbackMembership = Object.values(userMembershipsByAccountId).find((entry) => entry.id === membershipId);
+    if (fallbackMembership?.game_accounts?.id) {
+      cancelGameAccountEdit(fallbackMembership.game_accounts.id);
+    }
+  }
+
+  function cancelAllMembershipEdits(): void {
+    setMembershipEdits({});
+    setMembershipErrors({});
+    setStatus("All membership changes cleared.");
   }
 
   function isMembershipFieldChanged(
@@ -1053,11 +1645,7 @@ function AdminClient(): JSX.Element {
     if (!edits || edits[field] === undefined) {
       return false;
     }
-    const baseGameAccount = membership.game_accounts;
     const nextValue = edits[field];
-    if (field === "role") {
-      return String(nextValue ?? "") !== membership.role;
-    }
     if (field === "is_active") {
       return Boolean(nextValue) !== membership.is_active;
     }
@@ -1067,38 +1655,19 @@ function AdminClient(): JSX.Element {
     if (field === "clan_id") {
       return String(nextValue ?? "") !== membership.clan_id;
     }
-    if (field === "game_username") {
-      const baseValue = baseGameAccount?.game_username ?? "";
-      return String(nextValue ?? "") !== baseValue;
-    }
-    if (field === "display_name") {
-      const baseValue = baseGameAccount?.display_name ?? "";
-      return String(nextValue ?? "") !== baseValue;
-    }
     return false;
   }
 
   function getMembershipEditValue(membership: MembershipRow): MembershipEditState {
-    const baseGameAccount = membership.game_accounts;
     return {
-      role: membershipEdits[membership.id]?.role ?? membership.role,
       is_active: membershipEdits[membership.id]?.is_active ?? membership.is_active,
       rank: membershipEdits[membership.id]?.rank ?? membership.rank ?? "",
       clan_id: membershipEdits[membership.id]?.clan_id ?? membership.clan_id,
-      display_name: membershipEdits[membership.id]?.display_name ?? baseGameAccount?.display_name ?? "",
-      game_username: membershipEdits[membership.id]?.game_username ?? baseGameAccount?.game_username ?? "",
     };
   }
 
   function validateMembershipEdit(membership: MembershipRow): string | null {
     const edits = getMembershipEditValue(membership);
-    const nextGameUsername = edits.game_username?.trim() ?? "";
-    if (!nextGameUsername) {
-      return "Game username is required.";
-    }
-    if (!edits.role?.trim()) {
-      return "Role is required.";
-    }
     if (!edits.clan_id?.trim()) {
       return "Clan is required.";
     }
@@ -1107,73 +1676,100 @@ function AdminClient(): JSX.Element {
 
   async function handleSaveMembershipEdit(membership: MembershipRow, shouldReload: boolean = true): Promise<void> {
     const edits = membershipEdits[membership.id];
-    if (!edits) {
+    const hasGameAccountEdit = Boolean(membership.game_accounts?.id && gameAccountEdits[membership.game_accounts.id]);
+    if (!edits && !hasGameAccountEdit) {
       setStatus("No changes to save.");
       return;
     }
-    const validationError = validateMembershipEdit(membership);
-    if (validationError) {
-      setMembershipErrors((current) => ({ ...current, [membership.id]: validationError }));
-      return;
+    if (edits) {
+      const validationError = validateMembershipEdit(membership);
+      if (validationError) {
+        setMembershipErrors((current) => ({ ...current, [membership.id]: validationError }));
+        return;
+      }
     }
     const actorId = await getCurrentUserId();
     if (!actorId) {
-      setStatus("You must be logged in to update members.");
+      setStatus("You must be logged in to update memberships.");
       return;
     }
-    const nextEdits = getMembershipEditValue(membership);
-    const membershipPayload = {
-      clan_id: nextEdits.clan_id ?? membership.clan_id,
-      game_account_id: membership.game_account_id,
-      role: nextEdits.role ?? membership.role,
-      is_active: nextEdits.is_active ?? membership.is_active,
-      rank: nextEdits.rank ?? membership.rank,
-    };
-    const { error } = await supabase
-      .from("game_account_clan_memberships")
-      .update(membershipPayload)
-      .eq("id", membership.id);
-    if (error) {
-      setStatus(`Failed to update member: ${error.message}`);
-      return;
-    }
-    if (membership.game_accounts?.id) {
-      const gameAccountPayload = {
-        display_name: nextEdits.display_name ?? membership.game_accounts.display_name ?? null,
-        game_username: nextEdits.game_username ?? membership.game_accounts.game_username,
+    let membershipPayload: { clan_id: string; is_active: boolean; rank: string | null } | null = null;
+    if (edits) {
+      const nextEdits = getMembershipEditValue(membership);
+      const nextClanId = nextEdits.clan_id ?? membership.clan_id;
+      membershipPayload = {
+        clan_id: nextClanId,
+        is_active: nextEdits.is_active ?? membership.is_active,
+        rank: nextEdits.rank ?? membership.rank,
       };
-      await supabase.from("game_accounts").update(gameAccountPayload).eq("id", membership.game_accounts.id);
+      const { error } = await supabase
+        .from("game_account_clan_memberships")
+        .update(membershipPayload)
+        .eq("id", membership.id);
+      if (error) {
+        setStatus(`Failed to update membership: ${error.message}`);
+        return;
+      }
     }
-    await insertAuditLogs([
-      {
-        clan_id: membership.clan_id,
-        actor_id: actorId,
-        action: "update",
-        entity: "game_account_clan_memberships",
-        entity_id: membership.id,
-        diff: {
-          game_account_id: membership.game_account_id,
-          role: {
-            from: membership.role,
-            to: membershipPayload.role,
-          },
-          is_active: {
-            from: membership.is_active,
-            to: membershipPayload.is_active,
-          },
-          rank: {
-            from: membership.rank ?? null,
-            to: membershipPayload.rank ?? null,
+    if (membership.game_accounts?.id && gameAccountEdits[membership.game_accounts.id]) {
+      await handleSaveGameAccountEdit(
+        {
+          id: membership.game_accounts.id,
+          user_id: membership.game_accounts.user_id ?? "",
+          game_username: membership.game_accounts.game_username,
+        },
+        false,
+      );
+    }
+    if (membershipPayload) {
+      await insertAuditLogs([
+        {
+          clan_id: membershipPayload.clan_id,
+          actor_id: actorId,
+          action: "update",
+          entity: "game_account_clan_memberships",
+          entity_id: membership.id,
+          diff: {
+            game_account_id: membership.game_account_id,
+            clan_id: {
+              from: membership.clan_id,
+              to: membershipPayload.clan_id,
+            },
+            is_active: {
+              from: membership.is_active,
+              to: membershipPayload.is_active,
+            },
+            rank: {
+              from: membership.rank ?? null,
+              to: membershipPayload.rank ?? null,
+            },
           },
         },
-      },
-    ]);
+      ]);
+    }
+    if (membershipPayload) {
+      setUserMembershipsByAccountId((current) => {
+        const existing = current[membership.game_account_id];
+        if (!existing) {
+          return current;
+        }
+        return {
+          ...current,
+          [membership.game_account_id]: {
+            ...existing,
+            clan_id: membershipPayload.clan_id,
+            is_active: membershipPayload.is_active,
+            rank: membershipPayload.rank ?? null,
+          },
+        };
+      });
+    }
     setMembershipEdits((current) => {
       const updated = { ...current };
       delete updated[membership.id];
       return updated;
     });
-    setStatus("Member updated.");
+    setStatus("Membership updated.");
     if (shouldReload) {
       await loadMemberships(selectedClanId);
     }
@@ -1185,11 +1781,11 @@ function AdminClient(): JSX.Element {
       setStatus("No changes to save.");
       return;
     }
-    const confirmSave = window.confirm(`Save ${editEntries.length} member change(s)?`);
+    const confirmSave = window.confirm(`Save ${editEntries.length} membership change(s)?`);
     if (!confirmSave) {
       return;
     }
-    setStatus("Saving member changes...");
+    setStatus("Saving membership changes...");
     let hasValidationError = false;
     for (const membershipId of editEntries) {
       const membership = memberships.find((entry) => entry.id === membershipId);
@@ -1205,33 +1801,11 @@ function AdminClient(): JSX.Element {
       await handleSaveMembershipEdit(membership, false);
     }
     if (hasValidationError) {
-      setStatus("Some member updates need fixes before saving.");
+      setStatus("Some membership updates need fixes before saving.");
       return;
     }
     await loadMemberships(selectedClanId);
-    setStatus("All member changes saved.");
-  }
-
-  function handleOpenMemberModal(): void {
-    if (!selectedClanId) {
-      setStatus("Select a clan first.");
-      return;
-    }
-    setMembershipEditingId("");
-    setMemberUsername("");
-    setMemberEmail("");
-    setMemberGameUsername("");
-    setMemberDisplayName("");
-    setMemberRole("member");
-    setMemberActive(true);
-    setMemberRank("");
-    setMemberModalStatus("");
-    setIsMemberModalOpen(true);
-  }
-
-  function handleCloseMemberModal(): void {
-    setIsMemberModalOpen(false);
-    setMemberModalStatus("");
+    setStatus("All membership changes saved.");
   }
 
   function getMembershipLabel(membership: MembershipRow): string {
@@ -1239,8 +1813,9 @@ function AdminClient(): JSX.Element {
     if (!gameAccount) {
       return membership.game_account_id;
     }
-    if (gameAccount.display_name && gameAccount.display_name.trim()) {
-      return gameAccount.display_name;
+    const editedUsername = gameAccountEdits[gameAccount.id]?.game_username;
+    if (editedUsername && editedUsername.trim()) {
+      return editedUsername;
     }
     if (gameAccount.game_username && gameAccount.game_username.trim()) {
       return gameAccount.game_username;
@@ -1474,7 +2049,7 @@ function AdminClient(): JSX.Element {
             type="button"
             onClick={() => updateActiveSection("clans")}
           >
-            Clans & Members
+            Clan Management
           </button>
           <button
             className={`tab ${activeSection === "users" ? "active" : ""}`}
@@ -1509,7 +2084,7 @@ function AdminClient(): JSX.Element {
       <section className="card" style={{ gridColumn: "span 12" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Clans & Members</div>
+            <div className="card-title">Clan Management</div>
             <div className="card-subtitle">{selectedClan ? selectedClan.name : "Select a clan"}</div>
           </div>
         </div>
@@ -1527,23 +2102,22 @@ function AdminClient(): JSX.Element {
               </option>
             ))}
           </select>
-          <div className="list inline">
+          <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+            <span className="text-muted">Clan actions</span>
+            <div className="list inline">
             <button className="button primary" type="button" onClick={openCreateClanModal}>
               Create Clan
             </button>
             <button className="button" type="button" onClick={openEditClanModal} disabled={!selectedClanId}>
               Edit Clan
             </button>
-            <button className="button" type="button" onClick={handleOpenMemberModal} disabled={!selectedClanId}>
-              Add Member
-            </button>
             <button
-              className="button"
+              className="button danger"
               type="button"
-              onClick={handleSaveAllMembershipEdits}
-              disabled={Object.keys(membershipEdits).length === 0}
+              onClick={openClanDeleteConfirm}
+              disabled={!selectedClanId || selectedClanId === unassignedClanId}
             >
-              Save All
+              Delete Clan
             </button>
             <button
               className="button"
@@ -1593,8 +2167,10 @@ function AdminClient(): JSX.Element {
                 Clear Default
               </button>
             ) : null}
+            </div>
           </div>
         </div>
+        <div className="card-section" />
         <div className="list inline admin-members-filters" style={{ alignItems: "center", flexWrap: "wrap" }}>
           <label htmlFor="memberSearch" className="text-muted">
             Search
@@ -1603,20 +2179,21 @@ function AdminClient(): JSX.Element {
             id="memberSearch"
             value={memberSearch}
             onChange={(event) => setMemberSearch(event.target.value)}
-            placeholder="Name, username, email, or user id"
+            placeholder="Game account, username, email, or user id"
           />
-          <label htmlFor="memberRoleFilter" className="text-muted">
-            Role
+          <label htmlFor="memberRankFilter" className="text-muted">
+            Rank
           </label>
           <select
-            id="memberRoleFilter"
-            value={memberRoleFilter}
-            onChange={(event) => setMemberRoleFilter(event.target.value)}
+            id="memberRankFilter"
+            value={memberRankFilter}
+            onChange={(event) => setMemberRankFilter(event.target.value)}
           >
             <option value="all">All</option>
-            {roleOptions.map((role) => (
-              <option key={role} value={role}>
-                {role}
+            <option value="">None</option>
+            {rankOptions.map((rank) => (
+              <option key={rank} value={rank}>
+                {formatLabel(rank)}
               </option>
             ))}
           </select>
@@ -1629,19 +2206,35 @@ function AdminClient(): JSX.Element {
             onChange={(event) => setMemberStatusFilter(event.target.value)}
           >
             <option value="all">All</option>
-            <option value="active">active</option>
-            <option value="inactive">inactive</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
           </select>
           <button
             className="button"
             type="button"
             onClick={() => {
               setMemberSearch("");
-              setMemberRoleFilter("all");
+              setMemberRankFilter("all");
               setMemberStatusFilter("all");
             }}
           >
             Clear filters
+          </button>
+          <button
+            className="button"
+            type="button"
+            onClick={handleSaveAllMembershipEdits}
+            disabled={Object.keys(membershipEdits).length === 0}
+          >
+            Save All
+          </button>
+          <button
+            className="button"
+            type="button"
+            onClick={cancelAllMembershipEdits}
+            disabled={Object.keys(membershipEdits).length === 0}
+          >
+            Cancel All
           </button>
           <span className="text-muted">
             {filteredMemberships.length} / {memberships.length}
@@ -1650,24 +2243,22 @@ function AdminClient(): JSX.Element {
         {memberships.length === 0 ? (
           <div className="list">
             <div className="list-item">
-              <span>No members yet</span>
-              <span className="badge">Add one</span>
+              <span>No game accounts yet</span>
+              <span className="badge">Assign some</span>
             </div>
           </div>
         ) : filteredMemberships.length === 0 ? (
           <div className="list">
             <div className="list-item">
-              <span>No members match the filters</span>
+              <span>No game accounts match the filters</span>
               <span className="badge">Adjust search</span>
             </div>
           </div>
         ) : (
           <div className="table members">
             <header>
-              <span>Game Username</span>
-              <span>Role</span>
-              <span>User Email</span>
-              <span>Display name</span>
+              <span>Game Account</span>
+              <span>User</span>
               <span>Clan</span>
               <span>Rank</span>
               <span>Status</span>
@@ -1675,34 +2266,52 @@ function AdminClient(): JSX.Element {
             </header>
             {filteredMemberships.map((membership) => (
               <div className="row" key={membership.id}>
-                <input
-                  className={isMembershipFieldChanged(membership, "game_username") ? "is-edited" : undefined}
-                  value={getMembershipEditValue(membership).game_username ?? ""}
-                  onChange={(event) => updateMembershipEdit(membership.id, "game_username", event.target.value)}
-                  placeholder="Game username"
-                />
-                <select
-                  className={isMembershipFieldChanged(membership, "role") ? "is-edited" : undefined}
-                  value={getMembershipEditValue(membership).role}
-                  onChange={(event) => updateMembershipEdit(membership.id, "role", event.target.value)}
-                >
-                  {roleOptions.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-muted">
-                  {membership.game_accounts?.user_id
-                    ? profilesById[membership.game_accounts.user_id]?.email ?? "-"
-                    : "-"}
-                </span>
-                <input
-                  className={isMembershipFieldChanged(membership, "display_name") ? "is-edited" : undefined}
-                  value={getMembershipEditValue(membership).display_name ?? ""}
-                  onChange={(event) => updateMembershipEdit(membership.id, "display_name", event.target.value)}
-                  placeholder="Display name"
-                />
+                <div>
+                  {membership.game_accounts?.id ? (
+                    activeGameAccountId === membership.game_accounts.id ? (
+                      <input
+                        value={
+                          gameAccountEdits[membership.game_accounts.id]?.game_username ??
+                          membership.game_accounts.game_username
+                        }
+                        onChange={(event) =>
+                          updateGameAccountEdit(membership.game_accounts?.id ?? "", "game_username", event.target.value)
+                        }
+                        placeholder="Game username"
+                      />
+                    ) : (
+                      <button
+                        className="editable-button editable-field"
+                        type="button"
+                        onClick={() =>
+                          beginGameAccountEdit({
+                            id: membership.game_accounts?.id ?? "",
+                            user_id: membership.game_accounts?.user_id ?? "",
+                            game_username: membership.game_accounts?.game_username ?? "",
+                          })
+                        }
+                      >
+                        {getMembershipLabel(membership)}
+                      </button>
+                    )
+                  ) : (
+                    <div>{getMembershipLabel(membership)}</div>
+                  )}
+                </div>
+                <div>
+                  <div>
+                    {membership.game_accounts?.user_id
+                      ? profilesById[membership.game_accounts.user_id]?.email ?? "-"
+                      : "-"}
+                  </div>
+                  <div className="text-muted">
+                    {membership.game_accounts?.user_id
+                      ? profilesById[membership.game_accounts.user_id]?.display_name ??
+                        profilesById[membership.game_accounts.user_id]?.username ??
+                        "-"
+                      : "-"}
+                  </div>
+                </div>
                 <select
                   className={isMembershipFieldChanged(membership, "clan_id") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
@@ -1722,7 +2331,7 @@ function AdminClient(): JSX.Element {
                   <option value="">None</option>
                   {rankOptions.map((rank) => (
                     <option key={rank} value={rank}>
-                      {rank}
+                      {formatLabel(rank)}
                     </option>
                   ))}
                 </select>
@@ -1730,27 +2339,59 @@ function AdminClient(): JSX.Element {
                   className={isMembershipFieldChanged(membership, "is_active") ? "is-edited" : undefined}
                   value={getMembershipEditValue(membership).is_active ? "true" : "false"}
                   onChange={(event) => updateMembershipEdit(membership.id, "is_active", event.target.value)}
+                  data-role="status-select"
                 >
-                  <option value="true">active</option>
-                  <option value="false">inactive</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
                 </select>
                 <div className="list inline">
-                  <button className="button" type="button" onClick={() => handleSaveMembershipEdit(membership)}>
-                    Save
+                  <button
+                    className="button icon-button"
+                    type="button"
+                    onClick={() => handleSaveMembershipEdit(membership)}
+                    title="Save changes"
+                    aria-label="Save changes"
+                  >
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M4 8.5L7 11.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </button>
-                  <button className="button" type="button" onClick={() => cancelMembershipEdits(membership.id)}>
-                    Cancel
+                  <button
+                    className="button icon-button"
+                    type="button"
+                    onClick={() => cancelMembershipEdits(membership.id)}
+                    title="Cancel changes"
+                    aria-label="Cancel changes"
+                  >
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
                   </button>
+                  {membership.game_accounts?.id ? (
+                    <button
+                      className="button icon-button danger"
+                      type="button"
+                      onClick={() =>
+                        openGameAccountDeleteConfirm({
+                          id: membership.game_accounts?.id ?? "",
+                          user_id: membership.game_accounts?.user_id ?? "",
+                          game_username: membership.game_accounts?.game_username ?? "",
+                        })
+                      }
+                      title="Delete game account"
+                      aria-label="Delete game account"
+                    >
+                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  ) : null}
                   {membershipErrors[membership.id] ? (
                     <span className="text-muted">{membershipErrors[membership.id]}</span>
                   ) : null}
-                  <button
-                    className="button danger"
-                    type="button"
-                    onClick={() => handleDeleteMembership(membership.id)}
-                  >
-                    Remove
-                  </button>
                 </div>
               </div>
             ))}
@@ -1762,12 +2403,12 @@ function AdminClient(): JSX.Element {
       <section className="card" style={{ gridColumn: "span 12" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Users & Game Accounts</div>
-            <div className="card-subtitle">Manage users and their game accounts</div>
+            <div className="card-title">Users</div>
+            <div className="card-subtitle">Manage users and game accounts</div>
           </div>
-          <span className="badge">{userRows.length}</span>
+          <span className="badge">{filteredUserRows.length}</span>
         </div>
-        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+        <div className="list inline admin-members-filters" style={{ alignItems: "center", flexWrap: "wrap" }}>
           <label htmlFor="userSearch" className="text-muted">
             Search
           </label>
@@ -1775,148 +2416,564 @@ function AdminClient(): JSX.Element {
             id="userSearch"
             value={userSearch}
             onChange={(event) => setUserSearch(event.target.value)}
-            placeholder="Email, username, or display name"
+            placeholder="Email, username, or nickname"
           />
+          <label htmlFor="userRoleFilter" className="text-muted">
+            Role
+          </label>
+          <select
+            id="userRoleFilter"
+            value={userRoleFilter}
+            onChange={(event) => setUserRoleFilter(event.target.value)}
+          >
+            <option value="all">All</option>
+            {roleOptions.map((role) => (
+              <option key={role} value={role}>
+                {formatLabel(role)}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="userAdminFilter" className="text-muted">
+            Admin
+          </label>
+          <select
+            id="userAdminFilter"
+            value={userAdminFilter}
+            onChange={(event) => setUserAdminFilter(event.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="admin">Admin</option>
+            <option value="member">Non-admin</option>
+          </select>
+          <button
+            className="button"
+            type="button"
+            onClick={() => {
+              setUserSearch("");
+              setUserRoleFilter("all");
+              setUserAdminFilter("all");
+            }}
+          >
+            Clear filters
+          </button>
+          <button
+            className="button"
+            type="button"
+            onClick={handleSaveAllUserEdits}
+            disabled={
+              Object.keys(userEdits).length === 0 &&
+              Object.keys(gameAccountEdits).length === 0 &&
+              Object.keys(membershipEdits).length === 0
+            }
+          >
+            Save All
+          </button>
+          <button
+            className="button"
+            type="button"
+            onClick={cancelAllUserEdits}
+            disabled={
+              Object.keys(userEdits).length === 0 &&
+              Object.keys(gameAccountEdits).length === 0 &&
+              Object.keys(membershipEdits).length === 0
+            }
+          >
+            Cancel All
+          </button>
+          <span className="text-muted">
+            {filteredUserRows.length} / {userRows.length}
+          </span>
+          <button className="button primary" type="button" onClick={openCreateUserModal}>
+            Create User
+          </button>
         </div>
-        <div className="list">
-          {userRows.length === 0 ? (
+        {userStatus ? <div className="alert info">{userStatus}</div> : null}
+        {userRows.length === 0 ? (
+          <div className="list">
             <div className="list-item">
               <span>No users found</span>
               <span className="badge">Adjust search</span>
             </div>
-          ) : (
-            userRows.map((user) => (
-              <div className="list-item" key={user.id}>
-                <div>
-                  <div>{user.email}</div>
-                  <div className="text-muted">
-                    {user.display_name ?? user.username_display ?? user.username ?? user.id}
-                  </div>
-                </div>
-                <div className="list">
-                  <span className="badge">
-                    {(gameAccountsByUserId[user.id] ?? []).length} game account(s)
-                  </span>
-                  <button
-                    className="button"
-                    type="button"
-                    onClick={() => setSelectedUserId(user.id)}
-                  >
-                    Select
-                  </button>
-                  <button
-                    className="button"
-                    type="button"
-                    onClick={() => handleResendInvite(user.email)}
-                  >
-                    Resend Invite
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        <div className="card-header">
-          <div>
-            <div className="card-title">Add Game Account</div>
-            <div className="card-subtitle">Attach a new game account to a user</div>
           </div>
-        </div>
-        <div className="form-group">
-          <label htmlFor="selectedUser">Selected user</label>
-          <select
-            id="selectedUser"
-            value={selectedUserId}
-            onChange={(event) => setSelectedUserId(event.target.value)}
-          >
-            <option value="">Select a user</option>
-            {userRows.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.email}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label htmlFor="newGameUsername">Game username</label>
-          <input
-            id="newGameUsername"
-            value={newGameUsername}
-            onChange={(event) => setNewGameUsername(event.target.value)}
-            placeholder="In-game account name"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="newGameDisplayName">Display name</label>
-          <input
-            id="newGameDisplayName"
-            value={newGameDisplayName}
-            onChange={(event) => setNewGameDisplayName(event.target.value)}
-            placeholder="Defaults to game username"
-          />
-        </div>
-        <div className="list">
-          {userStatus ? <div className="alert info">{userStatus}</div> : null}
-          <button className="button primary" type="button" onClick={handleAddGameAccount}>
-            Add Game Account
-          </button>
-        </div>
-        <div className="list">
-          {selectedUserId ? (
-            (gameAccountsByUserId[selectedUserId] ?? []).map((account) => (
-              <div className="list-item" key={account.id}>
-                <div>
-                  <div>{account.game_username}</div>
-                  <div className="text-muted">{account.display_name ?? "-"}</div>
-                </div>
-                <span className="badge">Game Account</span>
-              </div>
-            ))
-          ) : (
+        ) : filteredUserRows.length === 0 ? (
+          <div className="list">
             <div className="list-item">
-              <span>Select a user to view game accounts</span>
+              <span>No users match the filters</span>
+              <span className="badge">Adjust search</span>
             </div>
-          )}
-        </div>
-        <div className="card-header">
-          <div>
-            <div className="card-title">Create User</div>
-            <div className="card-subtitle">Provision a new account</div>
           </div>
-        </div>
-        <div className="form-group">
-          <label htmlFor="createUserEmail">Email</label>
-          <input
-            id="createUserEmail"
-            value={createUserEmail}
-            onChange={(event) => setCreateUserEmail(event.target.value)}
-            placeholder="user@example.com"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="createUserUsername">Username (optional)</label>
-          <input
-            id="createUserUsername"
-            value={createUserUsername}
-            onChange={(event) => setCreateUserUsername(event.target.value)}
-            placeholder="username"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="createUserDisplayName">Display name (optional)</label>
-          <input
-            id="createUserDisplayName"
-            value={createUserDisplayName}
-            onChange={(event) => setCreateUserDisplayName(event.target.value)}
-            placeholder="Display name"
-          />
-        </div>
-        <div className="list">
-          {createUserStatus ? <div className="alert info">{createUserStatus}</div> : null}
-          <button className="button primary" type="button" onClick={handleCreateUser}>
-            Create User
-          </button>
-        </div>
+        ) : (
+          <div className="table users">
+            <header>
+              <span>Username</span>
+              <span>Email</span>
+              <span>Nickname</span>
+              <span>Role</span>
+              <span>Admin</span>
+              <span className="text-muted">Game Accounts</span>
+              <span>Actions</span>
+            </header>
+            {filteredUserRows.map((user) => {
+              const isExpanded = expandedUserIds.includes(user.id);
+              const accounts = gameAccountsByUserId[user.id] ?? [];
+              const edits = getUserEditValue(user);
+              const isEditing = Boolean(userEdits[user.id]);
+              return (
+                <div key={user.id}>
+                  <div
+                    className="row"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleUserRowClick(user.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleUserRowClick(user.id);
+                      }
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span className="row-caret" aria-hidden="true">
+                        <svg width="14" height="10" viewBox="0 0 12 8" fill="none">
+                          <path
+                            d={isExpanded ? "M1 1L6 6L11 1" : "M3 1L9 4L3 7"}
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
+                      {isEditing ? (
+                        <input
+                          className={`editable-field ${isUserFieldChanged(user, "username") ? "is-edited" : ""}`.trim()}
+                          value={edits.username ?? ""}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => updateUserEdit(user.id, "username", event.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      ) : (
+                        <button
+                          className="editable-button editable-field"
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            beginUserEdit(user);
+                          }}
+                        >
+                          {user.username ?? "-"}
+                        </button>
+                      )}
+                    </div>
+                    <div>{user.email}</div>
+                    {isEditing ? (
+                      <input
+                        className={`editable-field ${isUserFieldChanged(user, "display_name") ? "is-edited" : ""}`.trim()}
+                        value={edits.display_name ?? ""}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => updateUserEdit(user.id, "display_name", event.target.value)}
+                      />
+                    ) : (
+                      <button
+                        className="editable-button editable-field"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          beginUserEdit(user);
+                        }}
+                      >
+                        {user.display_name ?? "-"}
+                      </button>
+                    )}
+                    <select
+                      className={isUserFieldChanged(user, "role") ? "is-edited" : undefined}
+                      value={edits.role ?? getUserRole(user.id)}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => updateUserEdit(user.id, "role", event.target.value)}
+                    >
+                      {roleOptions.map((role) => (
+                        <option key={role} value={role}>
+                          {formatLabel(role)}
+                        </option>
+                      ))}
+                    </select>
+                    <div>{user.is_admin ? "Yes" : "No"}</div>
+                    <div className="text-muted" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span className="badge" aria-label={`${accounts.length} game accounts`}>
+                        {accounts.length}
+                      </span>
+                    </div>
+                    {(() => {
+                      const actionCount = isEditing ? 6 : 4;
+                      return (
+                        <div
+                          className={`list inline user-actions action-icons ${actionCount > 4 ? "action-icons-wrap" : ""}`.trim()}
+                        >
+                      <button
+                        className="button icon-button"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleToggleAdmin(user);
+                        }}
+                        disabled={
+                          !currentUserId ||
+                          (Boolean(user.is_admin) && user.id === currentUserId) ||
+                          (Boolean(user.is_admin) && userRows.filter((row) => Boolean(row.is_admin)).length <= 1)
+                        }
+                        title={
+                          user.is_admin && user.id === currentUserId
+                            ? "You cannot revoke your own admin access."
+                            : user.is_admin && userRows.filter((row) => Boolean(row.is_admin)).length <= 1
+                              ? "At least one admin is required."
+                              : undefined
+                        }
+                        title={user.is_admin ? "Revoke admin" : "Grant admin"}
+                        aria-label={user.is_admin ? "Revoke admin" : "Grant admin"}
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M8 2.5L12.5 4.5V8.5C12.5 10.8 10.9 12.9 8 13.5C5.1 12.9 3.5 10.8 3.5 8.5V4.5L8 2.5Z"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinejoin="round"
+                          />
+                          {user.is_admin ? (
+                            <path
+                              d="M5.5 8.2L7.2 9.8L10.4 6.6"
+                              stroke="currentColor"
+                              strokeWidth="1.3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          ) : (
+                            <path
+                              d="M6.2 6.2H9.8M8 4.4V8"
+                              stroke="currentColor"
+                              strokeWidth="1.3"
+                              strokeLinecap="round"
+                            />
+                          )}
+                        </svg>
+                      </button>
+                      <button
+                        className="button icon-button"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleResendInvite(user.email);
+                        }}
+                        title="Resend invite"
+                        aria-label="Resend invite"
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M2.5 3.5H13.5V12.5H2.5V3.5Z"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M2.8 4.2L8 8.2L13.2 4.2"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        className="button icon-button"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openCreateGameAccountModal(user);
+                        }}
+                        title="Add game account"
+                        aria-label="Add game account"
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M4.2 6.5H11.8"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M6 9.5H10"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M3 8C3 5.8 4.8 4 7 4H9C11.2 4 13 5.8 13 8C13 10.2 11.2 12 9 12H7C4.8 12 3 10.2 3 8Z"
+                            stroke="currentColor"
+                            strokeWidth="1.2"
+                          />
+                          <path
+                            d="M12.5 3.5V5.5M11.5 4.5H13.5"
+                            stroke="currentColor"
+                            strokeWidth="1.2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                      {isEditing ? (
+                        <>
+                          <button
+                            className="button icon-button"
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleSaveUserEdit(user);
+                            }}
+                            title="Save changes"
+                            aria-label="Save changes"
+                          >
+                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path d="M4 8.5L7 11.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </button>
+                          <button
+                            className="button icon-button"
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              cancelUserEdit(user.id);
+                            }}
+                            title="Cancel changes"
+                            aria-label="Cancel changes"
+                          >
+                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          </button>
+                        </>
+                      ) : null}
+                      <button
+                        className="button icon-button danger"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openUserDeleteConfirm(user);
+                        }}
+                        title="Delete user"
+                        aria-label="Delete user"
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M3.5 5.5H12.5"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                      );
+                    })()}
+                  </div>
+                  {isExpanded ? (
+                    <div className="row subrow">
+                      <div style={{ gridColumn: "1 / -1" }}>
+                        {accounts.length === 0 ? (
+                          <div className="text-muted">No game accounts yet.</div>
+                        ) : (
+                          <div className="table members">
+                            <header>
+                              <span>Game Account</span>
+                              <span>User</span>
+                              <span>Clan</span>
+                              <span>Rank</span>
+                              <span>Status</span>
+                              <span>Actions</span>
+                            </header>
+                            {accounts.map((account) => {
+                              const membership = userMembershipsByAccountId[account.id];
+                              if (!membership) {
+                                return (
+                                  <div className="row" key={account.id}>
+                                    <div>
+                                      <div>{account.game_username}</div>
+                                    </div>
+                                    <div>
+                                      <div>{user.email}</div>
+                                      <div className="text-muted">{user.display_name ?? user.username ?? "-"}</div>
+                                    </div>
+                                    <div className="text-muted">-</div>
+                                    <div className="text-muted">-</div>
+                                    <div className="text-muted">Missing membership</div>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <div className="row" key={membership.id}>
+                                  <div>
+                                    {membership.game_accounts?.id ? (
+                                      activeGameAccountId === membership.game_accounts.id ? (
+                                        <input
+                                          value={
+                                            gameAccountEdits[membership.game_accounts.id]?.game_username ??
+                                            membership.game_accounts.game_username
+                                          }
+                                          onChange={(event) =>
+                                            updateGameAccountEdit(membership.game_accounts?.id ?? "", "game_username", event.target.value)
+                                          }
+                                          placeholder="Game username"
+                                        />
+                                      ) : (
+                                        <button
+                                          className="editable-button editable-field"
+                                          type="button"
+                                          onClick={() =>
+                                            beginGameAccountEdit({
+                                              id: membership.game_accounts?.id ?? "",
+                                              user_id: membership.game_accounts?.user_id ?? "",
+                                              game_username: membership.game_accounts?.game_username ?? "",
+                                            })
+                                          }
+                                        >
+                                          {getMembershipLabel(membership)}
+                                        </button>
+                                      )
+                                    ) : (
+                                      <div>{getMembershipLabel(membership)}</div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div>{user.email}</div>
+                                    <div className="text-muted">{user.display_name ?? user.username ?? "-"}</div>
+                                  </div>
+                                  <select
+                                    className={isMembershipFieldChanged(membership, "clan_id") ? "is-edited" : undefined}
+                                    value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
+                                    onChange={(event) => updateMembershipEdit(membership.id, "clan_id", event.target.value)}
+                                  >
+                                    {clans.map((clan) => (
+                                      <option key={clan.id} value={clan.id}>
+                                        {clan.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <select
+                                    className={isMembershipFieldChanged(membership, "rank") ? "is-edited" : undefined}
+                                    value={getMembershipEditValue(membership).rank ?? ""}
+                                    onChange={(event) => updateMembershipEdit(membership.id, "rank", event.target.value)}
+                                  >
+                                    <option value="">None</option>
+                                    {rankOptions.map((rank) => (
+                                      <option key={rank} value={rank}>
+                                        {formatLabel(rank)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <select
+                                    className={isMembershipFieldChanged(membership, "is_active") ? "is-edited" : undefined}
+                                    value={getMembershipEditValue(membership).is_active ? "true" : "false"}
+                                    onChange={(event) => updateMembershipEdit(membership.id, "is_active", event.target.value)}
+                                    data-role="status-select"
+                                  >
+                                    <option value="true">Active</option>
+                                    <option value="false">Inactive</option>
+                                  </select>
+                <div className="list inline action-icons">
+                                    <button
+                                      className="button icon-button"
+                                      type="button"
+                                      onClick={() => handleSaveMembershipEdit(membership)}
+                                      title="Save changes"
+                                      aria-label="Save changes"
+                                    >
+                                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path
+                                          d="M4 8.5L7 11.5L12 5"
+                                          stroke="currentColor"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      className="button icon-button"
+                                      type="button"
+                                      onClick={() => cancelMembershipEdits(membership.id)}
+                                      title="Cancel changes"
+                                      aria-label="Cancel changes"
+                                    >
+                                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path
+                                          d="M4.5 4.5L11.5 11.5"
+                                          stroke="currentColor"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                        />
+                                        <path
+                                          d="M11.5 4.5L4.5 11.5"
+                                          stroke="currentColor"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                        />
+                                      </svg>
+                                    </button>
+                  {membership.game_accounts?.id ? (
+                    <button
+                      className="button icon-button danger"
+                      type="button"
+                      onClick={() =>
+                        openGameAccountDeleteConfirm({
+                          id: membership.game_accounts?.id ?? "",
+                          user_id: membership.game_accounts?.user_id ?? "",
+                          game_username: membership.game_accounts?.game_username ?? "",
+                        })
+                      }
+                      title="Delete game account"
+                      aria-label="Delete game account"
+                    >
+                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  ) : null}
+                                    {membershipErrors[membership.id] ? (
+                                      <span className="text-muted">{membershipErrors[membership.id]}</span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                  {userErrors[user.id] ? (
+                    <div className="row subrow">
+                      <div style={{ gridColumn: "1 / -1" }}>
+                        <div className="alert warn">{userErrors[user.id]}</div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
       ) : null}
       {activeSection === "rules" ? (
@@ -2105,7 +3162,7 @@ function AdminClient(): JSX.Element {
         </div>
         {filteredValidationRules.length > 0 ? (
           <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-            <div className="list inline">
+                                  <div className="list inline action-icons">
               <button
                 className="button"
                 type="button"
@@ -2782,98 +3839,299 @@ function AdminClient(): JSX.Element {
           </div>
         </div>
       ) : null}
-      {isMemberModalOpen ? (
+      {isClanDeleteConfirmOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Delete Clan</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="list">
+              <div className="alert danger">
+                This will permanently delete <strong>{selectedClan?.name}</strong> and all related data.
+              </div>
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={openClanDeleteInput}>
+                Continue
+              </button>
+              <button className="button" type="button" onClick={closeClanDeleteConfirm}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isClanDeleteInputOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Confirm deletion</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="alert danger">
+              Deleting a clan removes all associated data. Make sure you intend to proceed.
+            </div>
+            <div className="form-group">
+              <label htmlFor="clanDeleteInput">Confirmation phrase</label>
+              <input
+                id="clanDeleteInput"
+                value={clanDeleteInput}
+                onChange={(event) => setClanDeleteInput(event.target.value)}
+                placeholder={`DELETE ${selectedClan?.name ?? ""}`}
+              />
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={handleDeleteClan}>
+                Delete Clan
+              </button>
+              <button className="button" type="button" onClick={closeClanDeleteInput}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isUserDeleteConfirmOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Delete User</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="list">
+              <div className="alert danger">
+                This will permanently delete <strong>{userToDelete?.username ?? userToDelete?.email}</strong> and all related data.
+              </div>
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={openUserDeleteInput}>
+                Continue
+              </button>
+              <button className="button" type="button" onClick={closeUserDeleteConfirm}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isUserDeleteInputOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Confirm deletion</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="alert danger">
+              Deleting a user removes their profile, roles, and game accounts. Make sure you intend to proceed.
+            </div>
+            <div className="form-group">
+              <label htmlFor="userDeleteInput">Confirmation phrase</label>
+              <input
+                id="userDeleteInput"
+                value={userDeleteInput}
+                onChange={(event) => setUserDeleteInput(event.target.value)}
+                placeholder={`DELETE ${userToDelete?.username ?? userToDelete?.email ?? ""}`}
+              />
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={handleDeleteUser}>
+                Delete User
+              </button>
+              <button className="button" type="button" onClick={closeUserDeleteInput}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isCreateUserModalOpen ? (
         <div className="modal-backdrop">
           <div className="modal card">
             <div className="card-header">
               <div>
-                <div className="card-title">Add Member</div>
-                <div className="card-subtitle">Link an existing user to a game account</div>
+                <div className="card-title">Create User</div>
+                <div className="card-subtitle">An email invite will be sent to confirm registration.</div>
               </div>
             </div>
-            <form onSubmit={handleAddMember}>
-              <div className="form-group">
-                <label htmlFor="memberClan">Selected clan</label>
-                <input id="memberClan" value={selectedClan?.name ?? ""} disabled />
+            <div className="form-group">
+              <label htmlFor="createUserEmail">Email</label>
+              <input
+                id="createUserEmail"
+                value={createUserEmail}
+                onChange={(event) => setCreateUserEmail(event.target.value)}
+                placeholder="user@example.com"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="createUserUsername">Username</label>
+              <input
+                id="createUserUsername"
+                value={createUserUsername}
+                onChange={(event) => setCreateUserUsername(event.target.value)}
+                placeholder="username"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="createUserDisplayName">Nickname (optional)</label>
+              <input
+                id="createUserDisplayName"
+                value={createUserDisplayName}
+                onChange={(event) => setCreateUserDisplayName(event.target.value)}
+                placeholder="Nickname"
+              />
+            </div>
+            {createUserStatus ? <div className="alert info">{createUserStatus}</div> : null}
+            <div className="list inline">
+              <button className="button primary" type="button" onClick={handleCreateUser}>
+                Send Invite
+              </button>
+              <button className="button" type="button" onClick={closeCreateUserModal}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isCreateGameAccountModalOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">Add Game Account</div>
+                <div className="card-subtitle">
+                  {createGameAccountUser?.email ?? "Select a user"}
+                </div>
               </div>
-              <div className="form-group">
-                <label htmlFor="username">Username</label>
-                <input
-                  id="username"
-                  value={memberUsername}
-                  onChange={(event) => setMemberUsername(event.target.value)}
-                  placeholder="username"
-                />
+            </div>
+            <div className="form-group">
+              <label htmlFor="createGameAccountUsername">Game username</label>
+              <input
+                id="createGameAccountUsername"
+                value={createGameAccountUsername}
+                onChange={(event) => setCreateGameAccountUsername(event.target.value)}
+                placeholder="Game username"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="createGameAccountClan">Clan</label>
+              <select
+                id="createGameAccountClan"
+                value={createGameAccountClanId}
+                onChange={(event) => setCreateGameAccountClanId(event.target.value)}
+              >
+                {clans.map((clan) => (
+                  <option key={clan.id} value={clan.id}>
+                    {clan.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label htmlFor="createGameAccountRank">Rank</label>
+              <select
+                id="createGameAccountRank"
+                value={createGameAccountRank}
+                onChange={(event) => setCreateGameAccountRank(event.target.value)}
+              >
+                {rankOptions.map((rank) => (
+                  <option key={rank} value={rank}>
+                    {formatLabel(rank)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label htmlFor="createGameAccountStatus">Status</label>
+              <select
+                id="createGameAccountStatus"
+                value={createGameAccountStatus}
+                onChange={(event) => setCreateGameAccountStatus(event.target.value)}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            {createGameAccountMessage ? <div className="alert info">{createGameAccountMessage}</div> : null}
+            <div className="list inline">
+              <button className="button primary" type="button" onClick={handleCreateGameAccount}>
+                Add Game Account
+              </button>
+              <button className="button" type="button" onClick={closeCreateGameAccountModal}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isGameAccountDeleteConfirmOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Delete Game Account</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
               </div>
-              <div className="form-group">
-                <label htmlFor="userEmail">User Email</label>
-                <input
-                  id="userEmail"
-                  value={memberEmail}
-                  onChange={(event) => setMemberEmail(event.target.value)}
-                  placeholder="user@example.com"
-                />
+            </div>
+            <div className="list">
+              <div className="alert danger">
+                This will permanently delete <strong>{gameAccountToDelete?.game_username}</strong> and all related data.
               </div>
-              <div className="form-group">
-                <label htmlFor="gameUsername">Game username</label>
-                <input
-                  id="gameUsername"
-                  value={memberGameUsername}
-                  onChange={(event) => setMemberGameUsername(event.target.value)}
-                  placeholder="In-game account name"
-                />
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={openGameAccountDeleteInput}>
+                Continue
+              </button>
+              <button className="button" type="button" onClick={closeGameAccountDeleteConfirm}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isGameAccountDeleteInputOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Confirm deletion</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
               </div>
-              <div className="form-group">
-                <label htmlFor="displayName">Game display name</label>
-                <input
-                  id="displayName"
-                  value={memberDisplayName}
-                  onChange={(event) => setMemberDisplayName(event.target.value)}
-                  placeholder="Defaults to game username"
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="role">Role</label>
-                <select id="role" value={memberRole} onChange={(event) => setMemberRole(event.target.value)}>
-                  {roleOptions.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label htmlFor="active">Active</label>
-                <select
-                  id="active"
-                  value={memberActive ? "true" : "false"}
-                  onChange={(event) => setMemberActive(event.target.value === "true")}
-                >
-                  <option value="true">active</option>
-                  <option value="false">inactive</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label htmlFor="rank">Rank</label>
-                <select id="rank" value={memberRank} onChange={(event) => setMemberRank(event.target.value)}>
-                  <option value="">None</option>
-                  {rankOptions.map((rank) => (
-                    <option key={rank} value={rank}>
-                      {rank}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="list">
-                {memberModalStatus ? <div className="alert info">{memberModalStatus}</div> : null}
-                <button className="button primary" type="submit">
-                  Add Member
-                </button>
-                <button className="button" type="button" onClick={handleCloseMemberModal}>
-                  Cancel
-                </button>
-              </div>
-            </form>
+            </div>
+            <div className="alert danger">
+              Deleting a game account removes its memberships and data. Make sure you intend to proceed.
+            </div>
+            <div className="form-group">
+              <label htmlFor="gameAccountDeleteInput">Confirmation phrase</label>
+              <input
+                id="gameAccountDeleteInput"
+                value={gameAccountDeleteInput}
+                onChange={(event) => setGameAccountDeleteInput(event.target.value)}
+                placeholder={`DELETE ${gameAccountToDelete?.game_username ?? ""}`}
+              />
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={handleConfirmDeleteGameAccount}>
+                Delete Game Account
+              </button>
+              <button className="button" type="button" onClick={closeGameAccountDeleteInput}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

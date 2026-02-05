@@ -22,8 +22,8 @@ function ClanScopeBanner(): JSX.Element {
   useEffect(() => {
     let isActive = true;
     async function loadScope(): Promise<void> {
-      const clanId = window.localStorage.getItem(CLAN_STORAGE_KEY) ?? \"\";
-      const gameAccountId = window.localStorage.getItem(GAME_ACCOUNT_STORAGE_KEY) ?? \"\";
+      const clanId = window.localStorage.getItem(CLAN_STORAGE_KEY) ?? "";
+      const gameAccountId = window.localStorage.getItem(GAME_ACCOUNT_STORAGE_KEY) ?? "";
       if (!clanId || !gameAccountId) {
         if (isActive) {
           setScope(null);
@@ -32,15 +32,24 @@ function ClanScopeBanner(): JSX.Element {
         return;
       }
       const [{ data: clanData }, { data: gameAccountData }] = await Promise.all([
-        supabase.from(\"clans\").select(\"name\").eq(\"id\", clanId).maybeSingle(),
-        supabase.from(\"game_accounts\").select(\"game_username,display_name\").eq(\"id\", gameAccountId).maybeSingle(),
+        supabase.from("clans").select("name,is_unassigned").eq("id", clanId).maybeSingle(),
+        supabase
+          .from("game_accounts")
+          .select("game_username")
+          .eq("id", gameAccountId)
+          .maybeSingle(),
       ]);
       if (!isActive) {
         return;
       }
+      if (clanData?.is_unassigned) {
+        setScope(null);
+        setIsMissing(true);
+        return;
+      }
       setScope({
         clanName: clanData?.name ?? clanId,
-        gameLabel: gameAccountData?.display_name ?? gameAccountData?.game_username ?? gameAccountId,
+        gameLabel: gameAccountData?.game_username ?? gameAccountId,
       });
       setIsMissing(false);
     }
@@ -48,16 +57,16 @@ function ClanScopeBanner(): JSX.Element {
     function handleContextChange(): void {
       void loadScope();
     }
-    window.addEventListener(\"clan-context-change\", handleContextChange);
+    window.addEventListener("clan-context-change", handleContextChange);
     return () => {
       isActive = false;
-      window.removeEventListener(\"clan-context-change\", handleContextChange);
+      window.removeEventListener("clan-context-change", handleContextChange);
     };
   }, [supabase]);
 
   if (isMissing) {
     return (
-      <div className=\"alert warn\" style={{ gridColumn: \"span 12\" }}>
+      <div className="alert warn" style={{ gridColumn: "span 12" }}>
         Select a clan in the sidebar to see clan-specific content.
       </div>
     );
@@ -68,7 +77,7 @@ function ClanScopeBanner(): JSX.Element {
   }
 
   return (
-    <div className=\"alert info\" style={{ gridColumn: \"span 12\" }}>
+    <div className="alert info" style={{ gridColumn: "span 12" }}>
       Viewing <strong>{scope.clanName}</strong> • <strong>{scope.gameLabel}</strong>
     </div>
   );

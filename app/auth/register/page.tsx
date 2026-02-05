@@ -52,7 +52,6 @@ function RegisterPage(): JSX.Element {
       options: {
         data: {
           username: nextUsername,
-          username_display: nextUsername,
           display_name: nextUsername,
         },
       },

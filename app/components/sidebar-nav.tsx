@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import getIsAdminAccess from "../../lib/supabase/admin-access";
 
 interface NavItem {
   readonly href: string;
@@ -44,7 +45,8 @@ const navSections: readonly NavSection[] = [
     title: "Admin",
     adminOnly: true,
     items: [
-      { href: "/admin?tab=clans", label: "Clans & Members", tab: "clans", isSubItem: true },
+      { href: "/admin?tab=clans", label: "Clan Management", tab: "clans", isSubItem: true },
+      { href: "/admin?tab=users", label: "Users", tab: "users", isSubItem: true },
       { href: "/admin?tab=rules", label: "Rules", tab: "rules", isSubItem: true },
       { href: "/admin?tab=logs", label: "Audit Logs", tab: "logs", isSubItem: true },
       { href: "/admin/data-import", label: "Data Import", isSubItem: true },
@@ -93,7 +95,7 @@ function SidebarNav(): JSX.Element {
         setIsAuthenticated(true);
       }
       if (isActive) {
-        setIsAdmin(true);
+        setIsAdmin(await getIsAdminAccess({ supabase }));
         setIsLoading(false);
       }
     }
@@ -115,8 +117,9 @@ function SidebarNav(): JSX.Element {
       }
       const { data, error } = await supabase
         .from("game_account_clan_memberships")
-        .select("clan_id,game_account_id,clans(name),game_accounts(game_username,display_name)")
-        .eq("is_active", true);
+        .select("clan_id,game_account_id,clans(name,is_unassigned),game_accounts(game_username)")
+        .eq("is_active", true)
+        .eq("clans.is_unassigned", false);
       if (!isActive || error) {
         return;
       }
@@ -126,11 +129,7 @@ function SidebarNav(): JSX.Element {
           gameAccountId: row.game_account_id as string,
           clanName: (row.clans as { name: string } | null)?.name ?? "Clan",
           gameLabel:
-            (row.game_accounts as { display_name: string | null; game_username: string } | null)
-              ?.display_name ??
-            (row.game_accounts as { display_name: string | null; game_username: string } | null)
-              ?.game_username ??
-            "Game account",
+            (row.game_accounts as { game_username: string } | null)?.game_username ?? "Game account",
         })) ?? [];
       setClanOptions(options);
       const storedClanId = window.localStorage.getItem(CLAN_STORAGE_KEY) ?? "";

@@ -13,6 +13,17 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - created_at (timestamp)
 - updated_at (timestamp)
 
+### profiles
+- id (uuid, pk)
+- email (text, unique)
+- user_db (text, unique)
+- username (text)
+- display_name (text)
+- is_admin (boolean, default: false)
+- default_clan_id (uuid, fk clans, nullable)
+- created_at (timestamp)
+- updated_at (timestamp)
+
 ### user_aliases
 - id (uuid, pk)
 - user_id (uuid, fk users)

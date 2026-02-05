@@ -7,12 +7,52 @@ create table if not exists public.clans (
   name text not null unique,
   description text,
   is_default boolean not null default false,
+  is_unassigned boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.clans
   add column if not exists is_default boolean not null default false;
+
+alter table public.clans
+  add column if not exists is_unassigned boolean not null default false;
+
+create unique index if not exists clans_unassigned_unique
+on public.clans (is_unassigned)
+where is_unassigned = true;
+
+insert into public.clans (name, description, is_unassigned)
+values ('Unassigned', 'System clan for game accounts without active membership.', true)
+on conflict (name)
+do update set is_unassigned = true;
+
+create or replace function public.ensure_unassigned_memberships()
+returns void
+language plpgsql
+security definer
+set search_path = public
+set row_security = off
+as $$
+declare
+  unassigned_id uuid;
+begin
+  select id into unassigned_id from public.clans where is_unassigned = true limit 1;
+  if unassigned_id is null then
+    return;
+  end if;
+  insert into public.game_account_clan_memberships (game_account_id, clan_id, is_active, rank)
+  select ga.id, unassigned_id, true, null
+  from public.game_accounts ga
+  where not exists (
+    select 1
+    from public.game_account_clan_memberships gacm
+    where gacm.game_account_id = ga.id
+  )
+  on conflict (game_account_id)
+  do update set clan_id = excluded.clan_id, rank = null;
+end;
+$$;
 
 create or replace function public.ensure_single_default_clan()
 returns trigger
@@ -39,67 +79,202 @@ for each row execute function public.ensure_single_default_clan();
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
-  username text not null unique,
-  username_display text,
+  user_db text not null unique,
+  username text,
   display_name text,
+  is_admin boolean not null default false,
   default_clan_id uuid references public.clans(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.user_roles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  role text not null default 'member',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint user_roles_role_check check (role in ('owner', 'admin', 'moderator', 'editor', 'member'))
+);
+
+alter table public.profiles
+  add column if not exists is_admin boolean not null default false;
+
 create table if not exists public.game_accounts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   game_username text not null,
-  display_name text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (user_id, game_username)
 );
 
+alter table public.game_accounts
+  drop column if exists display_name;
+
 create table if not exists public.game_account_clan_memberships (
   id uuid primary key default gen_random_uuid(),
   game_account_id uuid not null references public.game_accounts(id) on delete cascade,
   clan_id uuid not null references public.clans(id) on delete cascade,
-  role text not null default 'member',
   rank text,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (game_account_id, clan_id)
 );
+drop index if exists game_account_membership_active_unique;
+create unique index if not exists game_account_membership_unique
+on public.game_account_clan_memberships (game_account_id);
+
+alter table public.profiles
+  add column if not exists user_db text;
 
 alter table public.profiles
   add column if not exists username text;
 
-alter table public.profiles
-  add column if not exists username_display text;
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'username'
+  ) and not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'user_db'
+  ) then
+    execute 'alter table public.profiles rename column username to user_db';
+  end if;
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'username_display'
+  ) and not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'username'
+  ) then
+    execute 'alter table public.profiles rename column username_display to username';
+  end if;
+end $$;
 
 alter table public.profiles
   add column if not exists default_clan_id uuid;
 
 update public.profiles
-set username = lower(split_part(email, '@', 1)) || '_' || right(replace(id::text, '-', ''), 6)
+set user_db = lower(split_part(email, '@', 1)) || '_' || right(replace(id::text, '-', ''), 6)
+where user_db is null or user_db = '';
+
+update public.profiles
+set username = user_db
 where username is null or username = '';
 
 update public.profiles
-set username_display = username
-where username_display is null or username_display = '';
-
-update public.profiles
-set display_name = username_display
+set display_name = username
 where display_name is null or display_name = '';
 
-alter table public.profiles
-  alter column username set not null;
+with display_name_ranked as (
+  select
+    id,
+    display_name,
+    row_number() over (partition by lower(display_name) order by id) as name_rank
+  from public.profiles
+  where display_name is not null
+    and display_name <> ''
+)
+update public.profiles as profiles
+set display_name = profiles.display_name || '_' || right(replace(profiles.id::text, '-', ''), 6)
+from display_name_ranked
+where profiles.id = display_name_ranked.id
+  and display_name_ranked.name_rank > 1;
 
-create unique index if not exists profiles_username_unique on public.profiles (username);
-create unique index if not exists profiles_username_unique_lower on public.profiles (lower(username));
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'game_account_clan_memberships'
+      and column_name = 'role'
+  ) then
+    with role_ranked as (
+      select
+        game_accounts.user_id,
+        game_account_clan_memberships.role,
+        row_number() over (
+          partition by game_accounts.user_id
+          order by
+            case game_account_clan_memberships.role
+              when 'owner' then 1
+              when 'admin' then 2
+              when 'moderator' then 3
+              when 'editor' then 4
+              when 'member' then 5
+              else 6
+            end
+        ) as role_rank
+      from public.game_account_clan_memberships
+      join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+      where game_account_clan_memberships.is_active = true
+    ),
+    top_roles as (
+      select user_id, role
+      from role_ranked
+      where role_rank = 1
+    )
+    insert into public.user_roles (user_id, role)
+    select profiles.id, coalesce(top_roles.role, 'member')
+    from public.profiles
+    left join top_roles on top_roles.user_id = profiles.id
+    on conflict (user_id) do nothing;
+  end if;
+end $$;
+
+alter table public.game_account_clan_memberships
+  drop column if exists role;
+
+update public.profiles
+set user_db = lower(username)
+where user_db is null
+  or user_db = ''
+  or user_db <> lower(username);
+
+update public.profiles
+set username = user_db
+where (username is null or username = '')
+  and user_db is not null
+  and user_db <> '';
+
+update public.profiles
+set user_db = lower(split_part(email, '@', 1)) || '_' || right(replace(id::text, '-', ''), 6)
+where (user_db is null or user_db = '')
+  and email is not null
+  and email <> '';
+
+alter table public.profiles
+  alter column user_db set not null;
+
+drop index if exists profiles_username_unique;
+drop index if exists profiles_username_unique_lower;
+create unique index if not exists profiles_user_db_unique on public.profiles (user_db);
+create unique index if not exists profiles_user_db_unique_lower on public.profiles (lower(user_db));
+create unique index if not exists profiles_display_name_unique_lower
+  on public.profiles (lower(display_name))
+  where display_name is not null and display_name <> '';
 alter table public.profiles
   drop constraint if exists profiles_username_length_check;
 alter table public.profiles
-  add constraint profiles_username_length_check
-  check (char_length(username) >= 2 and char_length(username) <= 32);
+  drop constraint if exists profiles_user_db_length_check;
+alter table public.profiles
+  add constraint profiles_user_db_length_check
+  check (char_length(user_db) >= 2 and char_length(user_db) <= 32);
 
 create or replace function public.normalize_username()
 returns trigger
@@ -107,10 +282,12 @@ language plpgsql
 as $$
 begin
   if new.username is not null then
-    if new.username_display is null or new.username_display = '' then
-      new.username_display := new.username;
+    new.user_db := lower(new.username);
+  end if;
+  if new.user_db is not null then
+    if new.username is null or new.username = '' then
+      new.username := new.user_db;
     end if;
-    new.username := lower(new.username);
   end if;
   return new;
 end;
@@ -127,7 +304,9 @@ returns trigger
 language plpgsql
 as $$
 begin
-  if new.username is distinct from old.username and not public.is_any_admin() then
+  if new.user_db is distinct from old.user_db
+    and not public.is_any_admin()
+    and auth.role() <> 'service_role' then
     raise exception 'Only admins can change usernames.';
   end if;
   return new;
@@ -282,24 +461,6 @@ as $$
   );
 $$;
 
-create or replace function public.is_clan_admin(target_clan uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-set row_security = off
-as $$
-  select exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = target_clan
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  );
-$$;
-
 create or replace function public.is_any_admin()
 returns boolean
 language sql
@@ -309,12 +470,49 @@ set row_security = off
 as $$
   select exists (
     select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
+    from public.profiles
+    where profiles.id = auth.uid()
+      and profiles.is_admin = true
+  )
+  or exists (
+    select 1
+    from public.user_roles
+    where user_roles.user_id = auth.uid()
+      and user_roles.role in ('owner', 'admin')
   );
+$$;
+
+create or replace function public.has_role(required_roles text[])
+returns boolean
+language sql
+security definer
+set search_path = public
+set row_security = off
+as $$
+  select exists (
+    select 1
+    from public.user_roles
+    where user_roles.user_id = auth.uid()
+      and user_roles.role = any(required_roles)
+  );
+$$;
+
+create or replace function public.is_clan_admin(target_clan uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+set row_security = off
+as $$
+  select public.has_role(ARRAY['owner', 'admin'])
+    and exists (
+      select 1
+      from public.game_account_clan_memberships
+      join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+      where game_account_clan_memberships.clan_id = target_clan
+        and game_accounts.user_id = auth.uid()
+        and game_account_clan_memberships.is_active = true
+    );
 $$;
 
 create index if not exists chest_entries_clan_idx on public.chest_entries (clan_id);
@@ -331,6 +529,7 @@ create index if not exists events_starts_at_idx on public.events (starts_at);
 alter table public.chest_entries enable row level security;
 -- Legacy: clan_memberships replaced by game_account_clan_memberships
 alter table public.profiles enable row level security;
+alter table public.user_roles enable row level security;
 alter table public.game_accounts enable row level security;
 alter table public.game_account_clan_memberships enable row level security;
 alter table public.roles enable row level security;
@@ -351,6 +550,10 @@ drop policy if exists "chest_entries_insert_by_membership" on public.chest_entri
 drop policy if exists "chest_entries_update_by_role" on public.chest_entries;
 drop policy if exists "chest_entries_delete_by_role" on public.chest_entries;
 drop policy if exists "roles_read" on public.roles;
+drop policy if exists "user_roles_select" on public.user_roles;
+drop policy if exists "user_roles_insert" on public.user_roles;
+drop policy if exists "user_roles_update" on public.user_roles;
+drop policy if exists "user_roles_delete" on public.user_roles;
 drop policy if exists "ranks_read" on public.ranks;
 drop policy if exists "permissions_read" on public.permissions;
 drop policy if exists "role_permissions_read" on public.role_permissions;
@@ -359,6 +562,7 @@ drop policy if exists "cross_clan_permissions_read" on public.cross_clan_permiss
 -- Legacy: clan_memberships policies removed
 drop policy if exists "profiles_select" on public.profiles;
 drop policy if exists "profiles_update" on public.profiles;
+drop policy if exists "profiles_admin_update" on public.profiles;
 drop policy if exists "profiles_insert" on public.profiles;
 drop policy if exists "game_accounts_select" on public.game_accounts;
 drop policy if exists "game_accounts_insert" on public.game_accounts;
@@ -433,15 +637,7 @@ for update
 to authenticated
 using (
   auth.uid() = created_by
-  or exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = chest_entries.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin', 'moderator')
-  )
+  or public.has_role(ARRAY['owner', 'admin', 'moderator'])
 )
 with check (auth.uid() = updated_by);
 
@@ -451,20 +647,37 @@ for delete
 to authenticated
 using (
   auth.uid() = created_by
-  or exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = chest_entries.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
+  or public.has_role(ARRAY['owner', 'admin'])
 );
 
 create policy "roles_read"
 on public.roles
 for select
+to authenticated
+using (public.is_any_admin());
+
+create policy "user_roles_select"
+on public.user_roles
+for select
+to authenticated
+using (public.is_any_admin() or user_id = auth.uid());
+
+create policy "user_roles_insert"
+on public.user_roles
+for insert
+to authenticated
+with check (public.is_any_admin());
+
+create policy "user_roles_update"
+on public.user_roles
+for update
+to authenticated
+using (public.is_any_admin())
+with check (public.is_any_admin());
+
+create policy "user_roles_delete"
+on public.user_roles
+for delete
 to authenticated
 using (public.is_any_admin());
 
@@ -511,6 +724,13 @@ for update
 to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
+
+create policy "profiles_admin_update"
+on public.profiles
+for update
+to authenticated
+using (public.is_any_admin())
+with check (public.is_any_admin());
 
 create policy "profiles_insert"
 on public.profiles
@@ -567,20 +787,30 @@ using (
       and game_accounts.user_id = auth.uid()
   )
   or public.is_clan_admin(game_account_clan_memberships.clan_id)
+  or public.is_any_admin()
 );
 
 create policy "game_account_clan_memberships_insert"
 on public.game_account_clan_memberships
 for insert
 to authenticated
-with check (public.is_clan_admin(game_account_clan_memberships.clan_id));
+with check (
+  public.is_clan_admin(game_account_clan_memberships.clan_id)
+  or public.is_any_admin()
+);
 
 create policy "game_account_clan_memberships_update"
 on public.game_account_clan_memberships
 for update
 to authenticated
-using (public.is_clan_admin(game_account_clan_memberships.clan_id))
-with check (public.is_clan_admin(game_account_clan_memberships.clan_id));
+using (
+  public.is_clan_admin(game_account_clan_memberships.clan_id)
+  or public.is_any_admin()
+)
+with check (
+  public.is_clan_admin(game_account_clan_memberships.clan_id)
+  or public.is_any_admin()
+);
 
 create policy "game_account_clan_memberships_delete"
 on public.game_account_clan_memberships
@@ -597,7 +827,7 @@ set row_security = off
 as $$
   select email
   from public.profiles
-  where username = lower(input_username)
+  where user_db = lower(input_username)
   limit 1;
 $$;
 
@@ -739,178 +969,58 @@ create policy "validation_rules_write"
 on public.validation_rules
 for insert
 to authenticated
-with check (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = validation_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+with check (public.is_clan_admin(validation_rules.clan_id));
 
 create policy "validation_rules_update"
 on public.validation_rules
 for update
 to authenticated
-using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = validation_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = validation_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+using (public.is_clan_admin(validation_rules.clan_id))
+with check (public.is_clan_admin(validation_rules.clan_id));
 
 create policy "validation_rules_delete"
 on public.validation_rules
 for delete
 to authenticated
-using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = validation_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+using (public.is_clan_admin(validation_rules.clan_id));
 
 create policy "correction_rules_write"
 on public.correction_rules
 for insert
 to authenticated
-with check (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = correction_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+with check (public.is_clan_admin(correction_rules.clan_id));
 
 create policy "correction_rules_update"
 on public.correction_rules
 for update
 to authenticated
-using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = correction_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = correction_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+using (public.is_clan_admin(correction_rules.clan_id))
+with check (public.is_clan_admin(correction_rules.clan_id));
 
 create policy "correction_rules_delete"
 on public.correction_rules
 for delete
 to authenticated
-using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = correction_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+using (public.is_clan_admin(correction_rules.clan_id));
 
 create policy "scoring_rules_write"
 on public.scoring_rules
 for insert
 to authenticated
-with check (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = scoring_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+with check (public.is_clan_admin(scoring_rules.clan_id));
 
 create policy "scoring_rules_update"
 on public.scoring_rules
 for update
 to authenticated
-using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = scoring_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = scoring_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+using (public.is_clan_admin(scoring_rules.clan_id))
+with check (public.is_clan_admin(scoring_rules.clan_id));
 
 create policy "scoring_rules_delete"
 on public.scoring_rules
 for delete
 to authenticated
-using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = scoring_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+using (public.is_clan_admin(scoring_rules.clan_id));
 create policy "clans_select"
 on public.clans
 for select
@@ -927,32 +1037,15 @@ create policy "clans_update_by_role"
 on public.clans
 for update
 to authenticated
-using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = clans.id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner', 'admin')
-  )
-);
+using (public.is_clan_admin(clans.id));
 
 create policy "clans_delete_by_role"
 on public.clans
 for delete
 to authenticated
 using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = clans.id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-      and game_account_clan_memberships.role in ('owner')
-  )
+  public.has_role(ARRAY['owner'])
+  and public.is_clan_member(clans.id)
 );
 
 create or replace function public.set_updated_at()
@@ -983,6 +1076,12 @@ drop trigger if exists set_profiles_updated_at on public.profiles;
 
 create trigger set_profiles_updated_at
 before update on public.profiles
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_user_roles_updated_at on public.user_roles;
+
+create trigger set_user_roles_updated_at
+before update on public.user_roles
 for each row execute function public.set_updated_at();
 
 drop trigger if exists set_game_accounts_updated_at on public.game_accounts;
@@ -1030,9 +1129,12 @@ for each row execute function public.set_updated_at();
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
+security definer
+set search_path = public
+set row_security = off
 as $$
 begin
-  insert into public.profiles (id, email, username, username_display, display_name)
+  insert into public.profiles (id, email, user_db, username, display_name)
   values (
     new.id,
     new.email,
@@ -1041,17 +1143,25 @@ begin
       lower(split_part(new.email, '@', 1)) || '_' || right(replace(new.id::text, '-', ''), 6)
     ),
     coalesce(
-      nullif(new.raw_user_meta_data->>'username_display', ''),
+      nullif(new.raw_user_meta_data->>'username', ''),
       nullif(new.raw_user_meta_data->>'username', ''),
       split_part(new.email, '@', 1)
     ),
     coalesce(
       nullif(new.raw_user_meta_data->>'display_name', ''),
-      nullif(new.raw_user_meta_data->>'username_display', ''),
       nullif(new.raw_user_meta_data->>'username', ''),
       split_part(new.email, '@', 1)
     )
-  );
+  )
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    user_db = excluded.user_db,
+    username = excluded.username,
+    display_name = excluded.display_name;
+  insert into public.user_roles (user_id, role)
+  values (new.id, 'member')
+  on conflict (user_id) do nothing;
   return new;
 end;
 $$;

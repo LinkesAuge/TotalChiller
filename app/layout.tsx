@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import SidebarNav from "./components/sidebar-nav";
 import { ToastProvider } from "./components/toast-provider";
+import ClanAccessGate from "./components/clan-access-gate";
 
 interface RootLayoutProps {
   readonly children: ReactNode;
@@ -21,7 +22,7 @@ function RootLayout({ children }: RootLayoutProps): JSX.Element {
               <SidebarNav />
             </aside>
             <main className="content">
-              {children}
+              <ClanAccessGate>{children}</ClanAccessGate>
               <footer className="app-footer">
                 <span className="text-muted">The Chillers • Community Hub</span>
                 <span className="text-muted">Total Battle Clan Platform</span>

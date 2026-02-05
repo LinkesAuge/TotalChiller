@@ -6,11 +6,12 @@ import { usePathname, useSearchParams } from "next/navigation";
 interface AdminTabItem {
   readonly label: string;
   readonly href: string;
-  readonly tab?: "clans" | "rules" | "logs";
+  readonly tab?: "clans" | "users" | "rules" | "logs";
 }
 
 const adminTabs: readonly AdminTabItem[] = [
-  { label: "Clans & Members", href: "/admin?tab=clans", tab: "clans" },
+  { label: "Clan Management", href: "/admin?tab=clans", tab: "clans" },
+  { label: "Users", href: "/admin?tab=users", tab: "users" },
   { label: "Rules", href: "/admin?tab=rules", tab: "rules" },
   { label: "Audit Logs", href: "/admin?tab=logs", tab: "logs" },
   { label: "Data Import", href: "/admin/data-import" },

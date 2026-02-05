@@ -17,24 +17,38 @@ function DisplayNameEditor({ userId, initialDisplayName, email }: DisplayNameEdi
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const nextDisplayName = displayName.trim();
-    setStatus("Updating display name...");
+    setStatus("Updating nickname...");
+    if (nextDisplayName) {
+      const { data: existingDisplayName, error: displayNameError } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("display_name", nextDisplayName)
+        .neq("id", userId)
+        .maybeSingle();
+      if (displayNameError) {
+        setStatus(displayNameError.message);
+        return;
+      }
+      if (existingDisplayName) {
+        setStatus("Nickname already exists.");
+        return;
+      }
+    }
     const { error } = await supabase
       .from("profiles")
-      .upsert(
-        { id: userId, email, display_name: nextDisplayName || null },
-        { onConflict: "id" },
-      );
+      .update({ display_name: nextDisplayName || null })
+      .eq("id", userId);
     if (error) {
       setStatus(error.message);
       return;
     }
-    setStatus("Display name updated.");
+    setStatus("Nickname updated.");
   }
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="form-group">
-        <label htmlFor="profileDisplayName">Display name</label>
+        <label htmlFor="profileDisplayName">Nickname</label>
         <input
           id="profileDisplayName"
           value={displayName}
@@ -44,7 +58,7 @@ function DisplayNameEditor({ userId, initialDisplayName, email }: DisplayNameEdi
       </div>
       <div className="list">
         <button className="button" type="submit">
-          Save Display Name
+          Save Nickname
         </button>
       </div>
       {status ? <p className="text-muted">{status}</p> : null}

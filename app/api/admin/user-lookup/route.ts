@@ -37,7 +37,7 @@ export async function POST(request: Request): Promise<Response> {
   const profileQuery = supabase.from("profiles").select("id");
   const { data: profile, error: profileError } =
     username || (identifier && !identifier.includes("@"))
-      ? await profileQuery.eq("username", lookupValue.toLowerCase()).maybeSingle()
+      ? await profileQuery.eq("user_db", lookupValue.toLowerCase()).maybeSingle()
       : await profileQuery.eq("email", lookupValue).maybeSingle();
   if (profileError) {
     return NextResponse.json({ error: profileError.message }, { status: 500 });

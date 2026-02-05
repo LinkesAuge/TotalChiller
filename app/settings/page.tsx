@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import AuthActions from "../components/auth-actions";
+import getIsAdminAccess from "../../lib/supabase/admin-access";
 
 interface SettingsFormState {
   readonly email: string;
@@ -51,7 +52,7 @@ function SettingsPage(): JSX.Element {
       if (currentUserId) {
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("username,username_display,display_name")
+          .select("user_db,username,display_name")
           .eq("id", currentUserId)
           .maybeSingle();
         if (!profileData && currentEmail) {
@@ -63,26 +64,25 @@ function SettingsPage(): JSX.Element {
               {
                 id: currentUserId,
                 email: currentEmail,
-                username: fallbackUsername,
-                username_display: emailPrefix,
+                user_db: fallbackUsername,
+                username: emailPrefix,
                 display_name: emailPrefix,
               },
               { onConflict: "id" },
             )
-            .select("username,username_display,display_name")
+            .select("user_db,username,display_name")
             .single();
           updateFormState({
             username: createdProfile?.username ?? "",
-            displayName: createdProfile?.display_name ?? createdProfile?.username_display ?? "",
+            displayName: createdProfile?.display_name ?? createdProfile?.username ?? "",
           });
         } else {
           updateFormState({
             username: profileData?.username ?? "",
-            displayName: profileData?.display_name ?? profileData?.username_display ?? "",
+            displayName: profileData?.display_name ?? profileData?.username ?? "",
           });
         }
-        const { data: adminFlag, error: adminFlagError } = await supabase.rpc("is_any_admin");
-        setIsAdmin(!adminFlagError && Boolean(adminFlag));
+        setIsAdmin(await getIsAdminAccess({ supabase }));
       }
     }
     void loadUser();
@@ -151,7 +151,7 @@ function SettingsPage(): JSX.Element {
     const { error } = await supabase
       .from("profiles")
       .upsert(
-        { id: userId, email: formState.email, username: nextUsername, username_display: rawUsername },
+        { id: userId, email: formState.email, user_db: nextUsername, username: rawUsername },
         { onConflict: "id" },
       );
     if (error) {
@@ -159,7 +159,7 @@ function SettingsPage(): JSX.Element {
       return;
     }
     updateFormState({
-      username: nextUsername,
+      username: rawUsername,
       usernameStatus: "Username updated successfully.",
     });
   }
@@ -168,23 +168,37 @@ function SettingsPage(): JSX.Element {
     event.preventDefault();
     const nextDisplayName = formState.displayName.trim();
     if (!userId) {
-      updateFormState({ displayNameStatus: "You must be logged in to update display name." });
+      updateFormState({ displayNameStatus: "You must be logged in to update nickname." });
       return;
     }
-    updateFormState({ displayNameStatus: "Updating display name..." });
+    updateFormState({ displayNameStatus: "Updating nickname..." });
+    if (nextDisplayName) {
+      const { data: existingDisplayName, error: displayNameError } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("display_name", nextDisplayName)
+        .neq("id", userId)
+        .maybeSingle();
+      if (displayNameError) {
+        updateFormState({ displayNameStatus: displayNameError.message });
+        return;
+      }
+      if (existingDisplayName) {
+        updateFormState({ displayNameStatus: "Nickname already exists." });
+        return;
+      }
+    }
     const { error } = await supabase
       .from("profiles")
-      .upsert(
-        { id: userId, email: formState.email, display_name: nextDisplayName || null },
-        { onConflict: "id" },
-      );
+      .update({ display_name: nextDisplayName || null })
+      .eq("id", userId);
     if (error) {
       updateFormState({ displayNameStatus: error.message });
       return;
     }
     updateFormState({
       displayName: nextDisplayName,
-      displayNameStatus: "Display name updated successfully.",
+      displayNameStatus: "Nickname updated successfully.",
     });
   }
 
@@ -258,23 +272,23 @@ function SettingsPage(): JSX.Element {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Display Name</div>
+              <div className="card-title">Nickname</div>
               <div className="card-subtitle">Shown to other members</div>
             </div>
           </div>
           <form onSubmit={handleDisplayNameSubmit}>
             <div className="form-group">
-              <label htmlFor="displayName">Display name</label>
+              <label htmlFor="displayName">Nickname</label>
               <input
                 id="displayName"
                 value={formState.displayName}
                 onChange={(event) => updateFormState({ displayName: event.target.value })}
-                placeholder="Leinad"
+                placeholder="Nickname"
               />
             </div>
             <div className="list">
               <button className="button primary" type="submit">
-                Update Display Name
+                Update Nickname
               </button>
             </div>
             {formState.displayNameStatus ? <p className="text-muted">{formState.displayNameStatus}</p> : null}

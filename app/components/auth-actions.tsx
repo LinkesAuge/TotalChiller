@@ -6,16 +6,16 @@ import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 
 interface AuthActionState {
   readonly email: string;
+  readonly userDb: string;
   readonly username: string;
-  readonly usernameDisplay: string;
   readonly displayName: string;
   readonly status: string;
 }
 
 const initialAuthState: AuthActionState = {
   email: "",
+  userDb: "",
   username: "",
-  usernameDisplay: "",
   displayName: "",
   status: "",
 };
@@ -38,18 +38,18 @@ function AuthActions(): JSX.Element | null {
       const userEmail = data.user?.email ?? "";
       const userId = data.user?.id;
       if (!userId) {
-        setAuthState({ email: userEmail, username: "", usernameDisplay: "", displayName: "", status: "" });
+        setAuthState({ email: userEmail, userDb: "", username: "", displayName: "", status: "" });
         return;
       }
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username,username_display,display_name")
+        .select("user_db,username,display_name")
         .eq("id", userId)
         .maybeSingle();
       setAuthState({
         email: userEmail,
+        userDb: profile?.user_db ?? "",
         username: profile?.username ?? "",
-        usernameDisplay: profile?.username_display ?? "",
         displayName: profile?.display_name ?? "",
         status: "",
       });
@@ -63,12 +63,12 @@ function AuthActions(): JSX.Element | null {
   async function handleSignOut(): Promise<void> {
     setAuthState((state) => ({ ...state, status: "Signing out..." }));
     await supabase.auth.signOut();
-    setAuthState({ email: "", username: "", usernameDisplay: "", displayName: "", status: "" });
+    setAuthState({ email: "", userDb: "", username: "", displayName: "", status: "" });
     window.location.href = "/home";
   }
 
   function getInitials(): string {
-    const base = authState.displayName || authState.usernameDisplay || authState.username || authState.email;
+    const base = authState.displayName || authState.username || authState.userDb || authState.email;
     if (!base) {
       return "U";
     }
@@ -84,7 +84,7 @@ function AuthActions(): JSX.Element | null {
       <summary className="user-menu__summary">
         <span className="user-menu__avatar">{getInitials()}</span>
         <span className="text-muted">
-          {authState.displayName || authState.usernameDisplay || authState.username || authState.email}
+          {authState.displayName || authState.username || authState.userDb || authState.email}
         </span>
       </summary>
       <div className="user-menu__panel">

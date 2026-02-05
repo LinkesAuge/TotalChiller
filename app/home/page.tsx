@@ -1,4 +1,4 @@
-import AuthActions from "../components/auth-actions";
+import PublicAuthActions from "../components/public-auth-actions";
 
 /**
  * Renders the public landing page layout.
@@ -9,13 +9,7 @@ function HomePage(): JSX.Element {
       <section className="header header-inline">
         <div className="title">The Chillers Community</div>
         <div className="actions">
-          <a className="button" href="/auth/login">
-            Login
-          </a>
-          <a className="button primary" href="/auth/register">
-            Register
-          </a>
-          <AuthActions />
+          <PublicAuthActions />
         </div>
       </section>
       <div className="grid">

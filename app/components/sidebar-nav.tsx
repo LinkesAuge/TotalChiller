@@ -10,7 +10,7 @@ import RadixSelect from "./ui/radix-select";
 interface NavItem {
   readonly href: string;
   readonly label: string;
-  readonly tab?: "clans" | "users" | "validation" | "corrections" | "logs";
+  readonly tab?: "clans" | "users" | "validation" | "corrections" | "logs" | "approvals";
   readonly isSubItem?: boolean;
 }
 
@@ -39,7 +39,6 @@ const navSections: readonly NavSection[] = [
       { href: "/news", label: "News" },
       { href: "/charts", label: "Charts" },
       { href: "/events", label: "Events" },
-      { href: "/messages", label: "Messages" },
     ],
   },
   {
@@ -47,6 +46,7 @@ const navSections: readonly NavSection[] = [
     adminOnly: true,
     items: [
       { href: "/admin?tab=clans", label: "Clan Management", tab: "clans", isSubItem: true },
+      { href: "/admin?tab=approvals", label: "Approvals", tab: "approvals", isSubItem: true },
       { href: "/admin?tab=users", label: "Users", tab: "users", isSubItem: true },
       { href: "/admin?tab=validation", label: "Validation", tab: "validation", isSubItem: true },
       { href: "/admin?tab=corrections", label: "Corrections", tab: "corrections", isSubItem: true },
@@ -120,20 +120,25 @@ function SidebarNav(): JSX.Element {
       }
       const { data, error } = await supabase
         .from("game_account_clan_memberships")
-        .select("clan_id,game_account_id,clans(name,is_unassigned),game_accounts(game_username)")
+        .select("clan_id,game_account_id,clans(name,is_unassigned),game_accounts(game_username,approval_status)")
         .eq("is_active", true)
         .eq("clans.is_unassigned", false);
       if (!isActive || error) {
         return;
       }
       const options =
-        data?.map((row) => ({
-          clanId: row.clan_id as string,
-          gameAccountId: row.game_account_id as string,
-          clanName: (row.clans as { name: string } | null)?.name ?? "Clan",
-          gameLabel:
-            (row.game_accounts as { game_username: string } | null)?.game_username ?? "Game account",
-        })) ?? [];
+        data
+          ?.filter((row) => {
+            const gameAccount = row.game_accounts as unknown as { game_username: string; approval_status: string } | null;
+            return gameAccount?.approval_status === "approved";
+          })
+          .map((row) => ({
+            clanId: row.clan_id as string,
+            gameAccountId: row.game_account_id as string,
+            clanName: (row.clans as unknown as { name: string } | null)?.name ?? "Clan",
+            gameLabel:
+              (row.game_accounts as unknown as { game_username: string } | null)?.game_username ?? "Game account",
+          })) ?? [];
       setClanOptions(options);
       const storedClanId = window.localStorage.getItem(CLAN_STORAGE_KEY) ?? "";
       const storedGameAccountId = window.localStorage.getItem(GAME_ACCOUNT_STORAGE_KEY) ?? "";

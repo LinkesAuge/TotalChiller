@@ -17,6 +17,13 @@ interface SettingsFormState {
   readonly passwordStatus: string;
 }
 
+interface NotificationPrefs {
+  readonly messages_enabled: boolean;
+  readonly news_enabled: boolean;
+  readonly events_enabled: boolean;
+  readonly system_enabled: boolean;
+}
+
 const initialSettingsState: SettingsFormState = {
   email: "",
   username: "",
@@ -36,6 +43,13 @@ function SettingsPage(): JSX.Element {
   const [formState, setFormState] = useState<SettingsFormState>(initialSettingsState);
   const [userId, setUserId] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>({
+    messages_enabled: true,
+    news_enabled: true,
+    events_enabled: true,
+    system_enabled: true,
+  });
+  const [notifStatus, setNotifStatus] = useState<string>("");
   const supabase = createSupabaseBrowserClient();
 
   function updateFormState(nextState: Partial<SettingsFormState>): void {
@@ -87,6 +101,13 @@ function SettingsPage(): JSX.Element {
           });
         }
         setIsAdmin(await getIsAdminAccess({ supabase }));
+        const notifRes = await fetch("/api/notification-settings");
+        if (notifRes.ok) {
+          const notifResult = await notifRes.json();
+          if (notifResult.data) {
+            setNotifPrefs(notifResult.data);
+          }
+        }
       }
     }
     void loadUser();
@@ -200,6 +221,24 @@ function SettingsPage(): JSX.Element {
       displayName: nextDisplayName,
       displayNameStatus: "Nickname updated successfully.",
     });
+  }
+
+  async function handleToggleNotification(key: keyof NotificationPrefs): Promise<void> {
+    const nextValue = !notifPrefs[key];
+    setNotifPrefs((current) => ({ ...current, [key]: nextValue }));
+    setNotifStatus("Saving...");
+    const response = await fetch("/api/notification-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [key]: nextValue }),
+    });
+    if (!response.ok) {
+      setNotifPrefs((current) => ({ ...current, [key]: !nextValue }));
+      setNotifStatus("Failed to save.");
+      return;
+    }
+    setNotifStatus("Saved.");
+    setTimeout(() => setNotifStatus(""), 2000);
   }
 
   return (
@@ -332,6 +371,61 @@ function SettingsPage(): JSX.Element {
               <p className="text-muted">{formState.passwordStatus}</p>
             ) : null}
           </form>
+        </section>
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <div className="card-title">Notification Preferences</div>
+              <div className="card-subtitle">Choose which notifications you receive</div>
+            </div>
+          </div>
+          <div className="list">
+            <div className="list-item">
+              <span>Messages</span>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={notifPrefs.messages_enabled}
+                  onChange={() => handleToggleNotification("messages_enabled")}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+            <div className="list-item">
+              <span>News</span>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={notifPrefs.news_enabled}
+                  onChange={() => handleToggleNotification("news_enabled")}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+            <div className="list-item">
+              <span>Events</span>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={notifPrefs.events_enabled}
+                  onChange={() => handleToggleNotification("events_enabled")}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+            <div className="list-item">
+              <span>System / Approvals</span>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={notifPrefs.system_enabled}
+                  onChange={() => handleToggleNotification("system_enabled")}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+          </div>
+          {notifStatus ? <p className="text-muted" style={{ padding: "0 18px 12px" }}>{notifStatus}</p> : null}
         </section>
       </div>
     </>

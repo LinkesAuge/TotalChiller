@@ -31,7 +31,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 ### Core Data Model (Outline)
 
 - **users**: profile, status, language.
-- **game_accounts**: per-user game accounts.
+- **game_accounts**: per-user game accounts with approval workflow (`approval_status`: pending/approved/rejected).
 - **game_account_clan_memberships**: clan membership per game account (rank, status).
 - **clans**: metadata.
 - **roles**: base permissions.
@@ -45,6 +45,9 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **clans**: global default flag (`is_default`).
 - **articles**: news/announcements per clan.
 - **events**: clan events.
+- **messages**: private messages, broadcasts, and system notifications (flat model, conversations derived by grouping sender/recipient).
+- **notifications**: unified notification feed (types: message, news, event, approval) with per-user read tracking.
+- **user_notification_settings**: per-user toggles for message, news, event, and system notification types.
 
 ## MVP Scope Recommendation
 
@@ -134,6 +137,9 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Default clan: `clans.is_default` + single‑default trigger.
 - `chest_entries` RLS: add `is_any_admin()` to SELECT and INSERT policies.
 - Global rules: make `clan_id` nullable on `validation_rules` and `correction_rules`, update RLS policies and index.
+- Game account approval: `Documentation/migrations/game_account_approval.sql` — adds `approval_status` column, RLS policy updates, approval trigger, and duplicate-prevention index.
+- Messaging system: `Documentation/migrations/messages.sql` — creates `messages` table with RLS policies, indexes, and type constraints.
+- Notification system: `Documentation/migrations/notifications.sql` — creates `notifications` and `user_notification_settings` tables with RLS policies and indexes.
 
 ## Data Import & Chest Database
 
@@ -152,7 +158,7 @@ Reference image: `Documentation/totalbattle_ui.png`
 
 - Admin user lookup by email via `app/api/admin/user-lookup`.
 - Validation + Correction rules are **global** (not clan-specific). Support create, edit, delete, import/export, selection, and sorting.
-- Admin tabs include Clans & Members, Users, Validation, Corrections, Audit Logs, Data Import, Chest Database.
+- Admin tabs include Clans & Members, Users, Validation, Corrections, Audit Logs, Approvals, Data Import, Chest Database.
 - Membership table now manages game accounts (game username, clan, rank, status).
 - Roles are assigned globally via `user_roles`.
 - Clan Management supports assign‑to‑clan modal and batch save/cancel.
@@ -200,9 +206,39 @@ Reference image: `Documentation/totalbattle_ui.png`
 - DatePicker component extended with `enableTime` prop for datetime support.
 - Page shells delegate fully to client components (removed non-functional header buttons).
 
+## Messaging System
+
+- Flat message model: `messages` table with `message_type` (`private`, `broadcast`, `system`).
+- Private messages: sender_id = user, recipient_id = user.
+- Broadcasts: sender_id = admin, one row per clan member, message_type = `broadcast`.
+- System notifications: sender_id = null, recipient_id = user, message_type = `system`. Sent on game account approval/rejection.
+- Conversations derived by grouping messages between two users (no separate conversation table).
+- Two-column UI: conversation list with search/filter, thread view with compose.
+- No real-time updates (messages load on page visit / manual refresh).
+- Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/broadcast/route.ts`.
+
+## Notification System
+
+- Unified bell icon in the top-right header widget (next to user avatar/menu).
+- DB-stored notifications: `notifications` table with types `message`, `news`, `event`, `approval`.
+- Fan-out: news/event creation triggers notifications to all clan members via `POST /api/notifications/fan-out`. Not admin-only; verifies caller is the `created_by` of the referenced record.
+- Messages, broadcasts, and approval actions also generate notifications server-side.
+- Dropdown panel shows recent notifications with type-specific icons, title, body preview, and relative timestamp.
+- "Mark all read" button and per-notification read tracking.
+- User notification preferences: `user_notification_settings` table with per-type toggles (messages, news, events, system/approvals).
+- Preferences managed both in the bell dropdown (inline gear icon with toggles) and on the Settings page; GET /api/notifications filters by user preferences.
+- Polls every 60s for updates (no WebSocket for MVP).
+- Files: `app/components/notification-bell.tsx`, `app/api/notifications/route.ts`, `app/api/notifications/[id]/route.ts`, `app/api/notifications/mark-all-read/route.ts`, `app/api/notifications/fan-out/route.ts`, `app/api/notification-settings/route.ts`.
+
+## Bug Fixes
+
+- **Clan Management**: Fixed init effect re-running on every clan selection change (caused the dropdown to snap back to the default clan). Removed `selectedClanId` from init deps so it runs once on mount.
+- **Clan Management**: Deleting a game account now refreshes the clan membership list.
+- **Clan Management**: Switching clans clears stale membership edits and errors; added race condition guards for concurrent fetches.
+- **RLS**: `clans` table was missing `enable row level security` — policies existed but had no effect. Run `alter table public.clans enable row level security;` to fix.
+
 ## Outstanding/Follow-up
 
 - Admin gating is enforced; review if permissions need tightening.
-- Decide messages data model (global per user) and build real UI.
 - Dashboard widgets (personal/clan stats summary cards).
 - i18n for UI strings (German/English).

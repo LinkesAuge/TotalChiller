@@ -177,13 +177,27 @@ function EventsClient(): JSX.Element {
       created_by: userId,
     };
     setIsSaving(true);
-    const { error } = editingId
-      ? await supabase.from("events").update(payload).eq("id", editingId)
-      : await supabase.from("events").insert(payload);
+    const isNewEvent = !editingId;
+    const { data: insertedData, error } = editingId
+      ? await supabase.from("events").update(payload).eq("id", editingId).select("id").maybeSingle()
+      : await supabase.from("events").insert(payload).select("id").single();
     setIsSaving(false);
     if (error) {
       pushToast(`Failed to save event: ${error.message}`);
       return;
+    }
+    if (isNewEvent && insertedData?.id) {
+      void fetch("/api/notifications/fan-out", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "event",
+          reference_id: insertedData.id as string,
+          clan_id: clanContext.clanId,
+          title: `New event: ${parsed.data.title}`,
+          body: parsed.data.description?.slice(0, 100) ?? null,
+        }),
+      });
     }
     pushToast(editingId ? "Event updated." : "Event created.");
     resetForm();

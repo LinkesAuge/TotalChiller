@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import createSupabaseServerClient from "../../lib/supabase/server-client";
 import DisplayNameEditor from "./display-name-editor";
+import GameAccountManager from "./game-account-manager";
 import AuthActions from "../components/auth-actions";
 
 interface UserProfileView {
@@ -20,6 +21,13 @@ interface MembershipView {
 interface ClanView {
   readonly id: string;
   readonly name: string;
+}
+
+interface GameAccountView {
+  readonly id: string;
+  readonly game_username: string;
+  readonly approval_status: string;
+  readonly created_at: string;
 }
 
 /**
@@ -79,6 +87,12 @@ async function ProfilePage(): Promise<JSX.Element> {
     .eq("is_active", true)
     .order("clan_id");
   const memberships = membershipData ?? [];
+  const { data: gameAccountData } = await supabase
+    .from("game_accounts")
+    .select("id,game_username,approval_status,created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  const gameAccounts = (gameAccountData ?? []) as readonly GameAccountView[];
   const { data: userRoleData } = await supabase
     .from("user_roles")
     .select("role")
@@ -156,6 +170,7 @@ async function ProfilePage(): Promise<JSX.Element> {
             initialDisplayName={userView.displayName}
           />
         </section>
+        <GameAccountManager userId={userId} initialAccounts={gameAccounts} />
         <section className="card">
           <div className="card-header">
             <div>

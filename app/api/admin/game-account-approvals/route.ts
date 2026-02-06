@@ -1,0 +1,159 @@
+import { NextResponse, type NextRequest } from "next/server";
+import createSupabaseServerClient from "../../../../lib/supabase/server-client";
+import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+
+interface ApprovalActionBody {
+  readonly game_account_id: string;
+  readonly action: "approve" | "reject";
+}
+
+/**
+ * PATCH /api/admin/game-account-approvals
+ * Allows admins to approve or reject a pending game account request.
+ */
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const supabase = await createSupabaseServerClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { data: isAdmin } = await supabase.rpc("is_any_admin");
+  if (!isAdmin) {
+    return NextResponse.json({ error: "Forbidden: admin access required." }, { status: 403 });
+  }
+  let body: ApprovalActionBody;
+  try {
+    body = (await request.json()) as ApprovalActionBody;
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  if (!body.game_account_id) {
+    return NextResponse.json({ error: "game_account_id is required." }, { status: 400 });
+  }
+  if (body.action !== "approve" && body.action !== "reject") {
+    return NextResponse.json({ error: "action must be 'approve' or 'reject'." }, { status: 400 });
+  }
+  const serviceClient = createSupabaseServiceRoleClient();
+  const { data: account, error: lookupError } = await serviceClient
+    .from("game_accounts")
+    .select("id,user_id,game_username,approval_status")
+    .eq("id", body.game_account_id)
+    .single();
+  if (lookupError || !account) {
+    return NextResponse.json({ error: "Game account not found." }, { status: 404 });
+  }
+  if (account.approval_status !== "pending") {
+    return NextResponse.json(
+      { error: `Cannot ${body.action} an account that is already ${account.approval_status}.` },
+      { status: 409 },
+    );
+  }
+  const gameUsername = account.game_username as string;
+  const accountUserId = account.user_id as string;
+  if (body.action === "approve") {
+    const { error: updateError } = await serviceClient
+      .from("game_accounts")
+      .update({ approval_status: "approved" })
+      .eq("id", body.game_account_id);
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+    await serviceClient.from("messages").insert({
+      sender_id: null,
+      recipient_id: accountUserId,
+      message_type: "system",
+      subject: "Game Account Approved",
+      content: `Your game account "${gameUsername}" has been approved. You can now be assigned to a clan.`,
+    });
+    await serviceClient.from("notifications").insert({
+      user_id: accountUserId,
+      type: "approval",
+      title: "Game Account Approved",
+      body: `Your game account "${gameUsername}" has been approved.`,
+      reference_id: body.game_account_id,
+    });
+    return NextResponse.json({ data: { id: body.game_account_id, approval_status: "approved" } });
+  }
+  await serviceClient.from("messages").insert({
+    sender_id: null,
+    recipient_id: accountUserId,
+    message_type: "system",
+    subject: "Game Account Rejected",
+    content: `Your game account request for "${gameUsername}" has been rejected. You may try again with a different game account.`,
+  });
+  await serviceClient.from("notifications").insert({
+    user_id: accountUserId,
+    type: "approval",
+    title: "Game Account Rejected",
+    body: `Your request for "${gameUsername}" has been rejected.`,
+    reference_id: body.game_account_id,
+  });
+  const { error: deleteError } = await serviceClient
+    .from("game_accounts")
+    .delete()
+    .eq("id", body.game_account_id);
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+  return NextResponse.json({ data: { id: body.game_account_id, approval_status: "rejected", deleted: true } });
+}
+
+interface PendingAccountWithProfile {
+  readonly id: string;
+  readonly user_id: string;
+  readonly game_username: string;
+  readonly approval_status: string;
+  readonly created_at: string;
+  readonly profiles: { readonly email: string; readonly username: string | null; readonly display_name: string | null } | null;
+}
+
+/**
+ * GET /api/admin/game-account-approvals
+ * Returns all pending game account requests for admin review.
+ */
+export async function GET(): Promise<NextResponse> {
+  const supabase = await createSupabaseServerClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { data: isAdmin } = await supabase.rpc("is_any_admin");
+  if (!isAdmin) {
+    return NextResponse.json({ error: "Forbidden: admin access required." }, { status: 403 });
+  }
+  const serviceClient = createSupabaseServiceRoleClient();
+  const { data: pendingAccounts, error: fetchError } = await serviceClient
+    .from("game_accounts")
+    .select("id,user_id,game_username,approval_status,created_at")
+    .eq("approval_status", "pending")
+    .order("created_at", { ascending: true });
+  if (fetchError) {
+    return NextResponse.json({ error: fetchError.message }, { status: 500 });
+  }
+  const accounts = pendingAccounts ?? [];
+  const userIds = Array.from(new Set(accounts.map((account) => account.user_id as string)));
+  let profilesById: Record<string, { email: string; username: string | null; display_name: string | null }> = {};
+  if (userIds.length > 0) {
+    const { data: profileData } = await serviceClient
+      .from("profiles")
+      .select("id,email,username,display_name")
+      .in("id", userIds);
+    profilesById = (profileData ?? []).reduce<typeof profilesById>((acc, profile) => {
+      acc[profile.id as string] = {
+        email: profile.email as string,
+        username: profile.username as string | null,
+        display_name: profile.display_name as string | null,
+      };
+      return acc;
+    }, {});
+  }
+  const result: readonly PendingAccountWithProfile[] = accounts.map((account) => ({
+    id: account.id as string,
+    user_id: account.user_id as string,
+    game_username: account.game_username as string,
+    approval_status: account.approval_status as string,
+    created_at: account.created_at as string,
+    profiles: profilesById[account.user_id as string] ?? null,
+  }));
+  return NextResponse.json({ data: result });
+}

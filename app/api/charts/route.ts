@@ -95,7 +95,8 @@ export async function GET(request: Request): Promise<Response> {
     const { data: allAccounts } = await supabase
       .from("game_accounts")
       .select("game_username")
-      .eq("user_id", userData.user.id);
+      .eq("user_id", userData.user.id)
+      .eq("approval_status", "approved");
     personalUsernames = (allAccounts ?? []).map(
       (a) => (a as GameAccountRow).game_username.toLowerCase()
     );

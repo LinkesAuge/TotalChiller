@@ -22,6 +22,7 @@ interface GameAccountRow {
   readonly id: string;
   readonly user_id: string;
   readonly game_username: string;
+  readonly approval_status?: string;
 }
 
 interface MembershipRow {
@@ -57,6 +58,15 @@ interface ProfileRow {
   readonly email: string;
   readonly display_name: string | null;
   readonly username: string | null;
+}
+
+interface PendingApprovalRow {
+  readonly id: string;
+  readonly user_id: string;
+  readonly game_username: string;
+  readonly approval_status: string;
+  readonly created_at: string;
+  readonly profiles: { readonly email: string; readonly username: string | null; readonly display_name: string | null } | null;
 }
 
 type MemberSortKey = "game" | "user" | "clan" | "rank" | "status";
@@ -244,7 +254,10 @@ function AdminClient(): JSX.Element {
   const [scoringScore, setScoringScore] = useState<string>("");
   const [scoringOrder, setScoringOrder] = useState<string>("1");
   const [scoringEditingId, setScoringEditingId] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"clans" | "validation" | "corrections" | "logs" | "users">("clans");
+  const [activeSection, setActiveSection] = useState<"clans" | "validation" | "corrections" | "logs" | "users" | "approvals">("clans");
+  const [pendingApprovals, setPendingApprovals] = useState<readonly PendingApprovalRow[]>([]);
+  const [approvalStatus, setApprovalStatus] = useState<string>("");
+  const [isApprovalsLoading, setIsApprovalsLoading] = useState<boolean>(false);
   const [isClanModalOpen, setIsClanModalOpen] = useState<boolean>(false);
   const [clanModalMode, setClanModalMode] = useState<"create" | "edit">("create");
   const [clanModalName, setClanModalName] = useState<string>("");
@@ -865,8 +878,8 @@ function AdminClient(): JSX.Element {
     return sorted;
   }, [filteredUserRows, getUserSortValue, userSortDirection]);
 
-  function resolveSection(value: string | null): "clans" | "validation" | "corrections" | "logs" | "users" {
-    if (value === "validation" || value === "corrections" || value === "logs" || value === "users") {
+  function resolveSection(value: string | null): "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" {
+    if (value === "validation" || value === "corrections" || value === "logs" || value === "users" || value === "approvals") {
       return value;
     }
     if (value === "rules") {
@@ -875,7 +888,7 @@ function AdminClient(): JSX.Element {
     return "clans";
   }
 
-  function updateActiveSection(nextSection: "clans" | "validation" | "corrections" | "logs" | "users"): void {
+  function updateActiveSection(nextSection: "clans" | "validation" | "corrections" | "logs" | "users" | "approvals"): void {
     setActiveSection(nextSection);
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", nextSection);
@@ -1081,7 +1094,8 @@ function AdminClient(): JSX.Element {
     }
     const { data: accountData, error: accountError } = await supabase
       .from("game_accounts")
-      .select("id,user_id,game_username")
+      .select("id,user_id,game_username,approval_status")
+      .eq("approval_status", "approved")
       .order("game_username");
     if (accountError) {
       setAssignStatus(`Failed to load game accounts: ${accountError.message}`);
@@ -1171,7 +1185,7 @@ function AdminClient(): JSX.Element {
     setUserRolesById(roleMap);
     const { data: gameAccountData, error: gameAccountError } = await supabase
       .from("game_accounts")
-      .select("id,user_id,game_username")
+      .select("id,user_id,game_username,approval_status")
       .in("user_id", userIds)
       .order("game_username");
     if (gameAccountError) {
@@ -1377,6 +1391,27 @@ function AdminClient(): JSX.Element {
     await loadUsers();
   }
 
+  async function handleApprovalAction(gameAccountId: string, action: "approve" | "reject"): Promise<void> {
+    setApprovalStatus(action === "approve" ? "Approving..." : "Rejecting...");
+    try {
+      const response = await fetch("/api/admin/game-account-approvals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game_account_id: gameAccountId, action }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setApprovalStatus(result.error ?? `Failed to ${action} account.`);
+        return;
+      }
+      setPendingApprovals((current) => current.filter((item) => item.id !== gameAccountId));
+      setApprovalStatus(action === "approve" ? "Game account approved." : "Game account rejected.");
+      pushToast(action === "approve" ? "Game account approved" : "Game account rejected");
+    } catch {
+      setApprovalStatus(`Network error during ${action}.`);
+    }
+  }
+
   function openGameAccountDeleteConfirm(account: GameAccountRow): void {
     setGameAccountToDelete(account);
     setIsGameAccountDeleteConfirmOpen(true);
@@ -1417,6 +1452,9 @@ function AdminClient(): JSX.Element {
     closeGameAccountDeleteInput();
     setUserStatus("Game account deleted.");
     await loadUsers();
+    if (selectedClanId) {
+      await loadMemberships(selectedClanId);
+    }
   }
 
   async function handleSaveAllUserEdits(): Promise<void> {
@@ -1807,6 +1845,9 @@ function AdminClient(): JSX.Element {
     }
     setUserStatus("Game account deleted.");
     await loadUsers();
+    if (selectedClanId) {
+      await loadMemberships(selectedClanId);
+    }
   }
 
   useEffect(() => {
@@ -1823,7 +1864,7 @@ function AdminClient(): JSX.Element {
       setClans(clanRows);
       const unassignedClan = clanRows.find((clan) => clan.is_unassigned);
       setUnassignedClanId(unassignedClan?.id ?? "");
-      if (!selectedClanId && clanRows.length > 0) {
+      if (clanRows.length > 0) {
         const storedClanId = window.localStorage.getItem("tc.currentClanId") ?? "";
         const matchedClan = storedClanId ? clanRows.find((clan) => clan.id === storedClanId) : undefined;
         setSelectedClanId(matchedClan?.id ?? clanRows[0].id);
@@ -1836,9 +1877,20 @@ function AdminClient(): JSX.Element {
       setDefaultClanId(defaultClan?.id ?? "");
       const { data: authData } = await supabase.auth.getUser();
       setCurrentUserId(authData.user?.id ?? "");
+      await loadRules();
+      try {
+        const approvalResponse = await fetch("/api/admin/game-account-approvals");
+        if (approvalResponse.ok) {
+          const approvalResult = await approvalResponse.json();
+          setPendingApprovals(approvalResult.data ?? []);
+        }
+      } catch {
+        /* ignore fetch failure for badge count */
+      }
     }
     void initializeAdmin();
-  }, [selectedClanId, supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
 
   useEffect(() => {
     const rawTab = searchParams.get("tab");
@@ -1858,8 +1910,10 @@ function AdminClient(): JSX.Element {
   }, [pushToast, status]);
 
   useEffect(() => {
+    let isActive = true;
+    setMembershipEdits({});
+    setMembershipErrors({});
     async function loadClanData(): Promise<void> {
-      await loadRules();
       if (!selectedClanId) {
         setMemberships([]);
         setProfilesById({});
@@ -1867,6 +1921,9 @@ function AdminClient(): JSX.Element {
       }
       if (selectedClanId === unassignedClanId) {
         const { error: unassignedError } = await supabase.rpc("ensure_unassigned_memberships");
+        if (!isActive) {
+          return;
+        }
         if (unassignedError) {
           setStatus(`Failed to sync unassigned accounts: ${unassignedError.message}`);
         }
@@ -1876,6 +1933,9 @@ function AdminClient(): JSX.Element {
         .select("id,clan_id,game_account_id,is_active,rank,game_accounts(id,user_id,game_username)")
         .eq("clan_id", selectedClanId)
         .order("game_account_id");
+      if (!isActive) {
+        return;
+      }
       if (membershipError) {
         setStatus(`Failed to load memberships: ${membershipError.message}`);
         return;
@@ -1892,6 +1952,9 @@ function AdminClient(): JSX.Element {
           .from("profiles")
           .select("id,email,display_name,username")
           .in("id", userIds);
+        if (!isActive) {
+          return;
+        }
         if (profileError) {
           setStatus(`Failed to load profiles: ${profileError.message}`);
           return;
@@ -1905,6 +1968,9 @@ function AdminClient(): JSX.Element {
           .from("user_roles")
           .select("user_id,role")
           .in("user_id", userIds);
+        if (!isActive) {
+          return;
+        }
         if (roleError) {
           setStatus(`Failed to load user roles: ${roleError.message}`);
           return;
@@ -1917,6 +1983,9 @@ function AdminClient(): JSX.Element {
       }
     }
     void loadClanData();
+    return () => {
+      isActive = false;
+    };
   }, [selectedClanId, supabase, unassignedClanId]);
 
   useEffect(() => {
@@ -1962,7 +2031,7 @@ function AdminClient(): JSX.Element {
       setUserRolesById(roleMap);
       const { data: gameAccountData, error: gameAccountError } = await supabase
         .from("game_accounts")
-        .select("id,user_id,game_username")
+        .select("id,user_id,game_username,approval_status")
         .in("user_id", userIds)
         .order("game_username");
       if (gameAccountError) {
@@ -2089,6 +2158,28 @@ function AdminClient(): JSX.Element {
   useEffect(() => {
     setAuditPage(1);
   }, [auditActionFilter, auditActorFilter, auditClanFilter, auditEntityFilter, auditSearch]);
+
+  useEffect(() => {
+    async function loadApprovals(): Promise<void> {
+      if (activeSection !== "approvals") {
+        return;
+      }
+      setIsApprovalsLoading(true);
+      try {
+        const response = await fetch("/api/admin/game-account-approvals");
+        if (response.ok) {
+          const result = await response.json();
+          setPendingApprovals(result.data ?? []);
+        } else {
+          setApprovalStatus("Failed to load pending approvals.");
+        }
+      } catch {
+        setApprovalStatus("Network error loading approvals.");
+      }
+      setIsApprovalsLoading(false);
+    }
+    void loadApprovals();
+  }, [activeSection]);
 
   useEffect(() => {
     if (clans.length === 0) {
@@ -3388,6 +3479,13 @@ function AdminClient(): JSX.Element {
             Clan Management
           </button>
           <button
+            className={`tab ${activeSection === "approvals" ? "active" : ""}`}
+            type="button"
+            onClick={() => updateActiveSection("approvals")}
+          >
+            Approvals{pendingApprovals.length > 0 ? ` (${pendingApprovals.length})` : ""}
+          </button>
+          <button
             className={`tab ${activeSection === "users" ? "active" : ""}`}
             type="button"
             onClick={() => updateActiveSection("users")}
@@ -4136,7 +4234,7 @@ function AdminClient(): JSX.Element {
                                   <div className="row" key={account.id}>
                                     <span className="text-muted">{index + 1}</span>
                                     <div>
-                                      <div>{account.game_username}</div>
+                                      <div>{account.game_username}{account.approval_status && account.approval_status !== "approved" ? (<span className={`badge ${account.approval_status === "pending" ? "warning" : "danger"}`} style={{ marginLeft: "0.5rem", fontSize: "0.75em" }}>{account.approval_status}</span>) : null}</div>
                                     </div>
                                     <div>
                                       <div>{user.email}</div>
@@ -5175,6 +5273,81 @@ function AdminClient(): JSX.Element {
             ))
           )}
         </div>
+      </section>
+      ) : null}
+      {activeSection === "approvals" ? (
+      <section className="card" style={{ gridColumn: "span 12" }}>
+        <div className="card-header">
+          <div>
+            <div className="card-title">Game Account Approvals</div>
+            <div className="card-subtitle">Review pending game account requests from users</div>
+          </div>
+          <span className="badge">{pendingApprovals.length} pending</span>
+        </div>
+        {approvalStatus ? <div className="alert info">{approvalStatus}</div> : null}
+        {isApprovalsLoading ? (
+          <div className="list">
+            <div className="list-item">
+              <span className="text-muted">Loading pending approvals...</span>
+            </div>
+          </div>
+        ) : pendingApprovals.length === 0 ? (
+          <div className="list">
+            <div className="list-item">
+              <span>No pending requests</span>
+              <span className="badge">All clear</span>
+            </div>
+          </div>
+        ) : (
+          <TableScroll>
+            <div className="table approvals-list">
+              <header>
+                <span>#</span>
+                <span>Game Username</span>
+                <span>User</span>
+                <span>Email</span>
+                <span>Requested</span>
+                <span>Actions</span>
+              </header>
+              {pendingApprovals.map((approval, index) => (
+                <div className="row" key={approval.id}>
+                  <span className="text-muted">{index + 1}</span>
+                  <div>
+                    <strong>{approval.game_username}</strong>
+                  </div>
+                  <div>
+                    <div>{approval.profiles?.display_name ?? approval.profiles?.username ?? "Unknown"}</div>
+                    {approval.profiles?.username && approval.profiles?.display_name ? (
+                      <div className="text-muted">{approval.profiles.username}</div>
+                    ) : null}
+                  </div>
+                  <div>
+                    <span className="text-muted">{approval.profiles?.email ?? "Unknown"}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted">{formatGermanDateTime(approval.created_at)}</span>
+                  </div>
+                  <div className="list inline" style={{ gap: "8px", flexWrap: "nowrap" }}>
+                    <button
+                      className="button primary"
+                      type="button"
+                      onClick={() => handleApprovalAction(approval.id, "approve")}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="button danger"
+                      type="button"
+                      onClick={() => handleApprovalAction(approval.id, "reject")}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TableScroll>
+        )}
       </section>
       ) : null}
       {isCorrectionDeleteConfirmOpen ? (

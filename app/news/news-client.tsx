@@ -178,13 +178,27 @@ function NewsClient(): JSX.Element {
       created_by: userId,
     };
     setIsSaving(true);
-    const { error } = editingId
-      ? await supabase.from("articles").update(payload).eq("id", editingId)
-      : await supabase.from("articles").insert(payload);
+    const isNewPost = !editingId;
+    const { data: insertedData, error } = editingId
+      ? await supabase.from("articles").update(payload).eq("id", editingId).select("id").maybeSingle()
+      : await supabase.from("articles").insert(payload).select("id").single();
     setIsSaving(false);
     if (error) {
       pushToast(`Failed to save post: ${error.message}`);
       return;
+    }
+    if (isNewPost && insertedData?.id) {
+      void fetch("/api/notifications/fan-out", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "news",
+          reference_id: insertedData.id as string,
+          clan_id: clanContext.clanId,
+          title: `New post: ${parsed.data.title}`,
+          body: parsed.data.content.slice(0, 100),
+        }),
+      });
     }
     pushToast(editingId ? "Post updated." : "Post created.");
     resetForm();

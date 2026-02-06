@@ -8,11 +8,23 @@ This file is a compact context transfer for a new chat.
   - `app/layout.tsx`, `app/globals.css`, `app/page.tsx`
 - **Auth** (login/register/forgot/update) wired to Supabase Auth.
 - **Profile + Settings**
-  - `/profile` shows user info + game-account memberships.
-  - `/settings` allows email/password update.
+  - `/profile` shows user info, game accounts (with approval status), and clan memberships.
+  - Users can request new game accounts from the profile page (pending admin approval).
+  - `/settings` allows email/password update and notification preference toggles.
 - **Core model shift**: `user → game_account → clan`.
   - New tables: `game_accounts`, `game_account_clan_memberships`.
   - RLS updated to use game-account memberships.
+- **Game Account Approval System**
+  - `game_accounts.approval_status` column: `pending`, `approved`, `rejected`.
+  - Users can self-request game accounts (created with `pending` status via `/api/game-accounts`).
+  - Admins approve/reject via `/api/admin/game-account-approvals`.
+  - RLS enforces non-admins can only insert `pending` accounts; trigger prevents non-admins from changing `approval_status`.
+  - Duplicate detection: case-insensitive unique index on `game_username` for `pending`/`approved` accounts.
+  - Only approved accounts appear in clan context selector and charts.
+  - Migration: `Documentation/migrations/game_account_approval.sql`
+  - On rejection: the game account row is deleted and a system notification is sent instead.
+  - On approval: a system notification is sent to the user.
+  - Files: `app/api/game-accounts/route.ts`, `app/api/admin/game-account-approvals/route.ts`, `app/profile/game-account-manager.tsx`
 - **Clan context selector**
   - Sidebar dropdown selects current clan + game account (custom Radix select).
   - Stored in `localStorage`; `ClanScopeBanner` shows current context.
@@ -22,12 +34,13 @@ This file is a compact context transfer for a new chat.
   - Admin toggle + safeguard to keep at least one admin.
   - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
 - **Admin UI**
-  - Tabs: Clan Management, Users, Validation, Corrections, Audit Logs, Data Import, Chest Database.
+  - Tabs: Clan Management, Users, Validation, Corrections, Audit Logs, Approvals, Data Import, Chest Database.
   - Clan Management manages **game accounts** (not users) and supports assign‑to‑clan modal.
-  - Users tab supports search/filters, inline edits, add game accounts, create users (invite), delete users.
+  - Users tab supports search/filters, inline edits, add game accounts, create users (invite), delete users. Game account status badges (pending/rejected) shown inline.
+  - Approvals tab: review and approve/reject pending game account requests from users. Shows requester info, game username, and request date.
   - Global save/cancel applies to user + game account edits.
   - Validation + Correction rules are **global** (not clan-specific). Support: sorting, selection, batch delete, import/export, active/inactive status (corrections).
-  - Files: `app/admin/admin-client.tsx`, `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`
+  - Files: `app/admin/admin-client.tsx`, `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`, `app/api/admin/game-account-approvals/route.ts`
 - **Data import (Pattern 1)**
   - Creates missing clans and commits chest data via an admin API endpoint.
   - Does not validate players against game accounts on import.
@@ -60,6 +73,27 @@ This file is a compact context transfer for a new chat.
   - Player-to-game-account linking via case-insensitive string match (`LOWER(player) = LOWER(game_username)`).
   - API route `/api/charts` fetches and aggregates `chest_entries` server-side (RLS-enforced).
   - Files: `app/charts/charts-client.tsx`, `app/charts/chart-components.tsx`, `app/charts/chart-types.ts`, `app/api/charts/route.ts`
+- **Messaging System**
+  - Full inbox with private messages, admin clan broadcasts, and system notifications.
+  - Flat message model: `messages` table with `sender_id`, `recipient_id`, `message_type` (`private`/`broadcast`/`system`).
+  - Two-column layout: conversation list (left) with search/filter, thread view (right) with compose.
+  - Admin-only "Broadcast" button sends to all active clan members.
+  - System messages sent automatically on game account approval/rejection.
+  - RLS enforces users can only see their own messages; service role inserts system messages.
+  - Migration: `Documentation/migrations/messages.sql`
+  - Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/broadcast/route.ts`
+- **Notification System**
+  - Unified bell icon in the top-right header (next to user menu) with unread count badge and dropdown.
+  - DB-stored notifications: `notifications` table with types `message`, `news`, `event`, `approval`.
+  - Fan-out: news/event creation triggers notifications to all clan members via `/api/notifications/fan-out`.
+  - Messages, broadcasts, and approval actions also generate notifications server-side.
+  - Dropdown shows recent notifications with type icons, title, time ago, and click-to-navigate.
+  - "Mark all read" action and per-notification read tracking.
+  - User notification preferences: `user_notification_settings` table with per-type toggles (messages, news, events, system).
+  - Preferences managed both in the bell dropdown (inline gear icon with toggles) and on `/settings` page.
+  - Polls every 60s for new notifications (no WebSocket).
+  - Migration: `Documentation/migrations/notifications.sql`
+  - Files: `app/components/notification-bell.tsx`, `app/api/notifications/route.ts`, `app/api/notifications/[id]/route.ts`, `app/api/notifications/mark-all-read/route.ts`, `app/api/notifications/fan-out/route.ts`, `app/api/notification-settings/route.ts`
 - **Audit logs**
   - Pagination + filters (action/entity/actor + clan).
 - **Toasts**
@@ -86,6 +120,8 @@ This file is a compact context transfer for a new chat.
 - Radix select trigger keeps icon inside on small screens.
 - Removed hover effects from non-interactive containers (cards/rows/lists).
 - Added row numbers to tables and standardized pagination placement.
+- **Clan Management fixes**: clan switching now works correctly (init effect no longer re-runs on every selection change); deleting a game account refreshes the membership list; edit state is cleared when switching clans; race condition guards added for concurrent fetches.
+- **Navigation**: Messages link moved from sidebar to user menu dropdown. Notification bell with unread badge replaces the old sidebar unread count.
 - **Linting**
   - ESLint configured with Next.js flat config.
   - Run `npx eslint .`
@@ -123,6 +159,15 @@ Run these if the base SQL has not been run or if upgrades were applied increment
    - `rank` column on `game_account_clan_memberships`.
 4. **Global default clan**
    - `clans.is_default` column + single‑default trigger.
+5. **Game account approval system**
+   - Run `Documentation/migrations/game_account_approval.sql`.
+   - Adds `approval_status` column, check constraint, index, updated RLS policies, and approval trigger.
+6. **Messaging system**
+   - Run `Documentation/migrations/messages.sql`.
+   - Creates `messages` table with RLS policies, indexes, and type constraints.
+7. **Notification system** (NEW)
+   - Run `Documentation/migrations/notifications.sql`.
+   - Creates `notifications` and `user_notification_settings` tables with RLS policies and indexes.
 
 ## Required Env
 
@@ -136,11 +181,9 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Remaining TODOs (Suggested Next Steps)
 
-1. **Messages**
-   - Decide data model (global per user) and build real UI.
-2. **Dashboard widgets**
+1. **Dashboard widgets**
    - Add personal/clan stats summary cards to the member dashboard.
-3. **i18n**
+2. **i18n**
    - Add German/English translations for UI strings.
 
 ## Known Behaviors
@@ -158,6 +201,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 - `clans.is_default` column + single‑default trigger.
 - `rank` column on `game_account_clan_memberships`.
 - `chest_entries` RLS: add `is_any_admin()` to SELECT and INSERT policies (see migration below).
+- **Enable RLS on `clans` table**: `alter table public.clans enable row level security;` (policies exist but RLS was never enabled).
 
 ## chest_entries RLS admin fix (run in Supabase SQL Editor)
 

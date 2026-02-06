@@ -537,6 +537,7 @@ create index if not exists events_clan_idx on public.events (clan_id);
 create index if not exists events_starts_at_idx on public.events (starts_at);
 
 alter table public.chest_entries enable row level security;
+alter table public.clans enable row level security;
 -- Legacy: clan_memberships replaced by game_account_clan_memberships
 alter table public.profiles enable row level security;
 alter table public.user_roles enable row level security;

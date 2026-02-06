@@ -8,17 +8,24 @@ import AdminSectionTabs from "../admin-section-tabs";
 function AdminDataImportPage(): JSX.Element {
   return (
     <>
-      <section className="header header-inline">
-        <div className="title">Admin • Data Import</div>
-        <div className="actions">
-          <span className="badge">Data Import</span>
-          <AuthActions />
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">The Chillers &bull; Command &bull; Data Import</div>
+            <h1 className="top-bar-title">Data Import</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AuthActions />
+          </div>
         </div>
-      </section>
-      <div className="admin-tabs-container">
-        <AdminSectionTabs />
       </div>
-      <DataImportClient />
+      <div className="content-inner">
+        <div className="admin-tabs-container">
+          <AdminSectionTabs />
+        </div>
+        <DataImportClient />
+      </div>
     </>
   );
 }

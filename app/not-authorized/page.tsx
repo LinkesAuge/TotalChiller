@@ -7,15 +7,20 @@ import AuthActions from "../components/auth-actions";
 function NotAuthorizedPage(): JSX.Element {
   return (
     <>
-      <section className="header header-inline">
-        <div className="title">Not Authorized</div>
-        <div className="actions">
-          <span className="badge">Admin Access</span>
-          <AuthActions />
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <h1 className="top-bar-title">Not Authorized</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AuthActions />
+          </div>
         </div>
-      </section>
+      </div>
+      <div className="content-inner">
       <div className="grid">
-        <div className="alert warn" style={{ gridColumn: "span 12" }}>
+        <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
           You do not have permission to view this page. Contact a clan owner or admin if you need access.
         </div>
         <section className="card">
@@ -37,6 +42,7 @@ function NotAuthorizedPage(): JSX.Element {
             </Link>
           </div>
         </section>
+      </div>
       </div>
     </>
   );

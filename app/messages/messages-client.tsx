@@ -450,7 +450,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
           )}
         </section>
       </div>
-      <div style={{ gridColumn: "span 12", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+      <div style={{ gridColumn: "1 / -1", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
         <button className="button" type="button" onClick={() => { setIsComposeOpen(!isComposeOpen); setIsBroadcastOpen(false); }}>
           {isComposeOpen ? "Cancel" : "New Message"}
         </button>
@@ -461,7 +461,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         ) : null}
       </div>
       {isComposeOpen ? (
-        <section className="card" style={{ gridColumn: "span 12" }}>
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
           <div className="card-header">
             <div>
               <div className="card-title">New Message</div>
@@ -511,7 +511,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         </section>
       ) : null}
       {isBroadcastOpen ? (
-        <section className="card" style={{ gridColumn: "span 12" }}>
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
           <div className="card-header">
             <div>
               <div className="card-title">Broadcast</div>

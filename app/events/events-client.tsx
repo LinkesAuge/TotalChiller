@@ -226,7 +226,7 @@ function EventsClient(): JSX.Element {
         className="card"
         key={entry.id}
         style={{
-          gridColumn: "span 12",
+          gridColumn: "1 / -1",
           opacity: isPast ? 0.6 : 1,
         }}
       >
@@ -259,25 +259,32 @@ function EventsClient(): JSX.Element {
 
   return (
     <>
-      {/* ── Header ── */}
-      <section className="header header-inline">
-        <div className="title">Clan Events</div>
-        <div className="actions">
-          {!isFormOpen && (
-            <button className="button primary" type="button" onClick={handleOpenCreate}>
-              Create Event
-            </button>
-          )}
-          <AuthActions />
+      {/* ── Top Bar ── */}
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">The Chillers &bull; Events</div>
+            <h1 className="top-bar-title">Clan Events</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {!isFormOpen && (
+              <button className="button primary" type="button" onClick={handleOpenCreate}>
+                Create Event
+              </button>
+            )}
+            <AuthActions />
+          </div>
         </div>
-      </section>
+      </div>
 
+      <div className="content-inner">
       <div className="grid">
         <ClanScopeBanner />
 
         {/* ── Create / Edit Form (collapsible) ── */}
         {isFormOpen && (
-          <section className="card" style={{ gridColumn: "span 12" }}>
+          <section className="card" style={{ gridColumn: "1 / -1" }}>
             <div className="card-header">
               <div>
                 <div className="card-title">{editingId ? "Edit Event" : "Create Event"}</div>
@@ -337,14 +344,14 @@ function EventsClient(): JSX.Element {
 
         {/* ── Loading ── */}
         {isLoading && (
-          <div className="alert info loading" style={{ gridColumn: "span 12" }}>
+          <div className="alert info loading" style={{ gridColumn: "1 / -1" }}>
             Loading events…
           </div>
         )}
 
         {/* ── Empty state ── */}
         {!isLoading && events.length === 0 && (
-          <section className="card" style={{ gridColumn: "span 12" }}>
+          <section className="card" style={{ gridColumn: "1 / -1" }}>
             <div className="card-header">
               <div>
                 <div className="card-title">No events yet</div>
@@ -357,7 +364,7 @@ function EventsClient(): JSX.Element {
         {/* ── Upcoming events ── */}
         {!isLoading && upcomingEvents.length > 0 && (
           <>
-            <div className="card-title" style={{ gridColumn: "span 12" }}>
+            <div className="card-title" style={{ gridColumn: "1 / -1" }}>
               Upcoming Events ({upcomingEvents.length})
             </div>
             {upcomingEvents.map((entry) => renderEventCard(entry, false))}
@@ -367,7 +374,7 @@ function EventsClient(): JSX.Element {
         {/* ── Past events (collapsible) ── */}
         {!isLoading && pastEvents.length > 0 && (
           <>
-            <div style={{ gridColumn: "span 12", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 12 }}>
               <span className="card-title" style={{ color: "var(--color-text-2)" }}>
                 Past Events ({pastEvents.length})
               </span>
@@ -383,6 +390,7 @@ function EventsClient(): JSX.Element {
             {isPastExpanded && pastEvents.map((entry) => renderEventCard(entry, true))}
           </>
         )}
+      </div>
       </div>
     </>
   );

@@ -23,6 +23,7 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/home") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/not-authorized") ||
+    pathname.startsWith("/redesign") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico")
   );

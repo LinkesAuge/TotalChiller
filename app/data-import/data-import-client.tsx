@@ -1149,24 +1149,26 @@ function DataImportClient(): JSX.Element {
     <>
       <div className="grid">
         <section className="card">
-        <div className="card-header">
-          <div>
-            <div className="card-title">Upload CSV</div>
-            <div className="card-subtitle">DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN</div>
+          <div className="card-header">
+            <div>
+              <div className="card-title">Upload CSV</div>
+              <div className="card-subtitle">DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN</div>
+            </div>
           </div>
-        </div>
-        <div className="form-group">
-          <label htmlFor="csvFile">CSV File</label>
-          <input id="csvFile" ref={fileInputRef} type="file" accept=".csv,.txt" onChange={handleFileChange} />
-        </div>
-        <div className="list">
-          <div className="list-item">
-            <span>Filename</span>
-            <span className="badge">{fileName || "No file selected"}</span>
+          <div className="card-body">
+            <div className="form-group">
+              <label htmlFor="csvFile">CSV File</label>
+              <input id="csvFile" ref={fileInputRef} type="file" accept=".csv,.txt" onChange={handleFileChange} />
+            </div>
+            <div className="list">
+              <div className="list-item">
+                <span>Filename</span>
+                <span className="badge">{fileName || "No file selected"}</span>
+              </div>
+            </div>
+            {statusMessage ? <p className="text-muted">{statusMessage}</p> : null}
+            {commitStatus ? <p className="text-muted">{commitStatus}</p> : null}
           </div>
-        </div>
-        {statusMessage ? <p className="text-muted">{statusMessage}</p> : null}
-          {commitStatus ? <p className="text-muted">{commitStatus}</p> : null}
         </section>
         <section className="card">
           <div className="card-header">
@@ -1432,7 +1434,7 @@ function DataImportClient(): JSX.Element {
             </label>
           </div>
         </div>
-        <div className="pagination-bar table-pagination" style={{ gridColumn: "span 12" }}>
+        <div className="pagination-bar table-pagination" style={{ gridColumn: "1 / -1" }}>
           <div className="pagination-page-size">
             <label htmlFor="importPageSize" className="text-muted">
               Page size

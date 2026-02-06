@@ -16,13 +16,21 @@ async function MessagesPage(): Promise<JSX.Element> {
   }
   return (
     <>
-      <section className="header header-inline">
-        <div className="title">Messages</div>
-        <div className="actions">
-          <AuthActions />
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">The Chillers &bull; Communication</div>
+            <h1 className="top-bar-title">Messages</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AuthActions />
+          </div>
         </div>
-      </section>
-      <MessagesClient userId={data.user.id} />
+      </div>
+      <div className="content-inner">
+        <MessagesClient userId={data.user.id} />
+      </div>
     </>
   );
 }

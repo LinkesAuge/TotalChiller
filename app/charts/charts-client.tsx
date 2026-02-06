@@ -122,19 +122,26 @@ function ChartsClient(): JSX.Element {
 
   return (
     <>
-      {/* Header */}
-      <section className="header header-inline">
-        <div className="title">Charts & Stats</div>
-        <div className="actions">
-          <AuthActions />
+      {/* Top Bar */}
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">The Chillers &bull; Intelligence</div>
+            <h1 className="top-bar-title">Charts &amp; Stats</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AuthActions />
+          </div>
         </div>
-      </section>
+      </div>
 
+      <div className="content-inner">
       <div className="grid">
         <ClanScopeBanner />
 
         {/* ── Filters ── */}
-        <section className="panel" style={{ gridColumn: "span 12" }}>
+        <section className="panel" style={{ gridColumn: "1 / -1" }}>
           <div className="card-title" style={{ marginBottom: 12 }}>Filters</div>
           <div className="filter-bar list inline" style={{ gap: 16, alignItems: "flex-end" }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -182,7 +189,7 @@ function ChartsClient(): JSX.Element {
 
         {/* ── Error ── */}
         {errorMessage && (
-          <div className="alert error" style={{ gridColumn: "span 12" }}>
+          <div className="alert error" style={{ gridColumn: "1 / -1" }}>
             {errorMessage}
           </div>
         )}
@@ -191,20 +198,20 @@ function ChartsClient(): JSX.Element {
         {isLoading && (
           <div
             className="alert info loading"
-            style={{ gridColumn: "span 12" }}
+            style={{ gridColumn: "1 / -1" }}
           >
             Loading chart data…
           </div>
         )}
 
         {/* ── Summary Panel ── */}
-        <section className="panel" style={{ gridColumn: "span 6" }}>
+        <section className="panel" style={{ gridColumn: "span 1" }}>
           <div className="card-title">Summary</div>
           <SummaryPanel summary={chartData.summary} />
         </section>
 
         {/* ── Personal Score ── */}
-        <section className="card" style={{ gridColumn: "span 6" }}>
+        <section className="card" style={{ gridColumn: "span 1" }}>
           <div className="card-header">
             <div>
               <div className="card-title">Personal Score</div>
@@ -244,7 +251,7 @@ function ChartsClient(): JSX.Element {
         </section>
 
         {/* ── Chest Type Distribution ── */}
-        <section className="card" style={{ gridColumn: "span 12" }}>
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
           <div className="card-header">
             <div>
               <div className="card-title">Chest Types</div>
@@ -254,6 +261,7 @@ function ChartsClient(): JSX.Element {
           </div>
           <ChestTypePie data={chartData.chestTypes} height={320} />
         </section>
+      </div>
       </div>
     </>
   );

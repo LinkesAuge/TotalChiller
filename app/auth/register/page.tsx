@@ -64,13 +64,16 @@ function RegisterPage(): JSX.Element {
   }
 
   return (
-    <section className="card" style={{ maxWidth: 560 }}>
-      <div className="card-header">
-        <div>
-          <div className="card-title">Create Account</div>
-          <div className="card-subtitle">Join the clan community</div>
+    <div style={{ display: "flex", justifyContent: "center", paddingTop: 40 }}>
+      <section className="card" style={{ maxWidth: 480, width: "100%" }}>
+        <div className="tooltip-head">
+          <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
+          <div className="tooltip-head-inner">
+            <img src="/assets/vip/batler_icons_star_4.png" alt="" style={{ width: 18, height: 18 }} />
+            <h3 className="card-title">Create Account</h3>
+          </div>
         </div>
-      </div>
+        <div className="card-body">
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="email">Email</label>
@@ -117,14 +120,18 @@ function RegisterPage(): JSX.Element {
             required
           />
         </div>
-        <div className="list">
-          <button className="button primary" type="submit">
-            Create Account
-          </button>
+        <button className="button leather" type="submit" style={{ width: "100%", marginTop: 8 }}>
+          <img src="/assets/vip/backs_1.png" alt="" className="leather-bg" />
+          <span>Create Account</span>
+        </button>
+        {formState.status ? <p className="text-muted" style={{ marginTop: 8 }}>{formState.status}</p> : null}
+        <div style={{ textAlign: "center", marginTop: 12, fontSize: "0.82rem" }}>
+          Already have an account? <a href="/auth/login" style={{ color: "var(--color-gold)", textDecoration: "none" }}>Sign in</a>
         </div>
-        {formState.status ? <p className="text-muted">{formState.status}</p> : null}
       </form>
-    </section>
+        </div>
+      </section>
+    </div>
   );
 }
 

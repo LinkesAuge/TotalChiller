@@ -3463,7 +3463,7 @@ function AdminClient(): JSX.Element {
 
   return (
     <div className="grid">
-      <section className="card" style={{ gridColumn: "span 12" }}>
+      <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
             <div className="card-title">Admin Sections</div>
@@ -3522,7 +3522,7 @@ function AdminClient(): JSX.Element {
         </div>
       </section>
       {activeSection === "clans" ? (
-      <section className="card" style={{ gridColumn: "span 12" }}>
+      <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
             <div className="card-title">Clan Management</div>
@@ -3873,7 +3873,7 @@ function AdminClient(): JSX.Element {
       </section>
       ) : null}
       {activeSection === "users" ? (
-      <section className="card" style={{ gridColumn: "span 12" }}>
+      <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
             <div className="card-title">Users</div>
@@ -4393,7 +4393,7 @@ function AdminClient(): JSX.Element {
       </section>
       ) : null}
       {activeSection === "validation" ? (
-      <section className="card" style={{ gridColumn: "span 12" }}>
+      <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
             <div className="card-title">Validation Rules</div>
@@ -4741,7 +4741,7 @@ function AdminClient(): JSX.Element {
       </section>
       ) : null}
       {activeSection === "corrections" ? (
-      <section className="card" style={{ gridColumn: "span 12" }}>
+      <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
             <div className="card-title">Correction Rules</div>
@@ -5103,7 +5103,7 @@ function AdminClient(): JSX.Element {
       </section>
       ) : null}
       {activeSection === "logs" ? (
-      <section className="card" style={{ gridColumn: "span 12" }}>
+      <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
             <div className="card-title">Audit Logs</div>
@@ -5276,7 +5276,7 @@ function AdminClient(): JSX.Element {
       </section>
       ) : null}
       {activeSection === "approvals" ? (
-      <section className="card" style={{ gridColumn: "span 12" }}>
+      <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
             <div className="card-title">Game Account Approvals</div>
@@ -6204,7 +6204,7 @@ function AdminClient(): JSX.Element {
         </div>
       ) : null}
       {status ? (
-        <div className="alert info" style={{ gridColumn: "span 12" }}>
+        <div className="alert info" style={{ gridColumn: "1 / -1" }}>
           {status}
         </div>
       ) : null}

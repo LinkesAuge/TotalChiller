@@ -116,15 +116,20 @@ async function ProfilePage(): Promise<JSX.Element> {
 
   return (
     <>
-      <section className="header header-inline">
-        <div className="title">Profile</div>
-        <div className="actions">
-          <a className="button" href="/settings">
-            Settings
-          </a>
-          <AuthActions />
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">The Chillers &bull; Account</div>
+            <h1 className="top-bar-title">Profile</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <a className="button" href="/settings">Settings</a>
+            <AuthActions />
+          </div>
         </div>
-      </section>
+      </div>
+      <div className="content-inner">
       <div className="grid">
         <section className="card">
           <div className="card-header">
@@ -203,6 +208,7 @@ async function ProfilePage(): Promise<JSX.Element> {
             )}
           </div>
         </section>
+      </div>
       </div>
     </>
   );

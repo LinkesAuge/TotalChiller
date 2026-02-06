@@ -1,149 +1,479 @@
+"use client";
+
+import { useState } from "react";
 import AuthActions from "./components/auth-actions";
 import ClanScopeBanner from "./components/clan-scope-banner";
 
 /**
- * Renders the dashboard landing page layout.
+ * Dashboard page — Sanctum Complete design with enriched content.
  */
-function HomePage(): JSX.Element {
+function DashboardPage(): JSX.Element {
+  const [newsTab, setNewsTab] = useState<string>("all");
+
   return (
     <>
-      <section className="header header-inline">
-        <div className="title">Community Dashboard</div>
-        <div className="actions">
-          <span className="badge">Rank: Officer</span>
-          <button className="button">Notifications</button>
-          <button className="button primary">New Post</button>
-          <AuthActions />
+      {/* Ornate top bar */}
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">
+              The Chillers &bull; Alpha Division
+            </div>
+            <h1 className="top-bar-title">Community Dashboard</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AuthActions />
+          </div>
         </div>
-      </section>
-      <div className="grid">
+      </div>
+
+      {/* Quick Actions */}
+      <div
+        style={{
+          padding: "14px 24px 0",
+          display: "flex",
+          gap: 10,
+        }}
+      >
+        {[
+          {
+            label: "Upload CSV",
+            icon: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
+          },
+          {
+            label: "Review Rules",
+            icon: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
+          },
+          {
+            label: "Event Calendar",
+            icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+          },
+        ].map((action, i) => (
+          <button key={i} className="action-btn">
+            <img
+              src="/assets/vip/backs_1.png"
+              alt=""
+              className="leather-bg"
+            />
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#e4c778"
+              strokeWidth="2"
+            >
+              <path d={action.icon} />
+            </svg>
+            <span>{action.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Hero banner */}
+      <div className="hero-banner">
+        <div className="hero-overlay" />
+        <img
+          src="/assets/banners/banner_gold_dragon.png"
+          alt=""
+          className="hero-bg"
+        />
+        <img
+          src="/assets/vip/decor_light_1.png"
+          alt=""
+          className="hero-light"
+        />
+        <div className="hero-content">
+          <img
+            src="/assets/vip/components_decor_6.png"
+            alt=""
+            className="hero-decor"
+          />
+          <h2 className="hero-title">Community Hub</h2>
+          <p className="hero-subtitle">
+            Coordinated. Competitive. Welcoming.
+          </p>
+          <img
+            src="/assets/vip/components_decor_6.png"
+            alt=""
+            className="hero-decor flipped"
+          />
+        </div>
+      </div>
+
+      <div className="content-inner">
         <ClanScopeBanner />
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">Announcements</div>
-              <div className="card-subtitle">Pinned updates for your clan</div>
+
+        <div className="grid">
+          {/* Announcements */}
+          <section className="card" style={{ gridColumn: "span 2" }}>
+            <div className="tooltip-head">
+              <img
+                src="/assets/vip/back_tooltip_2.png"
+                alt=""
+                className="tooltip-head-bg"
+              />
+              <div className="tooltip-head-inner">
+                <img
+                  src="/assets/vip/batler_icons_stat_damage.png"
+                  alt=""
+                  style={{ width: 18, height: 18 }}
+                />
+                <h3 className="card-title">Announcements</h3>
+                <span className="pin-badge">Pinned</span>
+              </div>
             </div>
-            <div className="badge">Pinned</div>
-          </div>
-          <div className="list">
-            <div className="list-item">
-              <span>War prep tonight at 21:00</span>
-              <span className="badge">Priority</span>
+            <div className="card-body">
+              {[
+                {
+                  text: "War prep tonight at 21:00 — full attendance required",
+                  tag: "Priority",
+                  color: "#c94a3a",
+                  time: "30 min ago",
+                  author: "CommanderX",
+                },
+                {
+                  text: "Chest upload deadline this Friday",
+                  tag: "Info",
+                  color: "#4a6ea0",
+                  time: "2h ago",
+                  author: "Admin",
+                },
+                {
+                  text: "Alliance tournament registrations open",
+                  tag: "New",
+                  color: "#4a9960",
+                  time: "5h ago",
+                  author: "EventBot",
+                },
+              ].map((item, i) => (
+                <div key={i}>
+                  {i > 0 && <div className="gold-divider" />}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      padding: "10px 0",
+                    }}
+                  >
+                    <img
+                      src="/assets/vip/batler_icons_star_4.png"
+                      alt=""
+                      style={{ width: 14, height: 14, marginTop: 2 }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "0.88rem" }}>{item.text}</div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "var(--color-text-muted)",
+                          marginTop: 3,
+                        }}
+                      >
+                        by {item.author} &bull; {item.time}
+                      </div>
+                    </div>
+                    <span
+                      className="badge"
+                      style={{
+                        padding: "2px 8px",
+                        background: `linear-gradient(180deg, ${item.color}, ${item.color}cc)`,
+                        borderColor: item.color,
+                        color: "#fff",
+                      }}
+                    >
+                      {item.tag}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="list-item">
-              <span>Chest upload deadline Friday</span>
-              <span className="badge">Info</span>
+          </section>
+
+          {/* Stats */}
+          <section className="card" style={{ gridColumn: "span 2" }}>
+            <div className="tooltip-head">
+              <img
+                src="/assets/vip/back_tooltip_2.png"
+                alt=""
+                className="tooltip-head-bg"
+              />
+              <div className="tooltip-head-inner">
+                <img
+                  src="/assets/vip/batler_icons_stat_armor.png"
+                  alt=""
+                  style={{ width: 18, height: 18 }}
+                />
+                <h3 className="card-title">Quick Stats</h3>
+                <span
+                  style={{
+                    fontSize: "0.6rem",
+                    color: "var(--color-text-muted)",
+                    marginLeft: "auto",
+                  }}
+                >
+                  Last 7 days
+                </span>
+              </div>
             </div>
-          </div>
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">News Feed</div>
-              <div className="card-subtitle">Latest updates from your clan</div>
+            <div className="stat-grid">
+              {[
+                {
+                  v: "12,450",
+                  l: "Personal Score",
+                  ico: "/assets/vip/batler_icons_stat_damage.png",
+                  trend: "+8%",
+                  up: true,
+                },
+                {
+                  v: "210,980",
+                  l: "Clan Score",
+                  ico: "/assets/vip/batler_icons_stat_armor.png",
+                  trend: "+3%",
+                  up: true,
+                },
+                {
+                  v: "78/90",
+                  l: "Chests",
+                  ico: "/assets/vip/icons_chest_2.png",
+                  trend: "87%",
+                  up: true,
+                },
+                {
+                  v: "86%",
+                  l: "Readiness",
+                  ico: "/assets/vip/batler_icons_stat_heal.png",
+                  trend: "-2%",
+                  up: false,
+                },
+              ].map((stat, i) => (
+                <div key={i} className="stat-cell">
+                  <img
+                    src={stat.ico}
+                    alt=""
+                    style={{
+                      width: 20,
+                      height: 20,
+                      margin: "0 auto 4px",
+                      display: "block",
+                      objectFit: "contain",
+                    }}
+                  />
+                  <div className="stat-value">{stat.v}</div>
+                  <div className={stat.up ? "trend-up" : "trend-down"}>
+                    {stat.up ? "▲" : "▼"} {stat.trend}
+                  </div>
+                  <div className="stat-label">{stat.l}</div>
+                </div>
+              ))}
             </div>
-            <div className="tabs">
-              <div className="tab active">All</div>
-              <div className="tab">Clan</div>
-              <div className="tab">Global</div>
+          </section>
+
+          {/* News */}
+          <section className="card">
+            <div className="card-header">
+              <h3 className="card-title">News Feed</h3>
+              <div className="tab-group">
+                {["all", "clan", "global"].map((tab) => (
+                  <button
+                    key={tab}
+                    className={`tab-group-btn${newsTab === tab ? " active" : ""}`}
+                    onClick={() => setNewsTab(tab)}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="list">
-            <div className="list-item">
-              <span>Recruitment window opens this week</span>
-              <span className="badge">News</span>
+            {[
+              {
+                title: "Recruitment opens this week",
+                time: "2h ago",
+                unread: true,
+              },
+              {
+                title: "Alliance update posted",
+                time: "5h ago",
+                unread: true,
+              },
+              {
+                title: "War highlights published",
+                time: "1d ago",
+                unread: false,
+              },
+            ].map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "10px 16px",
+                  borderBottom: "1px solid rgba(45,80,115,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                {item.unread && <span className="unread-dot" />}
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: "0.88rem",
+                      fontWeight: item.unread ? 600 : 400,
+                    }}
+                  >
+                    {item.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.65rem",
+                      color: "var(--color-text-muted)",
+                    }}
+                  >
+                    {item.time}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {/* Events */}
+          <section className="card">
+            <img
+              src="/assets/banners/banner_ragnarok_clan_event_708x123.png"
+              alt=""
+              style={{
+                width: "100%",
+                height: 56,
+                objectFit: "cover",
+                opacity: 0.7,
+              }}
+            />
+            <div style={{ padding: "10px 16px" }}>
+              <h3 className="card-title" style={{ marginBottom: 8 }}>
+                Events
+              </h3>
+              {[
+                {
+                  n: "War Prep",
+                  c: "#c94a3a",
+                  countdown: "in 2h",
+                },
+                {
+                  n: "Guild Meeting",
+                  c: "#4a6ea0",
+                  countdown: "Tomorrow",
+                },
+                {
+                  n: "Training Night",
+                  c: "#4a9960",
+                  countdown: "12 days",
+                },
+              ].map((e, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 0",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: e.c,
+                    }}
+                  />
+                  <span style={{ flex: 1 }}>{e.n}</span>
+                  <span
+                    className="countdown-badge"
+                    style={{
+                      background: `${e.c}22`,
+                      border: `1px solid ${e.c}44`,
+                      color: e.c,
+                    }}
+                  >
+                    {e.countdown}
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="list-item">
-              <span>Alliance update posted</span>
-              <span className="badge">Info</span>
+          </section>
+
+          {/* Progress */}
+          <section className="card" style={{ gridColumn: "span 2" }}>
+            <div className="card-header">
+              <h3 className="card-title">Clan Progress</h3>
             </div>
-            <div className="list-item">
-              <span>War report and highlights</span>
-              <span className="badge">Pinned</span>
+            <div
+              style={{
+                padding: "14px 16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}
+            >
+              {[
+                {
+                  label: "Weekly Chest Target",
+                  value: 87,
+                  color: "#c9a34a",
+                },
+                {
+                  label: "Event Participation",
+                  value: 72,
+                  color: "#4a9960",
+                },
+                {
+                  label: "Member Activity",
+                  value: 94,
+                  color: "#4a6ea0",
+                },
+              ].map((bar, i) => (
+                <div key={i}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: "0.82rem",
+                      color: "var(--color-text-2)",
+                      marginBottom: 5,
+                    }}
+                  >
+                    <span>{bar.label}</span>
+                    <span style={{ color: bar.color, fontWeight: 700 }}>
+                      {bar.value}%
+                    </span>
+                  </div>
+                  <div className="game-progress">
+                    <img
+                      src="/assets/vip/battler_stage_bar_empty.png"
+                      alt=""
+                      className="game-progress-bg"
+                    />
+                    <div
+                      className="game-progress-fill"
+                      style={{ width: `${bar.value}%` }}
+                    >
+                      <img
+                        src="/assets/vip/battler_stage_bar_full.png"
+                        alt=""
+                        className="game-progress-bg"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">Quick Stats</div>
-              <div className="card-subtitle">Personal and clan highlights</div>
-            </div>
-            <button className="button">View Charts</button>
-          </div>
-          <div className="list">
-            <div className="list-item">
-              <span>Personal Score (7d)</span>
-              <strong>12,450</strong>
-            </div>
-            <div className="list-item">
-              <span>Clan Score (7d)</span>
-              <strong>210,980</strong>
-            </div>
-            <div className="list-item">
-              <span>Top Chest Type</span>
-              <strong>Warrior</strong>
-            </div>
-          </div>
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">Clan Progress</div>
-              <div className="card-subtitle">Weekly targets and status</div>
-            </div>
-            <button className="button">View Details</button>
-          </div>
-          <div className="list">
-            <div className="list-item">
-              <span>Chest submissions</span>
-              <strong>78 / 90</strong>
-            </div>
-            <div className="list-item">
-              <span>Event readiness</span>
-              <strong>86%</strong>
-            </div>
-            <div className="list-item">
-              <span>Top contributors</span>
-              <strong>12 members</strong>
-            </div>
-          </div>
-        </section>
-        <section className="panel">
-          <div className="card-title">Quick Links</div>
-          <div className="list">
-            <button className="button primary" type="button">
-              Upload CSV
-            </button>
-            <button className="button" type="button">
-              Review Rules
-            </button>
-            <button className="button" type="button">
-              Event Calendar
-            </button>
-          </div>
-        </section>
-        <section className="panel">
-          <div className="card-title">Upcoming Events</div>
-          <div className="list">
-            <div className="list-item">
-              <span>War Prep</span>
-              <span className="badge">Today 20:30</span>
-            </div>
-            <div className="list-item">
-              <span>Guild Meeting</span>
-              <span className="badge">Feb 5</span>
-            </div>
-            <div className="list-item">
-              <span>Training Night</span>
-              <span className="badge">Feb 18</span>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </>
   );
 }
 
-export default HomePage;
+export default DashboardPage;

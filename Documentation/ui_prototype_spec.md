@@ -2,26 +2,33 @@
 
 This document defines the screen-by-screen prototype for the clan community website, aligned to the MVP scope and the Total Battle-inspired dark blue/gold theme.
 
-## Global UI Framework
+## Global UI Framework — Fortress Sanctum
 ### Layout
-- Persistent left sidebar for authenticated areas.
-- Top header with clan switcher, notifications, user menu, language toggle.
-- Main content area with card-based sections.
+- Collapsible left sidebar (236px expanded / 60px collapsed) for authenticated areas.
+  - `SidebarProvider` React context manages collapse state across the app.
+  - Sidebar shell: logo with VIP decoration, collapse toggle (top), icon/text navigation, user status + clan selector (bottom).
+  - Background: VIP `back_left.png` with dark gradient overlay.
+- Top bar: VIP `header_3.png` background, breadcrumb (uppercase, gold text), page title (Fontin Sans heading font), user actions (notification bell + user menu).
+- Main content area with 2-column card grid.
 
 ### Navigation
-- Public: Home, About, Recruitment, Login, Register.
-- Member: Dashboard, News, Data Import, Chest Database, Charts, Events, Directory, Messages.
-- Admin: Users, Clans, Roles/Ranks, Rules, Audit Log.
+- Public: Home, Login, Register, Forgot Password.
+- Member: Dashboard, News, Data Import, Chest Database, Charts, Events, Messages.
+- Admin: Clan Management, Approvals, Users, Validation, Corrections, Audit Logs, Data Import, Chest Database.
 
 ### Shared Components
-- Card panels with gold trim and layered shadows.
-- Tab group with pill styling.
-- Gold-outlined primary buttons.
-- Data table with parchment-like surface and dark header row.
-- Badge/medallion for rank.
+- Card panels with dark gradient backgrounds and gold-tinted borders.
+- Segmented tab control with gold active glow (wrapping).
+- Gold-bordered buttons with gradient fill (default, primary, danger, leather variants).
+- Dark gradient tables with gold header divider, alternating rows, gold selection/hover.
+- Badge/medallion with gold gradient and glow.
+- Select dropdowns with Sanctum gradient panels and gold-highlighted items.
+- Inputs/textareas with gradient backgrounds and gold focus ring.
 - Reusable UI primitives for filters/actions:
   - Icon-only buttons, labeled search inputs, and labeled dropdowns.
-  - Dropdowns support search and consistent chevron alignment.
+  - Dropdowns support search and consistent gold-accented chevron alignment.
+  - Combobox inputs with suggestion dropdowns.
+  - Date pickers with custom calendar icon.
 
 ## Screen Inventory
 ### 1. Public Landing

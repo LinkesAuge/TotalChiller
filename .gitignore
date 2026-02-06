@@ -4,3 +4,8 @@ node_modules
 .env.local
 .env.*.local
 *.log
+
+# Local development / IDE
+.agents/
+.cursor/skills/
+Resources/

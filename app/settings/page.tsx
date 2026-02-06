@@ -243,12 +243,19 @@ function SettingsPage(): JSX.Element {
 
   return (
     <>
-      <section className="header header-inline">
-        <div className="title">Settings</div>
-        <div className="actions">
-          <AuthActions />
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">The Chillers &bull; Account</div>
+            <h1 className="top-bar-title">Settings</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AuthActions />
+          </div>
         </div>
-      </section>
+      </div>
+      <div className="content-inner">
       <div className="grid">
         <section className="card">
           <div className="card-header">
@@ -427,6 +434,7 @@ function SettingsPage(): JSX.Element {
           </div>
           {notifStatus ? <p className="text-muted" style={{ padding: "0 18px 12px" }}>{notifStatus}</p> : null}
         </section>
+      </div>
       </div>
     </>
   );

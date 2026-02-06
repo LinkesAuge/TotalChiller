@@ -66,35 +66,49 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Chest database: filters, pagination, inline edit, batch operations, audit log access.
 - Admin: users/clans/ranks, permissions, rule management, cross-clan access.
 
-## UI Style Reference (Total Battle Feel)
-
-Reference image: `Documentation/totalbattle_ui.png`
+## UI Style Reference — "Fortress Sanctum" Design System
 
 ### Theme Direction
 
-- Base theme is dark blue and gold.
-- Panel surfaces use layered cards with gold trims and subtle bevels.
-- Emphasize ornamented headers, tab bars, and section labels.
-- Use rich shadows to lift panels from the background.
-- Use warm parchment-like surfaces for data tables to improve contrast.
+- Medieval fantasy "Sanctum" aesthetic: dark backgrounds with gold accents and subtle gradients.
+- Panel surfaces use layered cards with gold-tinted borders and rich shadows.
+- Collapsible sidebar layout (Discord-like) with icon/text navigation.
+- VIP assets integrated for visual richness (custom fonts, decorative images, leather textures).
+- All interactive elements (selects, inputs, tabs, toggles, checkboxes) use consistent gold-accented styling.
 
-### Suggested Palette (Initial)
+### Active Palette (CSS Variables)
 
-- Background: #0b1622
-- Surface: #12273a
-- Panel edge: #1f3c57
-- Gold primary: #c9a34a
-- Gold highlight: #e4c778
-- Text primary: #f2e6c9
-- Text secondary: #b8a98a
-- Accent red: #a33b2b
+- Background: `#080d14` (--color-bg)
+- Surface: `rgba(18, 39, 58, 0.7)` (--color-surface)
+- Surface solid: `#12273a` (--color-surface-solid)
+- Edge: `rgba(201, 163, 74, 0.15)` (--color-edge) — gold-tinted
+- Gold primary: `#c9a34a` (--color-gold)
+- Gold highlight: `#e4c778` (--color-gold-2)
+- Gold light: `#f5dda3` (--color-gold-3)
+- Gold dark: `#8a6d2f` (--color-gold-dark)
+- Text primary: `#f2e6c9` (--color-text)
+- Text secondary: `#b8a888` (--color-text-2)
+- Text muted: `#6b5e4a` (--color-text-muted)
+- Accent red: `#c94a3a` (--color-accent-red)
+- Accent green: `#4a9960` (--color-accent-green)
+- Accent blue: `#4a6ea0` (--color-accent-blue)
+
+### Fonts
+
+- Headings: `Fontin Sans` (loaded from `/fonts/fontin_sans_cr_sc_regular.otf`)
+- Body: `Inter` (Google Fonts)
 
 ### UI Treatment Notes
 
-- Buttons: gold outline + dark fill, hover to brighter gold.
-- Tabs: pill-like with gold stroke and darker interior for inactive.
-- Badges: round medallion style with gold rim.
-- Icons: keep flat color fills but with gold or bronze outlines.
+- Buttons: gold border + dark gradient fill, hover lifts with gold glow. Primary variant uses deeper warm gradient. Leather variant uses VIP texture background.
+- Tabs: segmented control with dark inner background, gold active state with text-shadow glow, wrapping support.
+- Badges: round medallion style with gold gradient background and rim glow.
+- Selects: gradient trigger with gold border, dropdown panel with gold-highlighted items.
+- Inputs: gradient backgrounds with gold-tinted borders, gold focus ring.
+- Status indicators: dark badges with colored borders/glow (gold, amber, red, green).
+- Toggle switches: dark gradient track, gold gradient checked state with glow.
+- Cards: dark gradient with gold-tinted border, hover lifts with gold border.
+- Tables: dark gradient header with gold divider, alternating row backgrounds, gold hover tint.
 
 ## UI Skeleton Preview
 
@@ -106,14 +120,16 @@ Reference image: `Documentation/totalbattle_ui.png`
 
 ## Next.js App Scaffold
 
-- `app/layout.tsx` and `app/page.tsx` with base layout and dashboard shell.
-- `app/globals.css` with enhanced dark blue/gold theme (glassmorphism, transitions, hover states).
+- `app/layout.tsx` with collapsible sidebar layout via `SidebarProvider` context.
+- `app/globals.css` with Fortress Sanctum design system (gold-accented dark theme, gradient surfaces, VIP assets).
+- `app/components/sidebar-context.tsx` and `app/components/sidebar-shell.tsx` for sidebar state and rendering.
+- `app/components/sidebar-nav.tsx` for navigation links with icons.
 - `package.json` scripts for Next.js (`dev`, `build`, `start`, `lint`).
 - Route pages: `news`, `charts`, `events`, `messages`, `admin`, `admin/data-import`, `admin/data-table`.
 - Supabase Auth wiring in `lib/supabase/` and `app/auth/login`.
 - Auth pages: `app/auth/register`, `app/auth/forgot`.
 - Proxy guard: `proxy.ts` redirects unauthenticated users to `/home`, enforces admin access for admin routes with `/not-authorized` fallback.
-- Added `app/auth/update` for reset flows and `app/components/auth-actions.tsx` for sign-out.
+- Added `app/auth/update` for reset flows and `app/components/auth-actions.tsx` for sign-out (restyled with Sanctum dropdown panel, icons, and dividers).
 - Protected example: `app/profile` (middleware enforces auth).
 
 ## Data Model & Permissions
@@ -168,7 +184,7 @@ Reference image: `Documentation/totalbattle_ui.png`
   - `labeled-select` and `radix-select` for consistent dropdowns (with optional search).
   - `combobox-input` for text input with filterable suggestion dropdowns.
 - Global default clan is stored in `clans.is_default`.
-- Clan context selector in sidebar scopes clan data views.
+- Clan context selector in sidebar bottom section (native `<select>`) scopes clan data views.
 - ESLint uses Next.js flat config (`eslint.config.js`); run `npx eslint .`.
 
 ## Handoff Summary

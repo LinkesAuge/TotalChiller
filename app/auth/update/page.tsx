@@ -42,44 +42,47 @@ function UpdatePasswordPage(): JSX.Element {
   }
 
   return (
-    <section className="card" style={{ maxWidth: 520 }}>
-      <div className="card-header">
-        <div>
-          <div className="card-title">Update Password</div>
-          <div className="card-subtitle">Choose a new password</div>
+    <div style={{ display: "flex", justifyContent: "center", paddingTop: 40 }}>
+      <section className="card" style={{ maxWidth: 440, width: "100%" }}>
+        <div className="tooltip-head">
+          <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
+          <div className="tooltip-head-inner">
+            <img src="/assets/vip/batler_icons_star_4.png" alt="" style={{ width: 18, height: 18 }} />
+            <h3 className="card-title">Update Password</h3>
+          </div>
         </div>
-      </div>
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="password">New password</label>
-          <input
-            id="password"
-            type="password"
-            value={formState.password}
-            onChange={(event) => updateFormState({ password: event.target.value })}
-            placeholder="••••••••"
-            required
-          />
+        <div className="card-body">
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="password">New password</label>
+              <input
+                id="password"
+                type="password"
+                value={formState.password}
+                onChange={(event) => updateFormState({ password: event.target.value })}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm password</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={formState.confirmPassword}
+                onChange={(event) => updateFormState({ confirmPassword: event.target.value })}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <button className="button primary" type="submit" style={{ width: "100%", marginTop: 8 }}>
+              Update Password
+            </button>
+            {formState.status ? <p className="text-muted" style={{ marginTop: 8 }}>{formState.status}</p> : null}
+          </form>
         </div>
-        <div className="form-group">
-          <label htmlFor="confirmPassword">Confirm password</label>
-          <input
-            id="confirmPassword"
-            type="password"
-            value={formState.confirmPassword}
-            onChange={(event) => updateFormState({ confirmPassword: event.target.value })}
-            placeholder="••••••••"
-            required
-          />
-        </div>
-        <div className="list">
-          <button className="button primary" type="submit">
-            Update Password
-          </button>
-        </div>
-        {formState.status ? <p className="text-muted">{formState.status}</p> : null}
-      </form>
-    </section>
+      </section>
+    </div>
   );
 }
 

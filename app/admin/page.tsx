@@ -8,14 +8,22 @@ import AdminSectionBadge from "./admin-section-badge";
 function AdminPage(): JSX.Element {
   return (
     <>
-      <section className="header header-inline">
-        <div className="title">Admin Panel</div>
-        <div className="actions">
-          <AdminSectionBadge />
-          <AuthActions />
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">The Chillers &bull; Command</div>
+            <h1 className="top-bar-title">Admin Panel</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AdminSectionBadge />
+            <AuthActions />
+          </div>
         </div>
-      </section>
-      <AdminClient />
+      </div>
+      <div className="content-inner">
+        <AdminClient />
+      </div>
     </>
   );
 }

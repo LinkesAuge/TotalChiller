@@ -1308,7 +1308,7 @@ function DataTableClient(): JSX.Element {
           </IconButton>
         </div>
       </div>
-      <div className="pagination-bar table-pagination" style={{ gridColumn: "span 12" }}>
+      <div className="pagination-bar table-pagination" style={{ gridColumn: "1 / -1" }}>
         <div className="pagination-page-size">
           <label htmlFor="pageSize" className="text-muted">
             Page size

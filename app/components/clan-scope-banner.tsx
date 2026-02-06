@@ -66,7 +66,7 @@ function ClanScopeBanner(): JSX.Element {
 
   if (isMissing) {
     return (
-      <div className="alert warn" style={{ gridColumn: "span 12" }}>
+      <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
         Select a clan in the sidebar to see clan-specific content.
       </div>
     );
@@ -77,7 +77,7 @@ function ClanScopeBanner(): JSX.Element {
   }
 
   return (
-    <div className="alert info" style={{ gridColumn: "span 12" }}>
+    <div className="alert info" style={{ gridColumn: "1 / -1" }}>
       Viewing <strong>{scope.clanName}</strong> • <strong>{scope.gameLabel}</strong>
     </div>
   );

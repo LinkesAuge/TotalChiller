@@ -231,25 +231,32 @@ function NewsClient(): JSX.Element {
 
   return (
     <>
-      {/* ── Header ── */}
-      <section className="header header-inline">
-        <div className="title">News & Announcements</div>
-        <div className="actions">
-          {!isFormOpen && (
-            <button className="button primary" type="button" onClick={handleOpenCreate}>
-              Create Post
-            </button>
-          )}
-          <AuthActions />
+      {/* ── Top Bar ── */}
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">The Chillers &bull; News</div>
+            <h1 className="top-bar-title">News &amp; Announcements</h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {!isFormOpen && (
+              <button className="button primary" type="button" onClick={handleOpenCreate}>
+                Create Post
+              </button>
+            )}
+            <AuthActions />
+          </div>
         </div>
-      </section>
+      </div>
 
+      <div className="content-inner">
       <div className="grid">
         <ClanScopeBanner />
 
         {/* ── Create / Edit Form (collapsible) ── */}
         {isFormOpen && (
-          <section className="card" style={{ gridColumn: "span 12" }}>
+          <section className="card" style={{ gridColumn: "1 / -1" }}>
             <div className="card-header">
               <div>
                 <div className="card-title">{editingId ? "Edit Post" : "Create Post"}</div>
@@ -338,7 +345,7 @@ function NewsClient(): JSX.Element {
 
         {/* ── Tag Filter ── */}
         {availableTags.length > 0 && (
-          <section className="panel" style={{ gridColumn: "span 12" }}>
+          <section className="panel" style={{ gridColumn: "1 / -1" }}>
             <div className="filter-bar list inline" style={{ gap: 16, alignItems: "flex-end" }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label htmlFor="tagFilter">Filter by tag</label>
@@ -359,14 +366,14 @@ function NewsClient(): JSX.Element {
 
         {/* ── Loading ── */}
         {isLoading && (
-          <div className="alert info loading" style={{ gridColumn: "span 12" }}>
+          <div className="alert info loading" style={{ gridColumn: "1 / -1" }}>
             Loading posts…
           </div>
         )}
 
         {/* ── Empty state ── */}
         {!isLoading && articles.length === 0 && (
-          <section className="card" style={{ gridColumn: "span 12" }}>
+          <section className="card" style={{ gridColumn: "1 / -1" }}>
             <div className="card-header">
               <div>
                 <div className="card-title">No posts yet</div>
@@ -379,7 +386,7 @@ function NewsClient(): JSX.Element {
         {/* ── Article list ── */}
         {!isLoading &&
           articles.map((article) => (
-            <section className="card" key={article.id} style={{ gridColumn: "span 12" }}>
+            <section className="card" key={article.id} style={{ gridColumn: "1 / -1" }}>
               <div className="card-header">
                 <div>
                   <div className="card-title">{article.title}</div>
@@ -410,6 +417,7 @@ function NewsClient(): JSX.Element {
               </div>
             </section>
           ))}
+      </div>
       </div>
     </>
   );

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import "./globals.css";
-import SidebarNav from "./components/sidebar-nav";
+import { SidebarProvider } from "./components/sidebar-context";
+import SidebarShell from "./components/sidebar-shell";
 import { ToastProvider } from "./components/toast-provider";
 import ClanAccessGate from "./components/clan-access-gate";
 
@@ -9,26 +10,35 @@ interface RootLayoutProps {
 }
 
 /**
- * Provides the root application shell and theme styles.
+ * Root layout with the Sanctum design system.
+ * Provides collapsible sidebar, ornate footer, and clan access gating.
  */
 function RootLayout({ children }: RootLayoutProps): JSX.Element {
   return (
     <html lang="en">
       <body>
         <ToastProvider>
-          <div className="layout">
-            <aside className="sidebar">
-              <h2>The Chillers</h2>
-              <SidebarNav />
-            </aside>
-            <main className="content">
-              <ClanAccessGate>{children}</ClanAccessGate>
-              <footer className="app-footer">
-                <span className="text-muted">The Chillers • Community Hub</span>
-                <span className="text-muted">Total Battle Clan Platform</span>
-              </footer>
-            </main>
-          </div>
+          <SidebarProvider>
+            <div className="layout">
+              <SidebarShell>
+                <ClanAccessGate>{children}</ClanAccessGate>
+                <footer className="app-footer">
+                  <img
+                    src="/assets/vip/components_decor_5.png"
+                    alt=""
+                    className="app-footer-divider"
+                  />
+                  <span className="app-footer-text">
+                    The Chillers &bull; Community Hub &bull; Total Battle Clan
+                    Platform
+                  </span>
+                  <div className="app-footer-sub">
+                    Built with care for the community
+                  </div>
+                </footer>
+              </SidebarShell>
+            </div>
+          </SidebarProvider>
         </ToastProvider>
       </body>
     </html>

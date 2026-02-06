@@ -6,6 +6,20 @@ This file is a compact context transfer for a new chat.
 
 - **App scaffold + theme** with App Router and global styles.
   - `app/layout.tsx`, `app/globals.css`, `app/page.tsx`
+- **"Fortress Sanctum" UI/UX Redesign** (complete)
+  - Full visual overhaul using a medieval fantasy "Sanctum" design system.
+  - Collapsible sidebar layout with `SidebarProvider` context (`app/components/sidebar-context.tsx`, `app/components/sidebar-shell.tsx`).
+  - Gold-accented dark theme applied globally: cards, tables, tabs, selects, inputs, buttons, modals, badges, status indicators, toggles, pagination, scrollbars.
+  - VIP assets integrated: `Fontin Sans` heading font, `header_3.png` top bar backgrounds, `button_vip_crown_22x33.png` admin badge, leather button textures.
+  - User widget (top-right): restyled dropdown with icons, gold hover links, Sanctum card panel.
+  - Notification bell: gold-tinted header, gradient badge, themed items.
+  - Sidebar bottom: combined user status (real data), highest rank across all game accounts, and clan/game account selector (native `<select>`).
+  - Sidebar collapse toggle at the top of the nav bar.
+  - Admin tabs: wrapping segmented control with gold active glow.
+  - Select dropdowns: Sanctum gradient backgrounds, gold-accented highlights.
+  - Table redesign: dark gradient header with gold divider, alternating rows, gold hover/selection.
+  - Status indicators: dark Sanctum-styled badges (gold, amber, red, green).
+  - CSS variable `--color-edge` changed from blue to gold-tinted `rgba(201, 163, 74, 0.15)`.
 - **Auth** (login/register/forgot/update) wired to Supabase Auth.
 - **Profile + Settings**
   - `/profile` shows user info, game accounts (with approval status), and clan memberships.
@@ -26,9 +40,9 @@ This file is a compact context transfer for a new chat.
   - On approval: a system notification is sent to the user.
   - Files: `app/api/game-accounts/route.ts`, `app/api/admin/game-account-approvals/route.ts`, `app/profile/game-account-manager.tsx`
 - **Clan context selector**
-  - Sidebar dropdown selects current clan + game account (custom Radix select).
+  - Sidebar bottom section: native `<select>` dropdown for selecting active clan + game account (moved from navbar).
   - Stored in `localStorage`; `ClanScopeBanner` shows current context.
-  - Files: `app/components/sidebar-nav.tsx`, `app/components/clan-scope-banner.tsx`, `app/components/use-clan-context.ts`
+  - Files: `app/components/sidebar-shell.tsx`, `app/components/clan-scope-banner.tsx`, `app/components/use-clan-context.ts`
 - **Admin gating**
   - Admin routes protected by `proxy.ts` with `/not-authorized` fallback.
   - Admin toggle + safeguard to keep at least one admin.
@@ -101,11 +115,14 @@ This file is a compact context transfer for a new chat.
   - `app/components/toast-provider.tsx`
 - **Reusable UI components**
   - Standardized icon-only actions and search inputs across admin and data views.
-  - Dropdowns and labeled dropdowns share consistent styling and behavior.
+  - Dropdowns and labeled dropdowns share consistent Sanctum styling and behavior.
   - `app/components/ui/icon-button.tsx`, `app/components/ui/search-input.tsx`, `app/components/ui/labeled-select.tsx`, `app/components/ui/radix-select.tsx`
   - `app/components/table-scroll.tsx` (sync top/bottom horizontal scrollbars)
   - `app/components/ui/combobox-input.tsx` (text input with filterable suggestion dropdown)
   - `app/components/date-picker.tsx` (Flatpickr date/datetime picker with optional `enableTime` prop)
+  - `app/components/sidebar-context.tsx` (SidebarProvider + useSidebar hook for collapse state)
+  - `app/components/sidebar-shell.tsx` (sidebar layout: logo, toggle, nav, user status, clan selector)
+  - `app/components/sidebar-nav.tsx` (navigation links with icons)
 - **Validation/Correction rules are global**
   - Rules are no longer scoped to a specific clan; they apply across all clans.
   - `clan_id` column is nullable on `validation_rules` and `correction_rules`.
@@ -115,12 +132,21 @@ This file is a compact context transfer for a new chat.
 
 ## Recent UI Fixes
 
+- **Sanctum Redesign** (Feb 2026):
+  - Complete "Fortress Sanctum" UI/UX rework across all pages.
+  - Collapsible sidebar with real user data, rank resolution, and integrated clan selector.
+  - All admin pages, tables, tabs, selects, inputs, badges, toggles, and modals restyled to Sanctum theme.
+  - User widget and notification bell panels elevated (z-index 200) with Sanctum gradient styling.
+  - Modal backdrop z-index 300 with blur overlay.
+  - Status indicators converted from light-background to dark Sanctum-styled variants.
+  - `--color-edge` unified to gold tint across all elements.
+  - Breadcrumb text brightened and uppercased.
+  - Sidebar, nav labels, and muted text colors brightened.
 - Admin users table: header/rows align on small screens (horizontal scroll fixes).
 - Admin data table: header alignment fixed under vertical scrollbar.
 - Radix select trigger keeps icon inside on small screens.
-- Removed hover effects from non-interactive containers (cards/rows/lists).
 - Added row numbers to tables and standardized pagination placement.
-- **Clan Management fixes**: clan switching now works correctly (init effect no longer re-runs on every selection change); deleting a game account refreshes the membership list; edit state is cleared when switching clans; race condition guards added for concurrent fetches.
+- **Clan Management fixes**: clan switching now works correctly; deleting a game account refreshes the membership list; edit state is cleared when switching clans; race condition guards added for concurrent fetches.
 - **Navigation**: Messages link moved from sidebar to user menu dropdown. Notification bell with unread badge replaces the old sidebar unread count.
 - **Linting**
   - ESLint configured with Next.js flat config.

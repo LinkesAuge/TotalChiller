@@ -183,8 +183,26 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Add dashboard widgets and basic charts.
 - Add i18n for UI strings (de/en).
 
+## Charts & Stats
+
+- Charts implemented with **Recharts** (dark blue/gold themed).
+- API route `/api/charts` aggregates `chest_entries` server-side (RLS-enforced).
+- Chart types: Clan Score Over Time (line), Top Players (bar), Chest Type Distribution (pie), Personal Score (line).
+- Summary panel with total chests, total score, avg score, top chest type, unique players.
+- Filters: date range, player, source, clan context.
+- Player-to-game-account linking: case-insensitive match `LOWER(chest_entries.player) = LOWER(game_accounts.game_username)`.
+- Files: `app/charts/charts-client.tsx`, `app/charts/chart-components.tsx`, `app/charts/chart-types.ts`, `app/api/charts/route.ts`.
+
+## News & Events Polish
+
+- News: collapsible create/edit form, pinned-first sorting, tag filter, loading state, full-width cards.
+- Events: collapsible create/edit form, past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers, loading state, full-width cards.
+- DatePicker component extended with `enableTime` prop for datetime support.
+- Page shells delegate fully to client components (removed non-functional header buttons).
+
 ## Outstanding/Follow-up
 
 - Admin gating is enforced; review if permissions need tightening.
-- Implement real charts (Recharts/Nivo).
 - Decide messages data model (global per user) and build real UI.
+- Dashboard widgets (personal/clan stats summary cards).
+- i18n for UI strings (German/English).

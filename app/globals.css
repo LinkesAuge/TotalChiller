@@ -1557,6 +1557,20 @@ select:disabled,
   color: var(--color-gold-2);
 }
 
+/* Chart empty state */
+.chart-empty {
+  height: 160px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed rgba(201, 163, 74, 0.4);
+  background: rgba(15, 34, 51, 0.35);
+  display: grid;
+  place-items: center;
+  color: var(--color-text-2);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 /* Loading */
 @keyframes pulse {
   0%, 100% {

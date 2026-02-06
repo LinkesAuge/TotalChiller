@@ -47,9 +47,19 @@ This file is a compact context transfer for a new chat.
   - Combobox inputs for player/source/chest fields with suggestions from validation rules.
   - `app/data-table/data-table-client.tsx`
 - **News + Events (DB-backed, clan-scoped)**
-  - Create/edit/delete posts and events.
-  - News tags + tag filter.
+  - Create/edit/delete posts and events with collapsible forms.
+  - News: pinned-first sorting, tag filter, full-width article cards.
+  - Events: past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers.
+  - Loading states on both pages.
   - Files: `app/news/news-client.tsx`, `app/events/events-client.tsx`
+- **Charts & Stats**
+  - Real charts powered by Recharts (dark blue/gold theme).
+  - Charts: Clan Score Over Time (line), Top Players (horizontal bar), Chest Type Distribution (pie), Personal Score (line).
+  - Summary panel: total chests, total score, avg score, top chest type, unique players.
+  - Filters: date range, player, source (all scoped to selected clan context).
+  - Player-to-game-account linking via case-insensitive string match (`LOWER(player) = LOWER(game_username)`).
+  - API route `/api/charts` fetches and aggregates `chest_entries` server-side (RLS-enforced).
+  - Files: `app/charts/charts-client.tsx`, `app/charts/chart-components.tsx`, `app/charts/chart-types.ts`, `app/api/charts/route.ts`
 - **Audit logs**
   - Pagination + filters (action/entity/actor + clan).
 - **Toasts**
@@ -61,6 +71,7 @@ This file is a compact context transfer for a new chat.
   - `app/components/ui/icon-button.tsx`, `app/components/ui/search-input.tsx`, `app/components/ui/labeled-select.tsx`, `app/components/ui/radix-select.tsx`
   - `app/components/table-scroll.tsx` (sync top/bottom horizontal scrollbars)
   - `app/components/ui/combobox-input.tsx` (text input with filterable suggestion dropdown)
+  - `app/components/date-picker.tsx` (Flatpickr date/datetime picker with optional `enableTime` prop)
 - **Validation/Correction rules are global**
   - Rules are no longer scoped to a specific clan; they apply across all clans.
   - `clan_id` column is nullable on `validation_rules` and `correction_rules`.
@@ -125,16 +136,19 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Remaining TODOs (Suggested Next Steps)
 
-1. **Charts implementation**
-   - Replace placeholders with real charts.
-2. **Messages**
+1. **Messages**
    - Decide data model (global per user) and build real UI.
+2. **Dashboard widgets**
+   - Add personal/clan stats summary cards to the member dashboard.
+3. **i18n**
+   - Add German/English translations for UI strings.
 
 ## Known Behaviors
 
 - Clan context is stored in `localStorage` and used by news/events/data table.
 - Messages are global (not clan-scoped).
-- Date pickers display dd.mm.yyyy, stored as YYYY‑MM‑DD.
+- Date pickers display dd.mm.yyyy, stored as YYYY‑MM‑DD. Datetime pickers (events) display dd.mm.yyyy, HH:mm.
+- Charts use Recharts; personal score relies on case-insensitive match between `chest_entries.player` and `game_accounts.game_username`.
 
 ## Critical SQL updates to run (if not yet run)
 

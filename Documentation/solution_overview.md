@@ -26,7 +26,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **Frontend**: Next.js App Router, server components by default, client components for interactive tables, editors, and charts.
 - **Auth**: Supabase Auth with email verification and password reset.
 - **Backend**: Supabase Postgres with RLS for clan-scoped data and permissions (via game accounts).
-- **Validation/Correction/Scoring**: Zod schemas for import validation; rules stored per clan and applied during preview and re-scoring; correction rules support field‑specific and `all` matches with active/inactive status.
+- **Validation/Correction/Scoring**: Zod schemas for import validation; validation and correction rules are **global** (not clan-specific) and applied during preview and re-scoring; scoring rules remain per-clan; correction rules support field‑specific and `all` matches with active/inactive status.
 
 ### Core Data Model (Outline)
 
@@ -132,6 +132,8 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Audit logs: `audit_logs` table + RLS policies.
 - Game account clan memberships: `rank` column.
 - Default clan: `clans.is_default` + single‑default trigger.
+- `chest_entries` RLS: add `is_any_admin()` to SELECT and INSERT policies.
+- Global rules: make `clan_id` nullable on `validation_rules` and `correction_rules`, update RLS policies and index.
 
 ## Data Import & Chest Database
 
@@ -142,12 +144,14 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Data import supports inline edits for date, player, source, chest, score, clan and row removal.
 - Auto‑correct (toggle) runs before validation (toggle); corrected fields are highlighted.
 - Data import supports batch edit, commit warning (skip/force invalid), and row-level add‑rule actions.
+- Chest database supports per-row correction/validation rule actions, row status and correction status filters.
+- Player, source, and chest fields use combobox inputs with suggestions from valid validation rules.
 - Tables include row numbers, sortable headers, selection, and consistent pagination placement.
 
 ## Admin Enhancements
 
 - Admin user lookup by email via `app/api/admin/user-lookup`.
-- Validation + Correction rules support create, edit, delete, import/export, selection, and sorting.
+- Validation + Correction rules are **global** (not clan-specific). Support create, edit, delete, import/export, selection, and sorting.
 - Admin tabs include Clans & Members, Users, Validation, Corrections, Audit Logs, Data Import, Chest Database.
 - Membership table now manages game accounts (game username, clan, rank, status).
 - Roles are assigned globally via `user_roles`.
@@ -156,6 +160,7 @@ Reference image: `Documentation/totalbattle_ui.png`
   - `icon-button` for icon-only actions.
   - `search-input` for labeled search fields.
   - `labeled-select` and `radix-select` for consistent dropdowns (with optional search).
+  - `combobox-input` for text input with filterable suggestion dropdowns.
 - Global default clan is stored in `clans.is_default`.
 - Clan context selector in sidebar scopes clan data views.
 - ESLint uses Next.js flat config (`eslint.config.js`); run `npx eslint .`.

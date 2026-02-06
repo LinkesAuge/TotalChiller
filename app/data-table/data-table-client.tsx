@@ -9,6 +9,7 @@ import { useToast } from "../components/toast-provider";
 import IconButton from "../components/ui/icon-button";
 import LabeledSelect from "../components/ui/labeled-select";
 import RadixSelect from "../components/ui/radix-select";
+import ComboboxInput from "../components/ui/combobox-input";
 import SearchInput from "../components/ui/search-input";
 import TableScroll from "../components/table-scroll";
 
@@ -57,7 +58,6 @@ interface ChestEntryQueryRow {
 
 interface ValidationRuleRow {
   readonly id: string;
-  readonly clan_id: string;
   readonly field: string;
   readonly match_value: string;
   readonly status: string;
@@ -65,7 +65,6 @@ interface ValidationRuleRow {
 
 interface CorrectionRuleRow {
   readonly id: string;
-  readonly clan_id: string;
   readonly field: string;
   readonly match_value: string;
   readonly replacement_value: string;
@@ -121,6 +120,22 @@ function DataTableClient(): JSX.Element {
   const [isBatchDeleteConfirmOpen, setIsBatchDeleteConfirmOpen] = useState<boolean>(false);
   const [isBatchDeleteInputOpen, setIsBatchDeleteInputOpen] = useState<boolean>(false);
   const [batchDeleteInput, setBatchDeleteInput] = useState<string>("");
+  const [filterRowStatus, setFilterRowStatus] = useState<"all" | "valid" | "invalid">("all");
+  const [filterCorrectionStatus, setFilterCorrectionStatus] = useState<"all" | "corrected" | "uncorrected">("all");
+  const [isAddCorrectionRuleOpen, setIsAddCorrectionRuleOpen] = useState<boolean>(false);
+  const [correctionRuleRowId, setCorrectionRuleRowId] = useState<string | null>(null);
+  const [correctionRuleField, setCorrectionRuleField] = useState<"player" | "source" | "chest" | "clan" | "all">("player");
+  const [correctionRuleMatch, setCorrectionRuleMatch] = useState<string>("");
+  const [correctionRuleReplacement, setCorrectionRuleReplacement] = useState<string>("");
+  const [correctionRuleStatus, setCorrectionRuleStatus] = useState<string>("active");
+  const [correctionRuleMessage, setCorrectionRuleMessage] = useState<string>("");
+  const [isAddValidationRuleOpen, setIsAddValidationRuleOpen] = useState<boolean>(false);
+  const [validationRuleRowId, setValidationRuleRowId] = useState<string | null>(null);
+  const [validationRuleField, setValidationRuleField] = useState<"player" | "source" | "chest" | "clan">("player");
+  const [validationRuleMatch, setValidationRuleMatch] = useState<string>("");
+  const [validationRuleStatus, setValidationRuleStatus] = useState<string>("valid");
+  const [validationRuleMessage, setValidationRuleMessage] = useState<string>("");
+  const [rulesVersion, setRulesVersion] = useState<number>(0);
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedRows = useMemo(() => rows.filter((row) => selectedSet.has(row.id)), [rows, selectedSet]);
@@ -177,6 +192,40 @@ function DataTableClient(): JSX.Element {
     });
     return [{ value: "", label: "All" }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
   }, [validationRules]);
+  const playerSuggestions = useMemo(() => {
+    const values = new Set<string>();
+    validationRules.forEach((rule) => {
+      if (rule.field.toLowerCase() === "player" && rule.status.toLowerCase() === "valid" && rule.match_value.trim()) {
+        values.add(rule.match_value.trim());
+      }
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [validationRules]);
+  const sourceSuggestions = useMemo(() => {
+    const values = new Set<string>();
+    validationRules.forEach((rule) => {
+      if (rule.field.toLowerCase() === "source" && rule.status.toLowerCase() === "valid" && rule.match_value.trim()) {
+        values.add(rule.match_value.trim());
+      }
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [validationRules]);
+  const chestSuggestions = useMemo(() => {
+    const values = new Set<string>();
+    validationRules.forEach((rule) => {
+      if (rule.field.toLowerCase() === "chest" && rule.status.toLowerCase() === "valid" && rule.match_value.trim()) {
+        values.add(rule.match_value.trim());
+      }
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [validationRules]);
+  const suggestionsForField = useMemo<Record<string, readonly string[]>>(() => ({
+    player: playerSuggestions,
+    source: sourceSuggestions,
+    chest: chestSuggestions,
+    clan: availableClans.map((clan) => clan.name),
+    all: [],
+  }), [availableClans, chestSuggestions, playerSuggestions, sourceSuggestions]);
   const rowValidationResults = useMemo(() => {
     return rows.reduce<Record<string, ReturnType<typeof validationEvaluator>>>((acc, row) => {
       const clanId = getRowValue(row, "clan_id");
@@ -186,12 +235,44 @@ function DataTableClient(): JSX.Element {
         source: getRowValue(row, "source"),
         chest: getRowValue(row, "chest"),
         clan: clanName,
-        clanId,
       });
       return acc;
     }, {});
   }, [clanNameById, editMap, rows, validationEvaluator]);
-  
+  const rowCorrectionMatches = useMemo(() => {
+    return rows.reduce<Record<string, boolean>>((acc, row) => {
+      const playerResult = correctionApplicator.applyToField({ field: "player", value: row.player });
+      const sourceResult = correctionApplicator.applyToField({ field: "source", value: row.source });
+      const chestResult = correctionApplicator.applyToField({ field: "chest", value: row.chest });
+      const clanName = clanNameById[row.clan_id] ?? row.clan_name ?? "";
+      const clanResult = correctionApplicator.applyToField({ field: "clan", value: clanName });
+      acc[row.id] = playerResult.wasCorrected || sourceResult.wasCorrected || chestResult.wasCorrected || clanResult.wasCorrected;
+      return acc;
+    }, {});
+  }, [clanNameById, correctionApplicator, rows]);
+  const clientFilteredRows = useMemo(() => {
+    return rows.filter((row) => {
+      if (filterRowStatus !== "all") {
+        const status = rowValidationResults[row.id]?.rowStatus ?? "neutral";
+        if (filterRowStatus === "valid" && status !== "valid") {
+          return false;
+        }
+        if (filterRowStatus === "invalid" && status !== "invalid") {
+          return false;
+        }
+      }
+      if (filterCorrectionStatus !== "all") {
+        const hasCorrections = rowCorrectionMatches[row.id] ?? false;
+        if (filterCorrectionStatus === "corrected" && !hasCorrections) {
+          return false;
+        }
+        if (filterCorrectionStatus === "uncorrected" && hasCorrections) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [filterCorrectionStatus, filterRowStatus, rowCorrectionMatches, rowValidationResults, rows]);
 
   interface LoadRowsParams {
     readonly pageNumber: number;
@@ -314,32 +395,26 @@ function DataTableClient(): JSX.Element {
   }, [supabase]);
 
   useEffect(() => {
-    async function loadValidationRules(): Promise<void> {
-      const clanIds = Array.from(new Set(rows.map((row) => row.clan_id).filter(Boolean)));
-      if (clanIds.length === 0) {
-        setValidationRules([]);
-        setCorrectionRules([]);
-        return;
-      }
+    async function loadAllRules(): Promise<void> {
       const { data, error } = await supabase
         .from("validation_rules")
-        .select("id,clan_id,field,match_value,status")
-        .in("clan_id", clanIds);
+        .select("id,field,match_value,status")
+        .order("field");
       if (error) {
         return;
       }
       setValidationRules(data ?? []);
       const { data: correctionData, error: correctionError } = await supabase
         .from("correction_rules")
-        .select("id,clan_id,field,match_value,replacement_value,status")
-        .in("clan_id", clanIds);
+        .select("id,field,match_value,replacement_value,status")
+        .order("field");
       if (correctionError) {
         return;
       }
       setCorrectionRules(correctionData ?? []);
     }
-    void loadValidationRules();
-  }, [rows, supabase]);
+    void loadAllRules();
+  }, [rulesVersion, supabase]);
 
   useEffect(() => {
     if (status) {
@@ -446,6 +521,8 @@ function DataTableClient(): JSX.Element {
     setFilterDateTo("");
     setFilterScoreMin("");
     setFilterScoreMax("");
+    setFilterRowStatus("all");
+    setFilterCorrectionStatus("all");
     setPage(1);
   }
 
@@ -901,6 +978,130 @@ function DataTableClient(): JSX.Element {
     setStatus("All changes saved.");
   }
 
+  function getRowFieldValueForRule(row: ChestEntryRow, field: "player" | "source" | "chest" | "clan"): string {
+    if (field === "clan") {
+      return clanNameById[row.clan_id] ?? row.clan_name ?? "";
+    }
+    return row[field];
+  }
+
+  function openCorrectionRuleModal(row: ChestEntryRow): void {
+    const defaultField: "player" | "source" | "chest" | "clan" | "all" = "player";
+    setCorrectionRuleRowId(row.id);
+    setCorrectionRuleField(defaultField);
+    setCorrectionRuleMatch(row.player);
+    setCorrectionRuleReplacement("");
+    setCorrectionRuleStatus("active");
+    setCorrectionRuleMessage("");
+    setIsAddCorrectionRuleOpen(true);
+  }
+
+  function updateCorrectionRuleField(nextField: "player" | "source" | "chest" | "clan" | "all"): void {
+    setCorrectionRuleField(nextField);
+    if (nextField === "all" || !correctionRuleRowId) {
+      return;
+    }
+    const row = rows.find((entry) => entry.id === correctionRuleRowId);
+    if (!row) {
+      return;
+    }
+    setCorrectionRuleMatch(getRowFieldValueForRule(row, nextField));
+    setCorrectionRuleReplacement("");
+  }
+
+  function closeCorrectionRuleModal(): void {
+    setIsAddCorrectionRuleOpen(false);
+    setCorrectionRuleRowId(null);
+    setCorrectionRuleMessage("");
+  }
+
+  async function handleSaveCorrectionRuleFromRow(): Promise<void> {
+    if (!correctionRuleRowId) {
+      setCorrectionRuleMessage("Select a row first.");
+      return;
+    }
+    const row = rows.find((entry) => entry.id === correctionRuleRowId);
+    if (!row) {
+      setCorrectionRuleMessage("Row data not available.");
+      return;
+    }
+    if (!correctionRuleMatch.trim() || !correctionRuleReplacement.trim()) {
+      setCorrectionRuleMessage("Match and replacement values are required.");
+      return;
+    }
+    const payload = {
+      field: correctionRuleField,
+      match_value: correctionRuleMatch.trim(),
+      replacement_value: correctionRuleReplacement.trim(),
+      status: correctionRuleStatus.trim() || "active",
+    };
+    const { error } = await supabase.from("correction_rules").insert(payload);
+    if (error) {
+      setCorrectionRuleMessage(`Failed to add correction rule: ${error.message}`);
+      return;
+    }
+    setCorrectionRuleMessage("Correction rule added.");
+    setRulesVersion((current) => current + 1);
+    closeCorrectionRuleModal();
+  }
+
+  function openValidationRuleModal(row: ChestEntryRow): void {
+    const defaultField: "player" | "source" | "chest" | "clan" = "player";
+    setValidationRuleRowId(row.id);
+    setValidationRuleField(defaultField);
+    setValidationRuleMatch(row.player);
+    setValidationRuleStatus("valid");
+    setValidationRuleMessage("");
+    setIsAddValidationRuleOpen(true);
+  }
+
+  function updateValidationRuleField(nextField: "player" | "source" | "chest" | "clan"): void {
+    setValidationRuleField(nextField);
+    if (!validationRuleRowId) {
+      return;
+    }
+    const row = rows.find((entry) => entry.id === validationRuleRowId);
+    if (!row) {
+      return;
+    }
+    setValidationRuleMatch(getRowFieldValueForRule(row, nextField));
+  }
+
+  function closeValidationRuleModal(): void {
+    setIsAddValidationRuleOpen(false);
+    setValidationRuleRowId(null);
+    setValidationRuleMessage("");
+  }
+
+  async function handleSaveValidationRuleFromRow(): Promise<void> {
+    if (!validationRuleRowId) {
+      setValidationRuleMessage("Select a row first.");
+      return;
+    }
+    const row = rows.find((entry) => entry.id === validationRuleRowId);
+    if (!row) {
+      setValidationRuleMessage("Row data not available.");
+      return;
+    }
+    if (!validationRuleMatch.trim()) {
+      setValidationRuleMessage("Value is required.");
+      return;
+    }
+    const payload = {
+      field: validationRuleField,
+      match_value: validationRuleMatch.trim(),
+      status: validationRuleStatus.trim() || "valid",
+    };
+    const { error } = await supabase.from("validation_rules").insert(payload);
+    if (error) {
+      setValidationRuleMessage(`Failed to add validation rule: ${error.message}`);
+      return;
+    }
+    setValidationRuleMessage("Validation rule added.");
+    setRulesVersion((current) => current + 1);
+    closeValidationRuleModal();
+  }
+
   return (
     <div className="grid">
       {isBatchOpsOpen ? (
@@ -1029,6 +1230,42 @@ function DataTableClient(): JSX.Element {
                   inputClassName="batch-search-input"
                 />
               </div>
+              <div className="list inline admin-members-filters filter-bar batch-ops-row">
+                <label htmlFor="filterRowStatus" className="text-muted">
+                  Row status
+                </label>
+                <RadixSelect
+                  id="filterRowStatus"
+                  ariaLabel="Row status"
+                  value={filterRowStatus}
+                  onValueChange={(value) => {
+                    setFilterRowStatus(value as "all" | "valid" | "invalid");
+                    setPage(1);
+                  }}
+                  options={[
+                    { value: "all", label: "All" },
+                    { value: "valid", label: "Valid only" },
+                    { value: "invalid", label: "Invalid only" },
+                  ]}
+                />
+                <label htmlFor="filterCorrectionStatus" className="text-muted">
+                  Correction
+                </label>
+                <RadixSelect
+                  id="filterCorrectionStatus"
+                  ariaLabel="Correction status"
+                  value={filterCorrectionStatus}
+                  onValueChange={(value) => {
+                    setFilterCorrectionStatus(value as "all" | "corrected" | "uncorrected");
+                    setPage(1);
+                  }}
+                  options={[
+                    { value: "all", label: "All" },
+                    { value: "corrected", label: "Corrected only" },
+                    { value: "uncorrected", label: "Not corrected" },
+                  ]}
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -1095,6 +1332,7 @@ function DataTableClient(): JSX.Element {
         <span className="text-muted">
           Showing {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–
           {Math.min(page * pageSize, totalCount)} of {totalCount}
+          {clientFilteredRows.length < rows.length ? ` • ${clientFilteredRows.length} visible after filter` : ""}
           {selectedIds.length > 0 ? ` • ${selectedIds.length} selected` : ""}
         </span>
         <div className="pagination-actions">
@@ -1154,7 +1392,7 @@ function DataTableClient(): JSX.Element {
           <span>{renderSortButton("Clan", "clan")}</span>
           <span>Actions</span>
         </header>
-        {rows.length === 0 ? (
+        {clientFilteredRows.length === 0 ? (
           <div className="row">
             <span>No rows found</span>
             <span />
@@ -1167,7 +1405,7 @@ function DataTableClient(): JSX.Element {
             <span />
           </div>
         ) : (
-          sortRows(rows).map((row, index) => {
+          sortRows(clientFilteredRows).map((row, index) => {
             const validation = rowValidationResults[row.id];
             const rowStatus = validation?.rowStatus ?? "neutral";
             const fieldStatus = validation?.fieldStatus ?? { player: "neutral", source: "neutral", chest: "neutral", clan: "neutral" };
@@ -1191,20 +1429,23 @@ function DataTableClient(): JSX.Element {
                   onChange={(value) => updateEditValue(row.id, "collected_date", value)}
                 />
               </span>
-              <input
+              <ComboboxInput
                 value={getRowValue(row, "player")}
                 className={fieldStatus.player === "invalid" ? "validation-cell-invalid" : ""}
-                onChange={(event) => updateEditValue(row.id, "player", event.target.value)}
+                onChange={(value) => updateEditValue(row.id, "player", value)}
+                options={playerSuggestions}
               />
-              <input
+              <ComboboxInput
                 value={getRowValue(row, "source")}
                 className={fieldStatus.source === "invalid" ? "validation-cell-invalid" : ""}
-                onChange={(event) => updateEditValue(row.id, "source", event.target.value)}
+                onChange={(value) => updateEditValue(row.id, "source", value)}
+                options={sourceSuggestions}
               />
-              <input
+              <ComboboxInput
                 value={getRowValue(row, "chest")}
                 className={fieldStatus.chest === "invalid" ? "validation-cell-invalid" : ""}
-                onChange={(event) => updateEditValue(row.id, "chest", event.target.value)}
+                onChange={(value) => updateEditValue(row.id, "chest", value)}
+                options={chestSuggestions}
               />
               <input
                 value={getRowValue(row, "score")}
@@ -1244,6 +1485,26 @@ function DataTableClient(): JSX.Element {
                           <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                           <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                           <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        </svg>
+                      </IconButton>
+                      <IconButton ariaLabel="Add correction rule" onClick={() => openCorrectionRuleModal(row)}>
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M3.5 10.5L8 6L12.5 10.5L7.5 15H3.5V10.5Z"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path d="M7.5 15H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </IconButton>
+                      <IconButton ariaLabel="Add validation rule" onClick={() => openValidationRuleModal(row)}>
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M3.5 5.5L5 7L7.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M8.5 5.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M3.5 10.5L5 12L7.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M8.5 10.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
                       </IconButton>
                     </>
@@ -1341,7 +1602,6 @@ function DataTableClient(): JSX.Element {
                       source: getBatchPreviewValue(row, "source"),
                       chest: getBatchPreviewValue(row, "chest"),
                       clan: previewClanName,
-                      clanId: previewClanId,
                     });
                     const rowStatus = validation?.rowStatus ?? "neutral";
                     const fieldStatus = validation?.fieldStatus ?? {
@@ -1439,6 +1699,138 @@ function DataTableClient(): JSX.Element {
               </button>
               <button className="button" type="button" onClick={closeBatchDeleteInput}>
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isAddCorrectionRuleOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card wide">
+            <div className="card-header">
+              <div>
+                <div className="card-title">Add correction rule</div>
+                <div className="card-subtitle">Create a rule from this row</div>
+              </div>
+            </div>
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="correctionRuleField">Field</label>
+                <RadixSelect
+                  id="correctionRuleField"
+                  ariaLabel="Correction field"
+                  value={correctionRuleField}
+                  onValueChange={(value) =>
+                    updateCorrectionRuleField(value as "player" | "source" | "chest" | "clan" | "all")
+                  }
+                  options={[
+                    { value: "player", label: "Player" },
+                    { value: "source", label: "Source" },
+                    { value: "chest", label: "Chest" },
+                    { value: "clan", label: "Clan" },
+                    { value: "all", label: "All" },
+                  ]}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="correctionRuleMatch">Match value</label>
+                <ComboboxInput
+                  id="correctionRuleMatch"
+                  value={correctionRuleMatch}
+                  onChange={setCorrectionRuleMatch}
+                  options={suggestionsForField[correctionRuleField] ?? []}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="correctionRuleReplacement">Replacement value</label>
+                <ComboboxInput
+                  id="correctionRuleReplacement"
+                  value={correctionRuleReplacement}
+                  onChange={setCorrectionRuleReplacement}
+                  options={suggestionsForField[correctionRuleField] ?? []}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="correctionRuleStatus">Status</label>
+                <RadixSelect
+                  id="correctionRuleStatus"
+                  ariaLabel="Status"
+                  value={correctionRuleStatus}
+                  onValueChange={(value) => setCorrectionRuleStatus(value)}
+                  options={[
+                    { value: "active", label: "active" },
+                    { value: "inactive", label: "inactive" },
+                  ]}
+                />
+              </div>
+            </div>
+            {correctionRuleMessage ? <div className="alert info">{correctionRuleMessage}</div> : null}
+            <div className="list inline">
+              <button className="button" type="button" onClick={closeCorrectionRuleModal}>
+                Cancel
+              </button>
+              <button className="button primary" type="button" onClick={handleSaveCorrectionRuleFromRow}>
+                Save rule
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isAddValidationRuleOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card wide">
+            <div className="card-header">
+              <div>
+                <div className="card-title">Add validation rule</div>
+                <div className="card-subtitle">Create a valid value from this row</div>
+              </div>
+            </div>
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="validationRuleField">Field</label>
+                <RadixSelect
+                  id="validationRuleField"
+                  ariaLabel="Validation field"
+                  value={validationRuleField}
+                  onValueChange={(value) => updateValidationRuleField(value as "player" | "source" | "chest" | "clan")}
+                  options={[
+                    { value: "player", label: "Player" },
+                    { value: "source", label: "Source" },
+                    { value: "chest", label: "Chest" },
+                    { value: "clan", label: "Clan" },
+                  ]}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="validationRuleMatch">Value</label>
+                <ComboboxInput
+                  id="validationRuleMatch"
+                  value={validationRuleMatch}
+                  onChange={setValidationRuleMatch}
+                  options={suggestionsForField[validationRuleField] ?? []}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="validationRuleStatus">Status</label>
+                <RadixSelect
+                  id="validationRuleStatus"
+                  ariaLabel="Status"
+                  value={validationRuleStatus}
+                  onValueChange={(value) => setValidationRuleStatus(value)}
+                  options={[
+                    { value: "valid", label: "valid" },
+                    { value: "invalid", label: "invalid" },
+                  ]}
+                />
+              </div>
+            </div>
+            {validationRuleMessage ? <div className="alert info">{validationRuleMessage}</div> : null}
+            <div className="list inline">
+              <button className="button" type="button" onClick={closeValidationRuleModal}>
+                Cancel
+              </button>
+              <button className="button primary" type="button" onClick={handleSaveValidationRuleFromRow}>
+                Save rule
               </button>
             </div>
           </div>

@@ -26,7 +26,7 @@ This file is a compact context transfer for a new chat.
   - Clan Management manages **game accounts** (not users) and supports assign‑to‑clan modal.
   - Users tab supports search/filters, inline edits, add game accounts, create users (invite), delete users.
   - Global save/cancel applies to user + game account edits.
-  - Validation + Correction rules support: sorting, selection, batch delete, import/export, active/inactive status (corrections).
+  - Validation + Correction rules are **global** (not clan-specific). Support: sorting, selection, batch delete, import/export, active/inactive status (corrections).
   - Files: `app/admin/admin-client.tsx`, `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`
 - **Data import (Pattern 1)**
   - Creates missing clans and commits chest data via an admin API endpoint.
@@ -36,12 +36,15 @@ This file is a compact context transfer for a new chat.
   - Batch edit, multi-select, remove selected rows.
   - Commit warning modal with skip/force options.
   - Filters + sorting + pagination, row numbers, and top scrollbar.
+  - Combobox inputs for player/source/chest fields with suggestions from validation rules.
   - Files: `app/data-import/data-import-client.tsx`, `app/api/data-import/commit/route.ts`
 - **Chest Database**
-  - Filters, batch ops, select-all, confirmation modals.
+  - Filters (including row status + correction status), batch ops, select-all, confirmation modals.
   - Row actions use icon buttons; batch delete/edits are confirmed.
+  - Per-row actions to add correction and validation rules.
   - Clan filter defaults to all clans unless manually filtered.
   - Correction rules applied on save; validation uses corrected values.
+  - Combobox inputs for player/source/chest fields with suggestions from validation rules.
   - `app/data-table/data-table-client.tsx`
 - **News + Events (DB-backed, clan-scoped)**
   - Create/edit/delete posts and events.
@@ -57,6 +60,13 @@ This file is a compact context transfer for a new chat.
   - Dropdowns and labeled dropdowns share consistent styling and behavior.
   - `app/components/ui/icon-button.tsx`, `app/components/ui/search-input.tsx`, `app/components/ui/labeled-select.tsx`, `app/components/ui/radix-select.tsx`
   - `app/components/table-scroll.tsx` (sync top/bottom horizontal scrollbars)
+  - `app/components/ui/combobox-input.tsx` (text input with filterable suggestion dropdown)
+- **Validation/Correction rules are global**
+  - Rules are no longer scoped to a specific clan; they apply across all clans.
+  - `clan_id` column is nullable on `validation_rules` and `correction_rules`.
+  - Any admin can manage rules; all authenticated users can read them.
+  - Validation evaluator no longer indexes by clan ID.
+  - `app/components/validation-evaluator.ts`, `lib/correction-applicator.ts`
 
 ## Recent UI Fixes
 
@@ -83,7 +93,8 @@ Run `Documentation/supabase_chest_entries.sql` in Supabase SQL Editor:
 - Adds `get_email_for_username` RPC for username login.
 - Adds global default clan (`clans.is_default`) + single‑default trigger.
 - Adds `rank` column on `game_account_clan_memberships`.
-- Adds `status` column to `correction_rules` + index on `(clan_id, field, match_value)`.
+- Adds `status` column to `correction_rules` + index on `(field, match_value)`.
+- Validation/correction rules `clan_id` is nullable (rules are global, not clan-specific).
 - Moves roles to `user_roles` (no membership role column).
 
 ## SQL Migrations Checklist (re‑run safe)
@@ -132,3 +143,123 @@ SUPABASE_SERVICE_ROLE_KEY=...
 - `is_any_admin` + `prevent_username_change` trigger.
 - `clans.is_default` column + single‑default trigger.
 - `rank` column on `game_account_clan_memberships`.
+- `chest_entries` RLS: add `is_any_admin()` to SELECT and INSERT policies (see migration below).
+
+## chest_entries RLS admin fix (run in Supabase SQL Editor)
+
+```sql
+drop policy if exists "chest_entries_select_by_membership" on public.chest_entries;
+create policy "chest_entries_select_by_membership"
+on public.chest_entries
+for select
+to authenticated
+using (
+  public.is_any_admin()
+  or exists (
+    select 1
+    from public.game_account_clan_memberships
+    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+    where game_account_clan_memberships.clan_id = chest_entries.clan_id
+      and game_accounts.user_id = auth.uid()
+      and game_account_clan_memberships.is_active = true
+  )
+);
+
+drop policy if exists "chest_entries_insert_by_membership" on public.chest_entries;
+create policy "chest_entries_insert_by_membership"
+on public.chest_entries
+for insert
+to authenticated
+with check (
+  auth.uid() = created_by
+  and auth.uid() = updated_by
+  and (
+    public.is_any_admin()
+    or exists (
+      select 1
+      from public.game_account_clan_memberships
+      join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+      where game_account_clan_memberships.clan_id = chest_entries.clan_id
+        and game_accounts.user_id = auth.uid()
+        and game_account_clan_memberships.is_active = true
+    )
+  )
+);
+```
+
+## Make validation/correction rules global (not clan-specific) — run in Supabase SQL Editor
+
+```sql
+-- 1. Make clan_id nullable on both tables
+alter table public.validation_rules alter column clan_id drop not null;
+alter table public.correction_rules alter column clan_id drop not null;
+
+-- 2. Clear existing clan_id values (rules are now global)
+update public.validation_rules set clan_id = null;
+update public.correction_rules set clan_id = null;
+
+-- 3. Replace the old clan-scoped index with a global one
+drop index if exists correction_rules_clan_field_match_idx;
+create index if not exists correction_rules_field_match_idx
+  on public.correction_rules (field, match_value);
+
+-- 4. Update SELECT policies: all authenticated users can read rules
+drop policy if exists "validation_rules_select" on public.validation_rules;
+create policy "validation_rules_select"
+on public.validation_rules
+for select
+to authenticated
+using (true);
+
+drop policy if exists "correction_rules_select" on public.correction_rules;
+create policy "correction_rules_select"
+on public.correction_rules
+for select
+to authenticated
+using (true);
+
+-- 5. Update write policies: any admin can manage rules (not clan-specific)
+drop policy if exists "validation_rules_write" on public.validation_rules;
+create policy "validation_rules_write"
+on public.validation_rules
+for insert
+to authenticated
+with check (public.is_any_admin());
+
+drop policy if exists "validation_rules_update" on public.validation_rules;
+create policy "validation_rules_update"
+on public.validation_rules
+for update
+to authenticated
+using (public.is_any_admin())
+with check (public.is_any_admin());
+
+drop policy if exists "validation_rules_delete" on public.validation_rules;
+create policy "validation_rules_delete"
+on public.validation_rules
+for delete
+to authenticated
+using (public.is_any_admin());
+
+drop policy if exists "correction_rules_write" on public.correction_rules;
+create policy "correction_rules_write"
+on public.correction_rules
+for insert
+to authenticated
+with check (public.is_any_admin());
+
+drop policy if exists "correction_rules_update" on public.correction_rules;
+create policy "correction_rules_update"
+on public.correction_rules
+for update
+to authenticated
+using (public.is_any_admin())
+with check (public.is_any_admin());
+
+drop policy if exists "correction_rules_delete" on public.correction_rules;
+create policy "correction_rules_delete"
+on public.correction_rules
+for delete
+to authenticated
+using (public.is_any_admin());
+```

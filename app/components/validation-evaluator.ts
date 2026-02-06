@@ -1,5 +1,4 @@
 interface ValidationRuleEntry {
-  readonly clan_id: string | null;
   readonly field: string | null;
   readonly match_value: string | null;
   readonly status: string | null;
@@ -10,13 +9,11 @@ interface ValidationRuleGroup {
   readonly invalid: Set<string>;
 }
 
-interface ValidationRuleIndex {
-  readonly [clanId: string]: {
-    readonly player: ValidationRuleGroup;
-    readonly source: ValidationRuleGroup;
-    readonly chest: ValidationRuleGroup;
-    readonly clan: ValidationRuleGroup;
-  };
+interface ValidationFieldGroups {
+  readonly player: ValidationRuleGroup;
+  readonly source: ValidationRuleGroup;
+  readonly chest: ValidationRuleGroup;
+  readonly clan: ValidationRuleGroup;
 }
 
 type ValidationFieldKey = "player" | "source" | "chest" | "clan";
@@ -26,7 +23,6 @@ interface ValidationRowInput {
   readonly source: string;
   readonly chest: string;
   readonly clan: string;
-  readonly clanId: string | null;
 }
 
 interface ValidationRowResult {
@@ -42,30 +38,27 @@ function buildRuleGroup(): ValidationRuleGroup {
   return { valid: new Set<string>(), invalid: new Set<string>() };
 }
 
-function buildRuleIndex(rules: readonly ValidationRuleEntry[]): ValidationRuleIndex {
-  return rules.reduce<ValidationRuleIndex>((acc, rule) => {
-    const clanId = rule.clan_id ?? "";
+function buildRuleIndex(rules: readonly ValidationRuleEntry[]): ValidationFieldGroups {
+  const groups: ValidationFieldGroups = {
+    player: buildRuleGroup(),
+    source: buildRuleGroup(),
+    chest: buildRuleGroup(),
+    clan: buildRuleGroup(),
+  };
+  rules.forEach((rule) => {
     const field = (rule.field ?? "").toLowerCase() as ValidationFieldKey;
     const status = (rule.status ?? "").toLowerCase();
     const matchValue = normalizeValue(rule.match_value ?? "");
-    if (!clanId || !matchValue || (field !== "player" && field !== "source" && field !== "chest" && field !== "clan")) {
-      return acc;
-    }
-    if (!acc[clanId]) {
-      acc[clanId] = {
-        player: buildRuleGroup(),
-        source: buildRuleGroup(),
-        chest: buildRuleGroup(),
-        clan: buildRuleGroup(),
-      };
+    if (!matchValue || (field !== "player" && field !== "source" && field !== "chest" && field !== "clan")) {
+      return;
     }
     if (status === "valid") {
-      acc[clanId][field].valid.add(matchValue);
+      groups[field].valid.add(matchValue);
     } else if (status === "invalid") {
-      acc[clanId][field].invalid.add(matchValue);
+      groups[field].invalid.add(matchValue);
     }
-    return acc;
-  }, {});
+  });
+  return groups;
 }
 
 function evaluateField(
@@ -92,31 +85,29 @@ function evaluateField(
 
 /**
  * Creates a validation evaluator for rows using exact, case-insensitive matches.
+ * Rules are global (not clan-specific).
  */
 export function createValidationEvaluator(
   rules: readonly ValidationRuleEntry[],
 ): (input: ValidationRowInput) => ValidationRowResult {
-  const ruleIndex = buildRuleIndex(rules);
+  const ruleGroups = buildRuleIndex(rules);
   return (input: ValidationRowInput): ValidationRowResult => {
-    const clanId = input.clanId ?? "";
-    const clanRules = ruleIndex[clanId];
     const fieldStatus: Record<ValidationFieldKey, "valid" | "invalid" | "neutral"> = {
-      player: evaluateField(clanRules?.player, input.player),
-      source: evaluateField(clanRules?.source, input.source),
-      chest: evaluateField(clanRules?.chest, input.chest),
-      clan: evaluateField(clanRules?.clan, input.clan),
+      player: evaluateField(ruleGroups.player, input.player),
+      source: evaluateField(ruleGroups.source, input.source),
+      chest: evaluateField(ruleGroups.chest, input.chest),
+      clan: evaluateField(ruleGroups.clan, input.clan),
     };
     const hasAnyRule =
-      Boolean(clanRules) &&
-      (clanRules.player.valid.size +
-        clanRules.player.invalid.size +
-        clanRules.source.valid.size +
-        clanRules.source.invalid.size +
-        clanRules.chest.valid.size +
-        clanRules.chest.invalid.size +
-        clanRules.clan.valid.size +
-        clanRules.clan.invalid.size >
-        0);
+      ruleGroups.player.valid.size +
+        ruleGroups.player.invalid.size +
+        ruleGroups.source.valid.size +
+        ruleGroups.source.invalid.size +
+        ruleGroups.chest.valid.size +
+        ruleGroups.chest.invalid.size +
+        ruleGroups.clan.valid.size +
+        ruleGroups.clan.invalid.size >
+      0;
     const hasInvalid = Object.values(fieldStatus).some((value) => value === "invalid");
     if (hasInvalid) {
       return { rowStatus: "invalid", fieldStatus };

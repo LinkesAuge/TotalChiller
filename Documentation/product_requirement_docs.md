@@ -60,9 +60,9 @@ This document outlines the requirements for a new web application designed to se
 **Implemented**
 - Supabase Auth flows (register/login/forgot/update), profile/settings, admin gating.
 - Clan context (game accounts + memberships) with scoped data views.
-- Admin: Clan Management, Users, Validation rules, Correction rules, Audit Logs.
-- Data import (Pattern 1 only) with auto‑correct/validation toggles, batch edit, commit warning, filtering, sorting, pagination, and row numbers.
-- Chest database with inline edits, batch ops, audit logging, and correction-on-save.
+- Admin: Clan Management, Users, Validation rules (global), Correction rules (global), Scoring rules (per-clan), Audit Logs.
+- Data import (Pattern 1 only) with auto‑correct/validation toggles, batch edit, commit warning, filtering, sorting, pagination, row numbers, and combobox suggestions for player/source/chest.
+- Chest database with inline edits (combobox suggestions), batch ops, audit logging, correction-on-save, per-row add-rule actions, and row/correction status filters.
 - News + Events (CRUD, clan‑scoped).
 
 **Not Yet Implemented / Deferred**
@@ -124,7 +124,7 @@ Ranks provide an additional layer for permissions and visual distinction, often 
 *   Users belong to one or more Clans.
 *   Permissions granted by Role/Rank are typically scoped to the Clan(s) the user belongs to.
 *   Administrators/Owners can configure whether certain permissions extend across multiple clans for specific users.
-*   Validation, Correction, and Scoring rules are defined on a per-clan basis.
+*   Validation and Correction rules are **global** (not clan-specific). Scoring rules are defined on a per-clan basis.
 
 ### 2.4. Personas (Example - TBD in more detail)
 
@@ -236,7 +236,7 @@ This section describes how access control is enforced based on Role, Rank, and C
 *   **Rank-Based Permissions:** Each Rank can grant *additional* specific permissions on top of the user's Role-based permissions (e.g., a high-rank Member might gain `article:approve`).
 *   **Clan Scoping:**
     *   By default, most permissions are clan-specific. An Editor in Clan A cannot edit articles for Clan B unless explicitly granted cross-clan permission.
-    *   Data (chest data, validation/correction/scoring rules) is strictly segregated by Clan.
+    *   Chest data and scoring rules are segregated by Clan. Validation and correction rules are global.
     *   **Cross-Clan Permissions:** An interface for Owners/Admins is required to grant specific users specific permissions across multiple clans (e.g., allowing a high-ranking Moderator to oversee discussions in several clans).
 *   **Implementation:** Permissions checks must be implemented consistently across the application (API routes (tRPC), UI components) to ensure secure and correct access control.
 
@@ -309,7 +309,7 @@ This section covers the process of getting chest data into the system.
 *   **User Feedback:** The UI must provide clear, non-blocking feedback during file upload, parsing (especially for large files), validation/correction processes, and the final commit step.
 *   **Rule Management:**
     *   Initial validation and correction rules for MVP will be pre-defined.
-    *   **Admin Rule Management UI (MVP):** A dedicated admin page is required for managing Validation, Correction, and Scoring rules on a per-clan basis. This interface should allow authorized users (e.g., Admins with `rules:manage` permission) to create, view, edit, and delete rules for each category within a unified management area.
+    *   **Admin Rule Management UI (MVP):** A dedicated admin page is required for managing Validation, Correction, and Scoring rules. Validation and correction rules are **global** (not clan-specific); scoring rules remain per-clan. This interface should allow authorized users (e.g., Admins with `rules:manage` permission) to create, view, edit, and delete rules for each category within a unified management area.
 
 ### 3.8. Scoring System
 
@@ -361,8 +361,8 @@ This section describes the interface for interacting with committed chest data i
     *   Sorting by any column.
     *   Filtering based on criteria across one or more columns.
     *   **Pagination:** Must be implemented to efficiently handle large datasets.
-*   **Inline Editing:** Users with `data:edit` permission can directly edit cell values within the table.
-*   **Correction/Validation:** Corrections are applied before validation on save; corrected values are stored.
+*   **Inline Editing:** Users with `data:edit` permission can directly edit cell values within the table. Player, source, and chest fields use combobox inputs that show filterable suggestions from validation rules.
+*   **Correction/Validation:** Corrections are applied before validation on save; corrected values are stored. Per-row actions allow adding correction and validation rules directly from the table.
 *   **Batch Operations (MVP):**
     *   Users must be able to select multiple rows.
     *   Provide functionality for **Batch Edit** (e.g., change the Source for all selected rows) and **Batch Delete** for selected rows (subject to `data:batch_edit` / `data:batch_delete` permissions).

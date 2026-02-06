@@ -1001,27 +1001,16 @@ function AdminClient(): JSX.Element {
     setUserRolesById((current) => ({ ...current, ...roleMap }));
   }
 
-  async function loadRules(clanId: string): Promise<void> {
-    if (!clanId) {
-      setValidationRules([]);
-      setValidationSelectedIds([]);
-      setValidationPage(1);
-      setCorrectionRules([]);
-      setCorrectionSelectedIds([]);
-      setCorrectionPage(1);
-      return;
-    }
+  async function loadRules(): Promise<void> {
     const { data: validationData } = await supabase
       .from("validation_rules")
       .select("id,field,match_value,status")
-      .eq("clan_id", clanId)
       .order("field");
     setValidationRules(validationData ?? []);
     setValidationSelectedIds([]);
     const { data: correctionData } = await supabase
       .from("correction_rules")
       .select("id,field,match_value,replacement_value,status")
-      .eq("clan_id", clanId)
       .order("field");
     setCorrectionRules(correctionData ?? []);
     setCorrectionSelectedIds([]);
@@ -1870,11 +1859,10 @@ function AdminClient(): JSX.Element {
 
   useEffect(() => {
     async function loadClanData(): Promise<void> {
+      await loadRules();
       if (!selectedClanId) {
         setMemberships([]);
         setProfilesById({});
-        setValidationRules([]);
-        setValidationPage(1);
         return;
       }
       if (selectedClanId === unassignedClanId) {
@@ -1927,12 +1915,6 @@ function AdminClient(): JSX.Element {
         }, {});
         setUserRolesById((current) => ({ ...current, ...roleMap }));
       }
-      const { data: validationData } = await supabase
-        .from("validation_rules")
-        .select("id,field,match_value,status")
-        .eq("clan_id", selectedClanId)
-        .order("field");
-      setValidationRules(validationData ?? []);
     }
     void loadClanData();
   }, [selectedClanId, supabase, unassignedClanId]);
@@ -2701,16 +2683,11 @@ function AdminClient(): JSX.Element {
   }
 
   async function handleSaveValidationRow(): Promise<void> {
-    if (!selectedClanId) {
-      setStatus("Select a clan first.");
-      return;
-    }
     if (!validationMatch.trim()) {
       setStatus("Match value is required.");
       return;
     }
     const payload = {
-      clan_id: selectedClanId,
       field: validationField.trim() || validationListField,
       match_value: validationMatch.trim(),
       status: validationStatus.trim(),
@@ -2727,7 +2704,7 @@ function AdminClient(): JSX.Element {
     setValidationMatch("");
     setValidationEditingId("");
     setStatus(isNew ? "Validation rule added." : "Validation rule updated.");
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   async function handleDeleteValidationRule(ruleId: string): Promise<void> {
@@ -2741,7 +2718,7 @@ function AdminClient(): JSX.Element {
       return;
     }
     setStatus("Validation rule deleted.");
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   async function handleDeleteSelectedValidationRules(): Promise<void> {
@@ -2763,7 +2740,7 @@ function AdminClient(): JSX.Element {
     setStatus("Validation rules deleted.");
     setValidationSelectedIds([]);
     setValidationDeleteInput("");
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   function handleEditValidationRule(rule: RuleRow): void {
@@ -2864,11 +2841,6 @@ function AdminClient(): JSX.Element {
     if (!file) {
       return;
     }
-    if (!selectedClanId) {
-      setValidationImportStatus("Select a clan before importing.");
-      event.target.value = "";
-      return;
-    }
     const text = await file.text();
     const { entries, errors } = parseValidationListText(text, validationListField);
     setValidationImportFileName(file.name);
@@ -2878,10 +2850,6 @@ function AdminClient(): JSX.Element {
     event.target.value = "";
   }
   async function handleApplyValidationImport(): Promise<void> {
-    if (!selectedClanId) {
-      setValidationImportStatus("Select a clan before importing.");
-      return;
-    }
     if (validationImportErrors.length > 0) {
       setValidationImportStatus(validationImportErrors.slice(0, 3).join(" "));
       return;
@@ -2898,14 +2866,10 @@ function AdminClient(): JSX.Element {
   }
 
   async function executeValidationImport(): Promise<void> {
-    if (!selectedClanId) {
-      return;
-    }
     if (validationImportMode === "replace") {
       const { error: deleteError } = await supabase
         .from("validation_rules")
         .delete()
-        .eq("clan_id", selectedClanId)
         .eq("field", validationListField);
       if (deleteError) {
         setValidationImportStatus(`Failed to clear list: ${deleteError.message}`);
@@ -2926,7 +2890,6 @@ function AdminClient(): JSX.Element {
         return !existingValues.has(normalized);
       })
       .map((entry) => ({
-        clan_id: selectedClanId,
         field: entry.field?.trim(),
         match_value: entry.match_value?.trim(),
         status: entry.status?.trim(),
@@ -2945,7 +2908,7 @@ function AdminClient(): JSX.Element {
     setValidationImportSelected([]);
     setValidationImportFileName("");
     setValidationImportErrors([]);
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   function handleCloseValidationImport(): void {
@@ -2989,26 +2952,16 @@ function AdminClient(): JSX.Element {
   }
 
   function handleExportValidationList(): void {
-    if (!selectedClanId) {
-      setValidationImportStatus("Select a clan before exporting.");
-      return;
-    }
-    const clanName = clans.find((clan) => clan.id === selectedClanId)?.name ?? "clan";
     const listRules = validationRules.filter((rule) => rule.field === validationListField);
     const csv = buildValidationCsv(listRules);
-    downloadValidationCsv(`validation-list-${validationListField}-${clanName}.csv`, csv);
+    downloadValidationCsv(`validation-list-${validationListField}.csv`, csv);
   }
 
   function handleBackupValidationList(): void {
-    if (!selectedClanId) {
-      setValidationImportStatus("Select a clan before creating a backup.");
-      return;
-    }
-    const clanName = clans.find((clan) => clan.id === selectedClanId)?.name ?? "clan";
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const listRules = validationRules.filter((rule) => rule.field === validationListField);
     const csv = buildValidationCsv(listRules);
-    downloadValidationCsv(`validation-backup-${validationListField}-${clanName}-${timestamp}.csv`, csv);
+    downloadValidationCsv(`validation-backup-${validationListField}-${timestamp}.csv`, csv);
   }
 
   function normalizeCorrectionValue(value: string): string {
@@ -3136,10 +3089,6 @@ function AdminClient(): JSX.Element {
   }
 
   async function handleApplyCorrectionImport(): Promise<void> {
-    if (!selectedClanId) {
-      setCorrectionImportStatus("Select a clan before importing.");
-      return;
-    }
     if (correctionImportErrors.length > 0) {
       setCorrectionImportStatus(correctionImportErrors.slice(0, 3).join(" "));
       return;
@@ -3156,14 +3105,10 @@ function AdminClient(): JSX.Element {
   }
 
   async function executeCorrectionImport(): Promise<void> {
-    if (!selectedClanId) {
-      return;
-    }
     if (correctionImportMode === "replace") {
       const { error: deleteError } = await supabase
         .from("correction_rules")
         .delete()
-        .eq("clan_id", selectedClanId)
         .eq("field", correctionListField);
       if (deleteError) {
         setCorrectionImportStatus(`Failed to clear list: ${deleteError.message}`);
@@ -3184,7 +3129,6 @@ function AdminClient(): JSX.Element {
         return !existingValues.has(normalized);
       })
       .map((entry) => ({
-        clan_id: selectedClanId,
         field: entry.field?.trim(),
         match_value: entry.match_value?.trim(),
         replacement_value: entry.replacement_value?.trim(),
@@ -3204,7 +3148,7 @@ function AdminClient(): JSX.Element {
     setCorrectionImportSelected([]);
     setCorrectionImportFileName("");
     setCorrectionImportErrors([]);
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   function handleCloseCorrectionImport(): void {
@@ -3252,32 +3196,19 @@ function AdminClient(): JSX.Element {
   }
 
   function handleExportCorrectionList(): void {
-    if (!selectedClanId) {
-      setCorrectionImportStatus("Select a clan before exporting.");
-      return;
-    }
     const listRules = correctionRules.filter((rule) => rule.field === correctionListField);
     const csv = buildCorrectionCsv(listRules);
     downloadCorrectionCsv(`corrections-${correctionListField}.csv`, csv);
   }
 
   function handleBackupCorrectionList(): void {
-    if (!selectedClanId) {
-      setCorrectionImportStatus("Select a clan before exporting.");
-      return;
-    }
-    const clanName = clans.find((clan) => clan.id === selectedClanId)?.name ?? "clan";
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const listRules = correctionRules.filter((rule) => rule.field === correctionListField);
     const csv = buildCorrectionCsv(listRules);
-    downloadCorrectionCsv(`corrections-backup-${correctionListField}-${clanName}-${timestamp}.csv`, csv);
+    downloadCorrectionCsv(`corrections-backup-${correctionListField}-${timestamp}.csv`, csv);
   }
 
   async function handleSaveCorrectionRow(): Promise<void> {
-    if (!selectedClanId) {
-      setStatus("Select a clan first.");
-      return;
-    }
     if (!correctionMatch.trim() || !correctionReplacement.trim()) {
       setStatus("Match and replacement values are required.");
       return;
@@ -3290,7 +3221,6 @@ function AdminClient(): JSX.Element {
       }
     }
     const payload = {
-      clan_id: selectedClanId,
       field: correctionField.trim() || correctionListField,
       match_value: correctionMatch.trim(),
       replacement_value: correctionReplacement.trim(),
@@ -3309,7 +3239,7 @@ function AdminClient(): JSX.Element {
     setCorrectionStatus("active");
     setCorrectionEditingId("");
     setStatus(isNew ? "Correction rule added." : "Correction rule updated.");
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   async function handleDeleteCorrectionRule(ruleId: string): Promise<void> {
@@ -3323,7 +3253,7 @@ function AdminClient(): JSX.Element {
       return;
     }
     setStatus("Correction rule deleted.");
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   async function handleDeleteSelectedCorrectionRules(): Promise<void> {
@@ -3345,7 +3275,7 @@ function AdminClient(): JSX.Element {
     setStatus("Correction rules deleted.");
     setCorrectionSelectedIds([]);
     setCorrectionDeleteInput("");
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   function handleEditCorrectionRule(rule: RuleRow): void {
@@ -3413,7 +3343,7 @@ function AdminClient(): JSX.Element {
     setScoringOrder("1");
     setScoringEditingId("");
     setStatus("Scoring rule added.");
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   async function handleDeleteScoringRule(ruleId: string): Promise<void> {
@@ -3427,7 +3357,7 @@ function AdminClient(): JSX.Element {
       return;
     }
     setStatus("Scoring rule deleted.");
-    await loadRules(selectedClanId);
+    await loadRules();
   }
 
   function handleEditScoringRule(rule: RuleRow): void {

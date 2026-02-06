@@ -361,7 +361,7 @@ create table if not exists public.cross_clan_permissions (
 
 create table if not exists public.validation_rules (
   id uuid primary key default gen_random_uuid(),
-  clan_id uuid not null references public.clans(id) on delete cascade,
+  clan_id uuid references public.clans(id) on delete cascade,
   field text not null,
   match_value text not null,
   status text not null,
@@ -371,7 +371,7 @@ create table if not exists public.validation_rules (
 
 create table if not exists public.correction_rules (
   id uuid primary key default gen_random_uuid(),
-  clan_id uuid not null references public.clans(id) on delete cascade,
+  clan_id uuid references public.clans(id) on delete cascade,
   field text not null,
   match_value text not null,
   replacement_value text not null,
@@ -529,8 +529,8 @@ create index if not exists chest_entries_player_idx on public.chest_entries (pla
 create index if not exists game_accounts_user_idx on public.game_accounts (user_id);
 create index if not exists game_account_clan_memberships_clan_idx on public.game_account_clan_memberships (clan_id);
 create index if not exists game_account_clan_memberships_account_idx on public.game_account_clan_memberships (game_account_id);
-create index if not exists correction_rules_clan_field_match_idx
-  on public.correction_rules (clan_id, field, match_value);
+create index if not exists correction_rules_field_match_idx
+  on public.correction_rules (field, match_value);
 create index if not exists articles_clan_idx on public.articles (clan_id);
 create index if not exists articles_created_at_idx on public.articles (created_at);
 create index if not exists events_clan_idx on public.events (clan_id);
@@ -614,7 +614,8 @@ on public.chest_entries
 for select
 to authenticated
 using (
-  exists (
+  public.is_any_admin()
+  or exists (
     select 1
     from public.game_account_clan_memberships
     join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
@@ -631,13 +632,16 @@ to authenticated
 with check (
   auth.uid() = created_by
   and auth.uid() = updated_by
-  and exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = chest_entries.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
+  and (
+    public.is_any_admin()
+    or exists (
+      select 1
+      from public.game_account_clan_memberships
+      join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
+      where game_account_clan_memberships.clan_id = chest_entries.clan_id
+        and game_accounts.user_id = auth.uid()
+        and game_account_clan_memberships.is_active = true
+    )
   )
 );
 
@@ -847,31 +851,13 @@ create policy "validation_rules_select"
 on public.validation_rules
 for select
 to authenticated
-using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = validation_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-  )
-);
+using (true);
 
 create policy "correction_rules_select"
 on public.correction_rules
 for select
 to authenticated
-using (
-  exists (
-    select 1
-    from public.game_account_clan_memberships
-    join public.game_accounts on game_accounts.id = game_account_clan_memberships.game_account_id
-    where game_account_clan_memberships.clan_id = correction_rules.clan_id
-      and game_accounts.user_id = auth.uid()
-      and game_account_clan_memberships.is_active = true
-  )
-);
+using (true);
 
 create policy "scoring_rules_select"
 on public.scoring_rules
@@ -979,39 +965,39 @@ create policy "validation_rules_write"
 on public.validation_rules
 for insert
 to authenticated
-with check (public.is_clan_admin(validation_rules.clan_id));
+with check (public.is_any_admin());
 
 create policy "validation_rules_update"
 on public.validation_rules
 for update
 to authenticated
-using (public.is_clan_admin(validation_rules.clan_id))
-with check (public.is_clan_admin(validation_rules.clan_id));
+using (public.is_any_admin())
+with check (public.is_any_admin());
 
 create policy "validation_rules_delete"
 on public.validation_rules
 for delete
 to authenticated
-using (public.is_clan_admin(validation_rules.clan_id));
+using (public.is_any_admin());
 
 create policy "correction_rules_write"
 on public.correction_rules
 for insert
 to authenticated
-with check (public.is_clan_admin(correction_rules.clan_id));
+with check (public.is_any_admin());
 
 create policy "correction_rules_update"
 on public.correction_rules
 for update
 to authenticated
-using (public.is_clan_admin(correction_rules.clan_id))
-with check (public.is_clan_admin(correction_rules.clan_id));
+using (public.is_any_admin())
+with check (public.is_any_admin());
 
 create policy "correction_rules_delete"
 on public.correction_rules
 for delete
 to authenticated
-using (public.is_clan_admin(correction_rules.clan_id));
+using (public.is_any_admin());
 
 create policy "scoring_rules_write"
 on public.scoring_rules

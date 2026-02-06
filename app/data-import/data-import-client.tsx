@@ -5,6 +5,7 @@ import { z } from "zod";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import createCorrectionApplicator from "../../lib/correction-applicator";
 import DatePicker from "../components/date-picker";
+import ComboboxInput from "../components/ui/combobox-input";
 import IconButton from "../components/ui/icon-button";
 import SearchInput from "../components/ui/search-input";
 import RadixSelect from "../components/ui/radix-select";
@@ -42,7 +43,6 @@ interface CommitRow {
 
 interface ValidationRuleRow {
   readonly id: string;
-  readonly clan_id: string;
   readonly field: string;
   readonly match_value: string;
   readonly status: string;
@@ -50,7 +50,6 @@ interface ValidationRuleRow {
 
 interface CorrectionRuleRow {
   readonly id: string;
-  readonly clan_id: string;
   readonly field: string;
   readonly match_value: string;
   readonly replacement_value: string;
@@ -315,6 +314,40 @@ function DataImportClient(): JSX.Element {
     [validationRules],
   );
   const correctionApplicator = useMemo(() => createCorrectionApplicator(correctionRules), [correctionRules]);
+  const playerSuggestions = useMemo(() => {
+    const values = new Set<string>();
+    validationRules.forEach((rule) => {
+      if (rule.field.toLowerCase() === "player" && rule.status.toLowerCase() === "valid" && rule.match_value.trim()) {
+        values.add(rule.match_value.trim());
+      }
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [validationRules]);
+  const sourceSuggestions = useMemo(() => {
+    const values = new Set<string>();
+    validationRules.forEach((rule) => {
+      if (rule.field.toLowerCase() === "source" && rule.status.toLowerCase() === "valid" && rule.match_value.trim()) {
+        values.add(rule.match_value.trim());
+      }
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [validationRules]);
+  const chestSuggestions = useMemo(() => {
+    const values = new Set<string>();
+    validationRules.forEach((rule) => {
+      if (rule.field.toLowerCase() === "chest" && rule.status.toLowerCase() === "valid" && rule.match_value.trim()) {
+        values.add(rule.match_value.trim());
+      }
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [validationRules]);
+  const suggestionsForField = useMemo<Record<string, readonly string[]>>(() => ({
+    player: playerSuggestions,
+    source: sourceSuggestions,
+    chest: chestSuggestions,
+    clan: availableClans,
+    all: [],
+  }), [availableClans, chestSuggestions, playerSuggestions, sourceSuggestions]);
 
   const applyCorrectionsToRows = useCallback(
     (inputRows: readonly CsvRow[]): { rows: CsvRow[]; correctionsByRow: CorrectionMap } => {
@@ -354,13 +387,11 @@ function DataImportClient(): JSX.Element {
       const errors: string[] = [];
       const validationRows = applyCorrectionsToRows(nextRows).rows;
       validationRows.forEach((row) => {
-        const clanId = clanIdByName.get(row.clan) ?? "";
         const result = validationEvaluator({
           player: row.player,
           source: row.source,
           chest: row.chest,
           clan: row.clan,
-          clanId,
         });
         if (result.fieldStatus.player === "invalid") {
           errors.push(`Invalid player: ${row.player}`);
@@ -377,47 +408,32 @@ function DataImportClient(): JSX.Element {
       });
       return { warnings, errors };
     },
-    [applyCorrectionsToRows, clanIdByName, isValidationEnabled, validationEvaluator],
+    [applyCorrectionsToRows, isValidationEnabled, validationEvaluator],
   );
 
   async function loadRulesForClans(clanNames: readonly string[]): Promise<void> {
-    if (clanNames.length === 0) {
-      setValidationRules([]);
-      setCorrectionRules([]);
-      setAvailableClans([]);
-      setClanIdByName(new Map());
-      return;
-    }
-    const { data: clanRows, error: clanError } = await supabase
+    const { data: clanRows } = await supabase
       .from("clans")
       .select("id,name")
-      .in("name", clanNames);
-    if (clanError || !clanRows) {
-      setValidationRules([]);
-      setCorrectionRules([]);
-      setAvailableClans([]);
-      setClanIdByName(new Map());
-      return;
-    }
+      .in("name", clanNames.length > 0 ? clanNames : ["__none__"]);
     const { data: availableClanRows } = await supabase.from("clans").select("name").order("name");
     const clanNameSet = new Set<string>([
       ...clanNames,
-      ...clanRows.map((clan) => clan.name),
+      ...(clanRows ?? []).map((clan) => clan.name),
       ...(availableClanRows ?? []).map((clan) => clan.name),
     ]);
     setAvailableClans(Array.from(clanNameSet).sort((a, b) => a.localeCompare(b)));
-    const clanIds = clanRows.map((clan) => clan.id);
+    setClanIdByName(new Map((clanRows ?? []).map((clan) => [clan.name, clan.id])));
     const { data: validationData } = await supabase
       .from("validation_rules")
-      .select("id,clan_id,field,match_value,status")
-      .in("clan_id", clanIds);
+      .select("id,field,match_value,status")
+      .order("field");
     setValidationRules(validationData ?? []);
     const { data: correctionData } = await supabase
       .from("correction_rules")
-      .select("id,clan_id,field,match_value,replacement_value,status")
-      .in("clan_id", clanIds);
+      .select("id,field,match_value,replacement_value,status")
+      .order("field");
     setCorrectionRules(correctionData ?? []);
-    setClanIdByName(new Map(clanRows.map((clan) => [clan.name, clan.id])));
   }
 
   function applyManualEdits(baseRows: readonly CsvRow[], edits: Record<number, RowEdits>): CsvRow[] {
@@ -527,17 +543,11 @@ function DataImportClient(): JSX.Element {
       setValidationRuleMessage("Row data not available.");
       return;
     }
-    const clanId = clanIdByName.get(currentRow.clan);
-    if (!clanId) {
-      setValidationRuleMessage("Clan not found for this row.");
-      return;
-    }
     if (!validationRuleMatch.trim()) {
       setValidationRuleMessage("Value is required.");
       return;
     }
     const payload = {
-      clan_id: clanId,
       field: validationRuleField,
       match_value: validationRuleMatch.trim(),
       status: validationRuleStatus.trim() || "valid",
@@ -569,17 +579,11 @@ function DataImportClient(): JSX.Element {
       setCorrectionRuleMessage("Row data not available.");
       return;
     }
-    const clanId = clanIdByName.get(currentRow.clan);
-    if (!clanId) {
-      setCorrectionRuleMessage("Clan not found for this row.");
-      return;
-    }
     if (!correctionRuleMatch.trim() || !correctionRuleReplacement.trim()) {
       setCorrectionRuleMessage("Match and replacement values are required.");
       return;
     }
     const payload = {
-      clan_id: clanId,
       field: correctionRuleField,
       match_value: correctionRuleMatch.trim(),
       replacement_value: correctionRuleReplacement.trim(),
@@ -625,10 +629,9 @@ function DataImportClient(): JSX.Element {
         source: row.source,
         chest: row.chest,
         clan: row.clan,
-        clanId: clanIdByName.get(row.clan) ?? "",
       }),
     );
-  }, [clanIdByName, correctionResults.rows, isValidationEnabled, validationEvaluator]);
+  }, [correctionResults.rows, isValidationEnabled, validationEvaluator]);
   const validationStats = useMemo(() => {
     if (!isValidationEnabled) {
       return { validatedRows: 0, validatedFields: 0, totalFields: 0 };
@@ -1579,30 +1582,33 @@ function DataImportClient(): JSX.Element {
                   checked={selectedRows.includes(rowIndex)}
                   onChange={() => toggleSelectRow(rowIndex)}
                 />
-                <DatePicker value={row.date} onChange={(value) => updateRowValue(index, "date", value)} />
-                <input
+                <DatePicker value={row.date} onChange={(value) => updateRowValue(rowIndex, "date", value)} />
+                <ComboboxInput
                   value={row.player}
                   className={playerClassName}
-                  onChange={(event) => updateRowValue(index, "player", event.target.value)}
+                  onChange={(value) => updateRowValue(rowIndex, "player", value)}
+                  options={playerSuggestions}
                 />
-                <input
+                <ComboboxInput
                   value={row.source}
                   className={sourceClassName}
-                  onChange={(event) => updateRowValue(index, "source", event.target.value)}
+                  onChange={(value) => updateRowValue(rowIndex, "source", value)}
+                  options={sourceSuggestions}
                 />
-                <input
+                <ComboboxInput
                   value={row.chest}
                   className={chestClassName}
-                  onChange={(event) => updateRowValue(index, "chest", event.target.value)}
+                  onChange={(value) => updateRowValue(rowIndex, "chest", value)}
+                  options={chestSuggestions}
                 />
                 <input
                   value={String(row.score)}
-                  onChange={(event) => updateRowValue(index, "score", event.target.value)}
+                  onChange={(event) => updateRowValue(rowIndex, "score", event.target.value)}
                 />
                 <RadixSelect
                   ariaLabel="Clan"
                   value={row.clan}
-                  onValueChange={(value) => updateRowValue(index, "clan", value)}
+                  onValueChange={(value) => updateRowValue(rowIndex, "clan", value)}
                   triggerClassName={clanClassName}
                   options={[
                     ...(!availableClans.includes(row.clan) ? [{ value: row.clan, label: row.clan }] : []),
@@ -1610,7 +1616,7 @@ function DataImportClient(): JSX.Element {
                   ]}
                 />
                 <div className="list inline action-icons">
-                  <IconButton ariaLabel="Add correction rule" onClick={() => openCorrectionRuleModal(index)}>
+                  <IconButton ariaLabel="Add correction rule" onClick={() => openCorrectionRuleModal(rowIndex)}>
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path
                         d="M3.5 10.5L8 6L12.5 10.5L7.5 15H3.5V10.5Z"
@@ -1622,7 +1628,7 @@ function DataImportClient(): JSX.Element {
                       <path d="M7.5 15H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
                   </IconButton>
-                  <IconButton ariaLabel="Add validation rule" onClick={() => openValidationRuleModal(index)}>
+                  <IconButton ariaLabel="Add validation rule" onClick={() => openValidationRuleModal(rowIndex)}>
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M3.5 5.5L5 7L7.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M8.5 5.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -1668,18 +1674,20 @@ function DataImportClient(): JSX.Element {
               </div>
               <div className="form-group">
                 <label htmlFor="correctionRuleMatch">Match value</label>
-                <input
+                <ComboboxInput
                   id="correctionRuleMatch"
                   value={correctionRuleMatch}
-                  onChange={(event) => setCorrectionRuleMatch(event.target.value)}
+                  onChange={setCorrectionRuleMatch}
+                  options={suggestionsForField[correctionRuleField] ?? []}
                 />
               </div>
               <div className="form-group">
                 <label htmlFor="correctionRuleReplacement">Replacement value</label>
-                <input
+                <ComboboxInput
                   id="correctionRuleReplacement"
                   value={correctionRuleReplacement}
-                  onChange={(event) => setCorrectionRuleReplacement(event.target.value)}
+                  onChange={setCorrectionRuleReplacement}
+                  options={suggestionsForField[correctionRuleField] ?? []}
                 />
               </div>
               <div className="form-group">
@@ -1735,7 +1743,12 @@ function DataImportClient(): JSX.Element {
               </div>
               <div className="form-group">
                 <label htmlFor="validationRuleMatch">Value</label>
-                <input id="validationRuleMatch" value={validationRuleMatch} readOnly />
+                <ComboboxInput
+                  id="validationRuleMatch"
+                  value={validationRuleMatch}
+                  onChange={setValidationRuleMatch}
+                  options={suggestionsForField[validationRuleField] ?? []}
+                />
               </div>
               <div className="form-group">
                 <label htmlFor="validationRuleStatus">Status</label>
@@ -1866,7 +1879,6 @@ function DataImportClient(): JSX.Element {
                           source: correctedPreview.source,
                           chest: correctedPreview.chest,
                           clan: correctedPreview.clan,
-                          clanId: clanIdByName.get(correctedPreview.clan) ?? "",
                         })
                       : {
                           rowStatus: "neutral",

@@ -1138,6 +1138,47 @@ select {
   gap: 8px;
 }
 
+/* ── Combobox ── */
+
+.combobox-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.combobox-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0;
+  padding: 6px;
+  list-style: none;
+  background-color: rgba(8, 13, 20, 0.97);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.combobox-option {
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+
+.combobox-option-highlighted {
+  background-color: rgba(33, 42, 62, 0.7);
+}
+
+.combobox-option-selected {
+  color: var(--color-gold);
+}
+
 .select-badge {
   font-size: 0.7rem;
   padding: 2px 8px;

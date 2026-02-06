@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { z } from "zod";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import formatGermanDateTime from "../../lib/date-format";
 import useClanContext from "../components/use-clan-context";
 import { useToast } from "../components/toast-provider";
 import RadixSelect from "../components/ui/radix-select";
@@ -302,7 +303,7 @@ function NewsClient(): JSX.Element {
               <div>
                 <div className="card-title">{article.title}</div>
                 <div className="card-subtitle">
-                  {article.type} • {new Date(article.created_at).toLocaleString()}
+                  {article.type} • {formatGermanDateTime(article.created_at)}
                 </div>
               </div>
               <span className="badge">{article.status}</span>

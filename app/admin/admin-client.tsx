@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import RadixSelect from "../components/ui/radix-select";
 import SearchInput from "../components/ui/search-input";
 import IconButton from "../components/ui/icon-button";
 import LabeledSelect from "../components/ui/labeled-select";
+import TableScroll from "../components/table-scroll";
 import { useRouter, useSearchParams } from "next/navigation";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import formatGermanDateTime from "../../lib/date-format";
 import { useToast } from "../components/toast-provider";
 
 interface ClanRow {
@@ -57,6 +59,9 @@ interface ProfileRow {
   readonly username: string | null;
 }
 
+type MemberSortKey = "game" | "user" | "clan" | "rank" | "status";
+type UserSortKey = "username" | "email" | "nickname" | "role" | "admin" | "accounts";
+
 interface UserRow {
   readonly id: string;
   readonly email: string;
@@ -86,6 +91,11 @@ interface RuleRow {
   readonly rule_order?: number;
 }
 
+interface ValidationFieldCount {
+  readonly total: number;
+  readonly active: number;
+}
+
 interface AuditLogRow {
   readonly id: string;
   readonly clan_id: string;
@@ -100,16 +110,19 @@ interface AuditLogRow {
 const roleOptions: readonly string[] = ["owner", "admin", "moderator", "editor", "member"];
 const rankOptions: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier"];
 const ruleFieldOptions: readonly string[] = ["player", "source", "chest", "clan"];
+const correctionFieldOptions: readonly string[] = ["all", ...ruleFieldOptions];
 const NEW_VALIDATION_ID = "validation-new";
+const NEW_CORRECTION_ID = "correction-new";
 const validationSortOptions: readonly { value: "field" | "status" | "match_value"; label: string }[] = [
   { value: "field", label: "Field" },
   { value: "status", label: "Status" },
   { value: "match_value", label: "Match value" },
 ];
-const correctionSortOptions: readonly { value: "field" | "match_value" | "replacement_value"; label: string }[] = [
+const correctionSortOptions: readonly { value: "field" | "match_value" | "replacement_value" | "status"; label: string }[] = [
   { value: "field", label: "Field" },
   { value: "match_value", label: "Match value" },
   { value: "replacement_value", label: "Replacement" },
+  { value: "status", label: "Status" },
 ];
 const scoringSortOptions: readonly { value: "rule_order" | "score" | "chest_match" | "source_match"; label: string }[] =
   [
@@ -151,6 +164,10 @@ function AdminClient(): JSX.Element {
   const [memberSearch, setMemberSearch] = useState<string>("");
   const [memberRankFilter, setMemberRankFilter] = useState<string>("all");
   const [memberStatusFilter, setMemberStatusFilter] = useState<string>("all");
+  const [memberSortKey, setMemberSortKey] = useState<MemberSortKey>("game");
+  const [memberSortDirection, setMemberSortDirection] = useState<"asc" | "desc">("asc");
+  const [userSortKey, setUserSortKey] = useState<UserSortKey>("username");
+  const [userSortDirection, setUserSortDirection] = useState<"asc" | "desc">("asc");
   const [validationRules, setValidationRules] = useState<readonly RuleRow[]>([]);
   const [correctionRules, setCorrectionRules] = useState<readonly RuleRow[]>([]);
   const [scoringRules, setScoringRules] = useState<readonly RuleRow[]>([]);
@@ -168,11 +185,29 @@ function AdminClient(): JSX.Element {
   const [validationImportEntries, setValidationImportEntries] = useState<readonly RuleRow[]>([]);
   const [validationImportErrors, setValidationImportErrors] = useState<readonly string[]>([]);
   const [validationImportSelected, setValidationImportSelected] = useState<readonly number[]>([]);
+  const [validationSelectedIds, setValidationSelectedIds] = useState<readonly string[]>([]);
+  const [isValidationDeleteConfirmOpen, setIsValidationDeleteConfirmOpen] = useState<boolean>(false);
+  const [isValidationDeleteInputOpen, setIsValidationDeleteInputOpen] = useState<boolean>(false);
+  const [validationDeleteInput, setValidationDeleteInput] = useState<string>("");
   const [correctionSearch, setCorrectionSearch] = useState<string>("");
-  const [correctionFieldFilter, setCorrectionFieldFilter] = useState<string>("all");
+  const [correctionListField, setCorrectionListField] = useState<string>("player");
+  const [correctionStatusFilter, setCorrectionStatusFilter] = useState<string>("all");
   const [correctionSortKey, setCorrectionSortKey] =
-    useState<"field" | "match_value" | "replacement_value">("field");
+    useState<"field" | "match_value" | "replacement_value" | "status">("field");
   const [correctionSortDirection, setCorrectionSortDirection] = useState<"asc" | "desc">("asc");
+  const [correctionImportStatus, setCorrectionImportStatus] = useState<string>("");
+  const [correctionImportMode, setCorrectionImportMode] = useState<"append" | "replace">("append");
+  const [correctionIgnoreDuplicates, setCorrectionIgnoreDuplicates] = useState<boolean>(true);
+  const [isCorrectionImportOpen, setIsCorrectionImportOpen] = useState<boolean>(false);
+  const [isCorrectionReplaceConfirmOpen, setIsCorrectionReplaceConfirmOpen] = useState<boolean>(false);
+  const [correctionImportFileName, setCorrectionImportFileName] = useState<string>("");
+  const [correctionImportEntries, setCorrectionImportEntries] = useState<readonly RuleRow[]>([]);
+  const [correctionImportErrors, setCorrectionImportErrors] = useState<readonly string[]>([]);
+  const [correctionImportSelected, setCorrectionImportSelected] = useState<readonly number[]>([]);
+  const [correctionSelectedIds, setCorrectionSelectedIds] = useState<readonly string[]>([]);
+  const [isCorrectionDeleteConfirmOpen, setIsCorrectionDeleteConfirmOpen] = useState<boolean>(false);
+  const [isCorrectionDeleteInputOpen, setIsCorrectionDeleteInputOpen] = useState<boolean>(false);
+  const [correctionDeleteInput, setCorrectionDeleteInput] = useState<string>("");
   const [scoringSearch, setScoringSearch] = useState<string>("");
   const [scoringSortKey, setScoringSortKey] =
     useState<"rule_order" | "score" | "chest_match" | "source_match">("rule_order");
@@ -180,13 +215,13 @@ function AdminClient(): JSX.Element {
   const [validationPage, setValidationPage] = useState<number>(1);
   const [correctionPage, setCorrectionPage] = useState<number>(1);
   const [scoringPage, setScoringPage] = useState<number>(1);
-  const [validationPageSize, setValidationPageSize] = useState<number>(25);
-  const [correctionPageSize, setCorrectionPageSize] = useState<number>(5);
-  const [scoringPageSize, setScoringPageSize] = useState<number>(5);
+  const [validationPageSize, setValidationPageSize] = useState<number>(50);
+  const [correctionPageSize, setCorrectionPageSize] = useState<number>(50);
+  const [scoringPageSize, setScoringPageSize] = useState<number>(50);
   const [auditLogs, setAuditLogs] = useState<readonly AuditLogRow[]>([]);
   const [auditActorsById, setAuditActorsById] = useState<Record<string, ProfileRow>>({});
   const [auditPage, setAuditPage] = useState<number>(1);
-  const [auditPageSize, setAuditPageSize] = useState<number>(25);
+  const [auditPageSize, setAuditPageSize] = useState<number>(50);
   const [auditTotalCount, setAuditTotalCount] = useState<number>(0);
   const [auditSearch, setAuditSearch] = useState<string>("");
   const [auditActionFilter, setAuditActionFilter] = useState<string>("all");
@@ -200,6 +235,7 @@ function AdminClient(): JSX.Element {
   const [correctionField, setCorrectionField] = useState<string>("source");
   const [correctionMatch, setCorrectionMatch] = useState<string>("");
   const [correctionReplacement, setCorrectionReplacement] = useState<string>("");
+  const [correctionStatus, setCorrectionStatus] = useState<string>("active");
   const [correctionEditingId, setCorrectionEditingId] = useState<string>("");
   const [scoringChest, setScoringChest] = useState<string>("");
   const [scoringSource, setScoringSource] = useState<string>("");
@@ -208,7 +244,7 @@ function AdminClient(): JSX.Element {
   const [scoringScore, setScoringScore] = useState<string>("");
   const [scoringOrder, setScoringOrder] = useState<string>("1");
   const [scoringEditingId, setScoringEditingId] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"clans" | "rules" | "logs" | "users">("clans");
+  const [activeSection, setActiveSection] = useState<"clans" | "validation" | "corrections" | "logs" | "users">("clans");
   const [isClanModalOpen, setIsClanModalOpen] = useState<boolean>(false);
   const [clanModalMode, setClanModalMode] = useState<"create" | "edit">("create");
   const [clanModalName, setClanModalName] = useState<string>("");
@@ -246,6 +282,9 @@ function AdminClient(): JSX.Element {
     ],
     [clans, clanSelectNone],
   );
+  const clanNameById = useMemo(() => {
+    return new Map(clans.map((clan) => [clan.id, clan.name]));
+  }, [clans]);
   const [createUserEmail, setCreateUserEmail] = useState<string>("");
   const [createUserUsername, setCreateUserUsername] = useState<string>("");
   const [createUserDisplayName, setCreateUserDisplayName] = useState<string>("");
@@ -272,6 +311,8 @@ function AdminClient(): JSX.Element {
     () => clans.find((clan) => clan.id === selectedClanId),
     [clans, selectedClanId],
   );
+  const validationSelectAllRef = useRef<HTMLInputElement | null>(null);
+  const correctionSelectAllRef = useRef<HTMLInputElement | null>(null);
 
   function paginateRules<T>(rules: readonly T[], page: number, pageSize: number): readonly T[] {
     const startIndex = (page - 1) * pageSize;
@@ -299,6 +340,120 @@ function AdminClient(): JSX.Element {
     const rightText = String(right);
     const result = leftText.localeCompare(rightText, undefined, { sensitivity: "base" });
     return direction === "asc" ? result : -result;
+  }
+
+  function getMemberSortValue(membership: MembershipRow): string | number {
+    const userId = membership.game_accounts?.user_id ?? "";
+    const profile = userId ? profilesById[userId] : undefined;
+    const userLabel = profile?.display_name ?? profile?.username ?? profile?.email ?? "";
+    const clanLabel = clanNameById.get(membership.clan_id) ?? "";
+    if (memberSortKey === "game") {
+      return membership.game_accounts?.game_username ?? "";
+    }
+    if (memberSortKey === "user") {
+      return userLabel;
+    }
+    if (memberSortKey === "clan") {
+      return clanLabel;
+    }
+    if (memberSortKey === "rank") {
+      return membership.rank ?? "";
+    }
+    return membership.is_active ? "active" : "inactive";
+  }
+
+  function getUserSortValue(user: UserRow): string | number {
+    if (userSortKey === "email") {
+      return user.email;
+    }
+    if (userSortKey === "nickname") {
+      return user.display_name ?? user.username ?? "";
+    }
+    if (userSortKey === "role") {
+      return userRolesById[user.id] ?? "member";
+    }
+    if (userSortKey === "admin") {
+      return user.is_admin ? 1 : 0;
+    }
+    if (userSortKey === "accounts") {
+      return gameAccountsByUserId[user.id]?.length ?? 0;
+    }
+    return user.username ?? user.display_name ?? user.email;
+  }
+
+  function getAccountSortValue(account: GameAccountRow): string | number {
+    const membership = userMembershipsByAccountId[account.id];
+    if (membership) {
+      return getMemberSortValue(membership);
+    }
+    if (memberSortKey === "game") {
+      return account.game_username;
+    }
+    if (memberSortKey === "user") {
+      const profile = profilesById[account.user_id];
+      return profile?.display_name ?? profile?.username ?? profile?.email ?? "";
+    }
+    return "";
+  }
+
+  function toggleMemberSort(nextKey: MemberSortKey): void {
+    if (memberSortKey !== nextKey) {
+      setMemberSortKey(nextKey);
+      setMemberSortDirection("asc");
+      return;
+    }
+    setMemberSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+  }
+
+  function renderMemberSortButton(label: string, key: MemberSortKey): JSX.Element {
+    const isActive = memberSortKey === key;
+    return (
+      <button className="table-sort-button" type="button" onClick={() => toggleMemberSort(key)}>
+        <span>{label}</span>
+        {isActive ? (
+          <svg
+            aria-hidden="true"
+            className={`table-sort-indicator ${memberSortDirection === "desc" ? "is-desc" : ""}`.trim()}
+            width="10"
+            height="10"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path d="M6 2L10 6H2L6 2Z" fill="currentColor" />
+          </svg>
+        ) : null}
+      </button>
+    );
+  }
+
+  function toggleUserSort(nextKey: UserSortKey): void {
+    if (userSortKey !== nextKey) {
+      setUserSortKey(nextKey);
+      setUserSortDirection("asc");
+      return;
+    }
+    setUserSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+  }
+
+  function renderUserSortButton(label: string, key: UserSortKey): JSX.Element {
+    const isActive = userSortKey === key;
+    return (
+      <button className="table-sort-button" type="button" onClick={() => toggleUserSort(key)}>
+        <span>{label}</span>
+        {isActive ? (
+          <svg
+            aria-hidden="true"
+            className={`table-sort-indicator ${userSortDirection === "desc" ? "is-desc" : ""}`.trim()}
+            width="10"
+            height="10"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path d="M6 2L10 6H2L6 2Z" fill="currentColor" />
+          </svg>
+        ) : null}
+      </button>
+    );
   }
 
   function toggleUserExpanded(userId: string): void {
@@ -466,22 +621,66 @@ function AdminClient(): JSX.Element {
     return sorted;
   }, [filteredValidationRules, validationSortDirection, validationSortKey]);
 
+  const validationFieldCounts = useMemo(() => {
+    const counts = ruleFieldOptions.reduce<Record<string, ValidationFieldCount>>((acc, field) => {
+      acc[field] = { total: 0, active: 0 };
+      return acc;
+    }, {});
+    validationRules.forEach((rule) => {
+      const field = rule.field ?? "";
+      const target = counts[field];
+      if (!target) {
+        return;
+      }
+      target.total += 1;
+      const statusValue = (rule.status ?? "").toLowerCase();
+      if (statusValue === "valid" || statusValue === "active") {
+        target.active += 1;
+      }
+    });
+    return counts;
+  }, [validationRules]);
+
+  const correctionFieldCounts = useMemo(() => {
+    const counts = correctionFieldOptions.reduce<Record<string, ValidationFieldCount>>((acc, field) => {
+      acc[field] = { total: 0, active: 0 };
+      return acc;
+    }, {});
+    correctionRules.forEach((rule) => {
+      const field = rule.field ?? "";
+      const target = counts[field];
+      if (!target) {
+        return;
+      }
+      target.total += 1;
+      const statusValue = (rule.status ?? "active").toLowerCase();
+      if (statusValue === "active") {
+        target.active += 1;
+      }
+    });
+    return counts;
+  }, [correctionRules]);
+
   const filteredCorrectionRules = useMemo(() => {
     const normalizedSearch = correctionSearch.trim().toLowerCase();
     return correctionRules.filter((rule) => {
-      if (correctionFieldFilter !== "all" && rule.field !== correctionFieldFilter) {
+      if (rule.field !== correctionListField) {
+        return false;
+      }
+      const statusValue = (rule.status ?? "active").toLowerCase();
+      if (correctionStatusFilter !== "all" && statusValue !== correctionStatusFilter) {
         return false;
       }
       if (!normalizedSearch) {
         return true;
       }
-      const searchText = [rule.field, rule.match_value, rule.replacement_value]
+      const searchText = [rule.field, rule.match_value, rule.replacement_value, rule.status]
         .filter((value): value is string => Boolean(value))
         .join(" ")
         .toLowerCase();
       return searchText.includes(normalizedSearch);
     });
-  }, [correctionFieldFilter, correctionRules, correctionSearch]);
+  }, [correctionListField, correctionRules, correctionSearch, correctionStatusFilter]);
 
   const sortedCorrectionRules = useMemo(() => {
     const sorted = [...filteredCorrectionRules];
@@ -528,10 +727,30 @@ function AdminClient(): JSX.Element {
     () => paginateRules(sortedValidationRules, validationPage, validationPageSize),
     [sortedValidationRules, validationPageSize, validationPage],
   );
+  const validationSelectedSet = useMemo(() => new Set(validationSelectedIds), [validationSelectedIds]);
+  const areAllValidationRowsSelected = useMemo(
+    () => pagedValidationRules.length > 0 && pagedValidationRules.every((rule) => validationSelectedSet.has(rule.id)),
+    [pagedValidationRules, validationSelectedSet],
+  );
+  const areSomeValidationRowsSelected = useMemo(
+    () => pagedValidationRules.some((rule) => validationSelectedSet.has(rule.id)) && !areAllValidationRowsSelected,
+    [areAllValidationRowsSelected, pagedValidationRules, validationSelectedSet],
+  );
+  const activeValidationCounts = validationFieldCounts[validationListField] ?? { total: 0, active: 0 };
   const pagedCorrectionRules = useMemo(
     () => paginateRules(sortedCorrectionRules, correctionPage, correctionPageSize),
     [sortedCorrectionRules, correctionPageSize, correctionPage],
   );
+  const correctionSelectedSet = useMemo(() => new Set(correctionSelectedIds), [correctionSelectedIds]);
+  const areAllCorrectionRowsSelected = useMemo(
+    () => pagedCorrectionRules.length > 0 && pagedCorrectionRules.every((rule) => correctionSelectedSet.has(rule.id)),
+    [pagedCorrectionRules, correctionSelectedSet],
+  );
+  const areSomeCorrectionRowsSelected = useMemo(
+    () => pagedCorrectionRules.some((rule) => correctionSelectedSet.has(rule.id)) && !areAllCorrectionRowsSelected,
+    [areAllCorrectionRowsSelected, pagedCorrectionRules, correctionSelectedSet],
+  );
+  const activeCorrectionCounts = correctionFieldCounts[correctionListField] ?? { total: 0, active: 0 };
   const pagedScoringRules = useMemo(
     () => paginateRules(sortedScoringRules, scoringPage, scoringPageSize),
     [sortedScoringRules, scoringPageSize, scoringPage],
@@ -611,6 +830,15 @@ function AdminClient(): JSX.Element {
       return searchText.includes(normalizedSearch);
     });
   }, [memberRankFilter, memberSearch, memberStatusFilter, memberships, profilesById, userRolesById]);
+  const sortedMemberships = useMemo(() => {
+    const sorted = [...filteredMemberships];
+    sorted.sort((left, right) => {
+      const leftValue = getMemberSortValue(left);
+      const rightValue = getMemberSortValue(right);
+      return compareRuleValues(leftValue, rightValue, memberSortDirection);
+    });
+    return sorted;
+  }, [filteredMemberships, getMemberSortValue, memberSortDirection]);
 
   const filteredUserRows = useMemo(() => {
     return userRows.filter((user) => {
@@ -627,15 +855,27 @@ function AdminClient(): JSX.Element {
       return true;
     });
   }, [userAdminFilter, userRoleFilter, userRows, userRolesById]);
+  const sortedUserRows = useMemo(() => {
+    const sorted = [...filteredUserRows];
+    sorted.sort((left, right) => {
+      const leftValue = getUserSortValue(left);
+      const rightValue = getUserSortValue(right);
+      return compareRuleValues(leftValue, rightValue, userSortDirection);
+    });
+    return sorted;
+  }, [filteredUserRows, getUserSortValue, userSortDirection]);
 
-  function resolveSection(value: string | null): "clans" | "rules" | "logs" | "users" {
-    if (value === "rules" || value === "logs" || value === "users") {
+  function resolveSection(value: string | null): "clans" | "validation" | "corrections" | "logs" | "users" {
+    if (value === "validation" || value === "corrections" || value === "logs" || value === "users") {
       return value;
+    }
+    if (value === "rules") {
+      return "validation";
     }
     return "clans";
   }
 
-  function updateActiveSection(nextSection: "clans" | "rules" | "logs" | "users"): void {
+  function updateActiveSection(nextSection: "clans" | "validation" | "corrections" | "logs" | "users"): void {
     setActiveSection(nextSection);
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", nextSection);
@@ -764,7 +1004,11 @@ function AdminClient(): JSX.Element {
   async function loadRules(clanId: string): Promise<void> {
     if (!clanId) {
       setValidationRules([]);
+      setValidationSelectedIds([]);
       setValidationPage(1);
+      setCorrectionRules([]);
+      setCorrectionSelectedIds([]);
+      setCorrectionPage(1);
       return;
     }
     const { data: validationData } = await supabase
@@ -773,6 +1017,14 @@ function AdminClient(): JSX.Element {
       .eq("clan_id", clanId)
       .order("field");
     setValidationRules(validationData ?? []);
+    setValidationSelectedIds([]);
+    const { data: correctionData } = await supabase
+      .from("correction_rules")
+      .select("id,field,match_value,replacement_value,status")
+      .eq("clan_id", clanId)
+      .order("field");
+    setCorrectionRules(correctionData ?? []);
+    setCorrectionSelectedIds([]);
   }
 
   async function loadAuditLogs(clanId: string, nextPage: number, pageSize: number): Promise<void> {
@@ -1600,9 +1852,15 @@ function AdminClient(): JSX.Element {
   }, [selectedClanId, supabase]);
 
   useEffect(() => {
-    const nextSection = resolveSection(searchParams.get("tab"));
+    const rawTab = searchParams.get("tab");
+    const nextSection = resolveSection(rawTab);
     setActiveSection(nextSection);
-  }, [searchParams]);
+    if (rawTab === "rules") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", "validation");
+      router.replace(`/admin?${params.toString()}`);
+    }
+  }, [router, searchParams]);
 
   useEffect(() => {
     if (status) {
@@ -1858,6 +2116,20 @@ function AdminClient(): JSX.Element {
       setSelectedClanId(defaultClanId);
     }
   }, [clans, defaultClanId]);
+
+  useEffect(() => {
+    if (!validationSelectAllRef.current) {
+      return;
+    }
+    validationSelectAllRef.current.indeterminate = areSomeValidationRowsSelected;
+  }, [areSomeValidationRowsSelected]);
+
+  useEffect(() => {
+    if (!correctionSelectAllRef.current) {
+      return;
+    }
+    correctionSelectAllRef.current.indeterminate = areSomeCorrectionRowsSelected;
+  }, [areSomeCorrectionRowsSelected]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(filteredValidationRules.length / validationPageSize));
@@ -2282,14 +2554,150 @@ function AdminClient(): JSX.Element {
   }
 
   function formatAuditTimestamp(isoValue: string): string {
-    if (!isoValue) {
-      return "";
+    return formatGermanDateTime(isoValue);
+  }
+
+  function toggleValidationSelect(ruleId: string): void {
+    setValidationSelectedIds((current) =>
+      current.includes(ruleId) ? current.filter((id) => id !== ruleId) : [...current, ruleId],
+    );
+  }
+
+  function toggleValidationSelectAll(): void {
+    if (pagedValidationRules.length === 0) {
+      return;
     }
-    const parsed = new Date(isoValue);
-    if (Number.isNaN(parsed.getTime())) {
-      return isoValue;
+    if (areAllValidationRowsSelected) {
+      setValidationSelectedIds([]);
+      return;
     }
-    return parsed.toLocaleString();
+    setValidationSelectedIds(pagedValidationRules.map((rule) => rule.id));
+  }
+
+  function toggleValidationSort(nextKey: "field" | "status" | "match_value"): void {
+    if (validationSortKey !== nextKey) {
+      setValidationSortKey(nextKey);
+      setValidationSortDirection("asc");
+      return;
+    }
+    setValidationSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+  }
+
+  function renderValidationSortButton(label: string, key: "field" | "status" | "match_value"): JSX.Element {
+    const isActive = validationSortKey === key;
+    return (
+      <button className="table-sort-button" type="button" onClick={() => toggleValidationSort(key)}>
+        <span>{label}</span>
+        {isActive ? (
+          <svg
+            aria-hidden="true"
+            className={`table-sort-indicator ${validationSortDirection === "desc" ? "is-desc" : ""}`.trim()}
+            width="10"
+            height="10"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        ) : null}
+      </button>
+    );
+  }
+
+  function openValidationDeleteConfirm(): void {
+    if (validationSelectedIds.length === 0) {
+      setStatus("Select validation rules to delete.");
+      return;
+    }
+    setIsValidationDeleteConfirmOpen(true);
+  }
+
+  function closeValidationDeleteConfirm(): void {
+    setIsValidationDeleteConfirmOpen(false);
+  }
+
+  function openValidationDeleteInput(): void {
+    setIsValidationDeleteConfirmOpen(false);
+    setIsValidationDeleteInputOpen(true);
+    setValidationDeleteInput("");
+  }
+
+  function closeValidationDeleteInput(): void {
+    setIsValidationDeleteInputOpen(false);
+    setValidationDeleteInput("");
+  }
+
+  function toggleCorrectionSelect(ruleId: string): void {
+    setCorrectionSelectedIds((current) =>
+      current.includes(ruleId) ? current.filter((id) => id !== ruleId) : [...current, ruleId],
+    );
+  }
+
+  function toggleCorrectionSelectAll(): void {
+    if (pagedCorrectionRules.length === 0) {
+      return;
+    }
+    if (areAllCorrectionRowsSelected) {
+      setCorrectionSelectedIds([]);
+      return;
+    }
+    setCorrectionSelectedIds(pagedCorrectionRules.map((rule) => rule.id));
+  }
+
+  function toggleCorrectionSort(nextKey: "field" | "match_value" | "replacement_value" | "status"): void {
+    if (correctionSortKey !== nextKey) {
+      setCorrectionSortKey(nextKey);
+      setCorrectionSortDirection("asc");
+      return;
+    }
+    setCorrectionSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+  }
+
+  function renderCorrectionSortButton(
+    label: string,
+    key: "field" | "match_value" | "replacement_value" | "status",
+  ): JSX.Element {
+    const isActive = correctionSortKey === key;
+    return (
+      <button className="table-sort-button" type="button" onClick={() => toggleCorrectionSort(key)}>
+        <span>{label}</span>
+        {isActive ? (
+          <svg
+            aria-hidden="true"
+            className={`table-sort-indicator ${correctionSortDirection === "desc" ? "is-desc" : ""}`.trim()}
+            width="10"
+            height="10"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        ) : null}
+      </button>
+    );
+  }
+
+  function openCorrectionDeleteConfirm(): void {
+    if (correctionSelectedIds.length === 0) {
+      setStatus("Select correction rules to delete.");
+      return;
+    }
+    setIsCorrectionDeleteConfirmOpen(true);
+  }
+
+  function closeCorrectionDeleteConfirm(): void {
+    setIsCorrectionDeleteConfirmOpen(false);
+  }
+
+  function openCorrectionDeleteInput(): void {
+    setIsCorrectionDeleteConfirmOpen(false);
+    setIsCorrectionDeleteInputOpen(true);
+    setCorrectionDeleteInput("");
+  }
+
+  function closeCorrectionDeleteInput(): void {
+    setIsCorrectionDeleteInputOpen(false);
+    setCorrectionDeleteInput("");
   }
 
   async function handleSaveValidationRow(): Promise<void> {
@@ -2333,6 +2741,28 @@ function AdminClient(): JSX.Element {
       return;
     }
     setStatus("Validation rule deleted.");
+    await loadRules(selectedClanId);
+  }
+
+  async function handleDeleteSelectedValidationRules(): Promise<void> {
+    if (validationSelectedIds.length === 0) {
+      setStatus("Select validation rules to delete.");
+      return;
+    }
+    const confirmationPhrase = "DELETE RULES";
+    if (validationDeleteInput.trim().toUpperCase() !== confirmationPhrase) {
+      setStatus("Confirmation phrase does not match.");
+      return;
+    }
+    setIsValidationDeleteInputOpen(false);
+    const { error } = await supabase.from("validation_rules").delete().in("id", validationSelectedIds);
+    if (error) {
+      setStatus(`Failed to delete validation rules: ${error.message}`);
+      return;
+    }
+    setStatus("Validation rules deleted.");
+    setValidationSelectedIds([]);
+    setValidationDeleteInput("");
     await loadRules(selectedClanId);
   }
 
@@ -2581,13 +3011,279 @@ function AdminClient(): JSX.Element {
     downloadValidationCsv(`validation-backup-${validationListField}-${clanName}-${timestamp}.csv`, csv);
   }
 
-  async function handleAddCorrectionRule(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
+  function normalizeCorrectionValue(value: string): string {
+    return value.trim().toLowerCase();
+  }
+
+  function normalizeCorrectionStatus(value: string): string {
+    return value.trim().toLowerCase();
+  }
+
+  function parseCorrectionListText(
+    text: string,
+    expectedField: string,
+  ): { entries: RuleRow[]; errors: string[] } {
+    const allowedStatuses = new Set(["active", "inactive"]);
+    const allowedFields = new Set(correctionFieldOptions);
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    const errors: string[] = [];
+    const entries: RuleRow[] = [];
+    const seenValues = new Set<string>();
+    const startIndex =
+      lines.length > 0 && (lines[0].toLowerCase().startsWith("match") || lines[0].toLowerCase().startsWith("value"))
+        ? 1
+        : 0;
+    for (let index = startIndex; index < lines.length; index += 1) {
+      const parts = lines[index].split(/[;,]/).map((part) => part.trim());
+      if (parts.length < 2) {
+        errors.push(`Line ${index + 1}: Match and replacement values are required.`);
+        continue;
+      }
+      const matchValue = parts[0];
+      const replacementValue = parts[1];
+      if (!matchValue || !replacementValue) {
+        errors.push(`Line ${index + 1}: Match and replacement values are required.`);
+        continue;
+      }
+      let field = expectedField;
+      let status = "active";
+      const thirdValue = parts[2];
+      const fourthValue = parts[3];
+      if (thirdValue) {
+        const normalizedThird = normalizeCorrectionStatus(thirdValue);
+        if (allowedStatuses.has(normalizedThird)) {
+          status = normalizedThird;
+        } else {
+          field = normalizedThird;
+        }
+      }
+      if (fourthValue) {
+        const normalizedFourth = normalizeCorrectionStatus(fourthValue);
+        if (!allowedStatuses.has(normalizedFourth)) {
+          errors.push(`Line ${index + 1}: Invalid status ${fourthValue}.`);
+          continue;
+        }
+        status = normalizedFourth;
+      }
+      if (!allowedFields.has(field)) {
+        errors.push(`Line ${index + 1}: Invalid field ${field}.`);
+        continue;
+      }
+      if (field !== expectedField) {
+        errors.push(`Line ${index + 1}: Field must be ${expectedField}.`);
+        continue;
+      }
+      if (!allowedStatuses.has(status)) {
+        errors.push(`Line ${index + 1}: Invalid status ${status}.`);
+        continue;
+      }
+      const normalizedKey = `${field}:${normalizeCorrectionValue(matchValue)}`;
+      if (seenValues.has(normalizedKey)) {
+        continue;
+      }
+      seenValues.add(normalizedKey);
+      entries.push({
+        id: "",
+        field,
+        match_value: matchValue,
+        replacement_value: replacementValue,
+        status,
+      });
+    }
+    return { entries, errors };
+  }
+
+  function buildCorrectionCsv(rules: readonly RuleRow[]): string {
+    const header = "Match,Replacement,Field,Status";
+    const lines = rules.map(
+      (rule) => `${rule.match_value ?? ""},${rule.replacement_value ?? ""},${rule.field ?? ""},${rule.status ?? ""}`,
+    );
+    return [header, ...lines].join("\n");
+  }
+
+  function downloadCorrectionCsv(filename: string, content: string): void {
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImportCorrectionList(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    if (!correctionListField) {
+      setCorrectionImportStatus("Select a field before importing.");
+      return;
+    }
+    const text = await file.text();
+    const { entries, errors } = parseCorrectionListText(text, correctionListField);
+    setCorrectionImportEntries(entries);
+    setCorrectionImportErrors(errors);
+    setCorrectionImportFileName(file.name);
+    setCorrectionImportStatus("");
+    setCorrectionImportSelected([]);
+    event.target.value = "";
+  }
+
+  async function handleApplyCorrectionImport(): Promise<void> {
+    if (!selectedClanId) {
+      setCorrectionImportStatus("Select a clan before importing.");
+      return;
+    }
+    if (correctionImportErrors.length > 0) {
+      setCorrectionImportStatus(correctionImportErrors.slice(0, 3).join(" "));
+      return;
+    }
+    if (correctionImportEntries.length === 0) {
+      setCorrectionImportStatus("No valid entries found in file.");
+      return;
+    }
+    if (correctionImportMode === "replace") {
+      setIsCorrectionReplaceConfirmOpen(true);
+      return;
+    }
+    await executeCorrectionImport();
+  }
+
+  async function executeCorrectionImport(): Promise<void> {
+    if (!selectedClanId) {
+      return;
+    }
+    if (correctionImportMode === "replace") {
+      const { error: deleteError } = await supabase
+        .from("correction_rules")
+        .delete()
+        .eq("clan_id", selectedClanId)
+        .eq("field", correctionListField);
+      if (deleteError) {
+        setCorrectionImportStatus(`Failed to clear list: ${deleteError.message}`);
+        return;
+      }
+    }
+    const existingValues = new Set(
+      correctionRules
+        .filter((rule) => rule.field === correctionListField)
+        .map((rule) => normalizeCorrectionValue(rule.match_value ?? "")),
+    );
+    const payload = correctionImportEntries
+      .filter((entry) => {
+        if (!correctionIgnoreDuplicates) {
+          return true;
+        }
+        const normalized = normalizeCorrectionValue(entry.match_value ?? "");
+        return !existingValues.has(normalized);
+      })
+      .map((entry) => ({
+        clan_id: selectedClanId,
+        field: entry.field?.trim(),
+        match_value: entry.match_value?.trim(),
+        replacement_value: entry.replacement_value?.trim(),
+        status: entry.status?.trim(),
+      }));
+    const uniquePayload = Array.from(
+      new Map(payload.map((entry) => [`${entry.field}-${entry.match_value}`, entry])).values(),
+    );
+    const { error: insertError } = await supabase.from("correction_rules").insert(uniquePayload);
+    if (insertError) {
+      setCorrectionImportStatus(`Failed to import list: ${insertError.message}`);
+      return;
+    }
+    setCorrectionImportStatus(`Imported ${uniquePayload.length} entries.`);
+    setIsCorrectionImportOpen(false);
+    setCorrectionImportEntries([]);
+    setCorrectionImportSelected([]);
+    setCorrectionImportFileName("");
+    setCorrectionImportErrors([]);
+    await loadRules(selectedClanId);
+  }
+
+  function handleCloseCorrectionImport(): void {
+    setIsCorrectionImportOpen(false);
+    setCorrectionImportEntries([]);
+    setCorrectionImportSelected([]);
+    setCorrectionImportFileName("");
+    setCorrectionImportErrors([]);
+  }
+
+  async function handleConfirmCorrectionReplaceImport(): Promise<void> {
+    setIsCorrectionReplaceConfirmOpen(false);
+    await executeCorrectionImport();
+  }
+
+  function toggleCorrectionImportSelected(index: number): void {
+    setCorrectionImportSelected((current) =>
+      current.includes(index) ? current.filter((value) => value !== index) : [...current, index],
+    );
+  }
+
+  function handleRemoveSelectedCorrectionImportEntries(): void {
+    if (correctionImportSelected.length === 0) {
+      return;
+    }
+    const selectedSet = new Set(correctionImportSelected);
+    const nextEntries = correctionImportEntries.filter((_entry, index) => !selectedSet.has(index));
+    setCorrectionImportEntries(nextEntries);
+    setCorrectionImportSelected([]);
+  }
+
+  function handleUpdateCorrectionImportEntry(
+    index: number,
+    field: "match_value" | "replacement_value" | "status",
+    value: string,
+  ): void {
+    setCorrectionImportEntries((current) =>
+      current.map((entry, entryIndex) => {
+        if (entryIndex !== index) {
+          return entry;
+        }
+        return { ...entry, [field]: value };
+      }),
+    );
+  }
+
+  function handleExportCorrectionList(): void {
+    if (!selectedClanId) {
+      setCorrectionImportStatus("Select a clan before exporting.");
+      return;
+    }
+    const listRules = correctionRules.filter((rule) => rule.field === correctionListField);
+    const csv = buildCorrectionCsv(listRules);
+    downloadCorrectionCsv(`corrections-${correctionListField}.csv`, csv);
+  }
+
+  function handleBackupCorrectionList(): void {
+    if (!selectedClanId) {
+      setCorrectionImportStatus("Select a clan before exporting.");
+      return;
+    }
+    const clanName = clans.find((clan) => clan.id === selectedClanId)?.name ?? "clan";
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const listRules = correctionRules.filter((rule) => rule.field === correctionListField);
+    const csv = buildCorrectionCsv(listRules);
+    downloadCorrectionCsv(`corrections-backup-${correctionListField}-${clanName}-${timestamp}.csv`, csv);
+  }
+
+  async function handleSaveCorrectionRow(): Promise<void> {
     if (!selectedClanId) {
       setStatus("Select a clan first.");
       return;
     }
-    if (correctionEditingId) {
+    if (!correctionMatch.trim() || !correctionReplacement.trim()) {
+      setStatus("Match and replacement values are required.");
+      return;
+    }
+    const isNew = correctionEditingId === NEW_CORRECTION_ID;
+    if (correctionEditingId && !isNew) {
       const confirmUpdate = window.confirm("Update this correction rule?");
       if (!confirmUpdate) {
         return;
@@ -2595,11 +3291,12 @@ function AdminClient(): JSX.Element {
     }
     const payload = {
       clan_id: selectedClanId,
-      field: correctionField.trim(),
+      field: correctionField.trim() || correctionListField,
       match_value: correctionMatch.trim(),
       replacement_value: correctionReplacement.trim(),
+      status: correctionStatus.trim(),
     };
-    const { error } = correctionEditingId
+    const { error } = correctionEditingId && !isNew
       ? await supabase.from("correction_rules").update(payload).eq("id", correctionEditingId)
       : await supabase.from("correction_rules").insert(payload);
     if (error) {
@@ -2609,8 +3306,9 @@ function AdminClient(): JSX.Element {
     setCorrectionField("");
     setCorrectionMatch("");
     setCorrectionReplacement("");
+    setCorrectionStatus("active");
     setCorrectionEditingId("");
-    setStatus("Correction rule added.");
+    setStatus(isNew ? "Correction rule added." : "Correction rule updated.");
     await loadRules(selectedClanId);
   }
 
@@ -2628,11 +3326,49 @@ function AdminClient(): JSX.Element {
     await loadRules(selectedClanId);
   }
 
+  async function handleDeleteSelectedCorrectionRules(): Promise<void> {
+    if (correctionSelectedIds.length === 0) {
+      setStatus("Select correction rules to delete.");
+      return;
+    }
+    const confirmationPhrase = "DELETE RULES";
+    if (correctionDeleteInput.trim().toUpperCase() !== confirmationPhrase) {
+      setStatus("Confirmation phrase does not match.");
+      return;
+    }
+    setIsCorrectionDeleteInputOpen(false);
+    const { error } = await supabase.from("correction_rules").delete().in("id", correctionSelectedIds);
+    if (error) {
+      setStatus(`Failed to delete correction rules: ${error.message}`);
+      return;
+    }
+    setStatus("Correction rules deleted.");
+    setCorrectionSelectedIds([]);
+    setCorrectionDeleteInput("");
+    await loadRules(selectedClanId);
+  }
+
   function handleEditCorrectionRule(rule: RuleRow): void {
     setCorrectionField(rule.field ?? "");
     setCorrectionMatch(rule.match_value ?? "");
     setCorrectionReplacement(rule.replacement_value ?? "");
+    setCorrectionStatus(rule.status ?? "active");
     setCorrectionEditingId(rule.id);
+  }
+
+  function handleCreateCorrectionRow(): void {
+    setCorrectionField(correctionListField);
+    setCorrectionMatch("");
+    setCorrectionReplacement("");
+    setCorrectionStatus("active");
+    setCorrectionEditingId(NEW_CORRECTION_ID);
+  }
+
+  function handleCancelCorrectionEdit(): void {
+    setCorrectionEditingId("");
+    setCorrectionMatch("");
+    setCorrectionReplacement("");
+    setCorrectionStatus("active");
   }
 
   async function handleAddScoringRule(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -2710,7 +3446,7 @@ function AdminClient(): JSX.Element {
         <div className="card-header">
           <div>
             <div className="card-title">Admin Sections</div>
-            <div className="card-subtitle">Manage clans, rules, and audit logs</div>
+            <div className="card-subtitle">Manage clans, validation, corrections, and audit logs</div>
           </div>
         </div>
         <div className="tabs">
@@ -2729,11 +3465,18 @@ function AdminClient(): JSX.Element {
             Users
           </button>
           <button
-            className={`tab ${activeSection === "rules" ? "active" : ""}`}
+            className={`tab ${activeSection === "validation" ? "active" : ""}`}
             type="button"
-            onClick={() => updateActiveSection("rules")}
+            onClick={() => updateActiveSection("validation")}
           >
-            Rules
+            Validation
+          </button>
+          <button
+            className={`tab ${activeSection === "corrections" ? "active" : ""}`}
+            type="button"
+            onClick={() => updateActiveSection("corrections")}
+          >
+            Corrections
           </button>
           <button
             className={`tab ${activeSection === "logs" ? "active" : ""}`}
@@ -2971,18 +3714,20 @@ function AdminClient(): JSX.Element {
             </div>
           </div>
         ) : (
-          <div className="table-scroll">
+          <TableScroll>
             <div className="table members">
             <header>
-              <span>Game Account</span>
-              <span>User</span>
-              <span>Clan</span>
-              <span>Rank</span>
-              <span>Status</span>
+              <span>#</span>
+              <span>{renderMemberSortButton("Game Account", "game")}</span>
+              <span>{renderMemberSortButton("User", "user")}</span>
+              <span>{renderMemberSortButton("Clan", "clan")}</span>
+              <span>{renderMemberSortButton("Rank", "rank")}</span>
+              <span>{renderMemberSortButton("Status", "status")}</span>
               <span>Actions</span>
             </header>
-            {filteredMemberships.map((membership) => (
+            {sortedMemberships.map((membership, index) => (
               <div className="row" key={membership.id}>
+                <span className="text-muted">{index + 1}</span>
                 <div>
                   {membership.game_accounts?.id ? (
                     activeGameAccountId === membership.game_accounts.id ? (
@@ -3095,7 +3840,7 @@ function AdminClient(): JSX.Element {
               </div>
             ))}
             </div>
-          </div>
+          </TableScroll>
         )}
       </section>
       ) : null}
@@ -3195,20 +3940,26 @@ function AdminClient(): JSX.Element {
             </div>
           </div>
         ) : (
-          <div className="table-scroll">
+          <TableScroll>
             <div className="table users">
             <header>
-              <span>Username</span>
-              <span>Email</span>
-              <span>Nickname</span>
-              <span>Role</span>
-              <span>Admin</span>
-              <span className="text-muted">Game Accounts</span>
+              <span>#</span>
+              <span>{renderUserSortButton("Username", "username")}</span>
+              <span>{renderUserSortButton("Email", "email")}</span>
+              <span>{renderUserSortButton("Nickname", "nickname")}</span>
+              <span>{renderUserSortButton("Role", "role")}</span>
+              <span>{renderUserSortButton("Admin", "admin")}</span>
+              <span>{renderUserSortButton("Game Accounts", "accounts")}</span>
               <span>Actions</span>
             </header>
-            {filteredUserRows.map((user) => {
+            {sortedUserRows.map((user, index) => {
               const isExpanded = expandedUserIds.includes(user.id);
               const accounts = gameAccountsByUserId[user.id] ?? [];
+              const sortedAccounts = [...accounts].sort((left, right) => {
+                const leftValue = getAccountSortValue(left);
+                const rightValue = getAccountSortValue(right);
+                return compareRuleValues(leftValue, rightValue, memberSortDirection);
+              });
               const edits = getUserEditValue(user);
               const isEditing = activeEditingUserId === user.id;
               return (
@@ -3225,6 +3976,7 @@ function AdminClient(): JSX.Element {
                       }
                     }}
                   >
+                    <span className="text-muted">{index + 1}</span>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <span className="row-caret" aria-hidden="true">
                         <svg width="14" height="10" viewBox="0 0 12 8" fill="none">
@@ -3436,21 +4188,23 @@ function AdminClient(): JSX.Element {
                         {accounts.length === 0 ? (
                           <div className="text-muted">No game accounts yet.</div>
                         ) : (
-                          <div className="table-scroll">
+                          <TableScroll>
                             <div className="table members">
                             <header>
-                              <span>Game Account</span>
-                              <span>User</span>
-                              <span>Clan</span>
-                              <span>Rank</span>
-                              <span>Status</span>
+                              <span>#</span>
+                              <span>{renderMemberSortButton("Game Account", "game")}</span>
+                              <span>{renderMemberSortButton("User", "user")}</span>
+                              <span>{renderMemberSortButton("Clan", "clan")}</span>
+                              <span>{renderMemberSortButton("Rank", "rank")}</span>
+                              <span>{renderMemberSortButton("Status", "status")}</span>
                               <span>Actions</span>
                             </header>
-                            {accounts.map((account) => {
+                            {sortedAccounts.map((account, index) => {
                               const membership = userMembershipsByAccountId[account.id];
                               if (!membership) {
                                 return (
                                   <div className="row" key={account.id}>
+                                    <span className="text-muted">{index + 1}</span>
                                     <div>
                                       <div>{account.game_username}</div>
                                     </div>
@@ -3467,6 +4221,7 @@ function AdminClient(): JSX.Element {
                               }
                               return (
                                 <div className="row" key={membership.id}>
+                                  <span className="text-muted">{index + 1}</span>
                                   <div>
                                     {membership.game_accounts?.id ? (
                                       activeGameAccountId === membership.game_accounts.id ? (
@@ -3589,7 +4344,7 @@ function AdminClient(): JSX.Element {
                               );
                             })}
                             </div>
-                          </div>
+                          </TableScroll>
                         )}
                       </div>
                     </div>
@@ -3605,11 +4360,11 @@ function AdminClient(): JSX.Element {
               );
             })}
             </div>
-          </div>
+          </TableScroll>
         )}
       </section>
       ) : null}
-      {activeSection === "rules" ? (
+      {activeSection === "validation" ? (
       <section className="card" style={{ gridColumn: "span 12" }}>
         <div className="card-header">
           <div>
@@ -3662,6 +4417,19 @@ function AdminClient(): JSX.Element {
                 <path d="M3 12.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M8 12V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M5.5 6.5L8 4L10.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+            <span className="rule-bar-separator" aria-hidden="true" />
+            <IconButton
+              ariaLabel="Delete selected rules"
+              onClick={openValidationDeleteConfirm}
+              variant="danger"
+              disabled={validationSelectedIds.length === 0}
+            >
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
               </svg>
             </IconButton>
           </div>
@@ -3722,132 +4490,19 @@ function AdminClient(): JSX.Element {
               setValidationStatusFilter("all");
               setValidationSortKey("field");
               setValidationSortDirection("asc");
-              setValidationPageSize(25);
+              setValidationPageSize(50);
               setValidationPage(1);
             }}
           >
             Reset
           </button>
           <span className="text-muted">
-            {filteredValidationRules.length} / {validationRules.length}
+            {formatLabel(validationListField)} rules: {activeValidationCounts.total} ({activeValidationCounts.active} active)
+            {validationSelectedIds.length > 0 ? ` • ${validationSelectedIds.length} selected` : ""}
           </span>
         </div>
-        <div className="table-scroll">
-          <div className="table validation-list">
-          <header>
-            <span>Value</span>
-            <span>Status</span>
-            <span>Actions</span>
-          </header>
-          {[
-            ...(validationEditingId === NEW_VALIDATION_ID
-              ? [
-                  {
-                    id: NEW_VALIDATION_ID,
-                    field: validationField,
-                    match_value: validationMatch,
-                    status: validationStatus,
-                  },
-                ]
-              : []),
-            ...pagedValidationRules,
-          ].length === 0 ? (
-            <div className="row">
-              <span>No validation entries</span>
-              <span />
-              <span />
-            </div>
-          ) : filteredValidationRules.length === 0 && validationEditingId !== NEW_VALIDATION_ID ? (
-            <div className="row">
-              <span>No entries match the filters</span>
-              <span />
-              <span />
-            </div>
-          ) : (
-            [
-              ...(validationEditingId === NEW_VALIDATION_ID
-                ? [
-                    {
-                      id: NEW_VALIDATION_ID,
-                      field: validationField,
-                      match_value: validationMatch,
-                      status: validationStatus,
-                    },
-                  ]
-                : []),
-              ...pagedValidationRules,
-            ].map((rule) => {
-              const isEditing = validationEditingId === rule.id;
-              return (
-                <div className="row" key={rule.id}>
-                  {isEditing ? (
-                    <input
-                      value={validationMatch}
-                      onChange={(event) => setValidationMatch(event.target.value)}
-                    />
-                  ) : (
-                    <span>{rule.match_value}</span>
-                  )}
-                  {isEditing ? (
-                    <RadixSelect
-                      ariaLabel="Status"
-                      value={validationStatus}
-                      onValueChange={(value) => setValidationStatus(value)}
-                      options={[
-                        { value: "valid", label: "valid" },
-                        { value: "invalid", label: "invalid" },
-                      ]}
-                    />
-                  ) : (
-                    <span className="badge">{rule.status}</span>
-                  )}
-                  <div className="list inline action-icons">
-                    {isEditing ? (
-                      <>
-                        <IconButton ariaLabel="Save changes" onClick={handleSaveValidationRow}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path
-                              d="M4 8.5L7 11.5L12 5"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </IconButton>
-                        <IconButton ariaLabel="Cancel changes" onClick={handleCancelValidationEdit}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                            <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          </svg>
-                        </IconButton>
-                      </>
-                    ) : (
-                      <>
-                        <IconButton ariaLabel="Edit rule" onClick={() => handleEditValidationRule(rule)}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M3 11.5L11.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                            <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          </svg>
-                        </IconButton>
-                        <IconButton ariaLabel="Delete rule" onClick={() => handleDeleteValidationRule(rule.id)} variant="danger">
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                            <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                            <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          </svg>
-                        </IconButton>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-          </div>
-        </div>
         {filteredValidationRules.length > 0 ? (
-          <div className="pagination-bar">
+          <div className="pagination-bar table-pagination">
             <div className="pagination-page-size">
               <label htmlFor="validationPageSize" className="text-muted">
                 Page size
@@ -3864,6 +4519,7 @@ function AdminClient(): JSX.Element {
                   { value: "25", label: "25" },
                   { value: "50", label: "50" },
                   { value: "100", label: "100" },
+                  { value: "250", label: "250" },
                 ]}
               />
             </div>
@@ -3913,10 +4569,513 @@ function AdminClient(): JSX.Element {
             </div>
           </div>
         ) : null}
+        <TableScroll>
+          <div className="table validation-list">
+          <header>
+            <span>#</span>
+            <span>
+              <input
+                type="checkbox"
+                ref={validationSelectAllRef}
+                checked={areAllValidationRowsSelected}
+                onChange={toggleValidationSelectAll}
+                aria-label="Select all rules on this page"
+              />
+            </span>
+            <span>{renderValidationSortButton("Value", "match_value")}</span>
+            <span>{renderValidationSortButton("Status", "status")}</span>
+            <span>Actions</span>
+          </header>
+          {[
+            ...(validationEditingId === NEW_VALIDATION_ID
+              ? [
+                  {
+                    id: NEW_VALIDATION_ID,
+                    field: validationField,
+                    match_value: validationMatch,
+                    status: validationStatus,
+                  },
+                ]
+              : []),
+            ...pagedValidationRules,
+          ].length === 0 ? (
+            <div className="row">
+              <span />
+              <span />
+              <span>No validation entries</span>
+              <span />
+              <span />
+            </div>
+          ) : filteredValidationRules.length === 0 && validationEditingId !== NEW_VALIDATION_ID ? (
+            <div className="row">
+              <span />
+              <span />
+              <span>No entries match the filters</span>
+              <span />
+              <span />
+            </div>
+          ) : (
+            [
+              ...(validationEditingId === NEW_VALIDATION_ID
+                ? [
+                    {
+                      id: NEW_VALIDATION_ID,
+                      field: validationField,
+                      match_value: validationMatch,
+                      status: validationStatus,
+                    },
+                  ]
+                : []),
+              ...pagedValidationRules,
+            ].map((rule, index) => {
+              const isEditing = validationEditingId === rule.id;
+              const isSelectable = rule.id !== NEW_VALIDATION_ID;
+              const isSelected = isSelectable && validationSelectedSet.has(rule.id);
+              const rowNumber = (validationPage - 1) * validationPageSize + index + 1;
+              return (
+                <div className={`row ${isSelected ? "selected" : ""}`.trim()} key={rule.id}>
+                  <span className="text-muted">{rowNumber}</span>
+                  <span>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={isSelectable ? () => toggleValidationSelect(rule.id) : undefined}
+                      disabled={!isSelectable}
+                      aria-label="Select rule"
+                    />
+                  </span>
+                  {isEditing ? (
+                    <input
+                      value={validationMatch}
+                      onChange={(event) => setValidationMatch(event.target.value)}
+                    />
+                  ) : (
+                    <span>{rule.match_value}</span>
+                  )}
+                  {isEditing ? (
+                    <RadixSelect
+                      ariaLabel="Status"
+                      value={validationStatus}
+                      onValueChange={(value) => setValidationStatus(value)}
+                      options={[
+                        { value: "valid", label: "valid" },
+                        { value: "invalid", label: "invalid" },
+                      ]}
+                    />
+                  ) : (
+                    <span className="badge">{rule.status ?? "active"}</span>
+                  )}
+                  <div className="list inline action-icons">
+                    {isEditing ? (
+                      <>
+                        <IconButton ariaLabel="Save changes" onClick={handleSaveValidationRow}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M4 8.5L7 11.5L12 5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </IconButton>
+                        <IconButton ariaLabel="Cancel changes" onClick={handleCancelValidationEdit}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </IconButton>
+                      </>
+                    ) : (
+                      <>
+                        <IconButton ariaLabel="Edit rule" onClick={() => handleEditValidationRule(rule)}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 11.5L11.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </IconButton>
+                        <IconButton ariaLabel="Delete rule" onClick={() => handleDeleteValidationRule(rule.id)} variant="danger">
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                            <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                            <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                          </svg>
+                        </IconButton>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+          </div>
+        </TableScroll>
+      </section>
+      ) : null}
+      {activeSection === "corrections" ? (
+      <section className="card" style={{ gridColumn: "span 12" }}>
+        <div className="card-header">
+          <div>
+            <div className="card-title">Correction Rules</div>
+            <div className="card-subtitle">Automatic value replacement</div>
+          </div>
+        </div>
+        <div className="rule-bar">
+          <div className="tabs">
+            {correctionFieldOptions.map((field) => (
+              <button
+                key={field}
+                className={`tab ${correctionListField === field ? "active" : ""}`}
+                type="button"
+                onClick={() => {
+                  setCorrectionListField(field);
+                  setCorrectionField(field);
+                  handleCancelCorrectionEdit();
+                  setCorrectionPage(1);
+                }}
+              >
+                {field === "all" ? "All" : formatLabel(field)}
+              </button>
+            ))}
+          </div>
+          <div className="list inline action-icons">
+            <IconButton ariaLabel="Add rule" onClick={handleCreateCorrectionRow}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+            <IconButton ariaLabel="Backup Rules List" onClick={handleBackupCorrectionList}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 4.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M4.5 4.5V12C4.5 12.6 5 13 5.6 13H10.4C11 13 11.5 12.6 11.5 12V4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M6.5 7.5H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+            <span className="rule-bar-separator" aria-hidden="true" />
+            <IconButton ariaLabel="Import Rules List" onClick={() => setIsCorrectionImportOpen(true)}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 11.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M8 3.5V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M5.5 8L8 10.5L10.5 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+            <IconButton ariaLabel="Export Rules List" onClick={handleExportCorrectionList}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 12.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M8 12V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M5.5 6.5L8 4L10.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+            <span className="rule-bar-separator" aria-hidden="true" />
+            <IconButton
+              ariaLabel="Delete selected rules"
+              onClick={openCorrectionDeleteConfirm}
+              variant="danger"
+              disabled={correctionSelectedIds.length === 0}
+            >
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+            </IconButton>
+          </div>
+        </div>
+        {correctionImportStatus ? <div className="alert info">{correctionImportStatus}</div> : null}
+        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
+          <SearchInput
+            id="correctionSearch"
+            label="Search"
+            value={correctionSearch}
+            onChange={(value) => {
+              setCorrectionSearch(value);
+              setCorrectionPage(1);
+            }}
+            placeholder="Match or replacement"
+          />
+          <LabeledSelect
+            id="correctionStatusFilter"
+            label="Status"
+            value={correctionStatusFilter}
+            onValueChange={(value) => {
+              setCorrectionStatusFilter(value);
+              setCorrectionPage(1);
+            }}
+            options={[
+              { value: "all", label: "All" },
+              { value: "active", label: "active" },
+              { value: "inactive", label: "inactive" },
+            ]}
+          />
+          <LabeledSelect
+            id="correctionSort"
+            label="Sort"
+            value={correctionSortKey}
+            onValueChange={(value) => {
+              setCorrectionSortKey(value as "field" | "match_value" | "replacement_value" | "status");
+              setCorrectionPage(1);
+            }}
+            options={correctionSortOptions.map((option) => ({ value: option.value, label: option.label }))}
+          />
+          <RadixSelect
+            ariaLabel="Correction sort direction"
+            value={correctionSortDirection}
+            onValueChange={(value) => {
+              setCorrectionSortDirection(value as "asc" | "desc");
+              setCorrectionPage(1);
+            }}
+            options={[
+              { value: "asc", label: "Asc" },
+              { value: "desc", label: "Desc" },
+            ]}
+          />
+          <button
+            className="button"
+            type="button"
+            onClick={() => {
+              setCorrectionSearch("");
+              setCorrectionStatusFilter("all");
+              setCorrectionSortKey("field");
+              setCorrectionSortDirection("asc");
+              setCorrectionPageSize(50);
+              setCorrectionPage(1);
+            }}
+          >
+            Reset
+          </button>
+          <span className="text-muted">
+            {correctionListField === "all" ? "All" : formatLabel(correctionListField)} corrections:{" "}
+            {activeCorrectionCounts.total} ({activeCorrectionCounts.active} active)
+            {correctionSelectedIds.length > 0 ? ` • ${correctionSelectedIds.length} selected` : ""}
+          </span>
+        </div>
+        {filteredCorrectionRules.length > 0 ? (
+          <div className="pagination-bar table-pagination">
+            <div className="pagination-page-size">
+              <label htmlFor="correctionPageSize" className="text-muted">
+                Page size
+              </label>
+              <RadixSelect
+                id="correctionPageSize"
+                ariaLabel="Page size"
+                value={String(correctionPageSize)}
+                onValueChange={(value) => {
+                  setCorrectionPageSize(Number(value));
+                  setCorrectionPage(1);
+                }}
+                options={[
+                  { value: "25", label: "25" },
+                  { value: "50", label: "50" },
+                  { value: "100", label: "100" },
+                  { value: "250", label: "250" },
+                ]}
+              />
+            </div>
+            <span className="text-muted">
+              Showing {filteredCorrectionRules.length === 0 ? 0 : (correctionPage - 1) * correctionPageSize + 1}–
+              {Math.min(correctionPage * correctionPageSize, filteredCorrectionRules.length)} of {filteredCorrectionRules.length}
+            </span>
+            <div className="pagination-actions">
+              <div className="pagination-page-indicator">
+                <label htmlFor="correctionPageJump" className="text-muted">
+                  Page
+                </label>
+                <input
+                  id="correctionPageJump"
+                  className="pagination-page-input"
+                  type="number"
+                  min={1}
+                  max={correctionTotalPages}
+                  value={correctionPage}
+                  onChange={(event) => {
+                    const nextPage = clampPageValue(event.target.value, correctionTotalPages);
+                    if (nextPage !== null) {
+                      setCorrectionPage(nextPage);
+                    }
+                  }}
+                />
+                <span className="text-muted">/ {correctionTotalPages}</span>
+              </div>
+              <IconButton
+                ariaLabel="Previous page"
+                onClick={() => setCorrectionPage((current) => Math.max(1, current - 1))}
+                disabled={correctionPage === 1}
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </IconButton>
+              <IconButton
+                ariaLabel="Next page"
+                onClick={() => setCorrectionPage((current) => current + 1)}
+                disabled={correctionPage >= correctionTotalPages}
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </IconButton>
+            </div>
+          </div>
+        ) : null}
+        <TableScroll>
+          <div className="table correction-list">
+          <header>
+            <span>#</span>
+            <span>
+              <input
+                type="checkbox"
+                ref={correctionSelectAllRef}
+                checked={areAllCorrectionRowsSelected}
+                onChange={toggleCorrectionSelectAll}
+                aria-label="Select all rules on this page"
+              />
+            </span>
+            <span>{renderCorrectionSortButton("Match", "match_value")}</span>
+            <span>{renderCorrectionSortButton("Replacement", "replacement_value")}</span>
+            <span>{renderCorrectionSortButton("Status", "status")}</span>
+            <span>Actions</span>
+          </header>
+          {[
+            ...(correctionEditingId === NEW_CORRECTION_ID
+              ? [
+                  {
+                    id: NEW_CORRECTION_ID,
+                    field: correctionField,
+                    match_value: correctionMatch,
+                    replacement_value: correctionReplacement,
+                    status: correctionStatus,
+                  },
+                ]
+              : []),
+            ...pagedCorrectionRules,
+          ].length === 0 ? (
+            <div className="row">
+              <span />
+              <span />
+              <span>No correction entries</span>
+              <span />
+              <span />
+              <span />
+            </div>
+          ) : filteredCorrectionRules.length === 0 && correctionEditingId !== NEW_CORRECTION_ID ? (
+            <div className="row">
+              <span />
+              <span />
+              <span>No entries match the filters</span>
+              <span />
+              <span />
+              <span />
+            </div>
+          ) : (
+            [
+              ...(correctionEditingId === NEW_CORRECTION_ID
+                ? [
+                    {
+                      id: NEW_CORRECTION_ID,
+                      field: correctionField,
+                      match_value: correctionMatch,
+                      replacement_value: correctionReplacement,
+                      status: correctionStatus,
+                    },
+                  ]
+                : []),
+              ...pagedCorrectionRules,
+            ].map((rule, index) => {
+              const isEditing = correctionEditingId === rule.id;
+              const isSelectable = rule.id !== NEW_CORRECTION_ID;
+              const isSelected = isSelectable && correctionSelectedSet.has(rule.id);
+              const rowNumber = (correctionPage - 1) * correctionPageSize + index + 1;
+              return (
+                <div className={`row ${isSelected ? "selected" : ""}`.trim()} key={rule.id}>
+                  <span className="text-muted">{rowNumber}</span>
+                  <span>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={isSelectable ? () => toggleCorrectionSelect(rule.id) : undefined}
+                      disabled={!isSelectable}
+                      aria-label="Select rule"
+                    />
+                  </span>
+                  {isEditing ? (
+                    <input
+                      value={correctionMatch}
+                      onChange={(event) => setCorrectionMatch(event.target.value)}
+                    />
+                  ) : (
+                    <span>{rule.match_value}</span>
+                  )}
+                  {isEditing ? (
+                    <input
+                      value={correctionReplacement}
+                      onChange={(event) => setCorrectionReplacement(event.target.value)}
+                    />
+                  ) : (
+                    <span>{rule.replacement_value}</span>
+                  )}
+                  {isEditing ? (
+                    <RadixSelect
+                      ariaLabel="Status"
+                      value={correctionStatus}
+                      onValueChange={(value) => setCorrectionStatus(value)}
+                      options={[
+                        { value: "active", label: "active" },
+                        { value: "inactive", label: "inactive" },
+                      ]}
+                    />
+                  ) : (
+                    <span className="badge">{rule.status}</span>
+                  )}
+                  <div className="list inline action-icons">
+                    {isEditing ? (
+                      <>
+                        <IconButton ariaLabel="Save changes" onClick={handleSaveCorrectionRow}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M4 8.5L7 11.5L12 5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </IconButton>
+                        <IconButton ariaLabel="Cancel changes" onClick={handleCancelCorrectionEdit}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </IconButton>
+                      </>
+                    ) : (
+                      <>
+                        <IconButton ariaLabel="Edit rule" onClick={() => handleEditCorrectionRule(rule)}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 11.5L11.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </IconButton>
+                        <IconButton ariaLabel="Delete rule" onClick={() => handleDeleteCorrectionRule(rule.id)} variant="danger">
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                            <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                            <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                          </svg>
+                        </IconButton>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+          </div>
+        </TableScroll>
       </section>
       ) : null}
       {activeSection === "logs" ? (
-      <section className="card">
+      <section className="card" style={{ gridColumn: "span 12" }}>
         <div className="card-header">
           <div>
             <div className="card-title">Audit Logs</div>
@@ -3993,33 +5152,8 @@ function AdminClient(): JSX.Element {
             {auditLogs.length} shown
           </span>
         </div>
-        <div className="list">
-          {auditLogs.length === 0 ? (
-            <div className="list-item">
-              <span>No audit entries yet</span>
-              <span className="badge">Make a change</span>
-            </div>
-          ) : (
-            auditLogs.map((entry) => (
-              <div className="list-item" key={entry.id}>
-                <div>
-                  <div>
-                    {entry.action} • {entry.entity}
-                  </div>
-                  <div className="text-muted">
-                    {getAuditActorLabel(entry.actor_id)} • {formatAuditTimestamp(entry.created_at)}
-                  </div>
-                </div>
-                <div className="list">
-                  <span className="badge">{getAuditDiffSummary(entry.diff)}</span>
-                  <span className="text-muted">{entry.entity_id.slice(0, 8)}</span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
         {auditTotalCount > 0 ? (
-          <div className="pagination-bar">
+          <div className="pagination-bar table-pagination">
             <div className="pagination-page-size">
               <label htmlFor="auditPageSize" className="text-muted">
                 Page size
@@ -4036,6 +5170,7 @@ function AdminClient(): JSX.Element {
                   { value: "25", label: "25" },
                   { value: "50", label: "50" },
                   { value: "100", label: "100" },
+                  { value: "250", label: "250" },
                 ]}
               />
             </div>
@@ -4085,7 +5220,314 @@ function AdminClient(): JSX.Element {
             </div>
           </div>
         ) : null}
+        <div className="list">
+          {auditLogs.length === 0 ? (
+            <div className="list-item">
+              <span>No audit entries yet</span>
+              <span className="badge">Make a change</span>
+            </div>
+          ) : (
+            auditLogs.map((entry) => (
+              <div className="list-item" key={entry.id}>
+                <div>
+                  <div>
+                    {entry.action} • {entry.entity}
+                  </div>
+                  <div className="text-muted">
+                    {getAuditActorLabel(entry.actor_id)} • {formatAuditTimestamp(entry.created_at)}
+                  </div>
+                </div>
+                <div className="list">
+                  <span className="badge">{getAuditDiffSummary(entry.diff)}</span>
+                  <span className="text-muted">{entry.entity_id.slice(0, 8)}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </section>
+      ) : null}
+      {isCorrectionDeleteConfirmOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Delete selected rules</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="list">
+              <div className="alert danger">
+                This will permanently delete the selected correction rules.
+              </div>
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={openCorrectionDeleteInput}>
+                Continue
+              </button>
+              <button className="button" type="button" onClick={closeCorrectionDeleteConfirm}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isCorrectionDeleteInputOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Confirm deletion</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="alert danger">
+              Deleting these rules will remove them permanently. Make sure you intend to proceed.
+            </div>
+            <div className="form-group">
+              <label htmlFor="correctionDeleteInput">Confirmation phrase</label>
+              <input
+                id="correctionDeleteInput"
+                value={correctionDeleteInput}
+                onChange={(event) => setCorrectionDeleteInput(event.target.value)}
+                placeholder="DELETE RULES"
+              />
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={handleDeleteSelectedCorrectionRules}>
+                Delete Rules
+              </button>
+              <button className="button" type="button" onClick={closeCorrectionDeleteInput}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isCorrectionImportOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card wide">
+            <div className="card-header">
+              <div>
+                <div className="card-title">Import correction list</div>
+                <div className="card-subtitle">Upload Match,Replacement,Field,Status</div>
+              </div>
+            </div>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>File</label>
+                <input
+                  id="correctionImportFile"
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={handleImportCorrectionList}
+                  style={{ display: "none" }}
+                />
+                <div className="list inline" style={{ alignItems: "center" }}>
+                  <label className="button" htmlFor="correctionImportFile">
+                    Choose file
+                  </label>
+                  <span className="text-muted">{correctionImportFileName || "No file selected"}</span>
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="correctionImportMode">Mode</label>
+                <RadixSelect
+                  id="correctionImportMode"
+                  ariaLabel="Import mode"
+                  value={correctionImportMode}
+                  onValueChange={(value) => setCorrectionImportMode(value as "append" | "replace")}
+                  triggerClassName="select-trigger compact"
+                  options={[
+                    { value: "append", label: "Append" },
+                    { value: "replace", label: "Replace" },
+                  ]}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="correctionIgnoreDuplicates">Ignore duplicates</label>
+                <div className="list inline" style={{ alignItems: "center" }}>
+                  <input
+                    id="correctionIgnoreDuplicates"
+                    type="checkbox"
+                    checked={correctionIgnoreDuplicates}
+                    onChange={(event) => setCorrectionIgnoreDuplicates(event.target.checked)}
+                  />
+                </div>
+              </div>
+            </div>
+            {correctionImportErrors.length > 0 ? (
+              <div className="alert danger">{correctionImportErrors.slice(0, 3).join(" ")}</div>
+            ) : null}
+            <div className="list-item">
+              <span>Imported entries</span>
+              <span className="badge">{correctionImportEntries.length}</span>
+            </div>
+            {correctionImportSelected.length > 0 ? (
+              <div className="list-item">
+                <span>Selected entries</span>
+                <span className="badge">{correctionImportSelected.length}</span>
+              </div>
+            ) : null}
+            <div className="validation-import-table">
+              <div className="table correction-import-list">
+                <header>
+                  <span>#</span>
+                  <span>Select</span>
+                  <span>Match</span>
+                  <span>Replacement</span>
+                  <span>Status</span>
+                  <span>Field</span>
+                </header>
+                {correctionImportEntries.length === 0 ? (
+                  <div className="row">
+                    <span>No entries loaded</span>
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                ) : (
+                  correctionImportEntries.map((entry, index) => (
+                    <div className="row" key={`${entry.field}-${entry.match_value}-${entry.replacement_value}-${index}`}>
+                      <span className="text-muted">{index + 1}</span>
+                      <input
+                        type="checkbox"
+                        checked={correctionImportSelected.includes(index)}
+                        onChange={() => toggleCorrectionImportSelected(index)}
+                      />
+                      <input
+                        value={entry.match_value ?? ""}
+                        onChange={(event) => handleUpdateCorrectionImportEntry(index, "match_value", event.target.value)}
+                      />
+                      <input
+                        value={entry.replacement_value ?? ""}
+                        onChange={(event) =>
+                          handleUpdateCorrectionImportEntry(index, "replacement_value", event.target.value)
+                        }
+                      />
+                      <RadixSelect
+                        ariaLabel="Status"
+                        value={entry.status ?? "active"}
+                        onValueChange={(value) => handleUpdateCorrectionImportEntry(index, "status", value)}
+                        triggerClassName="select-trigger compact"
+                        options={[
+                          { value: "active", label: "active" },
+                          { value: "inactive", label: "inactive" },
+                        ]}
+                      />
+                      <span>{entry.field === "all" ? "All" : formatLabel(entry.field ?? "")}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap", marginTop: "16px" }}>
+              <button
+                className="button danger"
+                type="button"
+                onClick={handleRemoveSelectedCorrectionImportEntries}
+                disabled={correctionImportSelected.length === 0}
+              >
+                Delete selected
+              </button>
+              <div className="list inline">
+                <button className="button" type="button" onClick={handleCloseCorrectionImport}>
+                  Cancel
+                </button>
+                <button className="button primary" type="button" onClick={handleApplyCorrectionImport}>
+                  Apply import
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isCorrectionReplaceConfirmOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Replace correction list</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="alert danger">
+              This will delete all existing correction rules for this field before importing.
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={handleConfirmCorrectionReplaceImport}>
+                Continue
+              </button>
+              <button className="button" type="button" onClick={() => setIsCorrectionReplaceConfirmOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isValidationDeleteConfirmOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Delete selected rules</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="list">
+              <div className="alert danger">
+                This will permanently delete the selected validation rules.
+              </div>
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={openValidationDeleteInput}>
+                Continue
+              </button>
+              <button className="button" type="button" onClick={closeValidationDeleteConfirm}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isValidationDeleteInputOpen ? (
+        <div className="modal-backdrop">
+          <div className="modal card danger">
+            <div className="card-header">
+              <div>
+                <div className="danger-label">Danger Zone</div>
+                <div className="card-title">Confirm deletion</div>
+                <div className="card-subtitle">This action cannot be undone.</div>
+              </div>
+            </div>
+            <div className="alert danger">
+              Deleting these rules will remove them permanently. Make sure you intend to proceed.
+            </div>
+            <div className="form-group">
+              <label htmlFor="validationDeleteInput">Confirmation phrase</label>
+              <input
+                id="validationDeleteInput"
+                value={validationDeleteInput}
+                onChange={(event) => setValidationDeleteInput(event.target.value)}
+                placeholder="DELETE RULES"
+              />
+            </div>
+            <div className="list inline">
+              <button className="button danger" type="button" onClick={handleDeleteSelectedValidationRules}>
+                Delete Rules
+              </button>
+              <button className="button" type="button" onClick={closeValidationDeleteInput}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
       {isValidationImportOpen ? (
         <div className="modal-backdrop">
@@ -4146,9 +5588,16 @@ function AdminClient(): JSX.Element {
               <span>Imported entries</span>
               <span className="badge">{validationImportEntries.length}</span>
             </div>
+            {validationImportSelected.length > 0 ? (
+              <div className="list-item">
+                <span>Selected entries</span>
+                <span className="badge">{validationImportSelected.length}</span>
+              </div>
+            ) : null}
             <div className="validation-import-table">
               <div className="table validation-import-list">
                 <header>
+                  <span>#</span>
                   <span>Select</span>
                   <span>Value</span>
                   <span>Status</span>
@@ -4160,10 +5609,12 @@ function AdminClient(): JSX.Element {
                     <span />
                     <span />
                     <span />
+                    <span />
                   </div>
                 ) : (
                   validationImportEntries.map((entry, index) => (
                     <div className="row" key={`${entry.field}-${entry.match_value}-${index}`}>
+                      <span className="text-muted">{index + 1}</span>
                       <input
                         type="checkbox"
                         checked={validationImportSelected.includes(index)}

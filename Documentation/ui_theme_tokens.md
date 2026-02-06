@@ -53,3 +53,8 @@ module.exports = {
 - Primary buttons: `border border-gold text-gold-2 bg-surface-2 hover:text-gold-2`
 - Data tables: `bg-parchment text-[#3a2f1c]` with `bg-parchment-2` header rows
 - Tabs: `bg-surface-2 border border-edge rounded-full`
+
+## Status Styling Notes (Current UI)
+- Validation states: `validation-valid`, `validation-invalid`, and `validation-cell-invalid`
+- Correction highlight: `correction-cell-corrected`
+- Row hover is disabled for non-interactive containers (cards/rows/lists)

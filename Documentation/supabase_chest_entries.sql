@@ -375,9 +375,17 @@ create table if not exists public.correction_rules (
   field text not null,
   match_value text not null,
   replacement_value text not null,
+  status text not null default 'active',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.correction_rules
+  add column if not exists status text not null default 'active';
+
+update public.correction_rules
+  set status = 'active'
+  where status is null;
 
 create table if not exists public.scoring_rules (
   id uuid primary key default gen_random_uuid(),
@@ -521,6 +529,8 @@ create index if not exists chest_entries_player_idx on public.chest_entries (pla
 create index if not exists game_accounts_user_idx on public.game_accounts (user_id);
 create index if not exists game_account_clan_memberships_clan_idx on public.game_account_clan_memberships (clan_id);
 create index if not exists game_account_clan_memberships_account_idx on public.game_account_clan_memberships (game_account_id);
+create index if not exists correction_rules_clan_field_match_idx
+  on public.correction_rules (clan_id, field, match_value);
 create index if not exists articles_clan_idx on public.articles (clan_id);
 create index if not exists articles_created_at_idx on public.articles (created_at);
 create index if not exists events_clan_idx on public.events (clan_id);

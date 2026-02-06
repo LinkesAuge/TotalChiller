@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { z } from "zod";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import formatGermanDateTime from "../../lib/date-format";
 import useClanContext from "../components/use-clan-context";
 import { useToast } from "../components/toast-provider";
 
@@ -241,7 +242,7 @@ function EventsClient(): JSX.Element {
               <div>
                 <div className="card-title">{entry.title}</div>
                 <div className="card-subtitle">
-                  {new Date(entry.starts_at).toLocaleString()} → {new Date(entry.ends_at).toLocaleString()}
+                  {formatGermanDateTime(entry.starts_at)} → {formatGermanDateTime(entry.ends_at)}
                 </div>
               </div>
               <span className="badge">Event</span>

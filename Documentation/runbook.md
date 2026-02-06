@@ -39,17 +39,17 @@ Open: `http://localhost:3000`
 - Public Home: `/home`
 - Dashboard: `/`
 - Admin: `/admin`
-- Data Import: `/data-import`
-- Chest Database: `/data-table`
+- Data Import: `/admin/data-import`
+- Chest Database: `/admin/data-table`
 - Profile: `/profile`
 - Settings: `/settings`
 
 ## 7) Data Import Workflow
-1. Go to `/data-import`
+1. Go to `/admin/data-import`
 2. Upload a Pattern 1 CSV (DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN)
-3. Optional: toggle **Apply Corrections** and **Apply Scoring**
-4. Review preview + diff
-5. Click **Commit Data** (uses admin API with service role)
+3. Optional: toggle **Auto-correct** and **Validation**
+4. Use filters/sorting or batch edit if needed
+5. Click **Commit Data** (warning modal appears if invalid rows exist)
 
 ## 8) Admin: Clans + Memberships
 1. Go to `/admin`
@@ -60,10 +60,10 @@ Open: `http://localhost:3000`
 ## 9) Admin: Rules
 In `/admin`:
 - Create/edit/delete validation rules
-- Correction/scoring rules are present but will be refactored (validation-only lists)
+- Create/edit/delete correction rules (active/inactive)
 
 ## 10) Chest Database
-In `/data-table`:
+In `/admin/data-table`:
 - Inline edit rows and save
 - Batch edit/delete
 - Search + filters + pagination

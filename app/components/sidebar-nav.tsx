@@ -10,7 +10,7 @@ import RadixSelect from "./ui/radix-select";
 interface NavItem {
   readonly href: string;
   readonly label: string;
-  readonly tab?: "clans" | "rules" | "logs";
+  readonly tab?: "clans" | "users" | "validation" | "corrections" | "logs";
   readonly isSubItem?: boolean;
 }
 
@@ -48,7 +48,8 @@ const navSections: readonly NavSection[] = [
     items: [
       { href: "/admin?tab=clans", label: "Clan Management", tab: "clans", isSubItem: true },
       { href: "/admin?tab=users", label: "Users", tab: "users", isSubItem: true },
-      { href: "/admin?tab=rules", label: "Rules", tab: "rules", isSubItem: true },
+      { href: "/admin?tab=validation", label: "Validation", tab: "validation", isSubItem: true },
+      { href: "/admin?tab=corrections", label: "Corrections", tab: "corrections", isSubItem: true },
       { href: "/admin?tab=logs", label: "Audit Logs", tab: "logs", isSubItem: true },
       { href: "/admin/data-import", label: "Data Import", isSubItem: true },
       { href: "/admin/data-table", label: "Chest Database", isSubItem: true },
@@ -58,7 +59,8 @@ const navSections: readonly NavSection[] = [
 
 function isNavItemActive(pathname: string, activeTab: string | null, item: NavItem): boolean {
   if (item.tab) {
-    return pathname === "/admin" && activeTab === item.tab;
+    const normalizedTab = activeTab === "rules" ? "validation" : activeTab;
+    return pathname === "/admin" && normalizedTab === item.tab;
   }
   if (item.href.startsWith("/admin/data-")) {
     return pathname.startsWith(item.href);

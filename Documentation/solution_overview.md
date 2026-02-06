@@ -9,12 +9,15 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Pattern 2 is deprecated and removed from scope.
 - Usernames are required and case‑insensitive. Display names are optional.
 - Admin routes include data import, chest database, and user management.
+- Rules tab renamed to **Validation**; **Corrections** added as a first‑class admin section.
+- Auto‑correct runs before validation; both are toggleable in data import.
+- Default timestamp display is German format (`dd.MM.yyyy, HH:mm`).
 
 ## Updated PRD Areas
 
 - Auth flows and session handling now reference Supabase Auth.
 - Data import/preview and scoring now target Pattern 1 CSV only.
-- Parsing feedback and date inference from filename are clarified.
+- Parsing feedback is summarized (no per-row error list); batch date override is removed.
 
 ## Suggested Solution (MVP-First)
 
@@ -23,7 +26,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **Frontend**: Next.js App Router, server components by default, client components for interactive tables, editors, and charts.
 - **Auth**: Supabase Auth with email verification and password reset.
 - **Backend**: Supabase Postgres with RLS for clan-scoped data and permissions (via game accounts).
-- **Validation/Correction/Scoring**: Zod schemas for import validation; rules stored per clan and applied during preview and re-scoring (validation rules will be refactored to list-based checks).
+- **Validation/Correction/Scoring**: Zod schemas for import validation; rules stored per clan and applied during preview and re-scoring; correction rules support field‑specific and `all` matches with active/inactive status.
 
 ### Core Data Model (Outline)
 
@@ -136,14 +139,16 @@ Reference image: `Documentation/totalbattle_ui.png`
 - Import does not validate players against game accounts; chest data is treated as raw OCR input.
 - Chest database reads `chest_entries` via server client.
 - Chest database supports inline edit validation and batch operations.
-- Data import and chest database use a shared date picker (flatpickr) with dd.mm.yyyy display.
 - Data import supports inline edits for date, player, source, chest, score, clan and row removal.
+- Auto‑correct (toggle) runs before validation (toggle); corrected fields are highlighted.
+- Data import supports batch edit, commit warning (skip/force invalid), and row-level add‑rule actions.
+- Tables include row numbers, sortable headers, selection, and consistent pagination placement.
 
 ## Admin Enhancements
 
 - Admin user lookup by email via `app/api/admin/user-lookup`.
-- Rules currently support create, edit, and delete in admin UI (scheduled for validation-only refactor).
-- Admin tabs include Clans & Members, Users, Rules, Audit Logs, Data Import, Chest Database.
+- Validation + Correction rules support create, edit, delete, import/export, selection, and sorting.
+- Admin tabs include Clans & Members, Users, Validation, Corrections, Audit Logs, Data Import, Chest Database.
 - Membership table now manages game accounts (game username, clan, rank, status).
 - Roles are assigned globally via `user_roles`.
 - Clan Management supports assign‑to‑clan modal and batch save/cancel.

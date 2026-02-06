@@ -4,12 +4,15 @@ import { useSearchParams } from "next/navigation";
 
 function AdminSectionBadge(): JSX.Element {
   const searchParams = useSearchParams();
-  const tab = searchParams.get("tab") ?? "clans";
+  const rawTab = searchParams.get("tab") ?? "clans";
+  const tab = rawTab === "rules" ? "validation" : rawTab;
   const badgeLabel =
     tab === "users"
       ? "Users"
-      : tab === "rules"
-        ? "Rules"
+      : tab === "validation"
+        ? "Validation"
+        : tab === "corrections"
+          ? "Corrections"
         : tab === "logs"
           ? "Audit Logs"
           : "Clan Management";

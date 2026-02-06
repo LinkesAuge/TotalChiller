@@ -431,6 +431,7 @@ body {
   border-radius: var(--radius-full);
   border: 1px solid transparent;
   color: var(--color-text-2);
+  text-decoration: none;
   font-size: 0.8rem;
   font-weight: 500;
   background: transparent;
@@ -483,9 +484,9 @@ body {
 }
 
 .card:hover {
-  border-color: var(--color-edge-glow);
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
-  transform: translateY(-2px);
+  border-color: var(--color-edge);
+  box-shadow: var(--shadow-lg), var(--shadow-inner);
+  transform: none;
 }
 
 .card-header {
@@ -548,9 +549,9 @@ body {
 }
 
 .list-item:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-edge-glow);
-  transform: translateX(4px);
+  background: rgba(15, 34, 51, 0.5);
+  border-color: var(--color-edge);
+  transform: none;
 }
 
 .list-item strong {
@@ -666,8 +667,22 @@ body {
 
 .table-scroll {
   grid-column: span 12;
-  overflow-x: auto;
+  overflow-x: scroll;
   overflow-y: visible;
+  scrollbar-gutter: stable both-edges;
+}
+
+.table-scroll.top-scroll {
+  overflow-y: hidden;
+  height: 12px;
+}
+
+.table-scroll.top-scroll.is-hidden {
+  display: none;
+}
+
+.table-scroll.top-scroll > div {
+  height: 1px;
 }
 
 .table header,
@@ -688,13 +703,28 @@ body {
 
 .table.data-import header,
 .table.data-import .row {
-  grid-template-columns: 80px 130px 1fr 1fr 1fr 100px 1fr;
+  grid-template-columns:
+    minmax(44px, max-content)
+    minmax(44px, max-content)
+    minmax(110px, 140px)
+    minmax(160px, 1fr)
+    minmax(160px, 1fr)
+    minmax(160px, 1fr)
+    minmax(40px, 80px)
+    minmax(60px, 100px)
+    minmax(80px, 120px);
+}
+
+.table.data-import {
+  min-width: 100%;
+  width: max-content;
 }
 
 .table.data-table header,
 .table.data-table .row {
   grid-template-columns:
-    90px
+    60px
+    70px
     130px
     minmax(0, 1fr)
     minmax(0, 1fr)
@@ -708,17 +738,27 @@ body {
 
 .table.validation-list header,
 .table.validation-list .row {
-  grid-template-columns: 1fr 90px 140px;
+  grid-template-columns: 50px 60px 1fr 90px 160px;
+}
+
+.table.correction-list header,
+.table.correction-list .row {
+  grid-template-columns: 50px 60px 1fr 1fr 110px 160px;
 }
 
 .table.validation-import-list header,
 .table.validation-import-list .row {
-  grid-template-columns: 48px 1fr 90px 140px;
+  grid-template-columns: 50px 48px 1fr 90px 140px;
+}
+
+.table.correction-import-list header,
+.table.correction-import-list .row {
+  grid-template-columns: 50px 48px 1fr 1fr 110px 140px;
 }
 
 .table.batch-preview header,
 .table.batch-preview .row {
-  grid-template-columns: 120px 1fr 1fr 1fr 100px 1.3fr;
+  grid-template-columns: 60px 120px 1fr 1fr 1fr 100px 1.3fr;
 }
 
 .table.data-table input,
@@ -750,7 +790,7 @@ body {
 }
 
 .table .row:hover {
-  background: rgba(201, 163, 74, 0.12);
+  background: rgba(10, 21, 32, 0.8);
 }
 
 .table .row:last-child {
@@ -797,14 +837,20 @@ body {
   background-color: rgba(54, 22, 18, 0.5);
 }
 
+.correction-cell-corrected {
+  border-color: rgba(74, 153, 96, 0.8);
+  box-shadow: 0 0 0 2px rgba(74, 153, 96, 0.25);
+  background-color: rgba(25, 58, 36, 0.45);
+}
+
 .table.members header,
 .table.members .row {
-  grid-template-columns: 1.1fr 120px 1.4fr 1.2fr 120px minmax(180px, 220px);
+  grid-template-columns: 60px 1.1fr 120px 1.4fr 1.2fr 120px minmax(180px, 220px);
 }
 
 .table.users .table.members header,
 .table.users .table.members .row {
-  grid-template-columns: 1.1fr 120px 1.4fr 1.2fr 120px minmax(220px, 260px);
+  grid-template-columns: 60px 1.1fr 120px 1.4fr 1.2fr 120px minmax(220px, 260px);
   min-width: 100%;
   width: 100%;
 }
@@ -820,7 +866,7 @@ body {
 
 .table.users header,
 .table.users .row {
-  grid-template-columns: minmax(180px, 1.4fr) minmax(200px, 1.6fr) minmax(160px, 1.2fr) 120px 90px 120px 160px;
+  grid-template-columns: 60px minmax(180px, 1.4fr) minmax(200px, 1.6fr) minmax(160px, 1.2fr) 120px 90px 120px 160px;
   min-width: max-content;
   width: max-content;
 }
@@ -1238,6 +1284,14 @@ select:disabled,
   margin-bottom: 16px;
 }
 
+.toggle-group {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 163, 74, 0.4);
+  background: rgba(18, 38, 56, 0.6);
+  gap: 16px;
+}
+
 .batch-ops {
   grid-column: 1 / -1;
   width: 100%;
@@ -1339,6 +1393,11 @@ select:disabled,
   width: min(1600px, 96vw);
 }
 
+.modal.tall {
+  max-height: 90vh;
+  overflow: auto;
+}
+
 .validation-import-table {
   max-height: 360px;
   overflow: auto;
@@ -1351,6 +1410,10 @@ select:disabled,
   gap: 12px;
   flex-wrap: wrap;
   justify-content: space-between;
+}
+
+.table-pagination {
+  margin-bottom: 12px;
 }
 
 .pagination-actions {
@@ -1373,7 +1436,7 @@ select:disabled,
 }
 
 .modal-table-scroll {
-  max-height: 360px;
+  max-height: min(60vh, 520px);
   overflow: auto;
   margin-top: 12px;
 }

@@ -22,19 +22,26 @@ This file is a compact context transfer for a new chat.
   - Admin toggle + safeguard to keep at least one admin.
   - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
 - **Admin UI**
-  - Tabs: Clan Management, Users, Rules, Audit Logs, Data Import, Chest Database.
+  - Tabs: Clan Management, Users, Validation, Corrections, Audit Logs, Data Import, Chest Database.
   - Clan Management manages **game accounts** (not users) and supports assign‑to‑clan modal.
   - Users tab supports search/filters, inline edits, add game accounts, create users (invite), delete users.
   - Global save/cancel applies to user + game account edits.
+  - Validation + Correction rules support: sorting, selection, batch delete, import/export, active/inactive status (corrections).
   - Files: `app/admin/admin-client.tsx`, `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`
 - **Data import (Pattern 1)**
   - Creates missing clans and commits chest data via an admin API endpoint.
   - Does not validate players against game accounts on import.
+  - Auto-correct (toggle) runs before validation (toggle).
+  - Per-row actions to add validation/correction rules.
+  - Batch edit, multi-select, remove selected rows.
+  - Commit warning modal with skip/force options.
+  - Filters + sorting + pagination, row numbers, and top scrollbar.
   - Files: `app/data-import/data-import-client.tsx`, `app/api/data-import/commit/route.ts`
 - **Chest Database**
   - Filters, batch ops, select-all, confirmation modals.
   - Row actions use icon buttons; batch delete/edits are confirmed.
   - Clan filter defaults to all clans unless manually filtered.
+  - Correction rules applied on save; validation uses corrected values.
   - `app/data-table/data-table-client.tsx`
 - **News + Events (DB-backed, clan-scoped)**
   - Create/edit/delete posts and events.
@@ -49,12 +56,15 @@ This file is a compact context transfer for a new chat.
   - Standardized icon-only actions and search inputs across admin and data views.
   - Dropdowns and labeled dropdowns share consistent styling and behavior.
   - `app/components/ui/icon-button.tsx`, `app/components/ui/search-input.tsx`, `app/components/ui/labeled-select.tsx`, `app/components/ui/radix-select.tsx`
+  - `app/components/table-scroll.tsx` (sync top/bottom horizontal scrollbars)
 
 ## Recent UI Fixes
 
 - Admin users table: header/rows align on small screens (horizontal scroll fixes).
 - Admin data table: header alignment fixed under vertical scrollbar.
 - Radix select trigger keeps icon inside on small screens.
+- Removed hover effects from non-interactive containers (cards/rows/lists).
+- Added row numbers to tables and standardized pagination placement.
 - **Linting**
   - ESLint configured with Next.js flat config.
   - Run `npx eslint .`
@@ -73,6 +83,7 @@ Run `Documentation/supabase_chest_entries.sql` in Supabase SQL Editor:
 - Adds `get_email_for_username` RPC for username login.
 - Adds global default clan (`clans.is_default`) + single‑default trigger.
 - Adds `rank` column on `game_account_clan_memberships`.
+- Adds `status` column to `correction_rules` + index on `(clan_id, field, match_value)`.
 - Moves roles to `user_roles` (no membership role column).
 
 ## SQL Migrations Checklist (re‑run safe)

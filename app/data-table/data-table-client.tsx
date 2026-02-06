@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import createCorrectionApplicator from "../../lib/correction-applicator";
 import DatePicker from "../components/date-picker";
 import { createValidationEvaluator } from "../components/validation-evaluator";
 import { useToast } from "../components/toast-provider";
@@ -9,6 +10,7 @@ import IconButton from "../components/ui/icon-button";
 import LabeledSelect from "../components/ui/labeled-select";
 import RadixSelect from "../components/ui/radix-select";
 import SearchInput from "../components/ui/search-input";
+import TableScroll from "../components/table-scroll";
 
 interface ChestEntryRow {
   readonly id: string;
@@ -27,6 +29,15 @@ interface EditableRow {
   readonly source: string;
   readonly chest: string;
   readonly score: string;
+  readonly clan_id: string;
+}
+
+interface RowValues {
+  readonly collected_date: string;
+  readonly player: string;
+  readonly source: string;
+  readonly chest: string;
+  readonly score: number;
   readonly clan_id: string;
 }
 
@@ -49,6 +60,15 @@ interface ValidationRuleRow {
   readonly clan_id: string;
   readonly field: string;
   readonly match_value: string;
+  readonly status: string;
+}
+
+interface CorrectionRuleRow {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly field: string;
+  readonly match_value: string;
+  readonly replacement_value: string;
   readonly status: string;
 }
 
@@ -85,13 +105,14 @@ function DataTableClient(): JSX.Element {
   const [filterScoreMin, setFilterScoreMin] = useState<string>("");
   const [filterScoreMax, setFilterScoreMax] = useState<string>("");
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(25);
+  const [pageSize, setPageSize] = useState<number>(50);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const totalPages: number = Math.max(1, Math.ceil(totalCount / pageSize));
   const [availableClans, setAvailableClans] = useState<readonly { id: string; name: string }[]>([]);
   const [validationRules, setValidationRules] = useState<readonly ValidationRuleRow[]>([]);
+  const [correctionRules, setCorrectionRules] = useState<readonly CorrectionRuleRow[]>([]);
   const [isBatchEditOpen, setIsBatchEditOpen] = useState<boolean>(false);
   const [batchEditField, setBatchEditField] = useState<keyof EditableRow>("player");
   const [batchEditValue, setBatchEditValue] = useState<string>("");
@@ -122,6 +143,13 @@ function DataTableClient(): JSX.Element {
     () => createValidationEvaluator(validationRules),
     [validationRules],
   );
+  const correctionApplicator = useMemo(() => createCorrectionApplicator(correctionRules), [correctionRules]);
+  const clanIdByName = useMemo(() => {
+    return availableClans.reduce<Record<string, string>>((acc, clan) => {
+      acc[clan.name.toLowerCase()] = clan.id;
+      return acc;
+    }, {});
+  }, [availableClans]);
   const playerFilterOptions = useMemo(() => {
     const values = new Set<string>();
     validationRules.forEach((rule) => {
@@ -290,6 +318,7 @@ function DataTableClient(): JSX.Element {
       const clanIds = Array.from(new Set(rows.map((row) => row.clan_id).filter(Boolean)));
       if (clanIds.length === 0) {
         setValidationRules([]);
+        setCorrectionRules([]);
         return;
       }
       const { data, error } = await supabase
@@ -300,6 +329,14 @@ function DataTableClient(): JSX.Element {
         return;
       }
       setValidationRules(data ?? []);
+      const { data: correctionData, error: correctionError } = await supabase
+        .from("correction_rules")
+        .select("id,clan_id,field,match_value,replacement_value,status")
+        .in("clan_id", clanIds);
+      if (correctionError) {
+        return;
+      }
+      setCorrectionRules(correctionData ?? []);
     }
     void loadValidationRules();
   }, [rows, supabase]);
@@ -521,13 +558,13 @@ function DataTableClient(): JSX.Element {
     );
   }
 
-  function validateRow(row: ChestEntryRow, edits: EditableRow): string | null {
-    const nextDate = edits.collected_date || row.collected_date;
-    const nextPlayer = edits.player || row.player;
-    const nextSource = edits.source || row.source;
-    const nextChest = edits.chest || row.chest;
-    const nextScore = Number(edits.score || row.score);
-    const nextClanId = edits.clan_id || row.clan_id;
+  function validateRow(values: RowValues): string | null {
+    const nextDate = values.collected_date;
+    const nextPlayer = values.player;
+    const nextSource = values.source;
+    const nextChest = values.chest;
+    const nextScore = values.score;
+    const nextClanId = values.clan_id;
     if (!nextDate.trim() || !DATE_REGEX.test(nextDate.trim())) {
       return "Date must be in YYYY-MM-DD format.";
     }
@@ -546,28 +583,66 @@ function DataTableClient(): JSX.Element {
     return null;
   }
 
-  function buildRowDiff(row: ChestEntryRow, edits: EditableRow): Record<string, { from: string | number; to: string | number }> {
-    const diff: Record<string, { from: string | number; to: string | number }> = {};
-    if (edits.collected_date && edits.collected_date !== row.collected_date) {
-      diff.collected_date = { from: row.collected_date, to: edits.collected_date };
+  function buildRowValues(row: ChestEntryRow, edits: EditableRow): RowValues {
+    return {
+      collected_date: edits.collected_date || row.collected_date,
+      player: edits.player || row.player,
+      source: edits.source || row.source,
+      chest: edits.chest || row.chest,
+      score: Number(edits.score || row.score),
+      clan_id: edits.clan_id || row.clan_id,
+    };
+  }
+
+  function applyCorrectionsToValues(values: RowValues, row: ChestEntryRow): { values: RowValues; correctionCount: number } {
+    let correctionCount = 0;
+    const nextValues: RowValues = { ...values };
+    const playerCorrection = correctionApplicator.applyToField({ field: "player", value: values.player });
+    if (playerCorrection.wasCorrected) {
+      nextValues.player = playerCorrection.value;
+      correctionCount += 1;
     }
-    if (edits.player && edits.player !== row.player) {
-      diff.player = { from: row.player, to: edits.player };
+    const sourceCorrection = correctionApplicator.applyToField({ field: "source", value: values.source });
+    if (sourceCorrection.wasCorrected) {
+      nextValues.source = sourceCorrection.value;
+      correctionCount += 1;
     }
-    if (edits.source && edits.source !== row.source) {
-      diff.source = { from: row.source, to: edits.source };
+    const chestCorrection = correctionApplicator.applyToField({ field: "chest", value: values.chest });
+    if (chestCorrection.wasCorrected) {
+      nextValues.chest = chestCorrection.value;
+      correctionCount += 1;
     }
-    if (edits.chest && edits.chest !== row.chest) {
-      diff.chest = { from: row.chest, to: edits.chest };
-    }
-    if (edits.score) {
-      const nextScore = Number(edits.score);
-      if (!Number.isNaN(nextScore) && nextScore !== row.score) {
-        diff.score = { from: row.score, to: nextScore };
+    const clanName = clanNameById[values.clan_id] ?? row.clan_name ?? "";
+    const clanCorrection = correctionApplicator.applyToField({ field: "clan", value: clanName });
+    if (clanCorrection.wasCorrected) {
+      const correctedClanId = clanIdByName[clanCorrection.value.trim().toLowerCase()];
+      if (correctedClanId && correctedClanId !== nextValues.clan_id) {
+        nextValues.clan_id = correctedClanId;
+        correctionCount += 1;
       }
     }
-    if (edits.clan_id && edits.clan_id !== row.clan_id) {
-      diff.clan_id = { from: row.clan_id, to: edits.clan_id };
+    return { values: nextValues, correctionCount };
+  }
+
+  function buildRowDiff(row: ChestEntryRow, values: RowValues): Record<string, { from: string | number; to: string | number }> {
+    const diff: Record<string, { from: string | number; to: string | number }> = {};
+    if (values.collected_date && values.collected_date !== row.collected_date) {
+      diff.collected_date = { from: row.collected_date, to: values.collected_date };
+    }
+    if (values.player && values.player !== row.player) {
+      diff.player = { from: row.player, to: values.player };
+    }
+    if (values.source && values.source !== row.source) {
+      diff.source = { from: row.source, to: values.source };
+    }
+    if (values.chest && values.chest !== row.chest) {
+      diff.chest = { from: row.chest, to: values.chest };
+    }
+    if (!Number.isNaN(values.score) && values.score !== row.score) {
+      diff.score = { from: row.score, to: values.score };
+    }
+    if (values.clan_id && values.clan_id !== row.clan_id) {
+      diff.clan_id = { from: row.clan_id, to: values.clan_id };
     }
     return diff;
   }
@@ -578,7 +653,9 @@ function DataTableClient(): JSX.Element {
       setStatus("No changes to save.");
       return;
     }
-    const errorMessage = validateRow(row, edits);
+    const baseValues = buildRowValues(row, edits);
+    const { values: correctedValues, correctionCount } = applyCorrectionsToValues(baseValues, row);
+    const errorMessage = validateRow(correctedValues);
     if (errorMessage) {
       setRowErrors((current) => ({ ...current, [row.id]: errorMessage }));
       return;
@@ -588,16 +665,16 @@ function DataTableClient(): JSX.Element {
       setStatus("You must be logged in to update rows.");
       return;
     }
-    const nextScore = Number(edits.score || row.score);
-    const nextDate = edits.collected_date || row.collected_date;
-    const nextClanId = edits.clan_id || row.clan_id;
+    const nextScore = correctedValues.score;
+    const nextDate = correctedValues.collected_date;
+    const nextClanId = correctedValues.clan_id;
     const { error } = await supabase
       .from("chest_entries")
       .update({
         collected_date: nextDate,
-        player: edits.player || row.player,
-        source: edits.source || row.source,
-        chest: edits.chest || row.chest,
+        player: correctedValues.player,
+        source: correctedValues.source,
+        chest: correctedValues.chest,
         score: nextScore,
         clan_id: nextClanId,
         updated_by: userId,
@@ -607,7 +684,7 @@ function DataTableClient(): JSX.Element {
       setStatus(`Update failed: ${error.message}`);
       return;
     }
-    const diff = buildRowDiff(row, edits);
+    const diff = buildRowDiff(row, correctedValues);
     if (Object.keys(diff).length > 0) {
       await insertAuditLogs([
         {
@@ -620,7 +697,9 @@ function DataTableClient(): JSX.Element {
         },
       ]);
     }
-    setStatus("Row updated.");
+    setStatus(
+      correctionCount > 0 ? `Row updated with ${correctionCount} correction(s).` : "Row updated.",
+    );
     setEditMap((current) => {
       const updated = { ...current };
       delete updated[row.id];
@@ -804,7 +883,9 @@ function DataTableClient(): JSX.Element {
         continue;
       }
       const edits = editMap[rowId];
-      const errorMessage = validateRow(row, edits);
+      const baseValues = buildRowValues(row, edits);
+      const { values: correctedValues } = applyCorrectionsToValues(baseValues, row);
+      const errorMessage = validateRow(correctedValues);
       if (errorMessage) {
         nextErrors[rowId] = errorMessage;
         hasValidationError = true;
@@ -990,9 +1071,72 @@ function DataTableClient(): JSX.Element {
           </IconButton>
         </div>
       </div>
-      <div className="table-scroll">
+      <div className="pagination-bar table-pagination" style={{ gridColumn: "span 12" }}>
+        <div className="pagination-page-size">
+          <label htmlFor="pageSize" className="text-muted">
+            Page size
+          </label>
+          <RadixSelect
+            id="pageSize"
+            ariaLabel="Page size"
+            value={String(pageSize)}
+            onValueChange={(value) => {
+              setPageSize(Number(value));
+              setPage(1);
+            }}
+            options={[
+              { value: "25", label: "25" },
+              { value: "50", label: "50" },
+              { value: "100", label: "100" },
+              { value: "250", label: "250" },
+            ]}
+          />
+        </div>
+        <span className="text-muted">
+          Showing {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–
+          {Math.min(page * pageSize, totalCount)} of {totalCount}
+          {selectedIds.length > 0 ? ` • ${selectedIds.length} selected` : ""}
+        </span>
+        <div className="pagination-actions">
+          <div className="pagination-page-indicator">
+            <label htmlFor="pageJump" className="text-muted">
+              Page
+            </label>
+            <input
+              id="pageJump"
+              className="pagination-page-input"
+              type="number"
+              min={1}
+              max={totalPages}
+              value={page}
+              onChange={(event) => handlePageInputChange(event.target.value)}
+            />
+            <span className="text-muted">/ {totalPages}</span>
+          </div>
+          <IconButton
+            ariaLabel="Previous page"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={page === 1}
+          >
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </IconButton>
+          <IconButton
+            ariaLabel="Next page"
+            onClick={() => setPage((current) => current + 1)}
+            disabled={page >= totalPages}
+          >
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </IconButton>
+        </div>
+      </div>
+      <TableScroll>
         <section className="table data-table">
         <header>
+          <span>#</span>
           <span>
             <input
               type="checkbox"
@@ -1020,17 +1164,20 @@ function DataTableClient(): JSX.Element {
             <span />
             <span />
             <span />
+            <span />
           </div>
         ) : (
-          sortRows(rows).map((row) => {
+          sortRows(rows).map((row, index) => {
             const validation = rowValidationResults[row.id];
             const rowStatus = validation?.rowStatus ?? "neutral";
             const fieldStatus = validation?.fieldStatus ?? { player: "neutral", source: "neutral", chest: "neutral", clan: "neutral" };
+            const rowNumber = (page - 1) * pageSize + index + 1;
             return (
             <div
               className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
               key={row.id}
             >
+              <span className="text-muted">{rowNumber}</span>
               <span>
                 <input
                   type="checkbox"
@@ -1109,69 +1256,7 @@ function DataTableClient(): JSX.Element {
           })
         )}
         </section>
-      </div>
-      <section className="card" style={{ gridColumn: "span 12" }}>
-        <div className="pagination-bar">
-          <div className="pagination-page-size">
-            <label htmlFor="pageSize" className="text-muted">
-              Page size
-            </label>
-            <RadixSelect
-              id="pageSize"
-              ariaLabel="Page size"
-              value={String(pageSize)}
-              onValueChange={(value) => {
-                setPageSize(Number(value));
-                setPage(1);
-              }}
-              options={[
-                { value: "25", label: "25" },
-                { value: "50", label: "50" },
-                { value: "100", label: "100" },
-              ]}
-            />
-          </div>
-          <span className="text-muted">
-            Showing {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–
-            {Math.min(page * pageSize, totalCount)} of {totalCount}
-          </span>
-          <div className="pagination-actions">
-            <div className="pagination-page-indicator">
-              <label htmlFor="pageJump" className="text-muted">
-                Page
-              </label>
-              <input
-                id="pageJump"
-                className="pagination-page-input"
-                type="number"
-                min={1}
-                max={totalPages}
-                value={page}
-                onChange={(event) => handlePageInputChange(event.target.value)}
-              />
-              <span className="text-muted">/ {totalPages}</span>
-            </div>
-            <IconButton
-              ariaLabel="Previous page"
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              disabled={page === 1}
-            >
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </IconButton>
-            <IconButton
-              ariaLabel="Next page"
-              onClick={() => setPage((current) => current + 1)}
-              disabled={page >= totalPages}
-            >
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </IconButton>
-          </div>
-        </div>
-      </section>
+      </TableScroll>
       {isBatchEditOpen ? (
         <div className="modal-backdrop">
           <div className="modal card wide">
@@ -1227,6 +1312,7 @@ function DataTableClient(): JSX.Element {
             <div className="modal-table-scroll">
               <section className="table batch-preview">
                 <header>
+                  <span>#</span>
                   <span>{renderSortButton("Date", "collected_date")}</span>
                   <span>{renderSortButton("Player", "player")}</span>
                   <span>{renderSortButton("Source", "source")}</span>
@@ -1242,11 +1328,14 @@ function DataTableClient(): JSX.Element {
                     <span />
                     <span />
                     <span />
+                    <span />
                   </div>
                 ) : (
                   sortRows(selectedRows).map((row) => {
                     const previewClanId = getBatchPreviewValue(row, "clan_id");
                     const previewClanName = clanNameById[previewClanId] ?? row.clan_name;
+                    const rowIndex = rows.findIndex((entry) => entry.id === row.id);
+                    const rowNumber = rowIndex >= 0 ? (page - 1) * pageSize + rowIndex + 1 : 0;
                     const validation = validationEvaluator({
                       player: getBatchPreviewValue(row, "player"),
                       source: getBatchPreviewValue(row, "source"),
@@ -1266,6 +1355,7 @@ function DataTableClient(): JSX.Element {
                         className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
                         key={row.id}
                       >
+                        <span className="text-muted">{rowNumber || "-"}</span>
                         <span>{getBatchPreviewValue(row, "collected_date")}</span>
                         <span className={fieldStatus.player === "invalid" ? "validation-cell-invalid" : ""}>
                           {getBatchPreviewValue(row, "player")}

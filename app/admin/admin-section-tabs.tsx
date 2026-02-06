@@ -6,13 +6,14 @@ import { usePathname, useSearchParams } from "next/navigation";
 interface AdminTabItem {
   readonly label: string;
   readonly href: string;
-  readonly tab?: "clans" | "users" | "rules" | "logs";
+  readonly tab?: "clans" | "users" | "validation" | "corrections" | "logs";
 }
 
 const adminTabs: readonly AdminTabItem[] = [
   { label: "Clan Management", href: "/admin?tab=clans", tab: "clans" },
   { label: "Users", href: "/admin?tab=users", tab: "users" },
-  { label: "Rules", href: "/admin?tab=rules", tab: "rules" },
+  { label: "Validation", href: "/admin?tab=validation", tab: "validation" },
+  { label: "Corrections", href: "/admin?tab=corrections", tab: "corrections" },
   { label: "Audit Logs", href: "/admin?tab=logs", tab: "logs" },
   { label: "Data Import", href: "/admin/data-import" },
   { label: "Chest Database", href: "/admin/data-table" },
@@ -20,7 +21,8 @@ const adminTabs: readonly AdminTabItem[] = [
 
 function isAdminTabActive(pathname: string, activeTab: string | null, item: AdminTabItem): boolean {
   if (item.tab) {
-    return pathname === "/admin" && activeTab === item.tab;
+    const normalizedTab = activeTab === "rules" ? "validation" : activeTab;
+    return pathname === "/admin" && normalizedTab === item.tab;
   }
   return pathname.startsWith(item.href);
 }

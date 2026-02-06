@@ -72,10 +72,10 @@ This document defines the screen-by-screen prototype for the clan community webs
 **Purpose:** Upload Pattern 1 CSV and preview.
 **Flow:**
 - Upload CSV (drag/drop).
-- Parse errors panel with row references.
-- Batch date override input.
-- Preview table with validation/correction highlights.
-- Commit button with progress state.
+- Parse summary (counts only).
+- Preview table with validation/correction highlights, row actions, and filters.
+- Auto‑correct + Validation toggles (on by default).
+- Commit button with warning modal for invalid rows.
 
 ### 9. Chest Database
 **Purpose:** View and edit committed data.
@@ -116,7 +116,7 @@ This document defines the screen-by-screen prototype for the clan community webs
 
 ### 17. Admin - Rules
 **Purpose:** Manage validation, correction, scoring.
-**Components:** tabbed rules list, create/edit rule form, precedence order.
+**Components:** tabbed rules list (Validation/Corrections), create/edit rule form, status controls (active/inactive for corrections).
 
 ### 18. Admin - Audit Log
 **Purpose:** Trace edits and deletions.

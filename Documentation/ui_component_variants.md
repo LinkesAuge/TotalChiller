@@ -42,9 +42,10 @@ This document defines the core UI components, their variants, and recommended st
 - Dark table (optional for admin)
 
 ### States
-- Row hover highlight
+- No hover effects on container rows (hover only on buttons/links)
 - Selected rows (light gold overlay)
-- Validation status cells
+- Validation status cells (valid/invalid)
+- Correction status cells (corrected highlight)
 
 ## Forms
 ### Inputs

@@ -12,13 +12,18 @@ This plan outlines the minimum testing coverage for the data import flow, role-b
 - Reject non-numeric score.
 - Trim and normalize whitespace in fields.
 - Detect empty rows and ignore them.
+- Apply correction rules before validation.
+- Correction rules respect active/inactive status.
 
 ### Integration Tests (Import)
 
 - Upload CSV → preview table renders with correct row count.
 - Apply validation rules and highlight statuses.
+- Auto-correct highlights corrected cells and updates values.
 - Import does not require player/game account matching.
 - Commit data → entries persisted in database with created_by/created_at.
+- Commit warning modal supports skip invalid rows and force commit.
+- Filters (row status/correction status) and sorting work with pagination.
 
 ## 2. RBAC & Permissions
 

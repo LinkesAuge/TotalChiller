@@ -148,6 +148,7 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - field (text)
 - match_value (text)
 - replacement_value (text)
+- status (text, enum: active, inactive)
 - created_at (timestamp)
 - updated_at (timestamp)
 
@@ -232,3 +233,4 @@ Permissions are additive: Role + Rank + Cross‑Clan overrides.
 - All clan-scoped permissions should be enforced by Supabase RLS.
 - Global access should be modeled via `cross_clan_permissions`.
 - Roles are global per user via `user_roles`; memberships track rank and active status only.
+- Correction rules are queried with an index on `(clan_id, field, match_value)` for matching performance.

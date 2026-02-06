@@ -55,6 +55,26 @@ This document outlines the requirements for a new web application designed to se
 *   **Clan Leadership:** Owners, Administrators, Moderators responsible for managing the clan and website.
 *   **Potential Recruits:** Individuals interested in learning about and potentially joining the clan(s).
 
+## Current Implementation Status (Feb 2026)
+
+**Implemented**
+- Supabase Auth flows (register/login/forgot/update), profile/settings, admin gating.
+- Clan context (game accounts + memberships) with scoped data views.
+- Admin: Clan Management, Users, Validation rules, Correction rules, Audit Logs.
+- Data import (Pattern 1 only) with auto‑correct/validation toggles, batch edit, commit warning, filtering, sorting, pagination, and row numbers.
+- Chest database with inline edits, batch ops, audit logging, and correction-on-save.
+- News + Events (CRUD, clan‑scoped).
+
+**Not Yet Implemented / Deferred**
+- Charts/analytics dashboard widgets.
+- Messages/notifications module.
+- Full i18n for UI strings (German format is default, but UI text is not translated).
+
+**Notable Deviations**
+- Batch date override and filename date inference were removed.
+- Data import supports `.csv` and `.txt`.
+- Validation runs after corrections; corrected fields are highlighted.
+
 ## 2. User Roles, Ranks & Personas
 
 The application will feature a tiered system of Roles and Ranks, combined with Clan affiliation, to manage permissions and access.
@@ -266,24 +286,21 @@ This section covers the process of getting chest data into the system.
 *   **CSV Upload Interface:** A dedicated page or section accessible to users with `data:import` permission to upload CSV files.
 *   **Parsing Logic:**
 *   The system must correctly parse CSV files adhering to **Pattern 1** (standard columns: DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN) as shown in `Documentation/data_example.csv`.
-*   **Error Handling:** If parsing errors occur, provide a summary list of errors and highlight the problematic lines/entries in the preview table.
-*   If the filename contains a date, use it as the default batch date.
-    *   If no date is found in the filename, fallback to using the **upload date/time**.
-    *   The user must be able to **override** the automatically determined date for the entire batch during the preview stage.
+*   **Error Handling:** Provide a summary list of parsing errors (no per‑row error list in the UI).
 *   **Client-Side Preview:**
 *   After parsing, the data must be displayed in an interactive table view within the user's browser.
-    *   This preview table should support sorting and basic filtering.
+    *   This preview table supports sorting, filtering, pagination, and row selection.
     *   The preview data resides temporarily in the browser memory; persistence is not required if the user navigates away.
 *   **Validation/Correction/Scoring in Preview:**
-    *   **Toggle Setting:** Admins should be able to configure (per clan or globally) whether Validation, Correction, and Scoring are applied *automatically* during the preview stage by default.
-    *   The preview table must visually highlight cells based on validation status (using per-clan validation rules, matching based on exact value).
-    *   Users must be able to see correction suggestions (based on per-clan correction rules, matching based on exact value) and apply them directly within the preview table.
-*   The Scoring System (Sec 3.8) must be applied during this stage (if enabled) to calculate and display scores.
-    *   Batch correction functionalities should be accessible from the preview interface (leading to a dedicated page/view as per Sec 1).
+    *   Validation and Correction toggles are available in the UI (on by default).
+    *   Corrections run before validation; corrected cells are highlighted.
+    *   Users can add validation/correction rules from a row action.
+    *   Scoring is deferred (not yet implemented in preview).
 *   **Commit to Database:**
     *   A clear action (e.g., "Commit Data" button) allows the user to save the processed (validated, corrected, scored) preview data to the Supabase database.
     *   Committed data must be associated with the correct Clan.
     *   The system should **allow potential duplicates** upon commit, as reliable duplication detection is difficult. Responsibility lies with the user/admins managing the data.
+    *   If invalid rows exist, a warning modal offers **skip** or **force** commit.
 *   **Metadata Tracking:** For each committed data row, the database must store:
     *   `createdAt`: Timestamp of initial commit.
     *   `createdBy`: User ID of the user who committed the data.
@@ -345,6 +362,7 @@ This section describes the interface for interacting with committed chest data i
     *   Filtering based on criteria across one or more columns.
     *   **Pagination:** Must be implemented to efficiently handle large datasets.
 *   **Inline Editing:** Users with `data:edit` permission can directly edit cell values within the table.
+*   **Correction/Validation:** Corrections are applied before validation on save; corrected values are stored.
 *   **Batch Operations (MVP):**
     *   Users must be able to select multiple rows.
     *   Provide functionality for **Batch Edit** (e.g., change the Source for all selected rows) and **Batch Delete** for selected rows (subject to `data:batch_edit` / `data:batch_delete` permissions).

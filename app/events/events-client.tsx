@@ -227,6 +227,7 @@ function EventsClient(): JSX.Element {
   const locale = useLocale();
 
   const eventFormRef = useRef<HTMLElement>(null);
+  const dayPanelRef = useRef<HTMLElement>(null);
 
   /* ── Permission state ── */
   const [canManage, setCanManage] = useState<boolean>(false);
@@ -1040,6 +1041,9 @@ function EventsClient(): JSX.Element {
                             if (!day.isCurrentMonth) {
                               setCalendarMonth(new Date(day.date.getFullYear(), day.date.getMonth(), 1));
                             }
+                            setTimeout(() => {
+                              dayPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                            }, 50);
                           }}
                         >
                           <span className="calendar-day-number">{day.date.getDate()}</span>
@@ -1062,7 +1066,7 @@ function EventsClient(): JSX.Element {
                     </div>
 
                     {/* Selected day detail (shown below calendar on compact layouts) */}
-                    <aside className="calendar-day-panel calendar-day-panel--inline">
+                    <aside ref={dayPanelRef} className="calendar-day-panel calendar-day-panel--inline">
                       <div className="card-title" style={{ marginBottom: 6 }}>{t("selectedDay")}</div>
                       <div className="card-subtitle" style={{ marginTop: 0 }}>{selectedDateLabel}</div>
                       {selectedDayEvents.length === 0 ? (

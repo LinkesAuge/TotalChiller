@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import SectionHero from "../../components/section-hero";
 
 /**
  * Comprehensive Sanctum UI/UX preview — demonstrates every UI pattern.
@@ -41,33 +42,11 @@ function PreviewPage(): JSX.Element {
         </div>
       </div>
 
-      {/* ─── QUICK ACTIONS ─── */}
-      <div style={{ padding: "14px 24px 0", display: "flex", gap: 10 }}>
-        {[
-          { label: "Upload CSV", icon: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" },
-          { label: "Review Rules", icon: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" },
-          { label: "Event Calendar", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-        ].map((action, i) => (
-          <button key={i} className="action-btn">
-            <img src="/assets/vip/backs_1.png" alt="" className="leather-bg" />
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e4c778" strokeWidth="2"><path d={action.icon} /></svg>
-            <span>{action.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* ─── HERO BANNER ─── */}
-      <div className="hero-banner">
-        <div className="hero-overlay" />
-        <img src="/assets/banners/banner_gold_dragon.png" alt="" className="hero-bg" />
-        <img src="/assets/vip/decor_light_1.png" alt="" className="hero-light" />
-        <div className="hero-content">
-          <img src="/assets/vip/components_decor_6.png" alt="" className="hero-decor" />
-          <h2 className="hero-title">Community Hub</h2>
-          <p className="hero-subtitle">Coordinated. Competitive. Welcoming.</p>
-          <img src="/assets/vip/components_decor_6.png" alt="" className="hero-decor flipped" />
-        </div>
-      </div>
+      <SectionHero
+        title="Community Hub"
+        subtitle="Coordinated. Competitive. Welcoming."
+        bannerSrc="/assets/banners/banner_gold_dragon.png"
+      />
 
       <div className="content-inner">
         {/* ═══ SECTION: Dashboard Cards ═══ */}

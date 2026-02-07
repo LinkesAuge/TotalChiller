@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import AuthActions from "../components/auth-actions";
 import getIsAdminAccess from "../../lib/supabase/admin-access";
-import QuickActions from "../components/quick-actions";
+import LanguageSelector from "../components/language-selector";
 import SectionHero from "../components/section-hero";
 
 interface SettingsFormState {
@@ -42,6 +43,7 @@ const initialSettingsState: SettingsFormState = {
  * Renders the settings page with password update.
  */
 function SettingsPage(): JSX.Element {
+  const t = useTranslations("settings");
   const [formState, setFormState] = useState<SettingsFormState>(initialSettingsState);
   const [userId, setUserId] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -249,18 +251,17 @@ function SettingsPage(): JSX.Element {
         <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
-            <div className="top-bar-breadcrumb">The Chillers &bull; Account</div>
-            <h1 className="top-bar-title">Settings</h1>
+            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
+            <h1 className="top-bar-title">{t("title")}</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <AuthActions />
           </div>
         </div>
       </div>
-      <QuickActions />
       <SectionHero
-        title="Command Settings"
-        subtitle="Manage account security, identity, and notification controls."
+        title={t("title")}
+        subtitle={t("accountDetails")}
         bannerSrc="/assets/banners/banner_tournir_kvk.png"
       />
       <div className="content-inner">
@@ -268,13 +269,13 @@ function SettingsPage(): JSX.Element {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Account Details</div>
-              <div className="card-subtitle">Update your email address</div>
+              <div className="card-title">{t("accountDetails")}</div>
+              <div className="card-subtitle">{t("emailHint")}</div>
             </div>
           </div>
           <form onSubmit={handleEmailSubmit}>
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">{t("email")}</label>
               <input
                 id="email"
                 type="email"
@@ -286,7 +287,7 @@ function SettingsPage(): JSX.Element {
             </div>
             <div className="list">
               <button className="button primary" type="submit">
-                Update Email
+                {t("updateEmail")}
               </button>
             </div>
             {formState.emailStatus ? <p className="text-muted">{formState.emailStatus}</p> : null}
@@ -295,13 +296,13 @@ function SettingsPage(): JSX.Element {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Username</div>
-              <div className="card-subtitle">Admins only</div>
+              <div className="card-title">{t("username")}</div>
+              <div className="card-subtitle">{t("usernameHint")}</div>
             </div>
           </div>
           <form onSubmit={handleUsernameSubmit}>
             <div className="form-group">
-              <label htmlFor="username">Username</label>
+              <label htmlFor="username">{t("username")}</label>
               <input
                 id="username"
                 value={formState.username}
@@ -315,23 +316,23 @@ function SettingsPage(): JSX.Element {
             </div>
             <div className="list">
               <button className="button primary" type="submit">
-                Update Username
+                {t("updateUsername")}
               </button>
             </div>
-            {!isAdmin ? <span className="badge">Admin only</span> : null}
+            {!isAdmin ? <span className="badge">{t("usernameHint")}</span> : null}
             {formState.usernameStatus ? <p className="text-muted">{formState.usernameStatus}</p> : null}
           </form>
         </section>
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Nickname</div>
-              <div className="card-subtitle">Shown to other members</div>
+              <div className="card-title">{t("nickname")}</div>
+              <div className="card-subtitle">{t("nicknameHint")}</div>
             </div>
           </div>
           <form onSubmit={handleDisplayNameSubmit}>
             <div className="form-group">
-              <label htmlFor="displayName">Nickname</label>
+              <label htmlFor="displayName">{t("nickname")}</label>
               <input
                 id="displayName"
                 value={formState.displayName}
@@ -341,7 +342,7 @@ function SettingsPage(): JSX.Element {
             </div>
             <div className="list">
               <button className="button primary" type="submit">
-                Update Nickname
+                {t("updateNickname")}
               </button>
             </div>
             {formState.displayNameStatus ? <p className="text-muted">{formState.displayNameStatus}</p> : null}
@@ -350,13 +351,13 @@ function SettingsPage(): JSX.Element {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Update Password</div>
-              <div className="card-subtitle">Change your account password</div>
+              <div className="card-title">{t("password")}</div>
+              <div className="card-subtitle">{t("updatePassword")}</div>
             </div>
           </div>
           <form onSubmit={handlePasswordSubmit}>
             <div className="form-group">
-              <label htmlFor="password">New password</label>
+              <label htmlFor="password">{t("newPassword")}</label>
               <input
                 id="password"
                 type="password"
@@ -367,7 +368,7 @@ function SettingsPage(): JSX.Element {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm password</label>
+              <label htmlFor="confirmPassword">{t("confirmPassword")}</label>
               <input
                 id="confirmPassword"
                 type="password"
@@ -379,7 +380,7 @@ function SettingsPage(): JSX.Element {
             </div>
             <div className="list">
               <button className="button primary" type="submit">
-                Update Password
+                {t("updatePassword")}
               </button>
             </div>
             {formState.passwordStatus ? (
@@ -390,13 +391,13 @@ function SettingsPage(): JSX.Element {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Notification Preferences</div>
-              <div className="card-subtitle">Choose which notifications you receive</div>
+              <div className="card-title">{t("notifications")}</div>
+              <div className="card-subtitle">{t("languageHint")}</div>
             </div>
           </div>
           <div className="list">
             <div className="list-item">
-              <span>Messages</span>
+              <span>{t("notifMessages")}</span>
               <label className="toggle-switch">
                 <input
                   type="checkbox"
@@ -407,7 +408,7 @@ function SettingsPage(): JSX.Element {
               </label>
             </div>
             <div className="list-item">
-              <span>News</span>
+              <span>{t("notifNews")}</span>
               <label className="toggle-switch">
                 <input
                   type="checkbox"
@@ -418,7 +419,7 @@ function SettingsPage(): JSX.Element {
               </label>
             </div>
             <div className="list-item">
-              <span>Events</span>
+              <span>{t("notifEvents")}</span>
               <label className="toggle-switch">
                 <input
                   type="checkbox"
@@ -429,7 +430,7 @@ function SettingsPage(): JSX.Element {
               </label>
             </div>
             <div className="list-item">
-              <span>System / Approvals</span>
+              <span>{t("notifSystem")}</span>
               <label className="toggle-switch">
                 <input
                   type="checkbox"
@@ -441,6 +442,20 @@ function SettingsPage(): JSX.Element {
             </div>
           </div>
           {notifStatus ? <p className="text-muted" style={{ padding: "0 18px 12px" }}>{notifStatus}</p> : null}
+        </section>
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <div className="card-title">{t("language")}</div>
+              <div className="card-subtitle">{t("languageHint")}</div>
+            </div>
+          </div>
+          <div className="list">
+            <div className="list-item">
+              <span>{t("languageLabel")}</span>
+              <LanguageSelector />
+            </div>
+          </div>
         </section>
       </div>
       </div>

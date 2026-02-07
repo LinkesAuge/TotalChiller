@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import PublicAuthActions from "../components/public-auth-actions";
 
 export const metadata: Metadata = {
@@ -11,7 +12,8 @@ export const metadata: Metadata = {
 /**
  * Renders the public landing page with Sanctum medieval hero design.
  */
-function HomePage(): JSX.Element {
+async function HomePage(): Promise<JSX.Element> {
+  const t = await getTranslations("home");
   return (
     <>
       {/* Ornate top bar */}
@@ -19,7 +21,7 @@ function HomePage(): JSX.Element {
         <img src="/assets/vip/header_3.png" alt="Ornate page header" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
-            <h1 className="top-bar-title">The Chillers Community</h1>
+            <h1 className="top-bar-title">{t("title")}</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <PublicAuthActions />
@@ -32,7 +34,7 @@ function HomePage(): JSX.Element {
         <div className="hero-overlay" />
         <img
           src="/assets/banners/banner_gold_dragon.webp"
-          alt="The Chillers clan hero banner featuring a golden dragon"
+          alt={t("heroBannerAlt")}
           className="hero-bg"
           width={1200}
           height={300}
@@ -56,10 +58,8 @@ function HomePage(): JSX.Element {
             height={20}
             loading="lazy"
           />
-          <h2 className="hero-title">The Chillers</h2>
-          <p className="hero-subtitle">
-            Coordinated. Competitive. Welcoming.
-          </p>
+          <h2 className="hero-title">{t("heroTitle")}</h2>
+          <p className="hero-subtitle">{t("heroSubtitle")}</p>
           <img
             src="/assets/vip/components_decor_6.png"
             alt="Ornamental horizontal rule"
@@ -92,61 +92,46 @@ function HomePage(): JSX.Element {
                   height={18}
                   loading="lazy"
                 />
-                <h3 className="card-title">Clan Mission</h3>
-                <span className="pin-badge">Recruiting</span>
+                <h3 className="card-title">{t("missionTitle")}</h3>
+                <span className="pin-badge">{t("missionBadge")}</span>
               </div>
             </div>
             <div className="card-body">
-              <p style={{ margin: 0 }}>
-                The Chillers are a focused Total Battle alliance built around
-                teamwork, planning, and informed play. Our mission is to create a
-                community where every member contributes to collective success through
-                coordination, strategy, and active participation in group events.
-              </p>
-              <p style={{ margin: "12px 0 0" }}>
-                Founded on the principle that organized teams outperform disorganized ones,
-                we built TotalChiller as a custom platform to track chest scores, coordinate
-                war preparations, manage event calendars, and keep every member informed
-                with real-time news and announcements. Whether you are a seasoned veteran
-                or a new recruit, our tools help you contribute meaningfully to the group.
-              </p>
+              <p style={{ margin: 0 }}>{t("missionText1")}</p>
+              <p style={{ margin: "12px 0 0" }}>{t("missionText2")}</p>
             </div>
           </section>
 
           {/* Why Join */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Why Join The Chillers</h3>
+              <h3 className="card-title">{t("whyJoinTitle")}</h3>
               <a className="button primary" href="/auth/register">
-                Apply Now
+                {t("applyNow")}
               </a>
             </div>
             <div className="card-body">
-              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
-                We offer a structured, supportive environment for Total Battle players
-                who want to compete at a higher level while enjoying the social aspect
-                of alliance gameplay.
-              </p>
+              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>{t("whyJoinText")}</p>
               <div className="list">
                 <div className="list-item">
-                  <span>Weekly war coordination and strategy sessions</span>
-                  <span className="badge">Active</span>
+                  <span>{t("feature1")}</span>
+                  <span className="badge">{t("feature1Badge")}</span>
                 </div>
                 <div className="list-item">
-                  <span>Automated chest score tracking with performance insights</span>
-                  <span className="badge">Insights</span>
+                  <span>{t("feature2")}</span>
+                  <span className="badge">{t("feature2Badge")}</span>
                 </div>
                 <div className="list-item">
-                  <span>Interactive event calendar with countdown timers</span>
-                  <span className="badge">Calendar</span>
+                  <span>{t("feature3")}</span>
+                  <span className="badge">{t("feature3Badge")}</span>
                 </div>
                 <div className="list-item">
-                  <span>Real-time clan news and pinned announcements</span>
-                  <span className="badge">News</span>
+                  <span>{t("feature4")}</span>
+                  <span className="badge">{t("feature4Badge")}</span>
                 </div>
                 <div className="list-item">
-                  <span>Charts and analytics for individual and clan performance</span>
-                  <span className="badge">Analytics</span>
+                  <span>{t("feature5")}</span>
+                  <span className="badge">{t("feature5Badge")}</span>
                 </div>
               </div>
             </div>
@@ -155,26 +140,23 @@ function HomePage(): JSX.Element {
           {/* Public News */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Public News</h3>
-              <span className="badge">Public</span>
+              <h3 className="card-title">{t("publicNews")}</h3>
+              <span className="badge">{t("publicNewsBadge")}</span>
             </div>
             <div className="card-body">
-              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
-                Stay informed about what is happening in The Chillers community.
-                Latest updates and recruitment announcements are posted here.
-              </p>
+              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>{t("publicNewsText")}</p>
               <div className="list">
                 <div className="list-item">
-                  <span>Recruitment window opens this week for new members</span>
-                  <span className="badge">News</span>
+                  <span>{t("news1")}</span>
+                  <span className="badge">{t("news1Badge")}</span>
                 </div>
                 <div className="list-item">
-                  <span>Alliance tournament update and results posted</span>
-                  <span className="badge">Info</span>
+                  <span>{t("news2")}</span>
+                  <span className="badge">{t("news2Badge")}</span>
                 </div>
                 <div className="list-item">
-                  <span>Platform update with new chart features and improved data imports</span>
-                  <span className="badge">Update</span>
+                  <span>{t("news3")}</span>
+                  <span className="badge">{t("news3Badge")}</span>
                 </div>
               </div>
             </div>
@@ -183,50 +165,34 @@ function HomePage(): JSX.Element {
           {/* How It Works */}
           <section className="card" style={{ gridColumn: "span 2" }}>
             <div className="card-header">
-              <h3 className="card-title">How TotalChiller Works</h3>
+              <h3 className="card-title">{t("howItWorksTitle")}</h3>
             </div>
             <div className="card-body">
-              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
-                TotalChiller is a purpose-built community hub that brings together everything
-                our members need in one place. Players can upload chest report information, which is
-                automatically validated and stored for analysis. The platform generates
-                performance charts showing individual scores, alliance trends, and top player
-                leaderboards. Our event calendar keeps everyone aligned on war schedules,
-                training sessions, and guild meetings. Leaders use the admin panel for
-                user management, validation rules, and approval workflows.
-              </p>
-              <p style={{ margin: "12px 0 0", fontSize: "0.88rem" }}>
-                All records are secured with row-level security policies, ensuring members
-                only access information relevant to their division. The platform is built with
-                modern web technologies including Next.js, TypeScript, and Supabase,
-                delivering a fast, reliable experience on any device.
-              </p>
+              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>{t("howItWorksText1")}</p>
+              <p style={{ margin: "12px 0 0", fontSize: "0.88rem" }}>{t("howItWorksText2")}</p>
             </div>
           </section>
 
           {/* Contact */}
           <section className="card" style={{ gridColumn: "span 2" }}>
             <div className="card-header">
-              <h3 className="card-title">Contact The Chillers</h3>
+              <h3 className="card-title">{t("contactTitle")}</h3>
             </div>
             <div className="card-body">
-              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
-                Want to reach out? Connect with us through Discord for real-time
-                communication, or send an email for formal inquiries and recruitment questions.
-              </p>
+              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>{t("contactText")}</p>
               <div className="list">
                 <div className="list-item">
-                  <span>Discord — primary communication channel for real-time coordination</span>
-                  <span className="badge">Invite</span>
+                  <span>{t("contactDiscord")}</span>
+                  <span className="badge">{t("contactDiscordBadge")}</span>
                 </div>
                 <div className="list-item">
-                  <span>Email — hello@chillers.gg for formal inquiries</span>
-                  <span className="badge">Email</span>
+                  <span>{t("contactEmail")}</span>
+                  <span className="badge">{t("contactEmailBadge")}</span>
                 </div>
               </div>
               <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
-                <a className="button primary" href="/auth/register">Join The Chillers</a>
-                <a className="button" href="/about">Learn More About Us</a>
+                <a className="button primary" href="/auth/register">{t("joinTheChillers")}</a>
+                <a className="button" href="/about">{t("learnMoreAbout")}</a>
               </div>
             </div>
           </section>

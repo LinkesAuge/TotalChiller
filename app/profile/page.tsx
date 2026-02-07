@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import createSupabaseServerClient from "../../lib/supabase/server-client";
 
 export const metadata: Metadata = {
@@ -9,7 +10,6 @@ export const metadata: Metadata = {
 import DisplayNameEditor from "./display-name-editor";
 import GameAccountManager from "./game-account-manager";
 import AuthActions from "../components/auth-actions";
-import QuickActions from "../components/quick-actions";
 import SectionHero from "../components/section-hero";
 
 interface UserProfileView {
@@ -126,10 +126,11 @@ async function ProfilePage(): Promise<JSX.Element> {
   (clanData ?? []).forEach((clan) => {
     clansById[clan.id] = clan;
   });
+  const t = await getTranslations("profile");
   const primaryMembership: MembershipView | null = memberships[0] ?? null;
   const primaryClan = primaryMembership ? clansById[primaryMembership.clan_id] : null;
   const roleLabel = userRole;
-  const clanLabel = primaryClan?.name ?? "No clan assigned";
+  const clanLabel = primaryClan?.name ?? t("noClanAssigned");
 
   return (
     <>
@@ -137,19 +138,18 @@ async function ProfilePage(): Promise<JSX.Element> {
         <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
-            <div className="top-bar-breadcrumb">The Chillers &bull; Account</div>
-            <h1 className="top-bar-title">Profile</h1>
+            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
+            <h1 className="top-bar-title">{t("title")}</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <a className="button" href="/settings">Settings</a>
+            <a className="button" href="/settings">{t("settingsButton")}</a>
             <AuthActions />
           </div>
         </div>
       </div>
-      <QuickActions />
       <SectionHero
-        title="Member Profile"
-        subtitle="Identity, clan context, and account readiness at a glance."
+        title={t("heroTitle")}
+        subtitle={t("heroSubtitle")}
         bannerSrc="/assets/banners/banner_captain.png"
       />
       <div className="content-inner">
@@ -157,30 +157,30 @@ async function ProfilePage(): Promise<JSX.Element> {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Account</div>
-              <div className="card-subtitle">Supabase user details</div>
+              <div className="card-title">{t("accountTitle")}</div>
+              <div className="card-subtitle">{t("accountSubtitle")}</div>
             </div>
-            <span className="badge">{isAdmin ? "Admin" : roleLabel}</span>
+            <span className="badge">{isAdmin ? t("admin") : roleLabel}</span>
           </div>
           <div className="list">
             <div className="list-item">
-              <span>Username</span>
+              <span>{t("username")}</span>
               <strong>{userView.usernameDisplay}</strong>
             </div>
             <div className="list-item">
-              <span>Nickname</span>
+              <span>{t("nickname")}</span>
               <strong>{userView.displayName}</strong>
             </div>
             <div className="list-item">
-              <span>Email</span>
+              <span>{t("email")}</span>
               <strong>{userView.email}</strong>
             </div>
             <div className="list-item">
-              <span>User ID</span>
+              <span>{t("userId")}</span>
               <strong>{userView.id}</strong>
             </div>
             <div className="list-item">
-              <span>Primary Clan</span>
+              <span>{t("primaryClan")}</span>
               <strong>{clanLabel}</strong>
             </div>
           </div>
@@ -188,8 +188,8 @@ async function ProfilePage(): Promise<JSX.Element> {
         <section className="card">
           <div className="card-header">
             <div>
-          <div className="card-title">Edit Nickname</div>
-              <div className="card-subtitle">Visible to other members</div>
+          <div className="card-title">{t("editNickname")}</div>
+              <div className="card-subtitle">{t("visibleToMembers")}</div>
             </div>
           </div>
           <DisplayNameEditor
@@ -202,16 +202,16 @@ async function ProfilePage(): Promise<JSX.Element> {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Clan Memberships</div>
-              <div className="card-subtitle">Active clans</div>
+              <div className="card-title">{t("clanMemberships")}</div>
+              <div className="card-subtitle">{t("activeClans")}</div>
             </div>
             <span className="badge">{memberships.length}</span>
           </div>
           <div className="list">
             {memberships.length === 0 ? (
               <div className="list-item">
-                <span>No active memberships</span>
-                <span className="badge">Join a clan</span>
+                <span>{t("noActiveMemberships")}</span>
+                <span className="badge">{t("joinAClan")}</span>
               </div>
             ) : (
               memberships.map((membership) => (
@@ -221,7 +221,7 @@ async function ProfilePage(): Promise<JSX.Element> {
                     <div className="text-muted">{membership.clan_id}</div>
                     {membership.game_accounts ? (
                       <div className="text-muted">
-                        {membership.game_accounts.game_username ?? "Game account"}
+                        {membership.game_accounts.game_username ?? t("gameAccount")}
                       </div>
                     ) : null}
                   </div>

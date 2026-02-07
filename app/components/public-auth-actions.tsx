@@ -1,6 +1,7 @@
  "use client";
  
  import { useEffect, useState } from "react";
+ import { useTranslations } from "next-intl";
  import AuthActions from "./auth-actions";
  import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
  
@@ -9,6 +10,7 @@
   */
  function PublicAuthActions(): JSX.Element {
    const supabase = createSupabaseBrowserClient();
+   const t = useTranslations("publicAuth");
    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
  
    useEffect(() => {
@@ -34,10 +36,10 @@
        {!isAuthenticated ? (
          <>
            <a className="button" href="/auth/login">
-             Sign In to Your Account
+             {t("signIn")}
            </a>
            <a className="button primary" href="/auth/register">
-             Join The Chillers
+             {t("joinTheChillers")}
            </a>
          </>
        ) : null}

@@ -15,6 +15,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { useTranslations, useLocale } from "next-intl";
 import type {
   ScoreOverTimePoint,
   TopPlayerPoint,
@@ -65,8 +66,8 @@ function formatDateLabel(value: string): string {
 }
 
 /** Formats a number with locale grouping. */
-function formatNumber(value: number): string {
-  return value.toLocaleString("de-DE");
+function formatNumber(value: number, locale: string = "de-DE"): string {
+  return value.toLocaleString(locale);
 }
 
 /* ── Score Over Time (Line Chart) ── */
@@ -80,8 +81,10 @@ interface ScoreLineChartProps {
  * Renders a line chart showing score accumulated over time.
  */
 function ScoreLineChart({ data, height = 220 }: ScoreLineChartProps): JSX.Element {
+  const t = useTranslations("charts");
+  const locale = useLocale();
   if (data.length === 0) {
-    return <div className="chart-empty">No data available</div>;
+    return <div className="chart-empty">{t("noDataAvailable")}</div>;
   }
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -95,7 +98,7 @@ function ScoreLineChart({ data, height = 220 }: ScoreLineChartProps): JSX.Elemen
         />
         <YAxis
           tick={{ fill: TEXT_SECONDARY, fontSize: 11 }}
-          tickFormatter={(v: number) => formatNumber(v)}
+          tickFormatter={(v: number) => formatNumber(v, locale)}
           stroke={GRID_COLOR}
           width={56}
         />
@@ -107,8 +110,8 @@ function ScoreLineChart({ data, height = 220 }: ScoreLineChartProps): JSX.Elemen
             return label;
           }}
           formatter={(value: number, name: string) => [
-            formatNumber(value),
-            name === "totalScore" ? "Score" : "Entries",
+            formatNumber(value, locale),
+            name === "totalScore" ? t("score") : t("entries"),
           ]}
         />
         <Line
@@ -136,8 +139,10 @@ interface TopPlayersBarProps {
  * Renders a horizontal bar chart of top players by total score.
  */
 function TopPlayersBar({ data, height = 220 }: TopPlayersBarProps): JSX.Element {
+  const t = useTranslations("charts");
+  const locale = useLocale();
   if (data.length === 0) {
-    return <div className="chart-empty">No data available</div>;
+    return <div className="chart-empty">{t("noDataAvailable")}</div>;
   }
   const dynamicHeight = Math.max(height, data.length * 36 + 40);
   return (
@@ -151,7 +156,7 @@ function TopPlayersBar({ data, height = 220 }: TopPlayersBarProps): JSX.Element 
         <XAxis
           type="number"
           tick={{ fill: TEXT_SECONDARY, fontSize: 11 }}
-          tickFormatter={(v: number) => formatNumber(v)}
+          tickFormatter={(v: number) => formatNumber(v, locale)}
           stroke={GRID_COLOR}
         />
         <YAxis
@@ -164,8 +169,8 @@ function TopPlayersBar({ data, height = 220 }: TopPlayersBarProps): JSX.Element 
         <Tooltip
           contentStyle={TOOLTIP_STYLE}
           formatter={(value: number, name: string) => [
-            formatNumber(value),
-            name === "totalScore" ? "Score" : "Entries",
+            formatNumber(value, locale),
+            name === "totalScore" ? t("score") : t("entries"),
           ]}
         />
         <Bar
@@ -191,8 +196,10 @@ interface ChestTypePieProps {
  * Renders a pie chart showing chest type distribution by count.
  */
 function ChestTypePie({ data, height = 220 }: ChestTypePieProps): JSX.Element {
+  const t = useTranslations("charts");
+  const locale = useLocale();
   if (data.length === 0) {
-    return <div className="chart-empty">No data available</div>;
+    return <div className="chart-empty">{t("noDataAvailable")}</div>;
   }
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -206,9 +213,12 @@ function ChestTypePie({ data, height = 220 }: ChestTypePieProps): JSX.Element {
           innerRadius={40}
           outerRadius={80}
           paddingAngle={2}
-          label={({ chest, percent }: { chest: string; percent: number }) =>
-            `${chest.length > 16 ? chest.slice(0, 14) + "…" : chest} ${(percent * 100).toFixed(0)}%`
-          }
+          label={(props: any) => {
+            const chest = typeof props?.name === "string" ? props.name : "";
+            const percent = typeof props?.percent === "number" ? props.percent : 0;
+            const label = chest.length > 16 ? `${chest.slice(0, 14)}...` : chest;
+            return `${label} ${(percent * 100).toFixed(0)}%`;
+          }}
           labelLine={{ stroke: TEXT_SECONDARY }}
         >
           {data.map((entry, idx) => (
@@ -222,7 +232,7 @@ function ChestTypePie({ data, height = 220 }: ChestTypePieProps): JSX.Element {
         </Pie>
         <Tooltip
           contentStyle={TOOLTIP_STYLE}
-          formatter={(value: number, name: string) => [formatNumber(value), name]}
+          formatter={(value: number, name: string) => [formatNumber(value, locale), name]}
         />
         <Legend
           wrapperStyle={{ fontSize: "0.75rem", color: TEXT_SECONDARY }}
@@ -243,10 +253,12 @@ interface PersonalScoreChartProps {
  * Renders a line chart of the current user's personal score over time.
  */
 function PersonalScoreChart({ data, height = 160 }: PersonalScoreChartProps): JSX.Element {
+  const t = useTranslations("charts");
+  const locale = useLocale();
   if (data.length === 0) {
     return (
       <div className="chart-empty">
-        No personal data — link a game account to see your stats
+        {t("noPersonalData")}
       </div>
     );
   }
@@ -262,7 +274,7 @@ function PersonalScoreChart({ data, height = 160 }: PersonalScoreChartProps): JS
         />
         <YAxis
           tick={{ fill: TEXT_SECONDARY, fontSize: 11 }}
-          tickFormatter={(v: number) => formatNumber(v)}
+          tickFormatter={(v: number) => formatNumber(v, locale)}
           stroke={GRID_COLOR}
           width={56}
         />
@@ -273,7 +285,7 @@ function PersonalScoreChart({ data, height = 160 }: PersonalScoreChartProps): JS
             if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
             return label;
           }}
-          formatter={(value: number) => [formatNumber(value), "Score"]}
+          formatter={(value: number) => [formatNumber(value, locale), t("score")]}
         />
         <Line
           type="monotone"
@@ -298,27 +310,29 @@ interface SummaryPanelProps {
  * Renders a summary statistics panel.
  */
 function SummaryPanel({ summary }: SummaryPanelProps): JSX.Element {
+  const t = useTranslations("charts");
+  const locale = useLocale();
   return (
     <div className="list">
       <div className="list-item">
-        <span>Total chests</span>
-        <strong>{formatNumber(summary.totalChests)}</strong>
+        <span>{t("totalChestsLabel")}</span>
+        <strong>{formatNumber(summary.totalChests, locale)}</strong>
       </div>
       <div className="list-item">
-        <span>Total score</span>
-        <strong>{formatNumber(summary.totalScore)}</strong>
+        <span>{t("totalScoreLabel")}</span>
+        <strong>{formatNumber(summary.totalScore, locale)}</strong>
       </div>
       <div className="list-item">
-        <span>Avg score / chest</span>
-        <strong>{formatNumber(summary.avgScore)}</strong>
+        <span>{t("avgScoreLabel")}</span>
+        <strong>{formatNumber(summary.avgScore, locale)}</strong>
       </div>
       <div className="list-item">
-        <span>Top chest type</span>
+        <span>{t("topChestTypeLabel")}</span>
         <strong>{summary.topChestType}</strong>
       </div>
       <div className="list-item">
-        <span>Unique players</span>
-        <strong>{formatNumber(summary.uniquePlayers)}</strong>
+        <span>{t("uniquePlayersLabel")}</span>
+        <strong>{formatNumber(summary.uniquePlayers, locale)}</strong>
       </div>
     </div>
   );

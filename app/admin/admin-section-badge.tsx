@@ -1,21 +1,23 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 function AdminSectionBadge(): JSX.Element {
+  const t = useTranslations("admin.tabs");
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab") ?? "clans";
   const tab = rawTab === "rules" ? "validation" : rawTab;
   const badgeLabel =
     tab === "users"
-      ? "Users"
+      ? t("users")
       : tab === "validation"
-        ? "Validation"
+        ? t("validation")
         : tab === "corrections"
-          ? "Corrections"
+          ? t("corrections")
         : tab === "logs"
-          ? "Audit Logs"
-          : "Clan Management";
+          ? t("logs")
+          : t("clans");
   return <span className="badge">{badgeLabel}</span>;
 }
 

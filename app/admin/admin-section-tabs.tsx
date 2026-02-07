@@ -2,23 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 interface AdminTabItem {
   readonly label: string;
   readonly href: string;
   readonly tab?: "clans" | "users" | "validation" | "corrections" | "logs" | "approvals";
 }
-
-const adminTabs: readonly AdminTabItem[] = [
-  { label: "Clan Management", href: "/admin?tab=clans", tab: "clans" },
-  { label: "Approvals", href: "/admin?tab=approvals", tab: "approvals" },
-  { label: "Users", href: "/admin?tab=users", tab: "users" },
-  { label: "Validation", href: "/admin?tab=validation", tab: "validation" },
-  { label: "Corrections", href: "/admin?tab=corrections", tab: "corrections" },
-  { label: "Audit Logs", href: "/admin?tab=logs", tab: "logs" },
-  { label: "Data Import", href: "/admin/data-import" },
-  { label: "Chest Database", href: "/admin/data-table" },
-];
 
 function isAdminTabActive(pathname: string, activeTab: string | null, item: AdminTabItem): boolean {
   if (item.tab) {
@@ -29,6 +19,17 @@ function isAdminTabActive(pathname: string, activeTab: string | null, item: Admi
 }
 
 function AdminSectionTabs(): JSX.Element {
+  const t = useTranslations("admin.tabs");
+  const adminTabs: readonly AdminTabItem[] = [
+    { label: t("clans"), href: "/admin?tab=clans", tab: "clans" },
+    { label: t("approvals"), href: "/admin?tab=approvals", tab: "approvals" },
+    { label: t("users"), href: "/admin?tab=users", tab: "users" },
+    { label: t("validation"), href: "/admin?tab=validation", tab: "validation" },
+    { label: t("corrections"), href: "/admin?tab=corrections", tab: "corrections" },
+    { label: t("logs"), href: "/admin?tab=logs", tab: "logs" },
+    { label: t("dataImport"), href: "/admin/data-import" },
+    { label: t("chestDb"), href: "/admin/data-table" },
+  ];
   const pathname = usePathname();
   const searchParams = useSearchParams();
   return (

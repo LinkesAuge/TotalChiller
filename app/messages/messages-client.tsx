@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import getIsAdminAccess from "../../lib/supabase/admin-access";
-import formatGermanDateTime from "../../lib/date-format";
+import { formatLocalDateTime } from "../../lib/date-format";
 import SearchInput from "../components/ui/search-input";
+import RadixSelect from "../components/ui/radix-select";
 
 interface MessageRow {
   readonly id: string;
@@ -45,6 +47,8 @@ const SYSTEM_PARTNER_ID = "__system__";
  */
 function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   const supabase = createSupabaseBrowserClient();
+  const locale = useLocale();
+  const t = useTranslations("messagesPage");
   const [messages, setMessages] = useState<readonly MessageRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileMap>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -119,11 +123,11 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
 
   function getPartnerLabel(partnerId: string): string {
     if (partnerId === SYSTEM_PARTNER_ID) {
-      return "System";
+      return t("systemPartner");
     }
     const profile = profiles[partnerId];
     if (!profile) {
-      return "Unknown";
+      return t("unknownPartner");
     }
     return profile.display_name ?? profile.username ?? profile.email;
   }
@@ -224,7 +228,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     if (!replyContent.trim() || !selectedPartnerId || selectedPartnerId === SYSTEM_PARTNER_ID) {
       return;
     }
-    setReplyStatus("Sending...");
+    setReplyStatus(t("sending"));
     const response = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -232,7 +236,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     });
     if (!response.ok) {
       const result = await response.json();
-      setReplyStatus(result.error ?? "Failed to send.");
+      setReplyStatus(result.error ?? t("failedToSend"));
       return;
     }
     setReplyContent("");
@@ -243,10 +247,10 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   async function handleCompose(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!composeRecipient || !composeContent.trim()) {
-      setComposeStatus("Recipient and message are required.");
+      setComposeStatus(t("recipientRequired"));
       return;
     }
-    setComposeStatus("Sending...");
+    setComposeStatus(t("sending"));
     const response = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -258,7 +262,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     });
     if (!response.ok) {
       const result = await response.json();
-      setComposeStatus(result.error ?? "Failed to send.");
+      setComposeStatus(result.error ?? t("failedToSend"));
       return;
     }
     setComposeStatus("");
@@ -273,10 +277,10 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   async function handleBroadcast(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!broadcastClanId || !broadcastContent.trim()) {
-      setBroadcastStatus("Clan and message are required.");
+      setBroadcastStatus(t("clanAndMessageRequired"));
       return;
     }
-    setBroadcastStatus("Sending broadcast...");
+    setBroadcastStatus(t("sendingBroadcast"));
     const response = await fetch("/api/messages/broadcast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -288,10 +292,10 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     });
     const result = await response.json();
     if (!response.ok) {
-      setBroadcastStatus(result.error ?? "Failed to send broadcast.");
+      setBroadcastStatus(result.error ?? t("failedToSendBroadcast"));
       return;
     }
-    setBroadcastStatus(`Broadcast sent to ${result.data?.recipients ?? 0} members.`);
+    setBroadcastStatus(t("broadcastSent", { count: result.data?.recipients ?? 0 }));
     setBroadcastContent("");
     setBroadcastSubject("");
     setBroadcastClanId("");
@@ -306,10 +310,10 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
 
   function getMessageTypeLabel(messageType: string): string {
     if (messageType === "broadcast") {
-      return "Broadcast";
+      return t("broadcast");
     }
     if (messageType === "system") {
-      return "System";
+      return t("systemPartner");
     }
     return "";
   }
@@ -324,14 +328,14 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         <section className="card messages-list-panel">
           <div className="card-header">
             <div>
-              <div className="card-title">Inbox</div>
+              <div className="card-title">{t("inbox")}</div>
               <div className="card-subtitle">
-                {conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)} unread
+                {conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)} {t("unread")}
               </div>
             </div>
           </div>
           <div className="messages-filters">
-            <SearchInput id="messageSearch" label="" value={search} onChange={setSearch} placeholder="Search..." />
+            <SearchInput id="messageSearch" label="" value={search} onChange={setSearch} placeholder={t("searchPlaceholder")} />
             <div className="tabs" style={{ fontSize: "0.8rem" }}>
               {(["all", "private", "system", "broadcast"] as const).map((tab) => (
                 <button
@@ -340,16 +344,16 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                   type="button"
                   onClick={() => setTypeFilter(tab)}
                 >
-                  {tab === "all" ? "All" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {tab === "all" ? t("all") : tab === "private" ? t("private") : tab === "system" ? t("system") : t("broadcast")}
                 </button>
               ))}
             </div>
           </div>
           <div className="messages-conversation-list">
             {isLoading ? (
-              <div className="list-item"><span className="text-muted">Loading...</span></div>
+              <div className="list-item"><span className="text-muted">{t("loadingMessages")}</span></div>
             ) : filteredConversations.length === 0 ? (
-              <div className="list-item"><span className="text-muted">No messages</span></div>
+              <div className="list-item"><span className="text-muted">{t("noMessages")}</span></div>
             ) : (
               filteredConversations.map((conv) => (
                 <button
@@ -361,7 +365,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                   <div className="messages-conversation-header">
                     <strong>{conv.partnerLabel}</strong>
                     <span className="text-muted" style={{ fontSize: "0.75rem" }}>
-                      {formatGermanDateTime(conv.lastMessage.created_at)}
+                      {formatLocalDateTime(conv.lastMessage.created_at, locale)}
                     </span>
                   </div>
                   <div className="messages-conversation-preview">
@@ -389,14 +393,14 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         <section className="card messages-thread-panel">
           {!selectedPartnerId ? (
             <div className="messages-empty">
-              <div className="text-muted">Select a conversation to view messages</div>
+              <div className="text-muted">{t("selectConversation")}</div>
             </div>
           ) : (
             <>
               <div className="card-header">
                 <div>
-                  <div className="card-title">{selectedConversation?.partnerLabel ?? "Conversation"}</div>
-                  <div className="card-subtitle">{selectedThread.length} messages</div>
+                  <div className="card-title">{selectedConversation?.partnerLabel ?? t("conversation")}</div>
+                  <div className="card-subtitle">{selectedThread.length} {t("messagesCount")}</div>
                 </div>
               </div>
               <div className="messages-thread-list">
@@ -414,14 +418,14 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                       <div className="messages-bubble-content">{message.content}</div>
                       <div className="messages-bubble-meta">
                         <span className="text-muted" style={{ fontSize: "0.75rem" }}>
-                          {formatGermanDateTime(message.created_at)}
+                          {formatLocalDateTime(message.created_at, locale)}
                         </span>
                         {message.recipient_id === userId ? (
                           <button
                             type="button"
                             className="messages-delete-button"
                             onClick={() => handleDeleteMessage(message.id)}
-                            aria-label="Delete message"
+                            aria-label={t("deleteMessage")}
                           >
                             &times;
                           </button>
@@ -437,11 +441,11 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                     className="messages-reply-input"
                     value={replyContent}
                     onChange={(event) => setReplyContent(event.target.value)}
-                    placeholder="Type a message..."
+                    placeholder={t("typeMessage")}
                     required
                   />
                   <button className="button primary" type="submit">
-                    Send
+                    {t("send")}
                   </button>
                   {replyStatus ? <span className="text-muted">{replyStatus}</span> : null}
                 </form>
@@ -452,11 +456,11 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       </div>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
         <button className="button" type="button" onClick={() => { setIsComposeOpen(!isComposeOpen); setIsBroadcastOpen(false); }}>
-          {isComposeOpen ? "Cancel" : "New Message"}
+          {isComposeOpen ? t("cancel") : t("newMessage")}
         </button>
         {isAdmin ? (
           <button className="button primary" type="button" onClick={() => { setIsBroadcastOpen(!isBroadcastOpen); setIsComposeOpen(false); }}>
-            {isBroadcastOpen ? "Cancel" : "Broadcast"}
+            {isBroadcastOpen ? t("cancel") : t("broadcast")}
           </button>
         ) : null}
       </div>
@@ -464,47 +468,47 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         <section className="card" style={{ gridColumn: "1 / -1" }}>
           <div className="card-header">
             <div>
-              <div className="card-title">New Message</div>
-              <div className="card-subtitle">Send a private message</div>
+              <div className="card-title">{t("newMessage")}</div>
+              <div className="card-subtitle">{t("newMessageSubtitle")}</div>
             </div>
           </div>
           <form onSubmit={handleCompose}>
             <div className="form-group">
-              <label htmlFor="composeRecipient">To</label>
-              <select
+              <label htmlFor="composeRecipient">{t("to")}</label>
+              <RadixSelect
                 id="composeRecipient"
+                ariaLabel={t("to")}
                 value={composeRecipient}
-                onChange={(event) => setComposeRecipient(event.target.value)}
-                required
-              >
-                <option value="">Select a user...</option>
-                {allUsers.map((user) => (
-                  <option key={user.id} value={user.id}>{user.label}</option>
-                ))}
-              </select>
+                onValueChange={(v) => setComposeRecipient(v)}
+                enableSearch
+                options={[
+                  { value: "", label: t("selectUser") },
+                  ...allUsers.map((user) => ({ value: user.id, label: user.label })),
+                ]}
+              />
             </div>
             <div className="form-group">
-              <label htmlFor="composeSubject">Subject (optional)</label>
+              <label htmlFor="composeSubject">{t("subjectOptional")}</label>
               <input
                 id="composeSubject"
                 value={composeSubject}
                 onChange={(event) => setComposeSubject(event.target.value)}
-                placeholder="Subject"
+                placeholder={t("subjectPlaceholder")}
               />
             </div>
             <div className="form-group">
-              <label htmlFor="composeContent">Message</label>
+              <label htmlFor="composeContent">{t("message")}</label>
               <textarea
                 id="composeContent"
                 value={composeContent}
                 onChange={(event) => setComposeContent(event.target.value)}
-                placeholder="Write your message..."
+                placeholder={t("messagePlaceholder")}
                 rows={4}
                 required
               />
             </div>
             <div className="list inline">
-              <button className="button primary" type="submit">Send</button>
+              <button className="button primary" type="submit">{t("send")}</button>
             </div>
             {composeStatus ? <p className="text-muted">{composeStatus}</p> : null}
           </form>
@@ -514,32 +518,31 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         <section className="card" style={{ gridColumn: "1 / -1" }}>
           <div className="card-header">
             <div>
-              <div className="card-title">Broadcast</div>
-              <div className="card-subtitle">Send to all members of a clan</div>
+              <div className="card-title">{t("broadcast")}</div>
+              <div className="card-subtitle">{t("broadcastSubtitle")}</div>
             </div>
           </div>
           <form onSubmit={handleBroadcast}>
             <div className="form-group">
-              <label htmlFor="broadcastClan">Clan</label>
-              <select
+              <label htmlFor="broadcastClan">{t("clan")}</label>
+              <RadixSelect
                 id="broadcastClan"
+                ariaLabel={t("clan")}
                 value={broadcastClanId}
-                onChange={(event) => setBroadcastClanId(event.target.value)}
-                required
-              >
-                <option value="">Select a clan...</option>
-                {clans.map((clan) => (
-                  <option key={clan.id} value={clan.id}>{clan.name}</option>
-                ))}
-              </select>
+                onValueChange={(v) => setBroadcastClanId(v)}
+                options={[
+                  { value: "", label: t("selectClan") },
+                  ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
+                ]}
+              />
             </div>
             <div className="form-group">
-              <label htmlFor="broadcastSubject">Subject (optional)</label>
+              <label htmlFor="broadcastSubject">{t("subjectOptional")}</label>
               <input
                 id="broadcastSubject"
                 value={broadcastSubject}
                 onChange={(event) => setBroadcastSubject(event.target.value)}
-                placeholder="Subject"
+                placeholder={t("subjectPlaceholder")}
               />
             </div>
             <div className="form-group">

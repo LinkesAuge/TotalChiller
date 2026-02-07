@@ -87,7 +87,7 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - clan_id (uuid, fk clans, nullable for global)
 - created_at (timestamp)
 
-### articles
+### articles (announcements)
 - id (uuid, pk)
 - clan_id (uuid, fk clans)
 - title (text)
@@ -107,8 +107,27 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - description (text)
 - location (text, nullable)
 - starts_at (timestamp)
-- ends_at (timestamp)
+- ends_at (timestamp) — computed from starts_at + duration; same as starts_at for open-ended events
+- organizer (text, nullable) — free text or game account name
+- recurrence_type (text, default: 'none') — none | daily | weekly | biweekly | monthly
+- recurrence_end_date (date, nullable) — null means ongoing if recurrence_type != 'none'
 - created_by (uuid, fk users)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+### event_templates
+- id (uuid, pk)
+- clan_id (uuid, fk clans)
+- name (text) — always equals title (kept for backward compat)
+- title (text)
+- description (text, default: '')
+- location (text, nullable)
+- duration_hours (numeric(5,2), default: 1)
+- is_open_ended (boolean, default: true)
+- organizer (text, nullable)
+- recurrence_type (text, default: 'none')
+- recurrence_end_date (date, nullable)
+- created_by (uuid, nullable) — templates don't require an author
 - created_at (timestamp)
 - updated_at (timestamp)
 
@@ -193,7 +212,7 @@ Permissions are additive: Role + Rank + Cross‑Clan overrides.
 - article:create, article:edit:any, article:delete:any, article:approve
 - comment:edit:any, comment:delete:any
 - data:import, data:view, data:edit, data:delete, data:batch_edit, data:batch_delete
-- rules:manage, event:create, event:edit, event:delete
+- rules:manage, event:create, event:edit, event:delete, event_template:manage
 - message:send:private, message:send:broadcast
 - admin_panel:view
 
@@ -201,13 +220,16 @@ Permissions are additive: Role + Rank + Cross‑Clan overrides.
 - article:edit:any, article:delete:any, article:approve
 - comment:edit:any, comment:delete:any
 - data:view
-- event:create, event:edit
+- event:create, event:edit, event:delete
+- event_template:manage
 - message:send:private
 - admin_panel:view
 
 ### Editor
 - article:create, article:edit:own, article:delete:own
 - comment:create, comment:edit:own, comment:delete:own
+- event:create, event:edit, event:delete
+- event_template:manage
 - data:view
 - message:send:private
 
@@ -233,4 +255,11 @@ Permissions are additive: Role + Rank + Cross‑Clan overrides.
 - All clan-scoped permissions should be enforced by Supabase RLS.
 - Global access should be modeled via `cross_clan_permissions`.
 - Roles are global per user via `user_roles`; memberships track rank and active status only.
-- Correction rules are queried with an index on `(clan_id, field, match_value)` for matching performance.
+- Correction rules are queried with an index on `(field, match_value)` for matching performance (rules are global, not clan-specific).
+- Content management (announcements, events, templates) is restricted to users with roles: owner, admin, moderator, or editor. Enforced client-side via `getIsContentManager` utility (`lib/supabase/role-access.ts`).
+- Event templates mirror the events data model exactly. The `name` column is kept for backward compatibility but always equals `title`.
+- Recurring events use a single DB row with `recurrence_type` and optional `recurrence_end_date`. Occurrences are computed client-side. The legacy `recurrence_parent_id` column is dropped.
+- Author information on events/announcements is resolved client-side from `created_by` UUIDs via a separate profiles query (no FK join).
+- Announcements page uses server-side pagination with Supabase `.range()` and `{ count: "exact" }`. Filters include search (title/content), type, tag, and date range.
+- Messages page uses themed `RadixSelect` dropdowns for compose recipient (with search) and broadcast clan selection instead of native `<select>`.
+- `ClanScopeBanner` and `QuickActions` components have been removed from all pages.

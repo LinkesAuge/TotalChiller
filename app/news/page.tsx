@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import NewsClient from "./news-client";
 
 export const metadata: Metadata = {
-  title: "News",
-  description: "Latest news and announcements from The Chillers clan.",
+  title: "Announcements",
+  description: "Clan announcements, updates, and important notices from The Chillers.",
 };
 
 /**
- * Renders the news and announcements page.
+ * Renders the announcements page (formerly news).
  */
 function NewsPage(): JSX.Element {
   return <NewsClient />;

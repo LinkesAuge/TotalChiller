@@ -8,4 +8,12 @@ node_modules
 # Local development / IDE
 .agents/
 .cursor/skills/
+.cursor/plans/
+.vscode/
 Resources/
+Documentation/auth.txt
+
+# Tool artifacts
+.playwright-cli/
+output/
+squirrel.toml

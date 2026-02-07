@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import getIsAdminAccess from "./lib/supabase/admin-access";
+import { routing, LOCALE_COOKIE } from "./i18n/routing";
 
 function getSupabaseUrl(): string {
   const supabaseUrl: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -58,10 +59,19 @@ async function isUserAdmin(
 }
 
 /**
- * Ensures protected routes require an authenticated session.
+ * Ensures protected routes require an authenticated session
+ * and handles locale detection via the NEXT_LOCALE cookie.
  */
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.next();
+  const existingLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+  if (!existingLocale || !routing.locales.includes(existingLocale as typeof routing.locales[number])) {
+    response.cookies.set(LOCALE_COOKIE, routing.defaultLocale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+  }
   const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     cookies: {
       get(name: string): string | undefined {

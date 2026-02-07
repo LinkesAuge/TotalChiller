@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { SidebarProvider } from "./components/sidebar-context";
 import SidebarShell from "./components/sidebar-shell";
@@ -42,11 +44,18 @@ export const metadata: Metadata = {
 
 /**
  * Root layout with the Sanctum design system.
- * Provides collapsible sidebar, ornate footer, and clan access gating.
+ * Provides collapsible sidebar, ornate footer, clan access gating, and i18n.
  */
-function RootLayout({ children }: RootLayoutProps): JSX.Element {
+async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const t = (ns: string, key: string): string => {
+    const section = (messages as Record<string, Record<string, string>>)[ns];
+    return section?.[key] ?? key;
+  };
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <head>
         <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="preload" href="/assets/vip/back_left.png" as="image" />
@@ -54,41 +63,42 @@ function RootLayout({ children }: RootLayoutProps): JSX.Element {
         <link rel="preload" href="/assets/vip/components_decor_7.png" as="image" />
       </head>
       <body>
-        <ToastProvider>
-          <SidebarProvider>
-            <div className="layout">
-              <SidebarShell>
-                <ClanAccessGate>{children}</ClanAccessGate>
-                <footer className="app-footer">
-                  <img
-                    src="/assets/vip/components_decor_5.png"
-                    alt="Ornamental footer divider"
-                    className="app-footer-divider"
-                    width={800}
-                    height={16}
-                    loading="lazy"
-                  />
-                  <span className="app-footer-text">
-                    The Chillers &bull; Community Hub &bull; Total Battle Clan
-                    Platform
-                  </span>
-                  <div className="app-footer-links">
-                    <a href="/home">Home</a>
-                    <span>&bull;</span>
-                    <a href="/about">About The Chillers</a>
-                    <span>&bull;</span>
-                    <a href="/contact">Contact Us</a>
-                    <span>&bull;</span>
-                    <a href="/privacy-policy">Privacy Policy</a>
-                  </div>
-                  <div className="app-footer-sub">
-                    Built with care for the community
-                  </div>
-                </footer>
-              </SidebarShell>
-            </div>
-          </SidebarProvider>
-        </ToastProvider>
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          <ToastProvider>
+            <SidebarProvider>
+              <div className="layout">
+                <SidebarShell>
+                  <ClanAccessGate>{children}</ClanAccessGate>
+                  <footer className="app-footer">
+                    <img
+                      src="/assets/vip/components_decor_5.png"
+                      alt="Ornamental footer divider"
+                      className="app-footer-divider"
+                      width={800}
+                      height={16}
+                      loading="lazy"
+                    />
+                    <span className="app-footer-text">
+                      {t("footer", "tagline")}
+                    </span>
+                    <div className="app-footer-links">
+                      <a href="/home">{t("footer", "home")}</a>
+                      <span>&bull;</span>
+                      <a href="/about">{t("footer", "about")}</a>
+                      <span>&bull;</span>
+                      <a href="/contact">{t("footer", "contact")}</a>
+                      <span>&bull;</span>
+                      <a href="/privacy-policy">{t("footer", "privacy")}</a>
+                    </div>
+                    <div className="app-footer-sub">
+                      {t("footer", "builtWith")}
+                    </div>
+                  </footer>
+                </SidebarShell>
+              </div>
+            </SidebarProvider>
+          </ToastProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import AdminClient from "./admin-client";
 import AuthActions from "../components/auth-actions";
 import AdminSectionBadge from "./admin-section-badge";
-import QuickActions from "../components/quick-actions";
 import SectionHero from "../components/section-hero";
 
 export const metadata: Metadata = {
@@ -13,15 +13,16 @@ export const metadata: Metadata = {
 /**
  * Renders the admin panel page shell.
  */
-function AdminPage(): JSX.Element {
+async function AdminPage(): Promise<JSX.Element> {
+  const t = await getTranslations("admin");
   return (
     <>
       <div className="top-bar">
         <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
-            <div className="top-bar-breadcrumb">The Chillers &bull; Command</div>
-            <h1 className="top-bar-title">Admin Panel</h1>
+            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
+            <h1 className="top-bar-title">{t("title")}</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <AdminSectionBadge />
@@ -29,10 +30,9 @@ function AdminPage(): JSX.Element {
           </div>
         </div>
       </div>
-      <QuickActions />
       <SectionHero
-        title="Command Center"
-        subtitle="Governance, approvals, and validation controls."
+        title={t("heroTitle")}
+        subtitle={t("heroSubtitle")}
         bannerSrc="/assets/banners/banner_tournir_kvk.png"
       />
       <div className="content-inner">

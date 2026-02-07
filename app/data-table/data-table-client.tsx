@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import createCorrectionApplicator from "../../lib/correction-applicator";
 import DatePicker from "../components/date-picker";
@@ -34,12 +35,12 @@ interface EditableRow {
 }
 
 interface RowValues {
-  readonly collected_date: string;
-  readonly player: string;
-  readonly source: string;
-  readonly chest: string;
-  readonly score: number;
-  readonly clan_id: string;
+  collected_date: string;
+  player: string;
+  source: string;
+  chest: string;
+  score: number;
+  clan_id: string;
 }
 
 type SortDirection = "asc" | "desc" | null;
@@ -53,7 +54,7 @@ interface ChestEntryQueryRow {
   readonly chest: string;
   readonly score: number;
   readonly clan_id: string;
-  readonly clans: { readonly name: string } | null;
+  readonly clans: { readonly name: string } | readonly { readonly name: string }[] | null;
 }
 
 interface ValidationRuleRow {
@@ -86,6 +87,7 @@ const DATE_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}$/;
  * Client-side data table with inline edit and batch operations.
  */
 function DataTableClient(): JSX.Element {
+  const t = useTranslations("dataTable");
   const supabase = createSupabaseBrowserClient();
   const { pushToast } = useToast();
   const [rows, setRows] = useState<readonly ChestEntryRow[]>([]);
@@ -172,8 +174,8 @@ function DataTableClient(): JSX.Element {
         values.add(rule.match_value.trim());
       }
     });
-    return [{ value: "", label: "All" }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
-  }, [validationRules]);
+    return [{ value: "", label: t("all") }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
+  }, [validationRules, t]);
   const sourceFilterOptions = useMemo(() => {
     const values = new Set<string>();
     validationRules.forEach((rule) => {
@@ -181,8 +183,8 @@ function DataTableClient(): JSX.Element {
         values.add(rule.match_value.trim());
       }
     });
-    return [{ value: "", label: "All" }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
-  }, [validationRules]);
+    return [{ value: "", label: t("all") }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
+  }, [validationRules, t]);
   const chestFilterOptions = useMemo(() => {
     const values = new Set<string>();
     validationRules.forEach((rule) => {
@@ -190,8 +192,8 @@ function DataTableClient(): JSX.Element {
         values.add(rule.match_value.trim());
       }
     });
-    return [{ value: "", label: "All" }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
-  }, [validationRules]);
+    return [{ value: "", label: t("all") }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
+  }, [validationRules, t]);
   const playerSuggestions = useMemo(() => {
     const values = new Set<string>();
     validationRules.forEach((rule) => {
@@ -328,6 +330,7 @@ function DataTableClient(): JSX.Element {
     }
     const mappedRows = (data ?? []).map((row) => {
       const entry = row as ChestEntryQueryRow;
+      const clanEntry = Array.isArray(entry.clans) ? entry.clans[0] : entry.clans;
       return {
         id: entry.id,
         collected_date: entry.collected_date,
@@ -336,7 +339,7 @@ function DataTableClient(): JSX.Element {
         chest: entry.chest,
         score: entry.score,
         clan_id: entry.clan_id,
-        clan_name: entry.clans?.name ?? "",
+        clan_name: clanEntry?.name ?? "",
       };
     });
     if (mappedRows.length === 0 && count && count > 0 && pageNumber > 1 && allowRetry) {
@@ -494,7 +497,7 @@ function DataTableClient(): JSX.Element {
 
   function openBatchEdit(): void {
     if (selectedIds.length === 0) {
-      pushToast("Select rows for batch edit.");
+      pushToast(t("selectRowsForBatchEdit"));
       return;
     }
     setIsBatchEditOpen(true);
@@ -727,7 +730,7 @@ function DataTableClient(): JSX.Element {
   async function handleSaveRow(row: ChestEntryRow): Promise<void> {
     const edits = editMap[row.id];
     if (!edits) {
-      setStatus("No changes to save.");
+      setStatus(t("noChangesToSave"));
       return;
     }
     const baseValues = buildRowValues(row, edits);
@@ -739,7 +742,7 @@ function DataTableClient(): JSX.Element {
     }
     const userId = await getCurrentUserId();
     if (!userId) {
-      setStatus("You must be logged in to update rows.");
+      setStatus(t("mustBeLoggedIn"));
       return;
     }
     const nextScore = correctedValues.score;
@@ -758,7 +761,7 @@ function DataTableClient(): JSX.Element {
       })
       .eq("id", row.id);
     if (error) {
-      setStatus(`Update failed: ${error.message}`);
+      setStatus(t("updateFailed", { error: error.message }));
       return;
     }
     const diff = buildRowDiff(row, correctedValues);
@@ -775,7 +778,7 @@ function DataTableClient(): JSX.Element {
       ]);
     }
     setStatus(
-      correctionCount > 0 ? `Row updated with ${correctionCount} correction(s).` : "Row updated.",
+      correctionCount > 0 ? t("rowUpdatedWithCorrections", { count: correctionCount }) : t("rowUpdated"),
     );
     setEditMap((current) => {
       const updated = { ...current };
@@ -786,18 +789,18 @@ function DataTableClient(): JSX.Element {
   }
 
   async function handleDeleteRow(row: ChestEntryRow): Promise<void> {
-    const confirmDelete = window.confirm(`Delete row for ${row.player} on ${row.collected_date}?`);
+    const confirmDelete = window.confirm(t("deleteRowConfirm", { player: row.player, date: row.collected_date }));
     if (!confirmDelete) {
       return;
     }
     const userId = await getCurrentUserId();
     if (!userId) {
-      setStatus("You must be logged in to delete rows.");
+      setStatus(t("mustBeLoggedInDelete"));
       return;
     }
     const { error } = await supabase.from("chest_entries").delete().eq("id", row.id);
     if (error) {
-      setStatus(`Delete failed: ${error.message}`);
+      setStatus(t("deleteFailed", { error: error.message }));
       return;
     }
     await insertAuditLogs([
@@ -817,7 +820,7 @@ function DataTableClient(): JSX.Element {
       },
     ]);
     const remainingRows = rows.filter((entry) => entry.id !== row.id);
-    setStatus("Row deleted.");
+    setStatus(t("rowDeleted"));
     clearRowEdits(row.id);
     setSelectedIds((current) => current.filter((id) => id !== row.id));
     if (remainingRows.length > 0) {
@@ -839,19 +842,19 @@ function DataTableClient(): JSX.Element {
 
   function confirmBatchEdit(): void {
     if (selectedRows.length === 0) {
-      setStatus("Select rows for batch edit.");
+      setStatus(t("selectRowsForBatchEdit"));
       return;
     }
     if (batchEditField === "collected_date" && !batchEditDate) {
-      setStatus("Select a date value.");
+      setStatus(t("selectDateValue"));
       return;
     }
     if (batchEditField === "clan_id" && !batchEditClanId) {
-      setStatus("Select a clan.");
+      setStatus(t("selectClan"));
       return;
     }
     if (batchEditField !== "collected_date" && batchEditField !== "clan_id" && batchEditValue === "") {
-      setStatus("Enter a value.");
+      setStatus(t("enterValue"));
       return;
     }
     const nextValue =
@@ -864,12 +867,12 @@ function DataTableClient(): JSX.Element {
       updateEditValue(row.id, batchEditField, nextValue);
     });
     setIsBatchEditOpen(false);
-    setStatus("Batch edits applied. Review changes and save.");
+    setStatus(t("batchEditsApplied"));
   }
 
   async function handleBatchDelete(): Promise<void> {
     if (selectedIds.length === 0) {
-      setStatus("Select rows to delete.");
+      setStatus(t("selectRowsToDelete"));
       return;
     }
     setIsBatchDeleteConfirmOpen(true);
@@ -893,19 +896,19 @@ function DataTableClient(): JSX.Element {
   async function confirmBatchDelete(): Promise<void> {
     const confirmationPhrase = "DELETE ROWS";
     if (batchDeleteInput.trim().toUpperCase() !== confirmationPhrase) {
-      setStatus("Confirmation phrase does not match.");
+      setStatus(t("confirmationPhraseMismatch"));
       return;
     }
     setIsBatchDeleteInputOpen(false);
     const userId = await getCurrentUserId();
     if (!userId) {
-      setStatus("You must be logged in to delete rows.");
+      setStatus(t("mustBeLoggedInBatchDelete"));
       return;
     }
     const selectedRows = rows.filter((row) => selectedIds.includes(row.id));
     const { error } = await supabase.from("chest_entries").delete().in("id", selectedIds);
     if (error) {
-      setStatus(`Batch delete failed: ${error.message}`);
+      setStatus(t("batchDeleteFailed", { error: error.message }));
       return;
     }
     await insertAuditLogs(
@@ -926,7 +929,7 @@ function DataTableClient(): JSX.Element {
     );
     const deleteIdSet = new Set(selectedIds);
     const remainingRows = rows.filter((row) => !deleteIdSet.has(row.id));
-    setStatus("Rows deleted.");
+    setStatus(t("rowsDeleted"));
     setSelectedIds([]);
     if (remainingRows.length > 0) {
       setRows(remainingRows);
@@ -939,10 +942,10 @@ function DataTableClient(): JSX.Element {
   async function handleSaveAllRows(): Promise<void> {
     const editIds = Object.keys(editMap);
     if (editIds.length === 0) {
-      setStatus("No changes to save.");
+      setStatus(t("noChangesToSave"));
       return;
     }
-    const confirmSave = window.confirm(`Save ${editIds.length} edited row(s)?`);
+    const confirmSave = window.confirm(t("saveEditedRows", { count: editIds.length }));
     if (!confirmSave) {
       return;
     }
@@ -950,10 +953,10 @@ function DataTableClient(): JSX.Element {
     const nextErrors: Record<string, string> = {};
     const userId = await getCurrentUserId();
     if (!userId) {
-      setStatus("You must be logged in to update rows.");
+      setStatus(t("mustBeLoggedIn"));
       return;
     }
-    setStatus("Saving all changes...");
+    setStatus(t("savingAllChanges"));
     for (const rowId of editIds) {
       const row = rows.find((item) => item.id === rowId);
       if (!row) {
@@ -972,10 +975,10 @@ function DataTableClient(): JSX.Element {
     }
     if (hasValidationError) {
       setRowErrors((current) => ({ ...current, ...nextErrors }));
-      setStatus("Some rows need fixes before saving.");
+      setStatus(t("someRowsNeedFixes"));
       return;
     }
-    setStatus("All changes saved.");
+    setStatus(t("allChangesSaved"));
   }
 
   function getRowFieldValueForRule(row: ChestEntryRow, field: "player" | "source" | "chest" | "clan"): string {
@@ -1017,16 +1020,16 @@ function DataTableClient(): JSX.Element {
 
   async function handleSaveCorrectionRuleFromRow(): Promise<void> {
     if (!correctionRuleRowId) {
-      setCorrectionRuleMessage("Select a row first.");
+      setCorrectionRuleMessage(t("selectRowFirst"));
       return;
     }
     const row = rows.find((entry) => entry.id === correctionRuleRowId);
     if (!row) {
-      setCorrectionRuleMessage("Row data not available.");
+      setCorrectionRuleMessage(t("rowDataNotAvailable"));
       return;
     }
     if (!correctionRuleMatch.trim() || !correctionRuleReplacement.trim()) {
-      setCorrectionRuleMessage("Match and replacement values are required.");
+      setCorrectionRuleMessage(t("matchReplacementRequired"));
       return;
     }
     const payload = {
@@ -1037,10 +1040,10 @@ function DataTableClient(): JSX.Element {
     };
     const { error } = await supabase.from("correction_rules").insert(payload);
     if (error) {
-      setCorrectionRuleMessage(`Failed to add correction rule: ${error.message}`);
+      setCorrectionRuleMessage(t("failedToAddCorrectionRule", { error: error.message }));
       return;
     }
-    setCorrectionRuleMessage("Correction rule added.");
+    setCorrectionRuleMessage(t("correctionRuleAdded"));
     setRulesVersion((current) => current + 1);
     closeCorrectionRuleModal();
   }
@@ -1075,16 +1078,16 @@ function DataTableClient(): JSX.Element {
 
   async function handleSaveValidationRuleFromRow(): Promise<void> {
     if (!validationRuleRowId) {
-      setValidationRuleMessage("Select a row first.");
+      setValidationRuleMessage(t("selectRowFirst"));
       return;
     }
     const row = rows.find((entry) => entry.id === validationRuleRowId);
     if (!row) {
-      setValidationRuleMessage("Row data not available.");
+      setValidationRuleMessage(t("rowDataNotAvailable"));
       return;
     }
     if (!validationRuleMatch.trim()) {
-      setValidationRuleMessage("Value is required.");
+      setValidationRuleMessage(t("valueRequired"));
       return;
     }
     const payload = {
@@ -1094,10 +1097,10 @@ function DataTableClient(): JSX.Element {
     };
     const { error } = await supabase.from("validation_rules").insert(payload);
     if (error) {
-      setValidationRuleMessage(`Failed to add validation rule: ${error.message}`);
+      setValidationRuleMessage(t("failedToAddValidationRule", { error: error.message }));
       return;
     }
-    setValidationRuleMessage("Validation rule added.");
+    setValidationRuleMessage(t("validationRuleAdded"));
     setRulesVersion((current) => current + 1);
     closeValidationRuleModal();
   }
@@ -1108,8 +1111,8 @@ function DataTableClient(): JSX.Element {
         <section className="card batch-ops">
           <div className="card-header">
             <div>
-              <div className="card-title">Search & Filters</div>
-              <div className="card-subtitle">Apply filters to narrow results</div>
+              <div className="card-title">{t("searchFilters")}</div>
+              <div className="card-subtitle">{t("applyFilters")}</div>
             </div>
           </div>
           <div className="card-section">
@@ -1117,59 +1120,59 @@ function DataTableClient(): JSX.Element {
               <div className="list inline admin-members-filters filter-bar batch-ops-row">
                 <LabeledSelect
                   id="filterPlayer"
-                  label="Player"
+                  label={t("player")}
                   value={filterPlayer}
                   onValueChange={(value) => {
                     setFilterPlayer(value);
                     setPage(1);
                   }}
                   enableSearch
-                  searchPlaceholder="Search player"
+                  searchPlaceholder={t("searchPlayer")}
                   options={playerFilterOptions}
                 />
                 <LabeledSelect
                   id="filterSource"
-                  label="Source"
+                  label={t("source")}
                   value={filterSource}
                   onValueChange={(value) => {
                     setFilterSource(value);
                     setPage(1);
                   }}
                   enableSearch
-                  searchPlaceholder="Search source"
+                  searchPlaceholder={t("searchSource")}
                   options={sourceFilterOptions}
                 />
                 <LabeledSelect
                   id="filterChest"
-                  label="Chest"
+                  label={t("chest")}
                   value={filterChest}
                   onValueChange={(value) => {
                     setFilterChest(value);
                     setPage(1);
                   }}
                   enableSearch
-                  searchPlaceholder="Search chest"
+                  searchPlaceholder={t("searchChest")}
                   options={chestFilterOptions}
                 />
                 <LabeledSelect
                   id="filterClan"
-                  label="Clan"
+                  label={t("clan")}
                   value={filterClanId}
                   onValueChange={(value) => {
                     setFilterClanId(value);
                     setPage(1);
                   }}
                   enableSearch
-                  searchPlaceholder="Search clan"
+                  searchPlaceholder={t("searchClan")}
                   options={[
-                    { value: "all", label: "All" },
+                    { value: "all", label: t("all") },
                     ...availableClans.map((clan) => ({ value: clan.id, label: clan.name })),
                   ]}
                 />
               </div>
               <div className="list inline admin-members-filters filter-bar batch-ops-row">
                 <label htmlFor="filterDateFrom" className="text-muted">
-                  Date from
+                  {t("dateFrom")}
                 </label>
                 <input
                   id="filterDateFrom"
@@ -1181,7 +1184,7 @@ function DataTableClient(): JSX.Element {
                   }}
                 />
                 <label htmlFor="filterDateTo" className="text-muted">
-                  Date to
+                  {t("dateTo")}
                 </label>
                 <input
                   id="filterDateTo"
@@ -1193,7 +1196,7 @@ function DataTableClient(): JSX.Element {
                   }}
                 />
                 <label htmlFor="filterScoreMin" className="text-muted">
-                  Score min
+                  {t("scoreMin")}
                 </label>
                 <input
                   id="filterScoreMin"
@@ -1205,7 +1208,7 @@ function DataTableClient(): JSX.Element {
                   placeholder="0"
                 />
                 <label htmlFor="filterScoreMax" className="text-muted">
-                  Score max
+                  {t("scoreMax")}
                 </label>
                 <input
                   id="filterScoreMax"
@@ -1220,49 +1223,49 @@ function DataTableClient(): JSX.Element {
               <div className="list inline admin-members-filters filter-bar batch-ops-row">
                 <SearchInput
                   id="searchTerm"
-                  label="Search"
+                  label={t("search")}
                   value={searchTerm}
                   onChange={(value) => {
                     setSearchTerm(value);
                     setPage(1);
                   }}
-                  placeholder="Search player, source, or chest"
+                  placeholder={t("searchPlayerSourceChest")}
                   inputClassName="batch-search-input"
                 />
               </div>
               <div className="list inline admin-members-filters filter-bar batch-ops-row">
                 <label htmlFor="filterRowStatus" className="text-muted">
-                  Row status
+                  {t("rowStatus")}
                 </label>
                 <RadixSelect
                   id="filterRowStatus"
-                  ariaLabel="Row status"
+                  ariaLabel={t("rowStatus")}
                   value={filterRowStatus}
                   onValueChange={(value) => {
                     setFilterRowStatus(value as "all" | "valid" | "invalid");
                     setPage(1);
                   }}
                   options={[
-                    { value: "all", label: "All" },
-                    { value: "valid", label: "Valid only" },
-                    { value: "invalid", label: "Invalid only" },
+                    { value: "all", label: t("all") },
+                    { value: "valid", label: t("validOnly") },
+                    { value: "invalid", label: t("invalidOnly") },
                   ]}
                 />
                 <label htmlFor="filterCorrectionStatus" className="text-muted">
-                  Correction
+                  {t("correction")}
                 </label>
                 <RadixSelect
                   id="filterCorrectionStatus"
-                  ariaLabel="Correction status"
+                  ariaLabel={t("correction")}
                   value={filterCorrectionStatus}
                   onValueChange={(value) => {
                     setFilterCorrectionStatus(value as "all" | "corrected" | "uncorrected");
                     setPage(1);
                   }}
                   options={[
-                    { value: "all", label: "All" },
-                    { value: "corrected", label: "Corrected only" },
-                    { value: "uncorrected", label: "Not corrected" },
+                    { value: "all", label: t("all") },
+                    { value: "corrected", label: t("correctedOnly") },
+                    { value: "uncorrected", label: t("notCorrected") },
                   ]}
                 />
               </div>
@@ -1272,9 +1275,9 @@ function DataTableClient(): JSX.Element {
       ) : null}
       <div className="table-toolbar">
         <button className="button" type="button" onClick={() => setIsBatchOpsOpen((current) => !current)}>
-          {isBatchOpsOpen ? "Hide Search & Filters" : "Search & Filters"}
+          {isBatchOpsOpen ? t("hideSearchFilters") : t("showSearchFilters")}
         </button>
-        <IconButton ariaLabel="Clear filters" onClick={clearFilters}>
+        <IconButton ariaLabel={t("clearFilters")} onClick={clearFilters}>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M4 4L12 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             <path d="M12 4L4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -1282,10 +1285,10 @@ function DataTableClient(): JSX.Element {
         </IconButton>
         <div className="list inline action-icons">
           <button className="button" type="button" onClick={openBatchEdit}>
-            Batch Edit
+            {t("batchEdit")}
           </button>
           <IconButton
-            ariaLabel="Save all"
+            ariaLabel={t("saveAll")}
             onClick={handleSaveAllRows}
             disabled={Object.keys(editMap).length === 0}
           >
@@ -1299,7 +1302,7 @@ function DataTableClient(): JSX.Element {
               />
             </svg>
           </IconButton>
-          <IconButton ariaLabel="Batch delete" onClick={handleBatchDelete} variant="danger">
+          <IconButton ariaLabel={t("batchDelete")} onClick={handleBatchDelete} variant="danger">
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
               <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -1311,7 +1314,7 @@ function DataTableClient(): JSX.Element {
       <div className="pagination-bar table-pagination" style={{ gridColumn: "1 / -1" }}>
         <div className="pagination-page-size">
           <label htmlFor="pageSize" className="text-muted">
-            Page size
+            {t("pageSize")}
           </label>
           <RadixSelect
             id="pageSize"
@@ -1330,15 +1333,15 @@ function DataTableClient(): JSX.Element {
           />
         </div>
         <span className="text-muted">
-          Showing {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–
-          {Math.min(page * pageSize, totalCount)} of {totalCount}
-          {clientFilteredRows.length < rows.length ? ` • ${clientFilteredRows.length} visible after filter` : ""}
-          {selectedIds.length > 0 ? ` • ${selectedIds.length} selected` : ""}
+          {t("showing")} {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–
+          {Math.min(page * pageSize, totalCount)} {t("of")} {totalCount}
+          {clientFilteredRows.length < rows.length ? ` • ${clientFilteredRows.length} ${t("visibleAfterFilter")}` : ""}
+          {selectedIds.length > 0 ? ` • ${selectedIds.length} ${t("selected")}` : ""}
         </span>
         <div className="pagination-actions">
           <div className="pagination-page-indicator">
             <label htmlFor="pageJump" className="text-muted">
-              Page
+              {t("page")}
             </label>
             <input
               id="pageJump"
@@ -1352,7 +1355,7 @@ function DataTableClient(): JSX.Element {
             <span className="text-muted">/ {totalPages}</span>
           </div>
           <IconButton
-            ariaLabel="Previous page"
+            ariaLabel={t("previousPage")}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
             disabled={page === 1}
           >
@@ -1361,7 +1364,7 @@ function DataTableClient(): JSX.Element {
             </svg>
           </IconButton>
           <IconButton
-            ariaLabel="Next page"
+            ariaLabel={t("nextPage")}
             onClick={() => setPage((current) => current + 1)}
             disabled={page >= totalPages}
           >
@@ -1374,27 +1377,27 @@ function DataTableClient(): JSX.Element {
       <TableScroll>
         <section className="table data-table">
         <header>
-          <span>#</span>
+          <span>{t("tableHeaderIndex")}</span>
           <span>
             <input
               type="checkbox"
               ref={selectAllRef}
               checked={areAllRowsSelected}
               onChange={toggleSelectAllRows}
-              aria-label="Select all rows on this page"
+              aria-label={t("selectAllRowsOnPage")}
             />
           </span>
-          <span>{renderSortButton("Date", "collected_date")}</span>
-          <span>{renderSortButton("Player", "player")}</span>
-          <span>{renderSortButton("Source", "source")}</span>
-          <span>{renderSortButton("Chest", "chest")}</span>
-          <span>{renderSortButton("Score", "score")}</span>
-          <span>{renderSortButton("Clan", "clan")}</span>
-          <span>Actions</span>
+          <span>{renderSortButton(t("tableHeaderDate"), "collected_date")}</span>
+          <span>{renderSortButton(t("tableHeaderPlayer"), "player")}</span>
+          <span>{renderSortButton(t("tableHeaderSource"), "source")}</span>
+          <span>{renderSortButton(t("tableHeaderChest"), "chest")}</span>
+          <span>{renderSortButton(t("tableHeaderScore"), "score")}</span>
+          <span>{renderSortButton(t("tableHeaderClan"), "clan")}</span>
+          <span>{t("tableHeaderActions")}</span>
         </header>
         {clientFilteredRows.length === 0 ? (
           <div className="row">
-            <span>No rows found</span>
+            <span>{t("noRowsFound")}</span>
             <span />
             <span />
             <span />
@@ -1463,7 +1466,7 @@ function DataTableClient(): JSX.Element {
                   const hasRowEdits = Boolean(editMap[row.id]);
                   return (
                     <>
-                      <IconButton ariaLabel="Save changes" onClick={() => handleSaveRow(row)} disabled={!hasRowEdits}>
+                      <IconButton ariaLabel={t("saveChanges")} onClick={() => handleSaveRow(row)} disabled={!hasRowEdits}>
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
                             d="M4 8.5L7 11.5L12 5"
@@ -1474,20 +1477,20 @@ function DataTableClient(): JSX.Element {
                           />
                         </svg>
                       </IconButton>
-                      <IconButton ariaLabel="Cancel changes" onClick={() => clearRowEdits(row.id)} disabled={!hasRowEdits}>
+                      <IconButton ariaLabel={t("cancelChanges")} onClick={() => clearRowEdits(row.id)} disabled={!hasRowEdits}>
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                           <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
                       </IconButton>
-                      <IconButton ariaLabel="Delete row" onClick={() => handleDeleteRow(row)} variant="danger">
+                      <IconButton ariaLabel={t("deleteRow")} onClick={() => handleDeleteRow(row)} variant="danger">
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                           <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                           <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                         </svg>
                       </IconButton>
-                      <IconButton ariaLabel="Add correction rule" onClick={() => openCorrectionRuleModal(row)}>
+                      <IconButton ariaLabel={t("addCorrectionRule")} onClick={() => openCorrectionRuleModal(row)}>
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
                             d="M3.5 10.5L8 6L12.5 10.5L7.5 15H3.5V10.5Z"
@@ -1499,7 +1502,7 @@ function DataTableClient(): JSX.Element {
                           <path d="M7.5 15H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
                       </IconButton>
-                      <IconButton ariaLabel="Add validation rule" onClick={() => openValidationRuleModal(row)}>
+                      <IconButton ariaLabel={t("addValidationRule")} onClick={() => openValidationRuleModal(row)}>
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M3.5 5.5L5 7L7.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                           <path d="M8.5 5.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -1523,30 +1526,30 @@ function DataTableClient(): JSX.Element {
           <div className="modal card wide">
             <div className="card-header">
               <div>
-                <div className="card-title">Batch edit selected rows</div>
-                <div className="card-subtitle">Review changes before applying them to the table.</div>
+                <div className="card-title">{t("batchEditTitle")}</div>
+                <div className="card-subtitle">{t("reviewChangesTable")}</div>
               </div>
             </div>
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="batchEditField">Column</label>
+                <label htmlFor="batchEditField">{t("column")}</label>
                 <RadixSelect
                   id="batchEditField"
-                  ariaLabel="Batch edit column"
+                  ariaLabel={t("column")}
                   value={batchEditField}
                   onValueChange={(value) => handleBatchFieldChange(value as keyof EditableRow)}
                   options={[
-                    { value: "collected_date", label: "Date" },
-                    { value: "player", label: "Player" },
-                    { value: "source", label: "Source" },
-                    { value: "chest", label: "Chest" },
-                    { value: "score", label: "Score" },
-                    { value: "clan_id", label: "Clan" },
+                    { value: "collected_date", label: t("tableHeaderDate") },
+                    { value: "player", label: t("tableHeaderPlayer") },
+                    { value: "source", label: t("tableHeaderSource") },
+                    { value: "chest", label: t("tableHeaderChest") },
+                    { value: "score", label: t("tableHeaderScore") },
+                    { value: "clan_id", label: t("tableHeaderClan") },
                   ]}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="batchEditValue">New value</label>
+                <label htmlFor="batchEditValue">{t("newValue")}</label>
                 {batchEditField === "collected_date" ? (
                   <DatePicker value={batchEditDate} onChange={setBatchEditDate} />
                 ) : batchEditField === "clan_id" ? (
@@ -1556,7 +1559,7 @@ function DataTableClient(): JSX.Element {
                     value={batchEditClanId}
                     onValueChange={setBatchEditClanId}
                     enableSearch
-                    searchPlaceholder="Search clan"
+                    searchPlaceholder={t("searchClan")}
                     options={availableClans.map((clan) => ({ value: clan.id, label: clan.name }))}
                   />
                 ) : (
@@ -1565,7 +1568,7 @@ function DataTableClient(): JSX.Element {
                     type={batchEditField === "score" ? "number" : "text"}
                     value={batchEditValue}
                     onChange={(event: ChangeEvent<HTMLInputElement>) => setBatchEditValue(event.target.value)}
-                    placeholder={batchEditField === "score" ? "0" : "New value"}
+                    placeholder={batchEditField === "score" ? "0" : t("newValue")}
                   />
                 )}
               </div>
@@ -1573,17 +1576,17 @@ function DataTableClient(): JSX.Element {
             <div className="modal-table-scroll">
               <section className="table batch-preview">
                 <header>
-                  <span>#</span>
-                  <span>{renderSortButton("Date", "collected_date")}</span>
-                  <span>{renderSortButton("Player", "player")}</span>
-                  <span>{renderSortButton("Source", "source")}</span>
-                  <span>{renderSortButton("Chest", "chest")}</span>
-                  <span>{renderSortButton("Score", "score")}</span>
-                  <span>{renderSortButton("Clan", "clan")}</span>
+                  <span>{t("tableHeaderIndex")}</span>
+                  <span>{renderSortButton(t("tableHeaderDate"), "collected_date")}</span>
+                  <span>{renderSortButton(t("tableHeaderPlayer"), "player")}</span>
+                  <span>{renderSortButton(t("tableHeaderSource"), "source")}</span>
+                  <span>{renderSortButton(t("tableHeaderChest"), "chest")}</span>
+                  <span>{renderSortButton(t("tableHeaderScore"), "score")}</span>
+                  <span>{renderSortButton(t("tableHeaderClan"), "clan")}</span>
                 </header>
                 {selectedRows.length === 0 ? (
                   <div className="row">
-                    <span>No rows selected</span>
+                    <span>{t("noRowsSelected")}</span>
                     <span />
                     <span />
                     <span />
@@ -1638,10 +1641,10 @@ function DataTableClient(): JSX.Element {
             </div>
             <div className="list inline">
               <button className="button primary" type="button" onClick={confirmBatchEdit}>
-                Apply changes
+                {t("applyChanges")}
               </button>
               <button className="button" type="button" onClick={closeBatchEdit}>
-                Cancel
+                {t("cancel")}
               </button>
             </div>
           </div>
@@ -1652,20 +1655,20 @@ function DataTableClient(): JSX.Element {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Delete selected rows</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{t("dangerZone")}</div>
+                <div className="card-title">{t("deleteSelectedRows")}</div>
+                <div className="card-subtitle">{t("cannotBeUndone")}</div>
               </div>
             </div>
             <div className="list">
-              <div className="alert danger">This will permanently delete the selected rows from the data table.</div>
+              <div className="alert danger">{t("permanentlyDelete")}</div>
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={openBatchDeleteInput}>
-                Continue
+                {t("continue")}
               </button>
               <button className="button" type="button" onClick={closeBatchDeleteConfirm}>
-                Cancel
+                {t("cancel")}
               </button>
             </div>
           </div>
@@ -1676,16 +1679,16 @@ function DataTableClient(): JSX.Element {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Confirm deletion</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{t("dangerZone")}</div>
+                <div className="card-title">{t("confirmDeletion")}</div>
+                <div className="card-subtitle">{t("cannotBeUndone")}</div>
               </div>
             </div>
             <div className="alert danger">
-              Deleting these rows will remove them permanently. Make sure you intend to proceed.
+              {t("deletingRowsWarning")}
             </div>
             <div className="form-group">
-              <label htmlFor="batchDeleteInput">Confirmation phrase</label>
+              <label htmlFor="batchDeleteInput">{t("confirmationPhrase")}</label>
               <input
                 id="batchDeleteInput"
                 value={batchDeleteInput}
@@ -1695,10 +1698,10 @@ function DataTableClient(): JSX.Element {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={confirmBatchDelete}>
-                Delete Rows
+                {t("deleteRows")}
               </button>
               <button className="button" type="button" onClick={closeBatchDeleteInput}>
-                Cancel
+                {t("cancel")}
               </button>
             </div>
           </div>
@@ -1709,31 +1712,31 @@ function DataTableClient(): JSX.Element {
           <div className="modal card wide">
             <div className="card-header">
               <div>
-                <div className="card-title">Add correction rule</div>
-                <div className="card-subtitle">Create a rule from this row</div>
+                <div className="card-title">{t("addCorrectionRuleTitle")}</div>
+                <div className="card-subtitle">{t("createRuleFromRow")}</div>
               </div>
             </div>
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="correctionRuleField">Field</label>
+                <label htmlFor="correctionRuleField">{t("field")}</label>
                 <RadixSelect
                   id="correctionRuleField"
-                  ariaLabel="Correction field"
+                  ariaLabel={t("field")}
                   value={correctionRuleField}
                   onValueChange={(value) =>
                     updateCorrectionRuleField(value as "player" | "source" | "chest" | "clan" | "all")
                   }
                   options={[
-                    { value: "player", label: "Player" },
-                    { value: "source", label: "Source" },
-                    { value: "chest", label: "Chest" },
-                    { value: "clan", label: "Clan" },
-                    { value: "all", label: "All" },
+                    { value: "player", label: t("player") },
+                    { value: "source", label: t("source") },
+                    { value: "chest", label: t("chest") },
+                    { value: "clan", label: t("clan") },
+                    { value: "all", label: t("all") },
                   ]}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="correctionRuleMatch">Match value</label>
+                <label htmlFor="correctionRuleMatch">{t("matchValue")}</label>
                 <ComboboxInput
                   id="correctionRuleMatch"
                   value={correctionRuleMatch}
@@ -1742,7 +1745,7 @@ function DataTableClient(): JSX.Element {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="correctionRuleReplacement">Replacement value</label>
+                <label htmlFor="correctionRuleReplacement">{t("replacementValue")}</label>
                 <ComboboxInput
                   id="correctionRuleReplacement"
                   value={correctionRuleReplacement}
@@ -1751,15 +1754,15 @@ function DataTableClient(): JSX.Element {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="correctionRuleStatus">Status</label>
+                <label htmlFor="correctionRuleStatus">{t("status")}</label>
                 <RadixSelect
                   id="correctionRuleStatus"
-                  ariaLabel="Status"
+                  ariaLabel={t("status")}
                   value={correctionRuleStatus}
                   onValueChange={(value) => setCorrectionRuleStatus(value)}
                   options={[
-                    { value: "active", label: "active" },
-                    { value: "inactive", label: "inactive" },
+                    { value: "active", label: t("active") },
+                    { value: "inactive", label: t("inactive") },
                   ]}
                 />
               </div>
@@ -1767,10 +1770,10 @@ function DataTableClient(): JSX.Element {
             {correctionRuleMessage ? <div className="alert info">{correctionRuleMessage}</div> : null}
             <div className="list inline">
               <button className="button" type="button" onClick={closeCorrectionRuleModal}>
-                Cancel
+                {t("cancel")}
               </button>
               <button className="button primary" type="button" onClick={handleSaveCorrectionRuleFromRow}>
-                Save rule
+                {t("saveRule")}
               </button>
             </div>
           </div>
@@ -1781,28 +1784,28 @@ function DataTableClient(): JSX.Element {
           <div className="modal card wide">
             <div className="card-header">
               <div>
-                <div className="card-title">Add validation rule</div>
-                <div className="card-subtitle">Create a valid value from this row</div>
+                <div className="card-title">{t("addValidationRuleTitle")}</div>
+                <div className="card-subtitle">{t("createValidValue")}</div>
               </div>
             </div>
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="validationRuleField">Field</label>
+                <label htmlFor="validationRuleField">{t("field")}</label>
                 <RadixSelect
                   id="validationRuleField"
-                  ariaLabel="Validation field"
+                  ariaLabel={t("field")}
                   value={validationRuleField}
                   onValueChange={(value) => updateValidationRuleField(value as "player" | "source" | "chest" | "clan")}
                   options={[
-                    { value: "player", label: "Player" },
-                    { value: "source", label: "Source" },
-                    { value: "chest", label: "Chest" },
-                    { value: "clan", label: "Clan" },
+                    { value: "player", label: t("player") },
+                    { value: "source", label: t("source") },
+                    { value: "chest", label: t("chest") },
+                    { value: "clan", label: t("clan") },
                   ]}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="validationRuleMatch">Value</label>
+                <label htmlFor="validationRuleMatch">{t("value")}</label>
                 <ComboboxInput
                   id="validationRuleMatch"
                   value={validationRuleMatch}
@@ -1811,15 +1814,15 @@ function DataTableClient(): JSX.Element {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="validationRuleStatus">Status</label>
+                <label htmlFor="validationRuleStatus">{t("status")}</label>
                 <RadixSelect
                   id="validationRuleStatus"
-                  ariaLabel="Status"
+                  ariaLabel={t("status")}
                   value={validationRuleStatus}
                   onValueChange={(value) => setValidationRuleStatus(value)}
                   options={[
-                    { value: "valid", label: "valid" },
-                    { value: "invalid", label: "invalid" },
+                    { value: "valid", label: t("valid") },
+                    { value: "invalid", label: t("invalid") },
                   ]}
                 />
               </div>
@@ -1827,10 +1830,10 @@ function DataTableClient(): JSX.Element {
             {validationRuleMessage ? <div className="alert info">{validationRuleMessage}</div> : null}
             <div className="list inline">
               <button className="button" type="button" onClick={closeValidationRuleModal}>
-                Cancel
+                {t("cancel")}
               </button>
               <button className="button primary" type="button" onClick={handleSaveValidationRuleFromRow}>
-                Save rule
+                {t("saveRule")}
               </button>
             </div>
           </div>

@@ -43,8 +43,9 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **profiles**: user_db (case‑insensitive), username, display_name.
 - **user_roles**: global user role per user.
 - **clans**: global default flag (`is_default`).
-- **articles**: news/announcements per clan.
-- **events**: clan events.
+- **articles**: announcements per clan (formerly "news"). Types: news, announcement. Includes `created_by` for author display.
+- **events**: clan events with date+time, optional duration (or open-ended), optional organizer, recurrence support (daily/weekly/biweekly/monthly with end date or ongoing). Single row per recurring event; occurrences computed client-side.
+- **event_templates**: reusable event templates per clan. Same fields as events (title, description, location, duration/open-ended, organizer, recurrence). `created_by` is nullable. Title serves as template name.
 - **messages**: private messages, broadcasts, and system notifications (flat model, conversations derived by grouping sender/recipient).
 - **notifications**: unified notification feed (types: message, news, event, approval) with per-user read tracking.
 - **user_notification_settings**: per-user toggles for message, news, event, and system notification types.
@@ -156,6 +157,9 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Game account approval: `Documentation/migrations/game_account_approval.sql` — adds `approval_status` column, RLS policy updates, approval trigger, and duplicate-prevention index.
 - Messaging system: `Documentation/migrations/messages.sql` — creates `messages` table with RLS policies, indexes, and type constraints.
 - Notification system: `Documentation/migrations/notifications.sql` — creates `notifications` and `user_notification_settings` tables with RLS policies and indexes.
+- Event recurrence: `Documentation/migrations/event_recurrence.sql` — adds `recurrence_type`, `recurrence_end_date` to events.
+- Event organizer: `Documentation/migrations/event_organizer.sql` — adds `organizer` to events.
+- Event templates: `Documentation/migrations/event_templates.sql` — creates `event_templates` table with all fields (title, description, location, duration, is_open_ended, organizer, recurrence) and RLS policies.
 
 ## Data Import & Chest Database
 
@@ -184,7 +188,10 @@ This document captures the agreed updates to the PRD, the proposed solution, and
   - `labeled-select` and `radix-select` for consistent dropdowns (with optional search).
   - `combobox-input` for text input with filterable suggestion dropdowns.
 - Global default clan is stored in `clans.is_default`.
-- Clan context selector in sidebar bottom section (native `<select>`) scopes clan data views.
+- Clan context selector in sidebar bottom section (native `<select>`) scopes clan data views. `ClanScopeBanner` removed; context visible in sidebar only.
+- Removed `QuickActions` top-bar buttons from all pages. Deleted `app/components/quick-actions.tsx` and `app/components/clan-scope-banner.tsx`.
+- Decorative gold gradient divider line below `.top-bar` on all pages (CSS pseudo-element `::after`). Hero banner margin removed for seamless layout.
+- Global `option` CSS styling ensures dark-themed native dropdown menus where `RadixSelect` is not used.
 - ESLint uses Next.js flat config (`eslint.config.js`); run `npx eslint .`.
 
 ## Handoff Summary
@@ -215,12 +222,33 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Player-to-game-account linking: case-insensitive match `LOWER(chest_entries.player) = LOWER(game_accounts.game_username)`.
 - Files: `app/charts/charts-client.tsx`, `app/charts/chart-components.tsx`, `app/charts/chart-types.ts`, `app/api/charts/route.ts`.
 
-## News & Events Polish
+## Announcements & Events
 
-- News: collapsible create/edit form, pinned-first sorting, tag filter, loading state, full-width cards.
-- Events: collapsible create/edit form, past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers, loading state, full-width cards.
+- **Announcements** (formerly "News"): collapsible create/edit form, pinned-first sorting, loading state, full-width cards, author display.
+  - Role-based access: only admins, moderators, and editors can create/edit/delete. "Beitrag erstellen" button placed in content area, guarded by `canManage`.
+  - Server-side pagination with page size selector (10/25/50), page number input, and prev/next buttons (matching data-table pattern). Uses Supabase `.range()` with `{ count: "exact" }`.
+  - Filters section below article list: search (title/content via `ilike`), type filter (news/announcement/all), tag filter, date range picker. All filters reset page to 1.
+  - Files: `app/news/news-client.tsx`
+- **Events**: collapsible create/edit form, past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers, loading state.
+  - Date + time model with optional duration (hours + minutes) or "open-ended" (default).
+  - Optional organizer field (free text or game account dropdown).
+  - Recurring events: daily, weekly, biweekly, monthly with optional end date or "ongoing". Single DB row per recurring event; occurrences computed client-side.
+  - Upcoming events list de-duplicates recurring events (shows only next occurrence per event).
+  - Calendar view (monthly overview) with day-detail panel. Side-by-side layout on wide screens.
+  - Author display resolved client-side from `created_by` via profiles table.
+  - Role-based access: only admins, moderators, and editors can create/edit/delete.
+  - Confirmation modals: simple confirmation for event deletion, two-step confirmation for template deletion.
+  - Files: `app/events/events-client.tsx`
+- **Event Templates**: unified DB-stored templates with same fields as events (title, description, location, duration/open-ended, organizer, recurrence).
+  - No separate "name" field — title is the template name.
+  - No built-in/prebuilt distinction — all templates are regular DB rows, fully editable and deletable.
+  - `created_by` is nullable (templates don't require an author).
+  - Save-as-template: one-click from event form or past event cards (auto-fills all fields from current values).
+  - Manage templates panel with inline edit form matching event form layout.
+  - Template selector dropdown in event creation form to pre-fill fields.
+  - Migration: `Documentation/migrations/event_templates.sql`.
 - DatePicker component extended with `enableTime` prop for datetime support.
-- Page shells delegate fully to client components (removed non-functional header buttons).
+- Page shells delegate fully to client components.
 
 ## Messaging System
 
@@ -230,6 +258,8 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - System notifications: sender_id = null, recipient_id = user, message_type = `system`. Sent on game account approval/rejection.
 - Conversations derived by grouping messages between two users (no separate conversation table).
 - Two-column UI: conversation list with search/filter, thread view with compose.
+- Compose recipient and broadcast clan dropdowns use themed `RadixSelect` (no native `<select>`). Recipient dropdown includes search support.
+- Messages layout uses `max-height: calc(100vh - 200px)` for proper inbox/thread scrolling with many messages.
 - No real-time updates (messages load on page visit / manual refresh).
 - Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/broadcast/route.ts`.
 
@@ -257,4 +287,5 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 
 - Admin gating is enforced; review if permissions need tightening.
 - Dashboard widgets (personal/clan stats summary cards).
-- i18n for UI strings (German/English).
+- Website improvement plan: SEO, security, accessibility, legal compliance (see `Documentation/plans/2026-02-07-website-improvement-plan.md`).
+- Consider adding FK constraint from `events.created_by` → `profiles.id` and `articles.created_by` → `profiles.id` to enable PostgREST joins (currently resolved client-side).

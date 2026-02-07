@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 
 interface GameAccountView {
@@ -24,6 +25,8 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
  * Displays the user's game accounts with status and a form to request new ones.
  */
 function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps): JSX.Element {
+  const t = useTranslations("gameAccountManager");
+  const locale = useLocale();
   const [accounts, setAccounts] = useState<readonly GameAccountView[]>(initialAccounts);
   const [newGameUsername, setNewGameUsername] = useState<string>("");
   const [requestStatus, setRequestStatus] = useState<string>("");
@@ -47,15 +50,15 @@ function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps
     event.preventDefault();
     const trimmedUsername = newGameUsername.trim();
     if (!trimmedUsername) {
-      setRequestStatus("Game username is required.");
+      setRequestStatus(t("usernameRequired"));
       return;
     }
     if (trimmedUsername.length < 2 || trimmedUsername.length > 64) {
-      setRequestStatus("Game username must be between 2 and 64 characters.");
+      setRequestStatus(t("usernameLengthError"));
       return;
     }
     setIsSubmitting(true);
-    setRequestStatus("Submitting request...");
+    setRequestStatus(t("submittingRequest"));
     try {
       const response = await fetch("/api/game-accounts", {
         method: "POST",
@@ -64,26 +67,26 @@ function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps
       });
       const result = await response.json();
       if (!response.ok) {
-        setRequestStatus(result.error ?? "Failed to submit request.");
+        setRequestStatus(result.error ?? t("failedToSubmit"));
         setIsSubmitting(false);
         return;
       }
-      setRequestStatus("Request submitted! Waiting for admin approval.");
+      setRequestStatus(t("requestSubmitted"));
       setNewGameUsername("");
       setIsFormOpen(false);
       await refreshAccounts();
     } catch {
-      setRequestStatus("Network error. Please try again.");
+      setRequestStatus(t("networkError"));
     }
     setIsSubmitting(false);
   }
 
   function formatStatus(status: string): string {
     if (status === "approved") {
-      return "Approved";
+      return t("approved");
     }
     if (status === "pending") {
-      return "Pending Approval";
+      return t("pendingApproval");
     }
     return status;
   }
@@ -95,9 +98,9 @@ function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps
     <section className="card">
       <div className="card-header">
         <div>
-          <div className="card-title">Game Accounts</div>
+          <div className="card-title">{t("title")}</div>
           <div className="card-subtitle">
-            {approvedCount} approved{pendingCount > 0 ? `, ${pendingCount} pending` : ""}
+            {t("approvedCount", { count: approvedCount })}{pendingCount > 0 ? `, ${t("pendingCount", { count: pendingCount })}` : ""}
           </div>
         </div>
         <button
@@ -108,30 +111,30 @@ function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps
             setRequestStatus("");
           }}
         >
-          {isFormOpen ? "Cancel" : "+ Add Account"}
+          {isFormOpen ? t("cancel") : t("addAccount")}
         </button>
       </div>
       {isFormOpen ? (
         <form onSubmit={handleSubmitRequest} style={{ marginBottom: "1rem" }}>
           <div className="form-group">
-            <label htmlFor="newGameUsername">Game Username</label>
+            <label htmlFor="newGameUsername">{t("gameUsernameLabel")}</label>
             <input
               id="newGameUsername"
               value={newGameUsername}
               onChange={(event) => setNewGameUsername(event.target.value)}
-              placeholder="Your in-game username"
+              placeholder={t("gameUsernamePlaceholder")}
               minLength={2}
               maxLength={64}
               disabled={isSubmitting}
               required
             />
             <span className="text-muted" style={{ fontSize: "0.85em" }}>
-              Enter the exact username you use in the game. An admin will review your request.
+              {t("gameUsernameHint")}
             </span>
           </div>
           <div className="list inline">
             <button className="button primary" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Request Account"}
+              {isSubmitting ? t("submitting") : t("requestAccount")}
             </button>
           </div>
           {requestStatus ? <p className="text-muted">{requestStatus}</p> : null}
@@ -141,8 +144,8 @@ function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps
       <div className="list">
         {accounts.length === 0 ? (
           <div className="list-item">
-            <span>No game accounts yet</span>
-            <span className="badge">Add one above</span>
+            <span>{t("noAccounts")}</span>
+            <span className="badge">{t("addOneAbove")}</span>
           </div>
         ) : (
           accounts.map((account) => (
@@ -150,7 +153,7 @@ function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps
               <div>
                 <div><strong>{account.game_username}</strong></div>
                 <div className="text-muted" style={{ fontSize: "0.85em" }}>
-                  Requested {new Date(account.created_at).toLocaleDateString("de-DE")}
+                  {t("requested")} {new Date(account.created_at).toLocaleDateString(locale)}
                 </div>
               </div>
               <span className={`badge ${STATUS_BADGE_CLASS[account.approval_status] ?? ""}`}>

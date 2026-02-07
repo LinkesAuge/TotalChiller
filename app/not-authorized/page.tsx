@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import AuthActions from "../components/auth-actions";
 
 export const metadata: Metadata = {
@@ -10,14 +11,15 @@ export const metadata: Metadata = {
 /**
  * Renders the unauthorized access page.
  */
-function NotAuthorizedPage(): JSX.Element {
+async function NotAuthorizedPage(): Promise<JSX.Element> {
+  const t = await getTranslations("notAuthorized");
   return (
     <>
       <div className="top-bar">
         <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
-            <h1 className="top-bar-title">Not Authorized</h1>
+            <h1 className="top-bar-title">{t("title")}</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <AuthActions />
@@ -27,24 +29,12 @@ function NotAuthorizedPage(): JSX.Element {
       <div className="content-inner">
       <div className="grid">
         <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
-          You do not have permission to view this page. Contact a clan owner or admin if you need access.
+          {t("message")}
         </div>
         <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">What you can do</div>
-              <div className="card-subtitle">Return to member areas or request access</div>
-            </div>
-          </div>
           <div className="list">
             <Link className="button primary" href="/home">
-              Go to Home
-            </Link>
-            <Link className="button" href="/">
-              Open Dashboard
-            </Link>
-            <Link className="button" href="/settings">
-              Account Settings
+              {t("goHome")}
             </Link>
           </div>
         </section>

@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { LOCALE_COOKIE } from "../../i18n/routing";
+import type { Locale } from "../../i18n/routing";
+import { routing } from "../../i18n/routing";
 
 interface ClanAccessGateProps {
   readonly children: React.ReactNode;
@@ -28,6 +32,7 @@ function isPublicPath(pathname: string): boolean {
 function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
   const pathname = usePathname();
   const supabase = createSupabaseBrowserClient();
+  const t = useTranslations("clanAccessGate");
   const [hasAccess, setHasAccess] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -67,6 +72,22 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
       setIsLoading(false);
     }
     void loadAccess();
+    /* Sync locale from Supabase user_metadata on login */
+    async function syncLocaleFromProfile(): Promise<void> {
+      const { data: userData } = await supabase.auth.getUser();
+      const storedLang = userData.user?.user_metadata?.language as string | undefined;
+      if (storedLang && routing.locales.includes(storedLang as Locale)) {
+        const currentCookie = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith(`${LOCALE_COOKIE}=`))
+          ?.split("=")[1];
+        if (currentCookie !== storedLang) {
+          document.cookie = `${LOCALE_COOKIE}=${storedLang}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+          window.location.reload();
+        }
+      }
+    }
+    void syncLocaleFromProfile();
     return () => {
       isActive = false;
     };
@@ -82,10 +103,10 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
         <div className="grid">
           <div className="card" style={{ gridColumn: "1 / -1" }}>
             <div className="card-header">
-              <h3 className="card-title">Loading access</h3>
+              <h3 className="card-title">{t("loadingTitle")}</h3>
             </div>
             <div className="card-body">
-              <div className="text-muted">Checking your clan membership…</div>
+              <div className="text-muted">{t("loadingMessage")}</div>
             </div>
           </div>
         </div>
@@ -98,11 +119,11 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
       <div className="content-inner">
         <div className="grid">
           <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
-            You do not have access to clan areas yet. Please contact an admin to assign a clan.
+            {t("noAccessMessage")}
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
             <a className="button primary" href="/home">
-              Go to Home
+              {t("goHome")}
             </a>
           </div>
         </div>

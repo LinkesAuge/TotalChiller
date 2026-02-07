@@ -1,8 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useSidebar } from "./sidebar-context";
 import SidebarNav from "./sidebar-nav";
+import LanguageSelector from "./language-selector";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import getIsAdminAccess from "../../lib/supabase/admin-access";
 
@@ -68,6 +70,7 @@ function resolveHighestRank(options: readonly ClanOption[]): string {
  */
 function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX.Element {
   const { isOpen, toggle, width } = useSidebar();
+  const t = useTranslations("sidebar");
   const [userData, setUserData] = useState<SidebarUserData>(DEFAULT_USER);
 
   const loadUserData = useCallback(async (): Promise<void> => {
@@ -158,7 +161,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     }
   }
 
-  const roleLabel = userData.isAdmin ? "Admin" : "Member";
+  const roleLabel = userData.isAdmin ? t("admin") : t("member");
   const rankLabel = userData.highestRank ? formatRank(userData.highestRank) : null;
   /* Show rank + role, e.g. "Officer • Admin" or just "Member" */
   const statusLine = rankLabel ? `${rankLabel} \u2022 ${roleLabel}` : roleLabel;
@@ -188,8 +191,8 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           />
           {isOpen && (
             <div style={{ overflow: "hidden" }}>
-              <div className="sidebar-title">The Chillers</div>
-              <div className="sidebar-subtitle">Alpha Division</div>
+              <div className="sidebar-title">{t("title")}</div>
+              <div className="sidebar-subtitle">{t("subtitle")}</div>
             </div>
           )}
         </div>
@@ -199,7 +202,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           onClick={toggle}
           className="sidebar-toggle"
           style={{ justifyContent: isOpen ? "flex-start" : "center" }}
-          aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+          aria-label={isOpen ? t("collapse") : t("expand")}
         >
           <svg
             width="14"
@@ -216,7 +219,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
               <path d="M9 18l6-6-6-6" />
             )}
           </svg>
-          {isOpen && <span style={{ fontSize: "0.7rem" }}>Collapse</span>}
+          {isOpen && <span style={{ fontSize: "0.7rem" }}>{t("collapse")}</span>}
         </button>
 
         {/* Gold scepter divider */}
@@ -237,19 +240,9 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
 
         {/* Bottom: user card + clan selector */}
         <div className="sidebar-bottom">
-          <img
-            src="/assets/vip/components_decor_7.png"
-            alt="Gold scepter divider"
-            width={200}
-            height={12}
-            loading="lazy"
-            style={{
-              width: isOpen ? "85%" : 38,
-              height: "auto",
-              opacity: 0.3,
-              margin: "0 auto 6px",
-              display: "block",
-            }}
+          <div
+            className="sidebar-bottom-divider"
+            style={{ width: isOpen ? "85%" : "60%", margin: "0 auto" }}
           />
 
           {/* Clan selector */}
@@ -258,7 +251,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
               <select
                 value={userData.selectedKey}
                 onChange={handleClanChange}
-                aria-label="Select clan"
+                aria-label={t("selectClan")}
               >
                 {userData.clanOptions.map((option) => (
                   <option
@@ -272,6 +265,11 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
               </select>
             </div>
           ) : null}
+
+          {/* Language selector */}
+          <div style={{ padding: isOpen ? "0 6px" : "0", display: "flex", justifyContent: "center" }}>
+            <LanguageSelector compact={!isOpen} />
+          </div>
 
           {/* User identity */}
           {userData.displayLabel ? (
@@ -294,7 +292,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
                   </div>
                   <div className="sidebar-user-status">
                     <span className="sidebar-online-indicator" />
-                    Online &bull; {statusLine}
+                    {t("online")} &bull; {statusLine}
                   </div>
                 </div>
               )}

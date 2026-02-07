@@ -113,7 +113,10 @@ function RedesignV3APage(): JSX.Element {
                       {/* Arrow bg for active expanded */}
                       {isActive && open && <img src="/assets/vip/backs_31.png" alt="" style={s.activeArrow} />}
                       {/* Hover glow */}
-                      <div className="v3a-icon-glow" style={s.iconGlow} />
+                      <div
+                        className="v3a-icon-glow"
+                        style={{ ...s.iconGlow, left: open ? 8 : "50%" }}
+                      />
                       <span style={{ ...s.navIcon, color: isActive ? "#e4c778" : "#6b6050", position: "relative" as const, zIndex: 1 }}>
                         {item.vipIcon ? (
                           <img src={item.vipIcon} alt="" style={{ width: 16, height: 16, objectFit: "contain" as const }} />
@@ -315,7 +318,7 @@ const s: Record<string, React.CSSProperties> = {
   groupLabel: { fontSize: "0.58rem", fontWeight: 700, color: "#5c5040", textTransform: "uppercase" as const, letterSpacing: "0.1em", padding: "8px 12px 3px" },
   navItem: { display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#9a8b6f", borderRadius: 6, fontSize: "0.82rem", fontWeight: 500, whiteSpace: "nowrap" as const, overflow: "hidden", position: "relative" as const },
   activeArrow: { position: "absolute" as const, left: 0, top: 0, width: "100%", height: "100%", objectFit: "fill" as const, opacity: 0.4, borderRadius: 6 },
-  iconGlow: { position: "absolute" as const, left: open ? 8 : "50%", top: "50%", transform: "translate(-50%, -50%)", width: 28, height: 28, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,163,74,0.4), transparent 70%)", opacity: 0, transition: "opacity 0.15s", pointerEvents: "none" as const },
+  iconGlow: { position: "absolute" as const, top: "50%", transform: "translate(-50%, -50%)", width: 28, height: 28, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,163,74,0.4), transparent 70%)", opacity: 0, transition: "opacity 0.15s", pointerEvents: "none" as const },
   navIcon: { width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   navLabel: { overflow: "hidden", textOverflow: "ellipsis" },
   badge: { minWidth: 16, height: 16, borderRadius: 8, background: "#c94a3a", color: "#fff", fontSize: "0.55rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", flexShrink: 0 },

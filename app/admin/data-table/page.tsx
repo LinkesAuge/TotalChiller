@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import DataTableClient from "../../data-table/data-table-client";
 import AuthActions from "../../components/auth-actions";
 import AdminSectionTabs from "../admin-section-tabs";
-import QuickActions from "../../components/quick-actions";
 import SectionHero from "../../components/section-hero";
 
 export const metadata: Metadata = {
@@ -13,25 +13,25 @@ export const metadata: Metadata = {
 /**
  * Renders the admin data table page shell.
  */
-function AdminDataTablePage(): JSX.Element {
+async function AdminDataTablePage(): Promise<JSX.Element> {
+  const t = await getTranslations("admin");
   return (
     <>
       <div className="top-bar">
         <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
-            <div className="top-bar-breadcrumb">The Chillers &bull; Command &bull; Chest Database</div>
-            <h1 className="top-bar-title">Chest Database</h1>
+            <div className="top-bar-breadcrumb">{t("dataTable.breadcrumb")}</div>
+            <h1 className="top-bar-title">{t("dataTable.title")}</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <AuthActions />
           </div>
         </div>
       </div>
-      <QuickActions />
       <SectionHero
-        title="Chest Database"
-        subtitle="Review, filter, and correct records with full audit traceability."
+        title={t("dataTable.heroTitle")}
+        subtitle={t("dataTable.heroSubtitle")}
         bannerSrc="/assets/banners/banner_doomsday_708.png"
       />
       <div className="content-inner">

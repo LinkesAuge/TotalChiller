@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import createCorrectionApplicator from "../../lib/correction-applicator";
 import DatePicker from "../components/date-picker";
@@ -86,14 +87,15 @@ const REQUIRED_HEADERS: readonly string[] = [
 
 const DATE_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}$/;
 const COMMIT_STATUS_TIMEOUT_MS: number = 5000;
-const importSortOptions: readonly { value: ImportSortKey; label: string }[] = [
-  { value: "index", label: "Row" },
-  { value: "date", label: "Date" },
-  { value: "player", label: "Player" },
-  { value: "source", label: "Source" },
-  { value: "chest", label: "Chest" },
-  { value: "score", label: "Score" },
-  { value: "clan", label: "Clan" },
+// Note: Sort options labels are translated in the component using t()
+const importSortOptions: readonly { value: ImportSortKey; labelKey: string }[] = [
+  { value: "index", labelKey: "tableHeaderIndex" },
+  { value: "date", labelKey: "tableHeaderDate" },
+  { value: "player", labelKey: "tableHeaderPlayer" },
+  { value: "source", labelKey: "tableHeaderSource" },
+  { value: "chest", labelKey: "tableHeaderChest" },
+  { value: "score", labelKey: "tableHeaderScore" },
+  { value: "clan", labelKey: "tableHeaderClan" },
 ];
 
 const rowSchema = z.object({
@@ -249,6 +251,7 @@ function getImportSortValue(item: IndexedRow, key: ImportSortKey): string | numb
  * Handles CSV file upload, parsing, and preview rendering.
  */
 function DataImportClient(): JSX.Element {
+  const t = useTranslations("dataImport");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const commitStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [originalRows, setOriginalRows] = useState<readonly CsvRow[]>([]);
@@ -535,16 +538,16 @@ function DataImportClient(): JSX.Element {
 
   async function handleSaveValidationRuleFromRow(): Promise<void> {
     if (validationRuleRowIndex === null) {
-      setValidationRuleMessage("Select a row first.");
+      setValidationRuleMessage(t("selectRowFirst"));
       return;
     }
     const currentRow = correctionResults.rows[validationRuleRowIndex];
     if (!currentRow) {
-      setValidationRuleMessage("Row data not available.");
+      setValidationRuleMessage(t("rowDataNotAvailable"));
       return;
     }
     if (!validationRuleMatch.trim()) {
-      setValidationRuleMessage("Value is required.");
+      setValidationRuleMessage(t("valueRequired"));
       return;
     }
     const payload = {
@@ -554,10 +557,10 @@ function DataImportClient(): JSX.Element {
     };
     const { error } = await supabase.from("validation_rules").insert(payload);
     if (error) {
-      setValidationRuleMessage(`Failed to add validation rule: ${error.message}`);
+      setValidationRuleMessage(t("failedToAddRule", { type: "validation", error: error.message }));
       return;
     }
-    setValidationRuleMessage("Validation rule added.");
+    setValidationRuleMessage(t("ruleAdded", { type: "validation" }));
     const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
     await loadRulesForClans(clanNames);
     closeValidationRuleModal();
@@ -571,16 +574,16 @@ function DataImportClient(): JSX.Element {
 
   async function handleSaveCorrectionRuleFromRow(): Promise<void> {
     if (correctionRuleRowIndex === null) {
-      setCorrectionRuleMessage("Select a row first.");
+      setCorrectionRuleMessage(t("selectRowFirst"));
       return;
     }
     const currentRow = correctionResults.rows[correctionRuleRowIndex];
     if (!currentRow) {
-      setCorrectionRuleMessage("Row data not available.");
+      setCorrectionRuleMessage(t("rowDataNotAvailable"));
       return;
     }
     if (!correctionRuleMatch.trim() || !correctionRuleReplacement.trim()) {
-      setCorrectionRuleMessage("Match and replacement values are required.");
+      setCorrectionRuleMessage(t("matchReplacementRequired"));
       return;
     }
     const payload = {
@@ -591,10 +594,10 @@ function DataImportClient(): JSX.Element {
     };
     const { error } = await supabase.from("correction_rules").insert(payload);
     if (error) {
-      setCorrectionRuleMessage(`Failed to add correction rule: ${error.message}`);
+      setCorrectionRuleMessage(t("failedToAddRule", { type: "correction", error: error.message }));
       return;
     }
-    setCorrectionRuleMessage("Correction rule added.");
+    setCorrectionRuleMessage(t("ruleAdded", { type: "correction" }));
     const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
     await loadRulesForClans(clanNames);
     closeCorrectionRuleModal();
@@ -637,9 +640,10 @@ function DataImportClient(): JSX.Element {
       return { validatedRows: 0, validatedFields: 0, totalFields: 0 };
     }
     const validatedRows = rowValidationResults.filter((result) => result.rowStatus === "valid").length;
-    const validatedFields = rowValidationResults.reduce((count, result) => {
-      return count + Object.values(result.fieldStatus).filter((status) => status === "valid").length;
-    }, 0);
+    let validatedFields = 0;
+    rowValidationResults.forEach((result) => {
+      validatedFields += Object.values(result.fieldStatus).filter((status) => status === "valid").length;
+    });
     return { validatedRows, validatedFields, totalFields: rowValidationResults.length * 4 };
   }, [isValidationEnabled, rowValidationResults]);
   const validatedRowsLabel: string | number = isValidationEnabled ? validationStats.validatedRows : "Off";
@@ -805,7 +809,7 @@ function DataImportClient(): JSX.Element {
     if (!file) {
       return;
     }
-    setStatusMessage("Parsing file...");
+    setStatusMessage(t("parsingFile"));
     const text = await file.text();
     const result = parseCsvText(text);
     const clanNames = Array.from(new Set(result.rows.map((row) => row.clan)));
@@ -834,7 +838,7 @@ function DataImportClient(): JSX.Element {
     const { warnings, errors: validationIssues } = evaluateValidationResults(nextRows);
     setValidationMessages(warnings);
     setValidationErrors(validationIssues);
-    setStatusMessage(`Parsed ${result.rows.length} rows.`);
+    setStatusMessage(t("parsedRows", { count: result.rows.length }));
   }
 
   function getCommitRows(inputRows: readonly CsvRow[]): CommitRow[] {
@@ -948,7 +952,7 @@ function DataImportClient(): JSX.Element {
 
   function openBatchEdit(): void {
     if (selectedRows.length === 0) {
-      setStatusMessage("Select rows for batch edit.");
+      setStatusMessage(t("selectRowsForBatchEdit"));
       return;
     }
     setBatchEditField("player");
@@ -964,26 +968,26 @@ function DataImportClient(): JSX.Element {
 
   function confirmBatchEdit(): void {
     if (selectedRows.length === 0) {
-      setStatusMessage("Select rows for batch edit.");
+      setStatusMessage(t("selectRowsForBatchEdit"));
       return;
     }
     if (batchEditField === "date" && !batchEditDate) {
-      setStatusMessage("Select a date value.");
+      setStatusMessage(t("selectDateValue"));
       return;
     }
     if (batchEditField === "clan" && !batchEditClan) {
-      setStatusMessage("Select a clan.");
+      setStatusMessage(t("selectClan"));
       return;
     }
     if (batchEditField === "score") {
       const parsedScore = Number(batchEditValue);
       if (Number.isNaN(parsedScore)) {
-        setStatusMessage("Score must be a number.");
+        setStatusMessage(t("scoreMustBeNumber"));
         return;
       }
     }
     if (batchEditField !== "date" && batchEditField !== "clan" && batchEditField !== "score" && !batchEditValue) {
-      setStatusMessage("Enter a value.");
+      setStatusMessage(t("enterValue"));
       return;
     }
     const nextValue =
@@ -1007,7 +1011,7 @@ function DataImportClient(): JSX.Element {
       selectedRows.forEach((index) => {
         const existing = nextEdits[index] ?? {};
         if (batchEditField === "score") {
-          nextEdits[index] = { ...existing, score: nextValue };
+          nextEdits[index] = { ...existing, score: Number(nextValue) };
           return;
         }
         nextEdits[index] = { ...existing, [batchEditField]: nextValue };
@@ -1015,7 +1019,7 @@ function DataImportClient(): JSX.Element {
       return nextEdits;
     });
     setIsBatchEditOpen(false);
-    setStatusMessage("Batch edits applied.");
+    setStatusMessage(t("batchEditsApplied"));
   }
 
   function handleRemoveSelectedRows(): void {
@@ -1096,7 +1100,7 @@ function DataImportClient(): JSX.Element {
 
   async function handleCommit(): Promise<void> {
     if (!canCommit()) {
-      setCommitStatus("Fix validation errors before committing.");
+      setCommitStatus(t("fixValidationErrors"));
       return;
     }
     const invalidRowIndexes = getInvalidRowIndexes();
@@ -1110,7 +1114,7 @@ function DataImportClient(): JSX.Element {
 
   async function executeCommit(commitRows: readonly CsvRow[]): Promise<void> {
     setIsCommitting(true);
-    setCommitStatus("Committing rows to Supabase...");
+    setCommitStatus(t("committingRows"));
     const payload = getCommitRows(commitRows);
     const response = await fetch("/api/data-import/commit", {
       method: "POST",
@@ -1119,12 +1123,12 @@ function DataImportClient(): JSX.Element {
     });
     if (!response.ok) {
       const data = (await response.json()) as { error?: string };
-      setCommitStatus(data.error ?? "Commit failed.");
+      setCommitStatus(data.error ?? t("commitFailed"));
       setIsCommitting(false);
       return;
     }
     const data = (await response.json()) as { insertedCount: number };
-    setCommitStatus(`Committed ${data.insertedCount} rows.`);
+    setCommitStatus(t("committedRows", { count: data.insertedCount }));
     resetImportState();
     setIsCommitting(false);
   }
@@ -1134,7 +1138,7 @@ function DataImportClient(): JSX.Element {
     const filteredRows = correctionResults.rows.filter((_row, index) => !invalidSet.has(index));
     setIsCommitWarningOpen(false);
     if (filteredRows.length === 0) {
-      setCommitStatus("No valid rows to commit.");
+      setCommitStatus(t("noValidRowsToCommit"));
       return;
     }
     await executeCommit(filteredRows);
@@ -1151,19 +1155,19 @@ function DataImportClient(): JSX.Element {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Upload CSV</div>
+              <div className="card-title">{t("uploadCsv")}</div>
               <div className="card-subtitle">DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN</div>
             </div>
           </div>
           <div className="card-body">
             <div className="form-group">
-              <label htmlFor="csvFile">CSV File</label>
+              <label htmlFor="csvFile">{t("csvFileLabel")}</label>
               <input id="csvFile" ref={fileInputRef} type="file" accept=".csv,.txt" onChange={handleFileChange} />
             </div>
             <div className="list">
               <div className="list-item">
-                <span>Filename</span>
-                <span className="badge">{fileName || "No file selected"}</span>
+                <span>{t("filename")}</span>
+                <span className="badge">{fileName || t("noFileSelected")}</span>
               </div>
             </div>
             {statusMessage ? <p className="text-muted">{statusMessage}</p> : null}
@@ -1173,28 +1177,28 @@ function DataImportClient(): JSX.Element {
         <section className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Parsing Feedback</div>
-              <div className="card-subtitle">Import and validation summary</div>
+              <div className="card-title">{t("parsingFeedback")}</div>
+              <div className="card-subtitle">{t("importSummary")}</div>
             </div>
-            <span className="badge">Imported: {correctionResults.rows.length}</span>
+            <span className="badge">{t("imported")}: {correctionResults.rows.length}</span>
           </div>
           <div className="list">
             <div className="list-item">
-              <span>Imported entries</span>
+              <span>{t("importedEntries")}</span>
               <span className="badge">{correctionResults.rows.length}</span>
             </div>
             <div className="list-item">
-              <span>Corrections applied</span>
+              <span>{t("correctionsApplied")}</span>
               <span className="badge">
-                {correctionStats.correctedFields} fields • {correctionStats.correctedRows} rows
+                {correctionStats.correctedFields} {t("fields")} • {correctionStats.correctedRows} {t("rows")}
               </span>
             </div>
             <div className="list-item">
-              <span>Rows validated</span>
+              <span>{t("rowsValidated")}</span>
               <span className="badge">{validationStats.validatedRows}</span>
             </div>
             <div className="list-item">
-              <span>Fields validated</span>
+              <span>{t("fieldsValidated")}</span>
               <span className="badge">
                 {validationStats.validatedFields} / {validationStats.totalFields}
               </span>
@@ -1205,8 +1209,8 @@ function DataImportClient(): JSX.Element {
         <section className="card batch-ops">
           <div className="card-header">
             <div>
-              <div className="card-title">Search & Filters</div>
-              <div className="card-subtitle">Apply filters to narrow results</div>
+              <div className="card-title">{t("searchFilters")}</div>
+              <div className="card-subtitle">{t("applyFilters")}</div>
             </div>
           </div>
           <div className="card-section">
@@ -1214,48 +1218,48 @@ function DataImportClient(): JSX.Element {
               <div className="list inline admin-members-filters filter-bar batch-ops-row">
                 <SearchInput
                   id="importFilterPlayer"
-                  label="Player"
+                  label={t("player")}
                   value={filterPlayer}
                   onChange={(value) => {
                     setFilterPlayer(value);
                     setPage(1);
                   }}
-                  placeholder="Search player"
+                  placeholder={t("searchPlayer")}
                 />
                 <SearchInput
                   id="importFilterSource"
-                  label="Source"
+                  label={t("source")}
                   value={filterSource}
                   onChange={(value) => {
                     setFilterSource(value);
                     setPage(1);
                   }}
-                  placeholder="Search source"
+                  placeholder={t("searchSource")}
                 />
                 <SearchInput
                   id="importFilterChest"
-                  label="Chest"
+                  label={t("chest")}
                   value={filterChest}
                   onChange={(value) => {
                     setFilterChest(value);
                     setPage(1);
                   }}
-                  placeholder="Search chest"
+                  placeholder={t("searchChest")}
                 />
                 <SearchInput
                   id="importFilterClan"
-                  label="Clan"
+                  label={t("clan")}
                   value={filterClan}
                   onChange={(value) => {
                     setFilterClan(value);
                     setPage(1);
                   }}
-                  placeholder="Search clan"
+                  placeholder={t("searchClan")}
                 />
               </div>
               <div className="list inline admin-members-filters filter-bar batch-ops-row">
                 <label htmlFor="importDateFrom" className="text-muted">
-                  Date from
+                  {t("dateFrom")}
                 </label>
                 <input
                   id="importDateFrom"
@@ -1267,7 +1271,7 @@ function DataImportClient(): JSX.Element {
                   }}
                 />
                 <label htmlFor="importDateTo" className="text-muted">
-                  Date to
+                  {t("dateTo")}
                 </label>
                 <input
                   id="importDateTo"
@@ -1279,7 +1283,7 @@ function DataImportClient(): JSX.Element {
                   }}
                 />
                 <label htmlFor="importScoreMin" className="text-muted">
-                  Score min
+                  {t("scoreMin")}
                 </label>
                 <input
                   id="importScoreMin"
@@ -1292,7 +1296,7 @@ function DataImportClient(): JSX.Element {
                   placeholder="0"
                 />
               <label htmlFor="importScoreMax" className="text-muted">
-                Score max
+                {t("scoreMax")}
               </label>
               <input
                 id="importScoreMax"
@@ -1307,71 +1311,71 @@ function DataImportClient(): JSX.Element {
             </div>
             <div className="list inline admin-members-filters filter-bar batch-ops-row">
               <label htmlFor="importRowStatus" className="text-muted">
-                Row status
+                {t("rowStatus")}
               </label>
               <RadixSelect
                 id="importRowStatus"
-                ariaLabel="Row status"
+                ariaLabel={t("rowStatus")}
                 value={filterRowStatus}
                 onValueChange={(value) => {
                   setFilterRowStatus(value as "all" | "valid" | "invalid");
                   setPage(1);
                 }}
                 options={[
-                  { value: "all", label: "All" },
-                  { value: "valid", label: "Valid only" },
-                  { value: "invalid", label: "Invalid only" },
+                  { value: "all", label: t("all") },
+                  { value: "valid", label: t("validOnly") },
+                  { value: "invalid", label: t("invalidOnly") },
                 ]}
                 disabled={!isValidationEnabled}
               />
-              {!isValidationEnabled ? <span className="text-muted">Validation off</span> : null}
+              {!isValidationEnabled ? <span className="text-muted">{t("validationOff")}</span> : null}
               <label htmlFor="importCorrectionStatus" className="text-muted">
-                Correction
+                {t("correction")}
               </label>
               <RadixSelect
                 id="importCorrectionStatus"
-                ariaLabel="Correction status"
+                ariaLabel={t("correction")}
                 value={filterCorrectionStatus}
                 onValueChange={(value) => {
                   setFilterCorrectionStatus(value as "all" | "corrected" | "uncorrected");
                   setPage(1);
                 }}
                 options={[
-                  { value: "all", label: "All" },
-                  { value: "corrected", label: "Corrected only" },
-                  { value: "uncorrected", label: "Not corrected" },
+                  { value: "all", label: t("all") },
+                  { value: "corrected", label: t("correctedOnly") },
+                  { value: "uncorrected", label: t("notCorrected") },
                 ]}
                 disabled={!isAutoCorrectEnabled}
               />
-              {!isAutoCorrectEnabled ? <span className="text-muted">Auto-correct off</span> : null}
+              {!isAutoCorrectEnabled ? <span className="text-muted">{t("autoCorrectOff")}</span> : null}
               <label htmlFor="importSortKey" className="text-muted">
-                Sort by
+                {t("sortBy")}
               </label>
               <RadixSelect
                 id="importSortKey"
-                ariaLabel="Sort by"
+                ariaLabel={t("sortBy")}
                 value={importSortKey}
                 onValueChange={(value) => {
                   setImportSortKey(value as ImportSortKey);
                   setImportSortDirection("asc");
                   setPage(1);
                 }}
-                options={importSortOptions.map((option) => ({ value: option.value, label: option.label }))}
+                options={importSortOptions.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
               />
               <RadixSelect
-                ariaLabel="Sort direction"
+                ariaLabel={t("sortDirection")}
                 value={importSortDirection}
                 onValueChange={(value) => {
                   setImportSortDirection(value as "asc" | "desc");
                   setPage(1);
                 }}
                 options={[
-                  { value: "asc", label: "Asc" },
-                  { value: "desc", label: "Desc" },
+                  { value: "asc", label: t("asc") },
+                  { value: "desc", label: t("desc") },
                 ]}
               />
               <button className="button" type="button" onClick={resetImportFilters}>
-                Reset
+                {t("reset")}
               </button>
               </div>
             </div>
@@ -1380,7 +1384,7 @@ function DataImportClient(): JSX.Element {
       ) : null}
         <div className="table-toolbar">
           <button className="button" type="button" onClick={() => setIsBatchOpsOpen((current) => !current)}>
-            {isBatchOpsOpen ? "Hide Search & Filters" : "Search & Filters"}
+            {isBatchOpsOpen ? t("hideSearchFilters") : t("showSearchFilters")}
           </button>
           <button
             className="button primary"
@@ -1388,13 +1392,13 @@ function DataImportClient(): JSX.Element {
             disabled={!canCommit() || isCommitting}
             onClick={handleCommit}
           >
-            {isCommitting ? "Committing..." : "Commit Data"}
+            {isCommitting ? t("committing") : t("commitData")}
           </button>
           <button className="button" type="button" onClick={openBatchEdit} disabled={selectedRows.length === 0}>
-            Batch Edit
+            {t("batchEdit")}
           </button>
           <IconButton
-            ariaLabel="Remove selected rows"
+            ariaLabel={t("removeSelectedRows")}
             onClick={handleRemoveSelectedRows}
             variant="danger"
             disabled={selectedRows.length === 0}
@@ -1417,7 +1421,7 @@ function DataImportClient(): JSX.Element {
                 checked={isAutoCorrectEnabled}
                 onChange={(event) => setIsAutoCorrectEnabled(event.target.checked)}
               />
-              Auto-correct
+              {t("autoCorrect")}
             </label>
             <label
               className="text-muted"
@@ -1430,14 +1434,14 @@ function DataImportClient(): JSX.Element {
                 checked={isValidationEnabled}
                 onChange={(event) => setIsValidationEnabled(event.target.checked)}
               />
-              Validation
+              {t("validation")}
             </label>
           </div>
         </div>
         <div className="pagination-bar table-pagination" style={{ gridColumn: "1 / -1" }}>
           <div className="pagination-page-size">
             <label htmlFor="importPageSize" className="text-muted">
-              Page size
+              {t("pageSize")}
             </label>
             <RadixSelect
               id="importPageSize"
@@ -1456,14 +1460,14 @@ function DataImportClient(): JSX.Element {
             />
           </div>
           <span className="text-muted">
-            Showing {filteredCount === 0 ? 0 : pageStartIndex + 1}–
-            {Math.min(pageStartIndex + pageSize, filteredCount)} of {filteredCount}
-            {selectedRows.length > 0 ? ` • ${selectedRows.length} selected` : ""}
+            {t("showing")} {filteredCount === 0 ? 0 : pageStartIndex + 1}–
+            {Math.min(pageStartIndex + pageSize, filteredCount)} {t("of")} {filteredCount}
+            {selectedRows.length > 0 ? ` • ${selectedRows.length} ${t("selected")}` : ""}
           </span>
           <div className="pagination-actions">
             <div className="pagination-page-indicator">
               <label htmlFor="importPageJump" className="text-muted">
-                Page
+                {t("page")}
               </label>
               <input
                 id="importPageJump"
@@ -1477,7 +1481,7 @@ function DataImportClient(): JSX.Element {
               <span className="text-muted">/ {totalPages}</span>
             </div>
             <IconButton
-              ariaLabel="Previous page"
+              ariaLabel={t("previousPage")}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={page === 1}
             >
@@ -1486,7 +1490,7 @@ function DataImportClient(): JSX.Element {
               </svg>
             </IconButton>
             <IconButton
-              ariaLabel="Next page"
+              ariaLabel={t("nextPage")}
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={page >= totalPages}
             >
@@ -1499,27 +1503,27 @@ function DataImportClient(): JSX.Element {
         <TableScroll>
         <section className="table data-import">
           <header>
-            <span>{renderImportSortButton("#", "index")}</span>
+            <span>{renderImportSortButton(t("tableHeaderIndex"), "index")}</span>
             <span>
               <input
                 type="checkbox"
                 ref={selectAllRef}
                 checked={areAllRowsSelected}
                 onChange={toggleSelectAllRows}
-                aria-label="Select all rows"
+                aria-label={t("selectAllRows")}
               />
             </span>
-            <span>{renderImportSortButton("Date", "date")}</span>
-            <span>{renderImportSortButton("Player", "player")}</span>
-            <span>{renderImportSortButton("Source", "source")}</span>
-            <span>{renderImportSortButton("Chest", "chest")}</span>
-            <span>{renderImportSortButton("Score", "score")}</span>
-            <span>{renderImportSortButton("Clan", "clan")}</span>
-            <span>Actions</span>
+            <span>{renderImportSortButton(t("tableHeaderDate"), "date")}</span>
+            <span>{renderImportSortButton(t("tableHeaderPlayer"), "player")}</span>
+            <span>{renderImportSortButton(t("tableHeaderSource"), "source")}</span>
+            <span>{renderImportSortButton(t("tableHeaderChest"), "chest")}</span>
+            <span>{renderImportSortButton(t("tableHeaderScore"), "score")}</span>
+            <span>{renderImportSortButton(t("tableHeaderClan"), "clan")}</span>
+            <span>{t("tableHeaderActions")}</span>
           </header>
           {correctionResults.rows.length === 0 ? (
             <div className="row">
-              <span>No data loaded</span>
+              <span>{t("noDataLoaded")}</span>
               <span />
               <span />
               <span />
@@ -1531,7 +1535,7 @@ function DataImportClient(): JSX.Element {
             </div>
           ) : filteredCount === 0 ? (
             <div className="row">
-              <span>No rows match the filters</span>
+              <span>{t("noRowsMatchFilters")}</span>
               <span />
               <span />
               <span />
@@ -1618,7 +1622,7 @@ function DataImportClient(): JSX.Element {
                   ]}
                 />
                 <div className="list inline action-icons">
-                  <IconButton ariaLabel="Add correction rule" onClick={() => openCorrectionRuleModal(rowIndex)}>
+                  <IconButton ariaLabel={t("addCorrectionRule")} onClick={() => openCorrectionRuleModal(rowIndex)}>
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path
                         d="M3.5 10.5L8 6L12.5 10.5L7.5 15H3.5V10.5Z"
@@ -1630,7 +1634,7 @@ function DataImportClient(): JSX.Element {
                       <path d="M7.5 15H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
                   </IconButton>
-                  <IconButton ariaLabel="Add validation rule" onClick={() => openValidationRuleModal(rowIndex)}>
+                  <IconButton ariaLabel={t("addValidationRule")} onClick={() => openValidationRuleModal(rowIndex)}>
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M3.5 5.5L5 7L7.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M8.5 5.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -1651,31 +1655,31 @@ function DataImportClient(): JSX.Element {
           <div className="modal card wide">
             <div className="card-header">
               <div>
-                <div className="card-title">Add correction rule</div>
-                <div className="card-subtitle">Create a rule from this row</div>
+                <div className="card-title">{t("addCorrectionRuleTitle")}</div>
+                <div className="card-subtitle">{t("createRuleFromRow")}</div>
               </div>
             </div>
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="correctionRuleField">Field</label>
+                <label htmlFor="correctionRuleField">{t("field")}</label>
                 <RadixSelect
                   id="correctionRuleField"
-                  ariaLabel="Correction field"
+                  ariaLabel={t("field")}
                   value={correctionRuleField}
                   onValueChange={(value) =>
                     updateCorrectionRuleField(value as "player" | "source" | "chest" | "clan" | "all")
                   }
                   options={[
-                    { value: "player", label: "Player" },
-                    { value: "source", label: "Source" },
-                    { value: "chest", label: "Chest" },
-                    { value: "clan", label: "Clan" },
-                    { value: "all", label: "All" },
+                    { value: "player", label: t("player") },
+                    { value: "source", label: t("source") },
+                    { value: "chest", label: t("chest") },
+                    { value: "clan", label: t("clan") },
+                    { value: "all", label: t("all") },
                   ]}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="correctionRuleMatch">Match value</label>
+                <label htmlFor="correctionRuleMatch">{t("matchValue")}</label>
                 <ComboboxInput
                   id="correctionRuleMatch"
                   value={correctionRuleMatch}
@@ -1684,7 +1688,7 @@ function DataImportClient(): JSX.Element {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="correctionRuleReplacement">Replacement value</label>
+                <label htmlFor="correctionRuleReplacement">{t("replacementValue")}</label>
                 <ComboboxInput
                   id="correctionRuleReplacement"
                   value={correctionRuleReplacement}
@@ -1693,15 +1697,15 @@ function DataImportClient(): JSX.Element {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="correctionRuleStatus">Status</label>
+                <label htmlFor="correctionRuleStatus">{t("status")}</label>
                 <RadixSelect
                   id="correctionRuleStatus"
-                  ariaLabel="Status"
+                  ariaLabel={t("status")}
                   value={correctionRuleStatus}
                   onValueChange={(value) => setCorrectionRuleStatus(value)}
                   options={[
-                    { value: "active", label: "active" },
-                    { value: "inactive", label: "inactive" },
+                    { value: "active", label: t("active") },
+                    { value: "inactive", label: t("inactive") },
                   ]}
                 />
               </div>
@@ -1709,10 +1713,10 @@ function DataImportClient(): JSX.Element {
             {correctionRuleMessage ? <div className="alert info">{correctionRuleMessage}</div> : null}
             <div className="list inline">
               <button className="button" type="button" onClick={closeCorrectionRuleModal}>
-                Cancel
+                {t("cancel")}
               </button>
               <button className="button primary" type="button" onClick={handleSaveCorrectionRuleFromRow}>
-                Save rule
+                {t("saveRule")}
               </button>
             </div>
           </div>
@@ -1723,28 +1727,28 @@ function DataImportClient(): JSX.Element {
           <div className="modal card wide">
             <div className="card-header">
               <div>
-                <div className="card-title">Add validation rule</div>
-                <div className="card-subtitle">Create a valid value from this row</div>
+                <div className="card-title">{t("addValidationRuleTitle")}</div>
+                <div className="card-subtitle">{t("createValidValue")}</div>
               </div>
             </div>
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="validationRuleField">Field</label>
+                <label htmlFor="validationRuleField">{t("field")}</label>
                 <RadixSelect
                   id="validationRuleField"
-                  ariaLabel="Validation field"
+                  ariaLabel={t("field")}
                   value={validationRuleField}
                   onValueChange={(value) => updateValidationRuleField(value as "player" | "source" | "chest" | "clan")}
                   options={[
-                    { value: "player", label: "Player" },
-                    { value: "source", label: "Source" },
-                    { value: "chest", label: "Chest" },
-                    { value: "clan", label: "Clan" },
+                    { value: "player", label: t("player") },
+                    { value: "source", label: t("source") },
+                    { value: "chest", label: t("chest") },
+                    { value: "clan", label: t("clan") },
                   ]}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="validationRuleMatch">Value</label>
+                <label htmlFor="validationRuleMatch">{t("value")}</label>
                 <ComboboxInput
                   id="validationRuleMatch"
                   value={validationRuleMatch}
@@ -1753,15 +1757,15 @@ function DataImportClient(): JSX.Element {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="validationRuleStatus">Status</label>
+                <label htmlFor="validationRuleStatus">{t("status")}</label>
                 <RadixSelect
                   id="validationRuleStatus"
-                  ariaLabel="Status"
+                  ariaLabel={t("status")}
                   value={validationRuleStatus}
                   onValueChange={(value) => setValidationRuleStatus(value)}
                   options={[
-                    { value: "valid", label: "valid" },
-                    { value: "invalid", label: "invalid" },
+                    { value: "valid", label: t("valid") },
+                    { value: "invalid", label: t("invalid") },
                   ]}
                 />
               </div>
@@ -1769,10 +1773,10 @@ function DataImportClient(): JSX.Element {
             {validationRuleMessage ? <div className="alert info">{validationRuleMessage}</div> : null}
             <div className="list inline">
               <button className="button" type="button" onClick={closeValidationRuleModal}>
-                Cancel
+                {t("cancel")}
               </button>
               <button className="button primary" type="button" onClick={handleSaveValidationRuleFromRow}>
-                Save rule
+                {t("saveRule")}
               </button>
             </div>
           </div>
@@ -1783,30 +1787,30 @@ function DataImportClient(): JSX.Element {
           <div className="modal card wide tall">
             <div className="card-header">
               <div>
-                <div className="card-title">Batch edit selected rows</div>
-                <div className="card-subtitle">Review changes before applying them.</div>
+                <div className="card-title">{t("batchEditTitle")}</div>
+                <div className="card-subtitle">{t("reviewChanges")}</div>
               </div>
             </div>
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="batchEditField">Column</label>
+                <label htmlFor="batchEditField">{t("column")}</label>
                 <RadixSelect
                   id="batchEditField"
-                  ariaLabel="Batch edit column"
+                  ariaLabel={t("column")}
                   value={batchEditField}
                   onValueChange={(value) => setBatchEditField(value as keyof CsvRow)}
                   options={[
-                    { value: "date", label: "Date" },
-                    { value: "player", label: "Player" },
-                    { value: "source", label: "Source" },
-                    { value: "chest", label: "Chest" },
-                    { value: "score", label: "Score" },
-                    { value: "clan", label: "Clan" },
+                    { value: "date", label: t("tableHeaderDate") },
+                    { value: "player", label: t("tableHeaderPlayer") },
+                    { value: "source", label: t("tableHeaderSource") },
+                    { value: "chest", label: t("tableHeaderChest") },
+                    { value: "score", label: t("tableHeaderScore") },
+                    { value: "clan", label: t("tableHeaderClan") },
                   ]}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="batchEditValue">New value</label>
+                <label htmlFor="batchEditValue">{t("newValue")}</label>
                 {batchEditField === "date" ? (
                   <DatePicker value={batchEditDate} onChange={setBatchEditDate} />
                 ) : batchEditField === "clan" ? (
@@ -1816,7 +1820,7 @@ function DataImportClient(): JSX.Element {
                     value={batchEditClan}
                     onValueChange={setBatchEditClan}
                     enableSearch
-                    searchPlaceholder="Search clan"
+                    searchPlaceholder={t("searchClan")}
                     options={availableClans.map((clan) => ({ value: clan, label: clan }))}
                   />
                 ) : (
@@ -1825,7 +1829,7 @@ function DataImportClient(): JSX.Element {
                     type={batchEditField === "score" ? "number" : "text"}
                     value={batchEditValue}
                     onChange={(event: ChangeEvent<HTMLInputElement>) => setBatchEditValue(event.target.value)}
-                    placeholder={batchEditField === "score" ? "0" : "New value"}
+                    placeholder={batchEditField === "score" ? "0" : t("newValue")}
                   />
                 )}
               </div>
@@ -1833,17 +1837,17 @@ function DataImportClient(): JSX.Element {
             <div className="modal-table-scroll">
               <section className="table batch-preview">
                 <header>
-                  <span>#</span>
-                  <span>Date</span>
-                  <span>Player</span>
-                  <span>Source</span>
-                  <span>Chest</span>
-                  <span>Score</span>
-                  <span>Clan</span>
+                  <span>{t("tableHeaderIndex")}</span>
+                  <span>{t("tableHeaderDate")}</span>
+                  <span>{t("tableHeaderPlayer")}</span>
+                  <span>{t("tableHeaderSource")}</span>
+                  <span>{t("tableHeaderChest")}</span>
+                  <span>{t("tableHeaderScore")}</span>
+                  <span>{t("tableHeaderClan")}</span>
                 </header>
                 {selectedRows.length === 0 ? (
                   <div className="row">
-                    <span>No rows selected</span>
+                    <span>{t("noRowsSelected")}</span>
                     <span />
                     <span />
                     <span />
@@ -1939,10 +1943,10 @@ function DataImportClient(): JSX.Element {
             </div>
             <div className="list inline">
               <button className="button primary" type="button" onClick={confirmBatchEdit}>
-                Apply changes
+                {t("applyChanges")}
               </button>
               <button className="button" type="button" onClick={closeBatchEdit}>
-                Cancel
+                {t("cancel")}
               </button>
             </div>
           </div>
@@ -1953,33 +1957,33 @@ function DataImportClient(): JSX.Element {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Validation Warning</div>
-                <div className="card-title">Invalid rows detected</div>
-                <div className="card-subtitle">Choose how to proceed with the commit.</div>
+                <div className="danger-label">{t("validationWarning")}</div>
+                <div className="card-title">{t("invalidRowsDetected")}</div>
+                <div className="card-subtitle">{t("chooseProceed")}</div>
               </div>
             </div>
             <div className="alert warn">
-              {invalidRowCount} row(s) have validation errors. You can skip them or commit anyway.
+              {t("rowHasErrors", { count: invalidRowCount })}
             </div>
             <div className="list">
               <div className="list-item">
-                <span>Rows validated</span>
+                <span>{t("rowsValidated")}</span>
                 <span className="badge">{validatedRowsLabel}</span>
               </div>
               <div className="list-item">
-                <span>Rows corrected</span>
+                <span>{t("rowsCorrected")}</span>
                 <span className="badge">{correctedRowsLabel}</span>
               </div>
               <div className="list-item">
-                <span>Commit if skipping invalid</span>
+                <span>{t("commitIfSkipping")}</span>
                 <span className="badge">{commitSkipCount}</span>
               </div>
               <div className="list-item">
-                <span>Commit if committing anyway</span>
+                <span>{t("commitIfCommitting")}</span>
                 <span className="badge">{commitAllCount}</span>
               </div>
               <div className="list-item">
-                <span>Invalid row numbers</span>
+                <span>{t("invalidRowNumbers")}</span>
                 <span className="badge">
                   {commitWarningInvalidRows
                     .slice(0, 12)
@@ -1991,13 +1995,13 @@ function DataImportClient(): JSX.Element {
             </div>
             <div className="list inline">
               <button className="button" type="button" onClick={handleCommitSkipInvalid}>
-                Skip invalid rows
+                {t("skipInvalidRows")}
               </button>
               <button className="button primary" type="button" onClick={handleCommitForce}>
-                Commit anyway
+                {t("commitAnyway")}
               </button>
               <button className="button" type="button" onClick={() => setIsCommitWarningOpen(false)}>
-                Cancel
+                {t("cancel")}
               </button>
             </div>
           </div>

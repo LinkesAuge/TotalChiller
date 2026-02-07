@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 
 interface NotificationRow {
@@ -30,28 +31,28 @@ const TYPE_ROUTES: Record<string, string> = {
 };
 
 /**
- * Returns a human-readable "time ago" string.
+ * Returns a human-readable "time ago" string using translation keys.
  */
-function formatTimeAgo(dateString: string): string {
+function formatTimeAgo(dateString: string, t: ReturnType<typeof useTranslations>, locale: string): string {
   const now = Date.now();
   const then = new Date(dateString).getTime();
   const diffSeconds = Math.floor((now - then) / 1000);
   if (diffSeconds < 60) {
-    return "just now";
+    return t("justNow");
   }
   const diffMinutes = Math.floor(diffSeconds / 60);
   if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
+    return t("minutesAgo", { count: diffMinutes });
   }
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours}h ago`;
+    return t("hoursAgo", { count: diffHours });
   }
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) {
-    return `${diffDays}d ago`;
+    return t("daysAgo", { count: diffDays });
   }
-  return new Date(dateString).toLocaleDateString("de-DE");
+  return new Date(dateString).toLocaleDateString(locale);
 }
 
 /**
@@ -98,6 +99,8 @@ function getTypeIcon(type: string): JSX.Element {
  * Bell icon with unread count badge and a dropdown panel showing recent notifications.
  */
 function NotificationBell(): JSX.Element {
+  const t = useTranslations("notificationBell");
+  const locale = useLocale();
   const router = useRouter();
   const [notifications, setNotifications] = useState<readonly NotificationRow[]>([]);
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -200,7 +203,7 @@ function NotificationBell(): JSX.Element {
         type="button"
         className="notification-bell__trigger"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+        aria-label={unreadCount > 0 ? t("ariaLabelUnread", { count: unreadCount }) : t("ariaLabel")}
       >
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path
@@ -218,7 +221,7 @@ function NotificationBell(): JSX.Element {
       {isOpen ? (
         <div className="notification-bell__panel">
           <div className="notification-bell__header">
-            <strong>Notifications</strong>
+            <strong>{t("title")}</strong>
             <div className="notification-bell__header-actions">
               {unreadCount > 0 ? (
                 <button
@@ -226,14 +229,14 @@ function NotificationBell(): JSX.Element {
                   className="notification-bell__mark-read"
                   onClick={handleMarkAllRead}
                 >
-                  Mark all read
+                  {t("markAllRead")}
                 </button>
               ) : null}
               <button
                 type="button"
                 className="notification-bell__gear"
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                aria-label="Notification settings"
+                aria-label={t("settingsAriaLabel")}
               >
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
                   <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
@@ -245,28 +248,28 @@ function NotificationBell(): JSX.Element {
           {isSettingsOpen ? (
             <div className="notification-bell__settings">
               <div className="notification-bell__setting-row">
-                <span>Messages</span>
+                <span>{t("messages")}</span>
                 <label className="toggle-switch toggle-switch--sm">
                   <input type="checkbox" checked={prefs.messages_enabled} onChange={() => handleTogglePref("messages_enabled")} />
                   <span className="toggle-slider" />
                 </label>
               </div>
               <div className="notification-bell__setting-row">
-                <span>News</span>
+                <span>{t("news")}</span>
                 <label className="toggle-switch toggle-switch--sm">
                   <input type="checkbox" checked={prefs.news_enabled} onChange={() => handleTogglePref("news_enabled")} />
                   <span className="toggle-slider" />
                 </label>
               </div>
               <div className="notification-bell__setting-row">
-                <span>Events</span>
+                <span>{t("events")}</span>
                 <label className="toggle-switch toggle-switch--sm">
                   <input type="checkbox" checked={prefs.events_enabled} onChange={() => handleTogglePref("events_enabled")} />
                   <span className="toggle-slider" />
                 </label>
               </div>
               <div className="notification-bell__setting-row">
-                <span>System</span>
+                <span>{t("system")}</span>
                 <label className="toggle-switch toggle-switch--sm">
                   <input type="checkbox" checked={prefs.system_enabled} onChange={() => handleTogglePref("system_enabled")} />
                   <span className="toggle-slider" />
@@ -276,7 +279,7 @@ function NotificationBell(): JSX.Element {
           ) : null}
           <div className="notification-bell__list">
             {notifications.length === 0 ? (
-              <div className="notification-bell__empty">No notifications</div>
+              <div className="notification-bell__empty">{t("noNotifications")}</div>
             ) : (
               notifications.slice(0, 20).map((notification) => (
                 <button
@@ -292,13 +295,13 @@ function NotificationBell(): JSX.Element {
                       <div className="notification-bell__body">{notification.body}</div>
                     ) : null}
                   </div>
-                  <span className="notification-bell__time">{formatTimeAgo(notification.created_at)}</span>
+                  <span className="notification-bell__time">{formatTimeAgo(notification.created_at, t, locale)}</span>
                 </button>
               ))
             )}
           </div>
           <a className="notification-bell__footer" href="/messages">
-            View all messages
+            {t("viewAllMessages")}
           </a>
         </div>
       ) : null}

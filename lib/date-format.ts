@@ -1,7 +1,7 @@
 /**
- * Formats a date/time string in German format (dd.MM.yyyy, HH:mm).
+ * Formats a date/time string using the given locale (defaults to "de-DE").
  */
-function formatGermanDateTime(value: string): string {
+function formatLocalDateTime(value: string, locale: string = "de-DE"): string {
   if (!value) {
     return "";
   }
@@ -9,7 +9,7 @@ function formatGermanDateTime(value: string): string {
   if (Number.isNaN(parsedDate.getTime())) {
     return value;
   }
-  return parsedDate.toLocaleString("de-DE", {
+  return parsedDate.toLocaleString(locale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -19,4 +19,13 @@ function formatGermanDateTime(value: string): string {
   });
 }
 
+/**
+ * Formats a date/time string in German format (dd.MM.yyyy, HH:mm).
+ * @deprecated Use formatLocalDateTime with locale parameter instead.
+ */
+function formatGermanDateTime(value: string): string {
+  return formatLocalDateTime(value, "de-DE");
+}
+
+export { formatLocalDateTime };
 export default formatGermanDateTime;

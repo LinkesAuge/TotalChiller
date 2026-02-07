@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactElement } from "react";
 import RadixSelect from "../components/ui/radix-select";
 import SearchInput from "../components/ui/search-input";
 import IconButton from "../components/ui/icon-button";
 import LabeledSelect from "../components/ui/labeled-select";
 import TableScroll from "../components/table-scroll";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import formatGermanDateTime from "../../lib/date-format";
+import { formatLocalDateTime } from "../../lib/date-format";
 import { useToast } from "../components/toast-provider";
 
 interface ClanRow {
@@ -33,6 +34,10 @@ interface MembershipRow {
   readonly rank: string | null;
   readonly game_accounts: GameAccountRow | null;
 }
+
+type MembershipQueryRow = Omit<MembershipRow, "game_accounts"> & {
+  readonly game_accounts: GameAccountRow | readonly GameAccountRow[] | null;
+};
 
 interface MembershipEditState {
   readonly is_active?: boolean;
@@ -102,8 +107,8 @@ interface RuleRow {
 }
 
 interface ValidationFieldCount {
-  readonly total: number;
-  readonly active: number;
+  total: number;
+  active: number;
 }
 
 interface AuditLogRow {
@@ -155,11 +160,26 @@ function buildFallbackUserDb(email: string, userId: string): string {
   return `${prefix}_${suffix}`.toLowerCase();
 }
 
+function normalizeMembershipRow(row: MembershipQueryRow): MembershipRow {
+  const gameAccount = Array.isArray(row.game_accounts)
+    ? (row.game_accounts[0] ?? null)
+    : row.game_accounts;
+  return {
+    ...row,
+    game_accounts: gameAccount ?? null,
+  };
+}
+
+function normalizeMembershipRows(rows: readonly MembershipQueryRow[] | null | undefined): readonly MembershipRow[] {
+  return (rows ?? []).map(normalizeMembershipRow);
+}
+
 /**
  * Admin UI for clan and game account management.
  */
-function AdminClient(): JSX.Element {
+function AdminClient(): ReactElement {
   const supabase = createSupabaseBrowserClient();
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { pushToast } = useToast();
@@ -418,7 +438,7 @@ function AdminClient(): JSX.Element {
     setMemberSortDirection((current) => (current === "asc" ? "desc" : "asc"));
   }
 
-  function renderMemberSortButton(label: string, key: MemberSortKey): JSX.Element {
+  function renderMemberSortButton(label: string, key: MemberSortKey): ReactElement {
     const isActive = memberSortKey === key;
     return (
       <button className="table-sort-button" type="button" onClick={() => toggleMemberSort(key)}>
@@ -448,7 +468,7 @@ function AdminClient(): JSX.Element {
     setUserSortDirection((current) => (current === "asc" ? "desc" : "asc"));
   }
 
-  function renderUserSortButton(label: string, key: UserSortKey): JSX.Element {
+  function renderUserSortButton(label: string, key: UserSortKey): ReactElement {
     const isActive = userSortKey === key;
     return (
       <button className="table-sort-button" type="button" onClick={() => toggleUserSort(key)}>
@@ -977,7 +997,7 @@ function AdminClient(): JSX.Element {
       setStatus(`Failed to load memberships: ${error.message}`);
       return;
     }
-    const membershipRows = data ?? [];
+    const membershipRows = normalizeMembershipRows(data as readonly MembershipQueryRow[] | null | undefined);
     setMemberships(membershipRows);
     const userIds = membershipRows
       .map((row) => row.game_accounts?.user_id)
@@ -1075,7 +1095,7 @@ function AdminClient(): JSX.Element {
     }
     const { data: actorData, error: actorError } = await supabase
       .from("profiles")
-      .select("id,email,display_name")
+      .select("id,email,display_name,username")
       .in("id", actorIds);
     if (actorError) {
       setStatus(`Failed to load audit actors: ${actorError.message}`);
@@ -1215,7 +1235,7 @@ function AdminClient(): JSX.Element {
       setUserStatus(`Failed to load memberships: ${membershipError.message}`);
       return;
     }
-    const membershipMap = (membershipData ?? []).reduce<Record<string, MembershipRow>>((acc, membership) => {
+    const membershipMap = normalizeMembershipRows(membershipData as readonly MembershipQueryRow[] | null | undefined).reduce<Record<string, MembershipRow>>((acc, membership) => {
       acc[membership.game_account_id] = membership;
       return acc;
     }, {});
@@ -1940,7 +1960,7 @@ function AdminClient(): JSX.Element {
         setStatus(`Failed to load memberships: ${membershipError.message}`);
         return;
       }
-      const membershipRows = membershipData ?? [];
+      const membershipRows = normalizeMembershipRows(membershipData as readonly MembershipQueryRow[] | null | undefined);
       setMemberships(membershipRows);
       const userIds = membershipRows
         .map((row) => row.game_accounts?.user_id)
@@ -2064,7 +2084,7 @@ function AdminClient(): JSX.Element {
         setUserStatus(`Failed to load memberships: ${membershipError.message}`);
         return;
       }
-      const membershipMap = (membershipData ?? []).reduce<Record<string, MembershipRow>>((acc, membership) => {
+      const membershipMap = normalizeMembershipRows(membershipData as readonly MembershipQueryRow[] | null | undefined).reduce<Record<string, MembershipRow>>((acc, membership) => {
         acc[membership.game_account_id] = membership;
         return acc;
       }, {});
@@ -2130,7 +2150,7 @@ function AdminClient(): JSX.Element {
       }
       const { data: actorData, error: actorError } = await supabase
         .from("profiles")
-        .select("id,email,display_name")
+        .select("id,email,display_name,username")
         .in("id", actorIds);
       if (actorError) {
         setStatus(`Failed to load audit actors: ${actorError.message}`);
@@ -2627,7 +2647,7 @@ function AdminClient(): JSX.Element {
   }
 
   function formatAuditTimestamp(isoValue: string): string {
-    return formatGermanDateTime(isoValue);
+    return formatLocalDateTime(isoValue, locale);
   }
 
   function toggleValidationSelect(ruleId: string): void {
@@ -2656,7 +2676,7 @@ function AdminClient(): JSX.Element {
     setValidationSortDirection((current) => (current === "asc" ? "desc" : "asc"));
   }
 
-  function renderValidationSortButton(label: string, key: "field" | "status" | "match_value"): JSX.Element {
+  function renderValidationSortButton(label: string, key: "field" | "status" | "match_value"): ReactElement {
     const isActive = validationSortKey === key;
     return (
       <button className="table-sort-button" type="button" onClick={() => toggleValidationSort(key)}>
@@ -2729,7 +2749,7 @@ function AdminClient(): JSX.Element {
   function renderCorrectionSortButton(
     label: string,
     key: "field" | "match_value" | "replacement_value" | "status",
-  ): JSX.Element {
+  ): ReactElement {
     const isActive = correctionSortKey === key;
     return (
       <button className="table-sort-button" type="button" onClick={() => toggleCorrectionSort(key)}>
@@ -5325,7 +5345,7 @@ function AdminClient(): JSX.Element {
                     <span className="text-muted">{approval.profiles?.email ?? "Unknown"}</span>
                   </div>
                   <div>
-                    <span className="text-muted">{formatGermanDateTime(approval.created_at)}</span>
+                    <span className="text-muted">{formatLocalDateTime(approval.created_at, locale)}</span>
                   </div>
                   <div className="list inline" style={{ gap: "8px", flexWrap: "nowrap" }}>
                     <button

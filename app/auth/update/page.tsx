@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../../lib/supabase/browser-client";
 
 interface PasswordFormState {
@@ -21,6 +22,7 @@ const initialPasswordState: PasswordFormState = {
 function UpdatePasswordPage(): JSX.Element {
   const [formState, setFormState] = useState<PasswordFormState>(initialPasswordState);
   const supabase = createSupabaseBrowserClient();
+  const t = useTranslations("auth.update");
 
   function updateFormState(nextState: Partial<PasswordFormState>): void {
     setFormState((currentState) => ({ ...currentState, ...nextState }));
@@ -29,16 +31,16 @@ function UpdatePasswordPage(): JSX.Element {
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (formState.password !== formState.confirmPassword) {
-      updateFormState({ status: "Passwords do not match." });
+      updateFormState({ status: t("mismatch") });
       return;
     }
-    updateFormState({ status: "Updating password..." });
+    updateFormState({ status: t("updating") });
     const { error } = await supabase.auth.updateUser({ password: formState.password });
     if (error) {
       updateFormState({ status: error.message });
       return;
     }
-    updateFormState({ status: "Password updated. You can log in now." });
+    updateFormState({ status: t("updated") });
   }
 
   return (
@@ -48,13 +50,13 @@ function UpdatePasswordPage(): JSX.Element {
           <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
           <div className="tooltip-head-inner">
             <img src="/assets/vip/batler_icons_star_4.png" alt="Update password" width={18} height={18} />
-            <h3 className="card-title">Update Password</h3>
+            <h3 className="card-title">{t("heading")}</h3>
           </div>
         </div>
         <div className="card-body">
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="password">New password</label>
+              <label htmlFor="password">{t("newPassword")}</label>
               <input
                 id="password"
                 type="password"
@@ -65,7 +67,7 @@ function UpdatePasswordPage(): JSX.Element {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm password</label>
+              <label htmlFor="confirmPassword">{t("confirmPassword")}</label>
               <input
                 id="confirmPassword"
                 type="password"
@@ -76,7 +78,7 @@ function UpdatePasswordPage(): JSX.Element {
               />
             </div>
             <button className="button primary" type="submit" style={{ width: "100%", marginTop: 8 }}>
-              Update Password
+              {t("submit")}
             </button>
             {formState.status ? <p className="text-muted" style={{ marginTop: 8 }}>{formState.status}</p> : null}
           </form>

@@ -41,8 +41,8 @@ This file is a compact context transfer for a new chat.
   - Files: `app/api/game-accounts/route.ts`, `app/api/admin/game-account-approvals/route.ts`, `app/profile/game-account-manager.tsx`
 - **Clan context selector**
   - Sidebar bottom section: native `<select>` dropdown for selecting active clan + game account (moved from navbar).
-  - Stored in `localStorage`; `ClanScopeBanner` shows current context.
-  - Files: `app/components/sidebar-shell.tsx`, `app/components/clan-scope-banner.tsx`, `app/components/use-clan-context.ts`
+  - Stored in `localStorage`; active clan/account selection is visible in the sidebar.
+  - Files: `app/components/sidebar-shell.tsx`, `app/components/use-clan-context.ts`
 - **Admin gating**
   - Admin routes protected by `proxy.ts` with `/not-authorized` fallback.
   - Admin toggle + safeguard to keep at least one admin.
@@ -73,10 +73,30 @@ This file is a compact context transfer for a new chat.
   - Correction rules applied on save; validation uses corrected values.
   - Combobox inputs for player/source/chest fields with suggestions from validation rules.
   - `app/data-table/data-table-client.tsx`
-- **News + Events (DB-backed, clan-scoped)**
+- **Announcements (formerly "News") + Events (DB-backed, clan-scoped)**
+  - Renamed from "news" to "announcements" throughout the app.
   - Create/edit/delete posts and events with collapsible forms.
-  - News: pinned-first sorting, tag filter, full-width article cards.
-  - Events: past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers.
+  - Announcements: pinned-first sorting, full-width article cards, author display.
+    - "Beitrag erstellen" button placed in content area (not top bar), guarded by `canManage`.
+    - Server-side pagination with page size selector, page number input, and prev/next buttons (matching data-table pattern).
+    - Filters section below articles: search (title/content), type filter (news/announcement/all), tag filter, date range picker.
+  - Events:
+    - Past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers.
+    - Date + time model with optional duration (hours + minutes) or "open-ended" (default).
+    - Optional organizer field (free text or game account from dropdown).
+    - Recurring events: daily, weekly, biweekly, monthly with optional end date or "ongoing".
+    - Single DB row per recurring event; occurrences computed client-side for display.
+    - Upcoming list de-duplicates recurring events (shows next occurrence only).
+    - Author display on events and announcements (resolved client-side from `created_by` via profiles).
+    - Role-based access: only admins, moderators, and editors can create/edit/delete events and announcements.
+    - Confirmation modals for event deletion and template deletion (two-step for templates).
+  - Event Templates:
+    - Unified template system — all templates are DB-stored, editable, and deletable (no built-in/prebuilt distinction).
+    - Templates have the same fields as events: title, description, location, duration/open-ended, organizer, recurrence.
+    - Title is used as the template name (no separate "name" field).
+    - Save-as-template: one-click from event form or past event cards (auto-fills from form values).
+    - Templates don't require an author (`created_by` nullable).
+    - Manage templates panel with inline edit form matching the event form layout.
   - Loading states on both pages.
   - Files: `app/news/news-client.tsx`, `app/events/events-client.tsx`
 - **Charts & Stats**
@@ -148,6 +168,21 @@ This file is a compact context transfer for a new chat.
 - Added row numbers to tables and standardized pagination placement.
 - **Clan Management fixes**: clan switching now works correctly; deleting a game account refreshes the membership list; edit state is cleared when switching clans; race condition guards added for concurrent fetches.
 - **Navigation**: Messages link moved from sidebar to user menu dropdown. Notification bell with unread badge replaces the old sidebar unread count.
+- **UI Cleanup** (Feb 2026):
+  - Removed `QuickActions` top-bar buttons ("CSV hochladen", "Regeln überprüfen", "Veranstaltungskalender") from all pages.
+  - Removed `ClanScopeBanner` ("Anzeige THC username") from all pages.
+  - Deleted unused component files: `app/components/quick-actions.tsx`, `app/components/clan-scope-banner.tsx`.
+  - Added decorative gold divider line (gradient pseudo-element) below `.top-bar` to close the nav-to-content gap.
+  - Reduced `.hero-banner` margin-top to 0 for seamless layout.
+  - Global `option` element styling ensures dark theme for any remaining native `<select>` dropdowns.
+- **Announcements page rework** (Feb 2026):
+  - "Beitrag erstellen" button moved from top bar to content area, maintaining role-based guard.
+  - Server-side pagination added (page size selector, page/total display, page jump, prev/next buttons).
+  - Filters section moved below article list and expanded: search (title/content), type filter, tag filter, date range picker.
+- **Messages page fixes** (Feb 2026):
+  - Replaced native `<select>` dropdowns (compose recipient, broadcast clan) with themed `RadixSelect` components.
+  - Compose recipient dropdown includes search support.
+  - Added `max-height` constraint on messages layout and panels for proper inbox/thread scrolling.
 - **Linting**
   - ESLint configured with Next.js flat config.
   - Run `npx eslint .`
@@ -191,9 +226,19 @@ Run these if the base SQL has not been run or if upgrades were applied increment
 6. **Messaging system**
    - Run `Documentation/migrations/messages.sql`.
    - Creates `messages` table with RLS policies, indexes, and type constraints.
-7. **Notification system** (NEW)
+7. **Notification system**
    - Run `Documentation/migrations/notifications.sql`.
    - Creates `notifications` and `user_notification_settings` tables with RLS policies and indexes.
+8. **Event recurrence**
+   - Run `Documentation/migrations/event_recurrence.sql`.
+   - Adds `recurrence_type`, `recurrence_end_date` columns to events.
+9. **Event organizer**
+   - Run `Documentation/migrations/event_organizer.sql`.
+   - Adds `organizer` column to events.
+10. **Event templates**
+    - Run `Documentation/migrations/event_templates.sql`.
+    - Creates `event_templates` table with all columns (title, description, location, duration, is_open_ended, organizer, recurrence_type, recurrence_end_date), RLS policies, and indexes.
+    - `created_by` is nullable (templates don't require an author). Content managers (owner/admin/moderator/editor) can manage templates.
 
 ## Required Env
 
@@ -209,15 +254,23 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 1. **Dashboard widgets**
    - Add personal/clan stats summary cards to the member dashboard.
-2. **i18n**
-   - Add German/English translations for UI strings.
+2. **Website improvement plan**
+   - See `Documentation/plans/2026-02-07-website-improvement-plan.md` for SEO, security, accessibility, and legal compliance improvements.
 
 ## Known Behaviors
 
-- Clan context is stored in `localStorage` and used by news/events/data table.
-- Messages are global (not clan-scoped).
+- Clan context is stored in `localStorage` and used by announcements/events/data table.
+- Messages are global (not clan-scoped). Compose recipient and broadcast clan dropdowns use themed `RadixSelect` (with search on recipient).
 - Date pickers display dd.mm.yyyy, stored as YYYY‑MM‑DD. Datetime pickers (events) display dd.mm.yyyy, HH:mm.
 - Charts use Recharts; personal score relies on case-insensitive match between `chest_entries.player` and `game_accounts.game_username`.
+- Event templates mirror the event data model exactly (same fields). Template "name" is always the same as title.
+- Recurring events store a single DB row; occurrences are expanded client-side for calendar/upcoming display.
+- `recurrence_parent_id` column on events is deprecated and dropped in the v2 migration. Code no longer references it.
+- Author display on events/announcements uses client-side profile resolution (separate query to `profiles` table) rather than FK joins, due to missing FK constraints in the schema.
+- i18n uses `next-intl` with `messages/en.json` and `messages/de.json`.
+- Announcements page uses server-side pagination with Supabase `.range()` and `{ count: "exact" }`.
+- A decorative gold gradient divider line sits below the top bar on all pages.
+- Global `option` CSS ensures dark-themed native `<select>` dropdown menus where RadixSelect is not used.
 
 ## Critical SQL updates to run (if not yet run)
 

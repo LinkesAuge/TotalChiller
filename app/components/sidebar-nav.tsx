@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import getIsAdminAccess from "../../lib/supabase/admin-access";
 import { useSidebar } from "./sidebar-context";
@@ -29,7 +30,7 @@ const ICONS: Record<string, string> = {
 
 interface NavItem {
   readonly href: string;
-  readonly label: string;
+  readonly labelKey: string;
   readonly iconKey: string;
   readonly tab?: "clans" | "users" | "validation" | "corrections" | "logs" | "approvals";
   readonly vipIcon?: string;
@@ -45,29 +46,29 @@ interface NavSection {
 const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Main",
-    groupLabel: "Navigation",
+    groupLabel: "main",
     items: [
-      { href: "/home", label: "Home", iconKey: "home" },
-      { href: "/", label: "Dashboard", iconKey: "dashboard" },
-      { href: "/news", label: "News", iconKey: "news" },
-      { href: "/charts", label: "Charts", iconKey: "charts" },
-      { href: "/events", label: "Events", iconKey: "events" },
-      { href: "/messages", label: "Messages", iconKey: "messages" },
+      { href: "/home", labelKey: "home", iconKey: "home" },
+      { href: "/", labelKey: "dashboard", iconKey: "dashboard" },
+      { href: "/news", labelKey: "announcements", iconKey: "news" },
+      { href: "/charts", labelKey: "charts", iconKey: "charts" },
+      { href: "/events", labelKey: "events", iconKey: "events" },
+      { href: "/messages", labelKey: "messages", iconKey: "messages" },
     ],
   },
   {
     title: "Admin",
-    groupLabel: "Command",
+    groupLabel: "administration",
     adminOnly: true,
     items: [
-      { href: "/admin?tab=clans", label: "Clan Management", iconKey: "clanManagement", tab: "clans" },
-      { href: "/admin?tab=approvals", label: "Approvals", iconKey: "approvals", tab: "approvals" },
-      { href: "/admin?tab=users", label: "Users", iconKey: "users", tab: "users" },
-      { href: "/admin?tab=validation", label: "Validation", iconKey: "validation", tab: "validation" },
-      { href: "/admin?tab=corrections", label: "Corrections", iconKey: "corrections", tab: "corrections" },
-      { href: "/admin?tab=logs", label: "Audit Logs", iconKey: "auditLogs", tab: "logs" },
-      { href: "/admin/data-import", label: "Data Import", iconKey: "dataImport" },
-      { href: "/admin/data-table", label: "Chest DB", iconKey: "admin", vipIcon: "/assets/vip/icons_chest_1.png" },
+      { href: "/admin?tab=clans", labelKey: "clanManagement", iconKey: "clanManagement", tab: "clans" },
+      { href: "/admin?tab=approvals", labelKey: "approvals", iconKey: "approvals", tab: "approvals" },
+      { href: "/admin?tab=users", labelKey: "users", iconKey: "users", tab: "users" },
+      { href: "/admin?tab=validation", labelKey: "validation", iconKey: "validation", tab: "validation" },
+      { href: "/admin?tab=corrections", labelKey: "corrections", iconKey: "corrections", tab: "corrections" },
+      { href: "/admin?tab=logs", labelKey: "auditLogs", iconKey: "auditLogs", tab: "logs" },
+      { href: "/admin/data-import", labelKey: "dataImport", iconKey: "dataImport" },
+      { href: "/admin/data-table", labelKey: "chestDb", iconKey: "admin", vipIcon: "/assets/vip/icons_chest_1.png" },
     ],
   },
 ];
@@ -123,6 +124,7 @@ function SidebarNav(): JSX.Element {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { isOpen } = useSidebar();
+  const t = useTranslations("nav");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -166,18 +168,18 @@ function SidebarNav(): JSX.Element {
     <nav className="nav">
       {!isAuthenticated ? (
         <div className="nav-group">
-          {isOpen && <div className="nav-group-title">Navigation</div>}
+          {isOpen && <div className="nav-group-title">{t("main")}</div>}
           <Link
             className={pathname === "/home" ? "active" : ""}
             href="/home"
-            data-tip={!isOpen ? "Home" : undefined}
+            data-tip={!isOpen ? t("home") : undefined}
             style={!isOpen ? { justifyContent: "center", padding: "8px 0" } : undefined}
           >
             <div className="nav-icon-glow" />
             <span className="nav-icon" style={{ color: pathname === "/home" ? "var(--color-gold-2)" : undefined }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={ICONS.home} /></svg>
             </span>
-            {isOpen && <span className="nav-label">Home</span>}
+            {isOpen && <span className="nav-label">{t("home")}</span>}
           </Link>
         </div>
       ) : (
@@ -190,15 +192,16 @@ function SidebarNav(): JSX.Element {
             return (
               <div className="nav-group" key={section.title}>
                 {sectionIndex > 0 && <div className="nav-group-divider" />}
-                {isOpen && <div className="nav-group-title">{section.groupLabel}</div>}
+                {isOpen && <div className="nav-group-title">{t(section.groupLabel)}</div>}
                 {section.items.map((item) => {
                   const isActive = isNavItemActive(pathname, searchParams.get("tab"), item);
+                  const label = t(item.labelKey);
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={`${isActive ? "active" : ""}${!isOpen ? " collapsed" : ""}`}
-                      data-tip={!isOpen ? item.label : undefined}
+                      data-tip={!isOpen ? label : undefined}
                       style={!isOpen ? { justifyContent: "center", padding: "8px 0" } : undefined}
                     >
                       {/* Arrow active background */}
@@ -218,7 +221,7 @@ function SidebarNav(): JSX.Element {
                       {/* Label */}
                       {isOpen && (
                         <span className="nav-label">
-                          {item.label}
+                          {label}
                         </span>
                       )}
                     </Link>

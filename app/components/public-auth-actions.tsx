@@ -34,7 +34,7 @@
        {!isAuthenticated ? (
          <>
            <a className="button" href="/auth/login">
-             Sign In
+             Sign In to Your Account
            </a>
            <a className="button primary" href="/auth/register">
              Join The Chillers

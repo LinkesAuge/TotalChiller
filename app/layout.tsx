@@ -48,6 +48,7 @@ function RootLayout({ children }: RootLayoutProps): JSX.Element {
   return (
     <html lang="en">
       <head>
+        <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="preload" href="/assets/vip/back_left.png" as="image" />
         <link rel="preload" href="/assets/ui/components_shield_4.png" as="image" />
         <link rel="preload" href="/assets/vip/components_decor_7.png" as="image" />
@@ -61,7 +62,7 @@ function RootLayout({ children }: RootLayoutProps): JSX.Element {
                 <footer className="app-footer">
                   <img
                     src="/assets/vip/components_decor_5.png"
-                    alt=""
+                    alt="Ornamental footer divider"
                     className="app-footer-divider"
                     width={800}
                     height={16}
@@ -72,9 +73,11 @@ function RootLayout({ children }: RootLayoutProps): JSX.Element {
                     Platform
                   </span>
                   <div className="app-footer-links">
-                    <a href="/about">About</a>
+                    <a href="/home">Home</a>
                     <span>&bull;</span>
-                    <a href="/contact">Contact</a>
+                    <a href="/about">About The Chillers</a>
+                    <span>&bull;</span>
+                    <a href="/contact">Contact Us</a>
                     <span>&bull;</span>
                     <a href="/privacy-policy">Privacy Policy</a>
                   </div>

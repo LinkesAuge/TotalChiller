@@ -15,7 +15,7 @@ function AboutPage(): JSX.Element {
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <img src="/assets/vip/header_3.png" alt="Ornate page header" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">TotalChiller &bull; Community</div>
@@ -34,15 +34,27 @@ function AboutPage(): JSX.Element {
               </div>
             </div>
             <div className="card-body" style={{ lineHeight: 1.7, fontSize: "0.9rem" }}>
+              <p style={{ fontSize: "0.78rem", color: "var(--color-text-muted)", marginBottom: 8 }}>
+                Written by <strong>The Chillers Leadership Team</strong>
+              </p>
               <p>
-                The Chillers are a dedicated Total Battle clan that believes in coordinated play,
-                data-driven decision making, and a welcoming community. TotalChiller is our custom-built
-                platform that helps us stay organized, track performance, and communicate effectively.
+                The Chillers are a dedicated Total Battle alliance that believes in coordinated play,
+                informed decision making, and a welcoming community. TotalChiller is our custom-built
+                platform that helps us stay organized, track performance, and communicate effectively
+                across every division of our growing community.
               </p>
               <p style={{ marginTop: 12 }}>
-                We created this platform because off-the-shelf tools didn't meet the specific needs of
-                a competitive Total Battle clan. From real-time chest score tracking to automated event
-                coordination, every feature was designed by clan members, for clan members.
+                We created this platform because off-the-shelf tools could not meet the specific needs of
+                a competitive Total Battle group. From real-time chest score tracking to automated event
+                coordination, every feature was designed by members, for members. Our goal is to remove
+                the friction of managing a large alliance so that leaders can focus on strategy and
+                players can focus on contributing to collective success.
+              </p>
+              <p style={{ marginTop: 12 }}>
+                Whether you are a seasoned veteran or a newcomer exploring competitive gameplay for the
+                first time, TotalChiller provides the tools and resources you need to thrive. We believe
+                that transparency, shared goals, and mutual respect form the foundation of a strong
+                gaming community, and every feature on this platform reflects those principles.
               </p>
             </div>
           </section>
@@ -107,19 +119,22 @@ function AboutPage(): JSX.Element {
           <section className="card" style={{ gridColumn: "1 / -1" }}>
             <div className="card-header">
               <div>
-                <div className="card-title">Built With</div>
-                <div className="card-subtitle">Our technology stack</div>
+                <div className="card-title">Built With Modern Technology</div>
+                <div className="card-subtitle">Our technology stack and approach</div>
               </div>
             </div>
             <div className="card-body" style={{ lineHeight: 1.7, fontSize: "0.9rem" }}>
               <p>
                 TotalChiller is built with <strong>Next.js</strong> and <strong>TypeScript</strong> on the frontend,
-                powered by <strong>Supabase</strong> for authentication, real-time data, and PostgreSQL storage.
-                The platform is deployed on <strong>Vercel</strong> for optimal performance and global availability.
+                powered by <strong>Supabase</strong> for authentication, real-time updates, and PostgreSQL storage.
+                The platform is deployed on <strong>Vercel</strong> for optimal performance and global availability,
+                ensuring fast load times regardless of where our members are located.
               </p>
               <p style={{ marginTop: 12 }}>
                 We follow modern web best practices including responsive design, accessibility standards (WCAG),
                 progressive enhancement, and security-first architecture with row-level security policies.
+                Every page is optimized for search engines, uses semantic HTML, and meets accessibility
+                guidelines to ensure an inclusive experience for all users.
               </p>
             </div>
           </section>
@@ -127,11 +142,13 @@ function AboutPage(): JSX.Element {
           <section className="card" style={{ gridColumn: "1 / -1", textAlign: "center" }}>
             <div className="card-body">
               <p style={{ fontSize: "0.9rem", marginBottom: 16 }}>
-                Interested in joining The Chillers? We're always looking for dedicated players.
+                Interested in joining The Chillers? We are always looking for dedicated players
+                who value teamwork and want to be part of an organized, competitive alliance.
               </p>
               <div className="list inline" style={{ justifyContent: "center" }}>
-                <Link className="button primary" href="/auth/register">Apply Now</Link>
-                <Link className="button" href="/contact">Contact Us</Link>
+                <Link className="button primary" href="/auth/register">Apply for Membership</Link>
+                <Link className="button" href="/contact">Get in Touch</Link>
+                <Link className="button" href="/home">Visit the Home Page</Link>
               </div>
             </div>
           </section>

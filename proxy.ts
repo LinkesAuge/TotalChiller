@@ -28,7 +28,14 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/not-authorized") ||
     pathname.startsWith("/redesign") ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon.ico")
+    pathname.startsWith("/favicon.ico") ||
+    pathname.startsWith("/sitemap") ||
+    pathname.startsWith("/robots") ||
+    pathname.startsWith("/assets") ||
+    pathname.endsWith(".xml") ||
+    pathname.endsWith(".txt") ||
+    pathname.endsWith(".json") ||
+    pathname.endsWith(".ico")
   );
 }
 

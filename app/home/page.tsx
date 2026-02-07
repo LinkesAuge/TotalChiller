@@ -16,7 +16,7 @@ function HomePage(): JSX.Element {
     <>
       {/* Ornate top bar */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <img src="/assets/vip/header_3.png" alt="Ornate page header" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
             <h1 className="top-bar-title">The Chillers Community</h1>
@@ -31,7 +31,7 @@ function HomePage(): JSX.Element {
       <div className="hero-banner">
         <div className="hero-overlay" />
         <img
-          src="/assets/banners/banner_gold_dragon.png"
+          src="/assets/banners/banner_gold_dragon.webp"
           alt="The Chillers clan hero banner featuring a golden dragon"
           className="hero-bg"
           width={1200}
@@ -41,7 +41,7 @@ function HomePage(): JSX.Element {
         />
         <img
           src="/assets/vip/decor_light_1.png"
-          alt=""
+          alt="Ambient hero light effect"
           className="hero-light"
           width={400}
           height={400}
@@ -50,10 +50,11 @@ function HomePage(): JSX.Element {
         <div className="hero-content">
           <img
             src="/assets/vip/components_decor_6.png"
-            alt=""
+            alt="Ornamental horizontal rule"
             className="hero-decor"
             width={300}
             height={20}
+            loading="lazy"
           />
           <h2 className="hero-title">The Chillers</h2>
           <p className="hero-subtitle">
@@ -61,10 +62,11 @@ function HomePage(): JSX.Element {
           </p>
           <img
             src="/assets/vip/components_decor_6.png"
-            alt=""
+            alt="Ornamental horizontal rule"
             className="hero-decor flipped"
             width={300}
             height={20}
+            loading="lazy"
           />
         </div>
       </div>
@@ -76,7 +78,7 @@ function HomePage(): JSX.Element {
             <div className="tooltip-head">
               <img
                 src="/assets/vip/back_tooltip_2.png"
-                alt=""
+                alt="Card header decorative background"
                 className="tooltip-head-bg"
                 width={400}
                 height={44}
@@ -96,17 +98,17 @@ function HomePage(): JSX.Element {
             </div>
             <div className="card-body">
               <p style={{ margin: 0 }}>
-                The Chillers are a focused Total Battle clan built around
-                teamwork, planning, and data-driven play. Our mission is to create a
+                The Chillers are a focused Total Battle alliance built around
+                teamwork, planning, and informed play. Our mission is to create a
                 community where every member contributes to collective success through
-                coordination, strategy, and active participation in clan events.
+                coordination, strategy, and active participation in group events.
               </p>
               <p style={{ margin: "12px 0 0" }}>
-                Founded on the principle that organized clans outperform disorganized ones,
+                Founded on the principle that organized teams outperform disorganized ones,
                 we built TotalChiller as a custom platform to track chest scores, coordinate
                 war preparations, manage event calendars, and keep every member informed
                 with real-time news and announcements. Whether you are a seasoned veteran
-                or a new recruit, our tools help you contribute meaningfully to the clan.
+                or a new recruit, our tools help you contribute meaningfully to the group.
               </p>
             </div>
           </section>
@@ -123,7 +125,7 @@ function HomePage(): JSX.Element {
               <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
                 We offer a structured, supportive environment for Total Battle players
                 who want to compete at a higher level while enjoying the social aspect
-                of clan gameplay.
+                of alliance gameplay.
               </p>
               <div className="list">
                 <div className="list-item">
@@ -186,16 +188,16 @@ function HomePage(): JSX.Element {
             <div className="card-body">
               <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
                 TotalChiller is a purpose-built community hub that brings together everything
-                our clan needs in one place. Members can upload chest report data, which is
+                our members need in one place. Players can upload chest report information, which is
                 automatically validated and stored for analysis. The platform generates
-                performance charts showing individual scores, clan trends, and top player
+                performance charts showing individual scores, alliance trends, and top player
                 leaderboards. Our event calendar keeps everyone aligned on war schedules,
-                training sessions, and guild meetings. Clan leaders use the admin panel for
-                user management, data validation rules, and approval workflows.
+                training sessions, and guild meetings. Leaders use the admin panel for
+                user management, validation rules, and approval workflows.
               </p>
               <p style={{ margin: "12px 0 0", fontSize: "0.88rem" }}>
-                All data is secured with row-level security policies, ensuring members
-                only access information relevant to their clan. The platform is built with
+                All records are secured with row-level security policies, ensuring members
+                only access information relevant to their division. The platform is built with
                 modern web technologies including Next.js, TypeScript, and Supabase,
                 delivering a fast, reliable experience on any device.
               </p>

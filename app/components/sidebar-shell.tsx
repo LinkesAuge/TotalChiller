@@ -169,7 +169,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
         {/* Steel panel texture */}
         <img
           src="/assets/vip/back_left.png"
-          alt=""
+          alt="Sidebar steel panel texture"
           className="sidebar-texture"
           width={236}
           height={900}
@@ -223,7 +223,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
         <div className="sidebar-divider">
           <img
             src="/assets/vip/components_decor_7.png"
-            alt=""
+            alt="Gold scepter divider"
             width={200}
             height={12}
             style={{ width: isOpen ? "85%" : 38 }}
@@ -239,9 +239,10 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
         <div className="sidebar-bottom">
           <img
             src="/assets/vip/components_decor_7.png"
-            alt=""
+            alt="Gold scepter divider"
             width={200}
             height={12}
+            loading="lazy"
             style={{
               width: isOpen ? "85%" : 38,
               height: "auto",

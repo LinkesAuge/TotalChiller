@@ -66,6 +66,13 @@ function RootLayout({ children }: RootLayoutProps): JSX.Element {
                     The Chillers &bull; Community Hub &bull; Total Battle Clan
                     Platform
                   </span>
+                  <div className="app-footer-links">
+                    <a href="/about">About</a>
+                    <span>&bull;</span>
+                    <a href="/contact">Contact</a>
+                    <span>&bull;</span>
+                    <a href="/privacy-policy">Privacy Policy</a>
+                  </div>
                   <div className="app-footer-sub">
                     Built with care for the community
                   </div>

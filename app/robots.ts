@@ -9,7 +9,7 @@ function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/home", "/auth/login", "/auth/register", "/auth/forgot", "/news"],
+        allow: ["/home", "/about", "/contact", "/privacy-policy", "/auth/login", "/auth/register", "/auth/forgot", "/news"],
         disallow: [
           "/admin",
           "/api",

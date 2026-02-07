@@ -1,12 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-
-@font-face {
-  font-family: "Fontin Sans";
-  src: url("/fonts/fontin_sans_cr_sc_regular.otf") format("opentype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
   /* Sidebar */
@@ -14,7 +6,7 @@
   --sidebar-collapsed: 60px;
 
   /* Fonts */
-  --font-heading: "Fontin Sans", serif;
+  --font-heading: "Cinzel", serif;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   /* Core colors */
   --color-bg: #080d14;
@@ -512,6 +504,19 @@ body {
   color: var(--color-gold-2);
   margin: 0;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+.top-bar-inner > :first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.top-bar-inner > :last-child {
+  min-width: 0;
+  flex: 0 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 /* Legacy .header removed — use .top-bar instead */
@@ -1069,6 +1074,25 @@ body {
   font-size: 0.78rem;
 }
 
+.app-footer-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 0.72rem;
+}
+.app-footer-links a {
+  color: var(--color-text-2);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.app-footer-links a:hover {
+  color: var(--color-gold);
+}
+.app-footer-links span {
+  color: var(--color-parchment-dark);
+  font-size: 0.6rem;
+}
 .app-footer-sub {
   font-size: 0.65rem;
   color: var(--color-parchment-dark);
@@ -1183,7 +1207,7 @@ body {
   grid-template-columns: 60px 120px 1fr 1fr 1fr 100px 1.3fr;
 }
 
-.table.data-table input,
+.table.data-table input:not([type="checkbox"]),
 .table.data-table .select-trigger,
 .table.data-table .date-picker-input {
   width: 100%;
@@ -1364,7 +1388,7 @@ body {
   min-width: 0;
 }
 
-.table.users input,
+.table.users input:not([type="checkbox"]),
 .table.users .select-trigger,
 .table.users .editable-button {
   width: 100%;
@@ -1383,7 +1407,7 @@ body {
 }
 
 .table.members .select-trigger,
-.table.members input {
+.table.members input:not([type="checkbox"]) {
   background-color: rgba(8, 18, 28, 0.95);
   border-color: rgba(201, 163, 74, 0.35);
   color: var(--color-text);
@@ -1399,7 +1423,7 @@ body {
 }
 
 .table.members .select-trigger.is-edited,
-.table.members input.is-edited {
+.table.members input:not([type="checkbox"]).is-edited {
   border-color: var(--color-gold);
   box-shadow: 0 0 0 2px rgba(201, 163, 74, 0.2);
   background-color: rgba(20, 44, 65, 0.85);
@@ -1407,7 +1431,7 @@ body {
 
 .table.members .select-trigger:focus-visible,
 .table.members .select-trigger[data-state="open"],
-.table.members input:focus {
+.table.members input:not([type="checkbox"]):focus {
   border-color: var(--color-gold);
   box-shadow: 0 0 0 2px rgba(201, 163, 74, 0.25);
 }
@@ -1461,7 +1485,7 @@ label {
   font-weight: 600;
 }
 
-input,
+input:not([type="checkbox"]),
 textarea,
 select {
   background: linear-gradient(180deg, rgba(14, 24, 38, 0.85), rgba(8, 16, 26, 0.9));
@@ -1995,9 +2019,9 @@ select:disabled,
   letter-spacing: 0.06em;
 }
 
-.admin-members-filters input,
+.admin-members-filters input:not([type="checkbox"]),
 .admin-members-filters .select-trigger,
-.filter-bar input,
+.filter-bar input:not([type="checkbox"]),
 .filter-bar .select-trigger {
   padding: 6px 0 6px 10px;
   font-size: 0.8rem;
@@ -2082,17 +2106,79 @@ select:disabled,
   .panel {
     grid-column: span 1;
   }
+  .event-calendar-layout {
+    grid-template-columns: 1fr;
+  }
+  .calendar-month-label {
+    min-width: 148px;
+  }
 }
 
 @media (max-width: 900px) {
   .sidebar {
     width: var(--sidebar-collapsed) !important;
   }
+  .sidebar-header {
+    justify-content: center;
+    padding: 14px 8px 10px !important;
+  }
+  .sidebar-title,
+  .sidebar-subtitle,
+  .sidebar-toggle span,
+  .sidebar .nav-group-title,
+  .sidebar .nav-label,
+  .sidebar-clan-select,
+  .sidebar-user .sidebar-user-name,
+  .sidebar-user .sidebar-user-status,
+  .sidebar .nav-badge.expanded,
+  .sidebar .nav a::after {
+    display: none !important;
+  }
+  .sidebar-toggle {
+    justify-content: center !important;
+  }
+  .nav a {
+    justify-content: center !important;
+    padding: 8px 0 !important;
+  }
+  .sidebar-user {
+    justify-content: center;
+  }
   .content {
     margin-left: var(--sidebar-collapsed) !important;
   }
   .content-inner {
     padding: 16px;
+    overflow-x: hidden;
+  }
+  .top-bar-inner {
+    padding: 10px 14px;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .top-bar-inner > :last-child {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px !important;
+  }
+  .top-bar-breadcrumb {
+    font-size: 0.62rem;
+  }
+  .top-bar-title {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+  .user-menu__summary {
+    padding: 6px 8px;
+  }
+  .user-menu__summary .text-muted {
+    display: none;
+  }
+  .notification-bell__panel,
+  .user-menu__panel {
+    width: min(92vw, 360px);
+    min-width: min(92vw, 360px);
   }
   .table header,
   .table .row {
@@ -2106,6 +2192,17 @@ select:disabled,
   .table.data-table header,
   .table.data-table .row {
     grid-template-columns: 70px 100px 1fr 1fr 1fr 70px 1.3fr 140px;
+  }
+  .quick-actions-bar {
+    padding: 12px 16px 0;
+    gap: 8px;
+  }
+  .action-btn {
+    min-height: 42px;
+  }
+  .calendar-day-cell {
+    min-height: 62px;
+    padding: 7px 6px 5px;
   }
 }
 
@@ -2619,9 +2716,20 @@ select:disabled,
 
 /* ─── Checkbox — Sanctum styled ─── */
 input[type="checkbox"] {
+  --checkbox-size: 15px;
+  --checkbox-check-width: 5px;
+  --checkbox-check-height: 9px;
+  -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  box-sizing: border-box;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  min-width: var(--checkbox-size);
+  min-height: var(--checkbox-size);
+  max-width: var(--checkbox-size);
+  max-height: var(--checkbox-size);
+  margin: 0;
+  padding: 0;
   border: 1.5px solid rgba(201, 163, 74, 0.5);
   border-radius: 3px;
   background: rgba(10, 18, 28, 0.7);
@@ -2629,6 +2737,10 @@ input[type="checkbox"] {
   transition: all 0.15s;
   position: relative;
   flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  vertical-align: middle;
+  line-height: 1;
 }
 
 input[type="checkbox"]:hover {
@@ -2644,18 +2756,32 @@ input[type="checkbox"]:checked {
 input[type="checkbox"]:checked::after {
   content: "";
   position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 5px;
-  height: 9px;
+  left: 50%;
+  top: 46%;
+  width: var(--checkbox-check-width);
+  height: var(--checkbox-check-height);
   border: solid var(--color-gold-2);
   border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(201, 163, 74, 0.28);
 }
 
 input[type="checkbox"]:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.table header input[type="checkbox"],
+.table .row input[type="checkbox"] {
+  --checkbox-size: 14px;
+  --checkbox-check-width: 5px;
+  --checkbox-check-height: 9px;
+  margin-inline: auto;
+  padding: 0 !important;
 }
 
 /* ─── Sanctum Utility Classes ─── */
@@ -2809,6 +2935,13 @@ input[type="checkbox"]:disabled {
 }
 
 /* Quick action buttons */
+.quick-actions-bar {
+  padding: 14px 24px 0;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .action-btn {
   position: relative;
   display: flex;
@@ -2822,6 +2955,7 @@ input[type="checkbox"]:disabled {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
   overflow: hidden;
   transition: all 0.15s ease;
 }
@@ -2903,6 +3037,183 @@ input[type="checkbox"]:disabled {
 .tab-group-btn.active {
   background: rgba(201, 163, 74, 0.15);
   color: var(--color-gold-2);
+}
+
+/* Events calendar overview */
+.event-calendar-card {
+  overflow: hidden;
+}
+
+.event-calendar-body {
+  position: relative;
+  padding: 12px 14px 14px;
+}
+
+.event-calendar-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.event-calendar-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.calendar-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-month-label {
+  min-width: 172px;
+  text-align: center;
+  font-family: var(--font-heading);
+  color: var(--color-gold-2);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.event-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--color-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: 4px;
+}
+
+.calendar-day-cell {
+  min-height: 76px;
+  border-radius: 10px;
+  border: 1px solid rgba(201, 163, 74, 0.18);
+  background: linear-gradient(180deg, rgba(11, 25, 37, 0.85), rgba(8, 19, 30, 0.9));
+  color: var(--color-text);
+  text-align: left;
+  padding: 8px 8px 6px;
+  position: relative;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.calendar-day-cell:hover {
+  border-color: rgba(201, 163, 74, 0.45);
+  box-shadow: 0 0 0 1px rgba(201, 163, 74, 0.22);
+}
+
+.calendar-day-cell.muted {
+  opacity: 0.5;
+}
+
+.calendar-day-cell.selected {
+  border-color: rgba(201, 163, 74, 0.75);
+  box-shadow: 0 0 0 2px rgba(201, 163, 74, 0.18);
+}
+
+.calendar-day-cell.today .calendar-day-number {
+  color: var(--color-gold-2);
+}
+
+.calendar-day-number {
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.calendar-day-count {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(201, 163, 74, 0.17);
+  border: 1px solid rgba(201, 163, 74, 0.5);
+  color: var(--color-gold-2);
+  font-size: 0.66rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.calendar-day-dots {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.calendar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+.calendar-day-panel {
+  border: 1px solid rgba(201, 163, 74, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(14, 30, 45, 0.82), rgba(10, 21, 33, 0.92));
+}
+
+.calendar-day-events {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.calendar-day-event {
+  border: 1px solid rgba(201, 163, 74, 0.2);
+  border-radius: 9px;
+  padding: 10px;
+  background: rgba(7, 17, 27, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.calendar-day-event-title {
+  color: var(--color-gold-2);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.calendar-day-event-time {
+  color: var(--color-text);
+  font-size: 0.76rem;
+}
+
+.calendar-day-event-location {
+  color: var(--color-text-2);
+  font-size: 0.74rem;
 }
 
 /* Clan selector in sidebar */

@@ -83,14 +83,13 @@ function LanguageSelector({ compact = false }: LanguageSelectorProps): JSX.Eleme
 
   return (
     <div className="language-selector">
-      <label htmlFor="language-select" className="sr-only">
+      <label htmlFor="language-select" className="sidebar-label" style={{ fontSize: "0.7rem", marginBottom: 2 }}>
         {t("label")}
       </label>
       <select
         id="language-select"
         value={currentLocale}
         onChange={handleChange}
-        aria-label={t("label")}
         className="language-selector__select"
       >
         {routing.locales.map((locale) => (

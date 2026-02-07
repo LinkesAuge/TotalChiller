@@ -594,6 +594,7 @@ body {
 /* Top bar — ornate gold header */
 .top-bar {
   position: relative;
+  z-index: 400;
 }
 
 .top-bar::after {
@@ -2547,7 +2548,7 @@ select:disabled,
   align-items: center;
   gap: 10px;
   position: relative;
-  z-index: 200;
+  z-index: 500;
 }
 
 /* ─── Notification Bell ─── */

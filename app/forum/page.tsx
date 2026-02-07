@@ -3,7 +3,7 @@ import ForumClient from "./forum-client";
 
 export const metadata: Metadata = {
   title: "Forum",
-  description: "Community discussion forum for The Chillers clan.",
+  description: "Community discussion forum for [THC] Chiller & Killer clan.",
 };
 
 /**

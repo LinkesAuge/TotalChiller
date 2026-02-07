@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server";
 export const metadata: Metadata = {
   title: "Privacy Policy & Data Protection",
   description:
-    "TotalChiller privacy policy — learn how we collect, use, and protect your personal data within The Chillers Total Battle community platform.",
+    "TotalChiller privacy policy — learn how we collect, use, and protect your personal data within [THC] Chiller & Killer Total Battle community platform.",
   alternates: { canonical: "/privacy-policy" },
 };
 

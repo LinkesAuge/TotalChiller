@@ -3,9 +3,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
-  title: "About The Chillers",
+  title: "About [THC] Chiller & Killer",
   description:
-    "Learn about The Chillers — a competitive Total Battle clan focused on teamwork, data-driven strategy, and community building.",
+    "Learn about [THC] Chiller & Killer — a competitive Total Battle clan focused on teamwork, data-driven strategy, and community building.",
   alternates: { canonical: "/about" },
 };
 

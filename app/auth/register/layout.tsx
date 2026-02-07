@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export const metadata: Metadata = {
   title: "Create Your Account",
   description:
-    "Create a TotalChiller account to join The Chillers Total Battle clan. Access chest tracking, event coordination, and analytics charts.",
+    "Create a TotalChiller account to join [THC] Chiller & Killer Total Battle clan. Access chest tracking, event coordination, and analytics charts.",
   alternates: { canonical: "/auth/register" },
 };
 

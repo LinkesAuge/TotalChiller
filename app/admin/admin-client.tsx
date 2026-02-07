@@ -5868,7 +5868,7 @@ function AdminClient(): ReactElement {
                   id="clanModalName"
                   value={clanModalName}
                   onChange={(event) => setClanModalName(event.target.value)}
-                  placeholder="The Chillers"
+                  placeholder="[THC] Chiller & Killer"
                   required
                 />
               </div>

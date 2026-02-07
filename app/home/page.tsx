@@ -3,9 +3,9 @@ import { getTranslations } from "next-intl/server";
 import PublicAuthActions from "../components/public-auth-actions";
 
 export const metadata: Metadata = {
-  title: "The Chillers Community Hub",
+  title: "[THC] Chiller & Killer Community Hub",
   description:
-    "Welcome to The Chillers — a focused Total Battle clan built around teamwork, planning, and data-driven play. Join our community hub.",
+    "Welcome to [THC] Chiller & Killer — a focused Total Battle clan built around teamwork, planning, and data-driven play. Join our community hub.",
   alternates: { canonical: "/home" },
 };
 

@@ -3,9 +3,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
-  title: "Contact The Chillers",
+  title: "Contact [THC] Chiller & Killer",
   description:
-    "Get in touch with The Chillers clan. Reach out via Discord, email, or use our contact information for recruitment and general inquiries.",
+    "Get in touch with [THC] Chiller & Killer clan. Reach out via Discord, email, or use our contact information for recruitment and general inquiries.",
   alternates: { canonical: "/contact" },
 };
 

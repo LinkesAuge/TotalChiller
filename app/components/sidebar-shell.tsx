@@ -129,24 +129,24 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           rank: (row.rank as string) ?? null,
         }));
 
-    /* Restore previous selection: 1) localStorage, 2) DB default, 3) first option */
-    const storedClanId = window.localStorage.getItem(CLAN_STORAGE_KEY) ?? "";
-    const storedGameAccountId = window.localStorage.getItem(GAME_ACCOUNT_STORAGE_KEY) ?? "";
-    const storedKey = storedClanId && storedGameAccountId ? `${storedClanId}:${storedGameAccountId}` : "";
-    const hasStored = options.some((o) => `${o.clanId}:${o.gameAccountId}` === storedKey);
-
+    /* Restore previous selection: 1) DB default, 2) localStorage, 3) first option */
     const dbDefaultGameAccountId = (profile?.default_game_account_id as string | null) ?? null;
     const dbDefaultOption = dbDefaultGameAccountId
       ? options.find((o) => o.gameAccountId === dbDefaultGameAccountId)
       : null;
 
+    const storedClanId = window.localStorage.getItem(CLAN_STORAGE_KEY) ?? "";
+    const storedGameAccountId = window.localStorage.getItem(GAME_ACCOUNT_STORAGE_KEY) ?? "";
+    const storedKey = storedClanId && storedGameAccountId ? `${storedClanId}:${storedGameAccountId}` : "";
+    const hasStored = options.some((o) => `${o.clanId}:${o.gameAccountId}` === storedKey);
+
     let selectedKey = "";
-    if (hasStored) {
-      selectedKey = storedKey;
-    } else if (dbDefaultOption) {
+    if (dbDefaultOption) {
       selectedKey = `${dbDefaultOption.clanId}:${dbDefaultOption.gameAccountId}`;
       window.localStorage.setItem(CLAN_STORAGE_KEY, dbDefaultOption.clanId);
       window.localStorage.setItem(GAME_ACCOUNT_STORAGE_KEY, dbDefaultOption.gameAccountId);
+    } else if (hasStored) {
+      selectedKey = storedKey;
     } else if (options.length > 0) {
       const first = options[0];
       selectedKey = `${first.clanId}:${first.gameAccountId}`;

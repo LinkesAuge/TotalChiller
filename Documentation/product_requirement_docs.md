@@ -60,20 +60,31 @@ This document outlines the requirements for a new web application designed to se
 **Implemented**
 - Supabase Auth flows (register/login/forgot/update), profile/settings, admin gating.
 - Clan context (game accounts + memberships) with scoped data views.
-- Admin: Clan Management, Users, Validation rules (global), Correction rules (global), Scoring rules (per-clan), Audit Logs.
+- Default game account selection (persisted in `profiles.default_game_account_id`).
+- Admin: Clan Management, Users, Validation rules (global), Correction rules (global), Scoring rules (per-clan), Audit Logs, Approvals, Forum Management.
 - Data import (Pattern 1 only) with auto‑correct/validation toggles, batch edit, commit warning, filtering, sorting, pagination, row numbers, and combobox suggestions for player/source/chest.
 - Chest database with inline edits (combobox suggestions), batch ops, audit logging, correction-on-save, per-row add-rule actions, and row/correction status filters.
-- News + Events (CRUD, clan‑scoped).
+- Announcements (CRUD, clan-scoped) with banner images, rich markdown editor, edit tracking, expandable content cards.
+- Forum system (categories, posts, comments, voting, markdown, thumbnails, pinned posts).
+- Events with recurring events, templates, organizer, calendar view with scroll-to-day.
+- Charts & Stats with Recharts (line, bar, pie, summary panel).
+- Messaging system (private, broadcast, system messages).
+- Notification system (bell icon, fan-out, per-type preferences).
+- Full i18n (German/English) via `next-intl` with `messages/de.json` and `messages/en.json`.
+- Content Security Policy for YouTube embeds and media sources.
+- Branding: "[THC] Chiller & Killer" throughout.
 
 **Not Yet Implemented / Deferred**
-- Charts/analytics dashboard widgets.
-- Messages/notifications module.
-- Full i18n for UI strings (German format is default, but UI text is not translated).
+- Dashboard widgets (personal/clan stats summary cards).
+- Member directory page.
 
 **Notable Deviations**
 - Batch date override and filename date inference were removed.
 - Data import supports `.csv` and `.txt`.
 - Validation runs after corrections; corrected fields are highlighted.
+- Announcements no longer have a "type" filter — all content is type "announcement".
+- Forum system added (not in original PRD but implemented as a community feature).
+- Navigation renamed: "Diagramme" → "Truhenauswertung", "Ereignisse" → "Event-Kalender".
 
 ## 2. User Roles, Ranks & Personas
 

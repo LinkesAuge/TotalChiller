@@ -143,3 +143,52 @@ Note: All status indicators use dark backgrounds (not light-background pills) to
 - Track: dark transparent.
 - Thumb: gold-tinted (`--color-edge`).
 - Hover: `--color-gold-dark`.
+
+## Announcement Cards (`.news-card`)
+### Variants
+- **Standard card**: dark gradient background with gold-tinted edge, banner header with image overlay.
+- **Expanded card**: full content visible below banner.
+- **Collapsed card**: content preview (280px max-height) with fade gradient and "Weiterlesen" pill button.
+
+### Banner Header (`.news-card-banner`)
+- Height: 160px (120px on mobile).
+- Background image with 55% opacity, increases to 70% on hover.
+- Dark gradient overlay (top 10% → bottom 85% opacity).
+- Decorative gold line (`components_decor_6.png`) at bottom center.
+- Title (1.5rem, gold, text-shadow) and meta (0.82rem) overlaid at bottom.
+- Badges (pinned/status) positioned top-right with backdrop-blur.
+
+### "Weiterlesen" Button (`.news-card-read-more`)
+- Centered pill button with gold text, semi-transparent gold background.
+- Gold border (1px), backdrop-blur(4px), border-radius: full.
+- Hover: stronger gold background and border.
+
+### Tags
+- Pill-shaped tags below content with gold tint.
+
+### Banner Picker (`.news-banner-picker`)
+- Grid of 120×52px thumbnail buttons for template selection.
+- Gold border highlight on selected template.
+- Custom upload button with plus icon.
+
+## Forum Components
+### Post List
+- Standard card layout with category badge, vote column, metadata.
+- Thumbnail preview (`.forum-thumb`) extracted from post content: images, YouTube thumbnails, video/link icons.
+- Responsive: thumbnail hides on very small screens.
+
+### Markdown Toolbar (`.forum-editor-toolbar`)
+- Button row with formatting actions (bold, italic, heading, link, image, lists, code, quote, divider).
+- Image upload button with file picker, paste, and drag-drop support.
+- Upload status and error indicators.
+
+### Markdown Renderer (`.forum-md`)
+- Auto-embeds YouTube videos (nocookie iframe), direct images, direct videos.
+- Code blocks, inline code, blockquotes, tables.
+- Preview mode: truncated text, no media embeds, placeholder text for media.
+
+## Hero Banner (`.hero-banner`)
+- Full-width banner with background image, dark gradient overlay.
+- Decorative elements (`components_decor_6.png`) flanking the title.
+- Title: gold heading font (1.6rem), uppercase, letter-spacing.
+- Subtitle: muted text below title.

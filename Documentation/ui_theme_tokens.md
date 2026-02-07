@@ -85,6 +85,19 @@ This file captures the reusable theme tokens from the Fortress Sanctum design sy
 - **Admin crown icon**: `/assets/vip/button_vip_crown_22x33.png`
 - **Sidebar background**: `/assets/vip/back_left.png`
 - **Sidebar decoration**: `/assets/vip/components_decor_7.png`
+- **Decorative line**: `/assets/vip/components_decor_6.png` (used in hero banners, announcement card headers)
+- **Light decoration**: `/assets/vip/decor_light_1.png` (used in hero banner)
+- **Logo**: `/assets/ui/chillerkiller_logo.png` (sidebar logo)
+
+## Banner Templates (Announcements)
+
+- `/assets/banners/banner_gold_dragon.png` — Gold Dragon (default)
+- `/assets/banners/banner_chest.png` — Chest
+- `/assets/banners/banner_captain.png` — Captain
+- `/assets/banners/banner_doomsday_708.png` — Doomsday
+- `/assets/banners/banner_ragnarok_clan_event_708x123.png` — Ragnarok
+- `/assets/banners/banner_tournir_kvk.png` — KvK Turnier
+- `/assets/banners/banner_gold_dragon.webp` — Gold Dragon (WebP variant)
 
 ## Component Usage Notes
 
@@ -98,6 +111,15 @@ This file captures the reusable theme tokens from the Fortress Sanctum design sy
 - Status indicators: dark background with colored border/glow (not light-background pills).
 - Toggles: dark gradient track, gold gradient checked state.
 - Scrollbars: `--color-edge` thumb, `--color-gold-dark` hover.
+
+## Announcement Card Gradients
+
+- **Card background**: `linear-gradient(180deg, rgba(22, 44, 66, 0.92), rgba(14, 30, 45, 0.95))`
+- **Banner overlay**: `linear-gradient(180deg, rgba(8, 13, 20, 0.1) 0%, rgba(8, 13, 20, 0.85) 100%)`
+- **Content fade**: `linear-gradient(transparent 0%, rgba(14, 30, 45, 0.85) 40%, rgba(14, 30, 45, 0.98) 100%)`
+- **Badge pinned**: `rgba(201, 163, 74, 0.25)` background with gold border
+- **Badge status**: `rgba(255, 255, 255, 0.1)` background with white border
+- **"Read more" pill**: `rgba(201, 163, 74, 0.12)` background, `rgba(201, 163, 74, 0.3)` border, backdrop-blur
 
 ## Z-Index Layers
 

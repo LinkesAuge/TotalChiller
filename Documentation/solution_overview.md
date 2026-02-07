@@ -40,10 +40,10 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **chest_entries**: CSV data with audit fields.
 - **rules**: validation, correction, scoring with precedence.
 - **audit_logs**: edit/delete/batch operations tracking.
-- **profiles**: user_db (case‑insensitive), username, display_name.
+- **profiles**: user_db (case‑insensitive), username, display_name, `default_game_account_id` (nullable FK to game_accounts).
 - **user_roles**: global user role per user.
 - **clans**: global default flag (`is_default`).
-- **articles**: announcements per clan (formerly "news"). Types: news, announcement. Includes `created_by` for author display.
+- **articles**: announcements per clan (formerly "news"). All content is type "announcement". Includes `created_by` for author display, `updated_by` for edit tracking, `banner_url` for header banner images.
 - **events**: clan events with date+time, optional duration (or open-ended), optional organizer, recurrence support (daily/weekly/biweekly/monthly with end date or ongoing). Single row per recurring event; occurrences computed client-side.
 - **event_templates**: reusable event templates per clan. Same fields as events (title, description, location, duration/open-ended, organizer, recurrence). `created_by` is nullable. Title serves as template name.
 - **messages**: private messages, broadcasts, and system notifications (flat model, conversations derived by grouping sender/recipient).
@@ -126,7 +126,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - `app/components/sidebar-context.tsx` and `app/components/sidebar-shell.tsx` for sidebar state and rendering.
 - `app/components/sidebar-nav.tsx` for navigation links with icons.
 - `package.json` scripts for Next.js (`dev`, `build`, `start`, `lint`).
-- Route pages: `news`, `charts`, `events`, `messages`, `admin`, `admin/data-import`, `admin/data-table`.
+- Route pages: `news`, `forum`, `charts`, `events`, `messages`, `admin`, `admin/data-import`, `admin/data-table`.
 - Supabase Auth wiring in `lib/supabase/` and `app/auth/login`.
 - Auth pages: `app/auth/register`, `app/auth/forgot`.
 - Proxy guard: `proxy.ts` redirects unauthenticated users to `/home`, enforces admin access for admin routes with `/not-authorized` fallback.
@@ -160,6 +160,10 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Event recurrence: `Documentation/migrations/event_recurrence.sql` — adds `recurrence_type`, `recurrence_end_date` to events.
 - Event organizer: `Documentation/migrations/event_organizer.sql` — adds `organizer` to events.
 - Event templates: `Documentation/migrations/event_templates.sql` — creates `event_templates` table with all fields (title, description, location, duration, is_open_ended, organizer, recurrence) and RLS policies.
+- Forum system: `Documentation/migrations/forum_tables.sql` — creates `forum_categories` and `forum_posts` tables. `Documentation/migrations/forum_storage.sql` — creates storage bucket. `Documentation/migrations/forum_seed_categories.sql` — seeds default categories.
+- Profile default game account: `Documentation/migrations/profile_default_game_account.sql` — adds `default_game_account_id` column to profiles.
+- Article banner: `Documentation/migrations/article_banner.sql` — adds `banner_url` column to articles.
+- Article edit tracking: `Documentation/migrations/article_updated_by.sql` — adds `updated_by` column to articles.
 
 ## Data Import & Chest Database
 
@@ -178,7 +182,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 
 - Admin user lookup by email via `app/api/admin/user-lookup`.
 - Validation + Correction rules are **global** (not clan-specific). Support create, edit, delete, import/export, selection, and sorting.
-- Admin tabs include Clans & Members, Users, Validation, Corrections, Audit Logs, Approvals, Data Import, Chest Database.
+- Admin tabs include Clans & Members, Users, Validation, Corrections, Audit Logs, Approvals, Data Import, Chest Database, Forum.
 - Membership table now manages game accounts (game username, clan, rank, status).
 - Roles are assigned globally via `user_roles`.
 - Clan Management supports assign‑to‑clan modal and batch save/cancel.
@@ -222,12 +226,38 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Player-to-game-account linking: case-insensitive match `LOWER(chest_entries.player) = LOWER(game_accounts.game_username)`.
 - Files: `app/charts/charts-client.tsx`, `app/charts/chart-components.tsx`, `app/charts/chart-types.ts`, `app/api/charts/route.ts`.
 
+## Branding
+
+- Project branded as **[THC] Chiller & Killer** (formerly "The Chillers").
+- Sidebar title: `[THC]`, subtitle: `Chiller & Killer`.
+- Logo: `/public/assets/ui/chillerkiller_logo.png` displayed prominently above sidebar title.
+- All page metadata, descriptions, and placeholder text use "[THC] Chiller & Killer" branding.
+
+## Forum System
+
+- Full Reddit-style forum with categories, posts, comments, voting, and markdown support.
+- **Forum Categories**: admin-managed via dedicated API route (`/api/admin/forum-categories`) using service role client (bypasses RLS). Categories have name, description, and sort order.
+- **Forum Posts**: title, content (markdown), category, pinned status, voting (up/down), view count. Pinned posts always appear at top regardless of sort order.
+- **Forum Comments**: threaded replies with voting.
+- **Rich Markdown Editor**: `MarkdownToolbar` component with text formatting, image upload (paste/drag-drop to Supabase Storage), video/link insertion. Shared between Forum and Announcements.
+- **ForumMarkdown**: Renders markdown with auto-embedded YouTube videos, direct images/videos, code blocks, blockquotes, tables. Supports `preview` mode for truncated list views.
+- **Post Thumbnails**: Extracts first media (image/YouTube/video/link) from post content for Reddit-style thumbnail previews in post lists.
+- **Pinned Posts**: `is_pinned` field on forum posts. Only content managers can pin/unpin via the create/edit form. Pinned posts always sort first.
+- **Forum Admin**: Tab in admin panel for managing forum categories (create, edit, delete, reorder).
+- Files: `app/forum/forum-client.tsx`, `app/forum/forum-markdown.tsx`, `app/forum/markdown-toolbar.tsx`, `app/forum/page.tsx`, `app/api/admin/forum-categories/route.ts`, `app/admin/forum-category-admin.tsx`
+
 ## Announcements & Events
 
-- **Announcements** (formerly "News"): collapsible create/edit form, pinned-first sorting, loading state, full-width cards, author display.
+- **Announcements** (formerly "News"): redesigned with visually rich cards featuring banner headers, rich markdown content, and edit tracking.
+  - **Banner System**: Each announcement can have a banner image displayed as a card header (160px). 6 pre-built banner templates from `/assets/banners/` (Gold Dragon, Chest, Captain, Doomsday, Ragnarok, KvK). Custom banner upload to Supabase Storage. Default banner shown if none selected.
+  - **Rich Markdown Editor**: Same `MarkdownToolbar` + `ForumMarkdown` as Forum for content creation/editing. Supports images, videos, links, text formatting.
+  - **Content Normalization**: `normalizeContent()` pre-processes plain text before markdown rendering — converts `•`/`–`/`—` bullets to markdown list items, preserves single line breaks as `<br>`, ensures proper paragraph spacing.
+  - **Card Design**: Banner header with overlay gradient, gold title (1.5rem), author/date meta, pinned/status badges, expandable content preview (280px max-height) with fade gradient and centered "Weiterlesen" pill button. Full content view on click.
+  - **Author Protection**: Editing a post no longer overwrites the original `created_by`. Instead, `updated_by` tracks the last editor.
+  - **Edit Tracking**: "bearbeitet von {name} am {date}" displayed in card meta when a different user edits.
   - Role-based access: only admins, moderators, and editors can create/edit/delete. "Beitrag erstellen" button placed in content area, guarded by `canManage`.
   - Server-side pagination with page size selector (10/25/50), page number input, and prev/next buttons (matching data-table pattern). Uses Supabase `.range()` with `{ count: "exact" }`.
-  - Filters section below article list: search (title/content via `ilike`), type filter (news/announcement/all), tag filter, date range picker. All filters reset page to 1.
+  - Filters section below article list: search (title/content via `ilike`), tag filter, date range picker. All filters reset page to 1. Type filter removed (all content is announcements).
   - Files: `app/news/news-client.tsx`
 - **Events**: collapsible create/edit form, past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers, loading state.
   - Date + time model with optional duration (hours + minutes) or "open-ended" (default).
@@ -282,6 +312,29 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **Clan Management**: Deleting a game account now refreshes the clan membership list.
 - **Clan Management**: Switching clans clears stale membership edits and errors; added race condition guards for concurrent fetches.
 - **RLS**: `clans` table was missing `enable row level security` — policies existed but had no effect. Run `alter table public.clans enable row level security;` to fix.
+
+## Content Security Policy
+
+- `next.config.js` defines CSP headers:
+  - `frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com` — allows YouTube video embeds.
+  - `media-src 'self' https: blob:` — allows media from any HTTPS source and blob URLs.
+
+## Navigation (i18n keys)
+
+- Main nav items: Dashboard, Ankündigungen, Forum, Truhenauswertung (formerly "Diagramme"), Event-Kalender (formerly "Ereignisse"), Verwaltung section (with sub-items).
+- Sidebar: Title `[THC]`, subtitle `Chiller & Killer`, logo `/assets/ui/chillerkiller_logo.png`.
+- Navbar text size: `1.0rem`, icon size: `18px`.
+
+## Default Game Account
+
+- Users can select a default game account in their profile settings.
+- `profiles.default_game_account_id` (nullable FK to `game_accounts`).
+- Sidebar clan/game account selector prioritizes: 1) DB default, 2) localStorage, 3) first available.
+- Migration: `Documentation/migrations/profile_default_game_account.sql`.
+
+## Event Calendar: Scroll to Day
+
+- Clicking a day in the calendar auto-scrolls the detail panel into view via `scrollIntoView({ behavior: "smooth", block: "nearest" })`.
 
 ## Outstanding/Follow-up
 

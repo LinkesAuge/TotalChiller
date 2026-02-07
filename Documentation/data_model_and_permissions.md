@@ -21,6 +21,7 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - display_name (text)
 - is_admin (boolean, default: false)
 - default_clan_id (uuid, fk clans, nullable)
+- default_game_account_id (uuid, fk game_accounts, nullable) — user's preferred default game account for sidebar selector
 - created_at (timestamp)
 - updated_at (timestamp)
 
@@ -91,12 +92,14 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - id (uuid, pk)
 - clan_id (uuid, fk clans)
 - title (text)
-- content (text)
-- type (text, enum: news, announcement)
+- content (text) — markdown content, pre-processed with `normalizeContent()` for display
+- type (text, default: 'announcement') — all content is now type "announcement"
 - is_pinned (bool)
 - status (text, enum: draft, pending, published)
 - tags (text[])
-- created_by (uuid, fk users)
+- banner_url (text, nullable) — optional banner image URL for card header (template path or uploaded URL)
+- created_by (uuid, fk users) — original author, never overwritten on edit
+- updated_by (uuid, fk users, nullable) — user who last edited the article
 - created_at (timestamp)
 - updated_at (timestamp)
 
@@ -193,12 +196,37 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - diff (jsonb)
 - created_at (timestamp)
 
+### forum_categories
+- id (uuid, pk)
+- clan_id (uuid, fk clans)
+- name (text)
+- description (text, default: '')
+- sort_order (integer, default: 0)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+### forum_posts
+- id (uuid, pk)
+- clan_id (uuid, fk clans)
+- category_id (uuid, fk forum_categories)
+- title (text)
+- content (text) — markdown content
+- created_by (uuid, fk users)
+- is_pinned (bool, default: false) — pinned posts always appear at top
+- is_locked (bool, default: false)
+- upvotes (integer, default: 0)
+- downvotes (integer, default: 0)
+- view_count (integer, default: 0)
+- created_at (timestamp)
+- updated_at (timestamp)
+
 ### messages
 - id (uuid, pk)
 - clan_id (uuid, fk clans)
 - sender_id (uuid, fk users)
 - recipient_id (uuid, fk users, nullable for broadcast)
 - content (text)
+- message_type (text, enum: private, broadcast, system)
 - created_at (timestamp)
 
 ## Permission Matrix (Baseline)
@@ -260,6 +288,11 @@ Permissions are additive: Role + Rank + Cross‑Clan overrides.
 - Event templates mirror the events data model exactly. The `name` column is kept for backward compatibility but always equals `title`.
 - Recurring events use a single DB row with `recurrence_type` and optional `recurrence_end_date`. Occurrences are computed client-side. The legacy `recurrence_parent_id` column is dropped.
 - Author information on events/announcements is resolved client-side from `created_by` UUIDs via a separate profiles query (no FK join).
-- Announcements page uses server-side pagination with Supabase `.range()` and `{ count: "exact" }`. Filters include search (title/content), type, tag, and date range.
+- Announcements page uses server-side pagination with Supabase `.range()` and `{ count: "exact" }`. Filters include search (title/content), tag, and date range. Type filter removed (all content is announcements).
+- Announcements feature banner images: 6 pre-built templates from `/assets/banners/` plus custom upload. Cards display with banner header, title overlay, expandable content preview, and edit tracking.
+- Announcements editing never overwrites `created_by`; `updated_by` tracks the last editor. Displayed as "bearbeitet von {name} am {date}".
+- Forum system: categories managed via admin API route (`/api/admin/forum-categories`) with service role client to bypass RLS. Posts support markdown, thumbnails, pinning, and voting.
 - Messages page uses themed `RadixSelect` dropdowns for compose recipient (with search) and broadcast clan selection instead of native `<select>`.
 - `ClanScopeBanner` and `QuickActions` components have been removed from all pages.
+- Default game account: `profiles.default_game_account_id` prioritized in sidebar selector over localStorage.
+- Project branding: "[THC] Chiller & Killer" throughout all pages, sidebar title "[THC]" with subtitle "Chiller & Killer".

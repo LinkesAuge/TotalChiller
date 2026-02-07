@@ -73,13 +73,37 @@ This file is a compact context transfer for a new chat.
   - Correction rules applied on save; validation uses corrected values.
   - Combobox inputs for player/source/chest fields with suggestions from validation rules.
   - `app/data-table/data-table-client.tsx`
-- **Announcements (formerly "News") + Events (DB-backed, clan-scoped)**
-  - Renamed from "news" to "announcements" throughout the app.
-  - Create/edit/delete posts and events with collapsible forms.
-  - Announcements: pinned-first sorting, full-width article cards, author display.
-    - "Beitrag erstellen" button placed in content area (not top bar), guarded by `canManage`.
-    - Server-side pagination with page size selector, page number input, and prev/next buttons (matching data-table pattern).
-    - Filters section below articles: search (title/content), type filter (news/announcement/all), tag filter, date range picker.
+- **Branding: [THC] Chiller & Killer**
+  - All instances of "The Chillers" replaced with "[THC] Chiller & Killer" across all pages, metadata, descriptions.
+  - Sidebar title: `[THC]`, subtitle: `Chiller & Killer`, logo: `/public/assets/ui/chillerkiller_logo.png`.
+- **Forum System** (full Reddit-style forum)
+  - Categories managed via admin API route `/api/admin/forum-categories` (service role client, bypasses RLS).
+  - Posts: title, content (markdown), category, pinning, voting (up/down), view count.
+  - Comments: threaded replies with voting. Rich markdown editor shared with Announcements.
+  - `ForumMarkdown` renderer: auto-embeds YouTube, images, videos, code, tables. Preview mode for list views.
+  - Post thumbnails: extracts first media from content for list previews.
+  - Pinned posts always sort first. Pin/unpin via create/edit form (content managers only).
+  - Forum Management tab in admin panel for category CRUD and reordering.
+  - Files: `app/forum/forum-client.tsx`, `app/forum/forum-markdown.tsx`, `app/forum/markdown-toolbar.tsx`, `app/forum/page.tsx`, `app/api/admin/forum-categories/route.ts`, `app/admin/forum-category-admin.tsx`
+  - Migrations: `forum_tables.sql`, `forum_storage.sql`, `forum_seed_categories.sql`
+- **Announcements (redesigned with banners, rich editor, edit tracking)**
+  - Visually rich cards with banner headers (160px), gold title overlay (1.5rem), expandable content preview (280px).
+  - Banner system: 6 templates from `/assets/banners/` + custom upload to Supabase Storage.
+  - Rich markdown editor (shared `MarkdownToolbar` + `ForumMarkdown`).
+  - `normalizeContent()`: converts `•`/`–`/`—` to markdown lists, preserves single line breaks.
+  - Author protection: editing never overwrites `created_by`; `updated_by` tracks last editor.
+  - Edit tracking displayed: "bearbeitet von {name} am {date}".
+  - Type filter removed — all content is "announcement". Tags, search, date range filters remain.
+  - Centered "Weiterlesen" pill button with gold accent, backdrop-blur, hover effect.
+  - Migrations: `article_banner.sql` (`banner_url`), `article_updated_by.sql` (`updated_by`).
+  - Files: `app/news/news-client.tsx`
+- **Default Game Account**
+  - Users can set a default game account in profile settings.
+  - `profiles.default_game_account_id` prioritized in sidebar selector over localStorage.
+  - Migration: `profile_default_game_account.sql`
+- **Events (DB-backed, clan-scoped)**
+  - Create/edit/delete with collapsible forms.
+  - Calendar day click scrolls detail panel into view (`scrollIntoView` with smooth behavior).
   - Events:
     - Past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers.
     - Date + time model with optional duration (hours + minutes) or "open-ended" (default).
@@ -98,7 +122,7 @@ This file is a compact context transfer for a new chat.
     - Templates don't require an author (`created_by` nullable).
     - Manage templates panel with inline edit form matching the event form layout.
   - Loading states on both pages.
-  - Files: `app/news/news-client.tsx`, `app/events/events-client.tsx`
+  - Files: `app/events/events-client.tsx`
 - **Charts & Stats**
   - Real charts powered by Recharts (dark blue/gold theme).
   - Charts: Clan Score Over Time (line), Top Players (horizontal bar), Chest Type Distribution (pie), Personal Score (line).
@@ -175,10 +199,29 @@ This file is a compact context transfer for a new chat.
   - Added decorative gold divider line (gradient pseudo-element) below `.top-bar` to close the nav-to-content gap.
   - Reduced `.hero-banner` margin-top to 0 for seamless layout.
   - Global `option` element styling ensures dark theme for any remaining native `<select>` dropdowns.
-- **Announcements page rework** (Feb 2026):
-  - "Beitrag erstellen" button moved from top bar to content area, maintaining role-based guard.
-  - Server-side pagination added (page size selector, page/total display, page jump, prev/next buttons).
-  - Filters section moved below article list and expanded: search (title/content), type filter, tag filter, date range picker.
+- **Announcements major overhaul** (Feb 2026):
+  - Complete card redesign with banner headers, rich markdown editor, content normalization.
+  - Banner picker in create/edit form (6 templates + custom upload).
+  - Author protection: `created_by` never overwritten; `updated_by` tracks editor.
+  - Centered "Weiterlesen" pill button with gold styling.
+  - Type field removed; all content is "announcement".
+  - Server-side pagination, filters (search, tag, date range).
+- **Forum system** (Feb 2026):
+  - Full forum with categories, posts, comments, voting, markdown, thumbnails.
+  - Admin tab for category management via service role API route.
+  - Rich `MarkdownToolbar` and `ForumMarkdown` components shared with Announcements.
+- **Branding update** (Feb 2026):
+  - "The Chillers" → "[THC] Chiller & Killer" across all pages and metadata.
+  - Sidebar: title "[THC]", subtitle "Chiller & Killer", logo added.
+  - Navigation: "Diagramme" → "Truhenauswertung", "Ereignisse" → "Event-Kalender", Forum added.
+  - Navbar text size increased to 1.0rem, icons to 18px.
+- **Default game account** (Feb 2026):
+  - `profiles.default_game_account_id` column for user's preferred game account.
+  - Sidebar selector prioritizes: DB default → localStorage → first available.
+- **Event calendar scroll-to-day** (Feb 2026):
+  - Clicking a day in calendar scrolls detail panel into view.
+- **Content Security Policy** (Feb 2026):
+  - `next.config.js` CSP headers for YouTube embeds (`frame-src`) and media sources (`media-src`).
 - **Messages page fixes** (Feb 2026):
   - Replaced native `<select>` dropdowns (compose recipient, broadcast clan) with themed `RadixSelect` components.
   - Compose recipient dropdown includes search support.
@@ -239,6 +282,24 @@ Run these if the base SQL has not been run or if upgrades were applied increment
     - Run `Documentation/migrations/event_templates.sql`.
     - Creates `event_templates` table with all columns (title, description, location, duration, is_open_ended, organizer, recurrence_type, recurrence_end_date), RLS policies, and indexes.
     - `created_by` is nullable (templates don't require an author). Content managers (owner/admin/moderator/editor) can manage templates.
+11. **Forum tables**
+    - Run `Documentation/migrations/forum_tables.sql`.
+    - Creates `forum_categories` and `forum_posts` tables with RLS policies.
+12. **Forum storage**
+    - Run `Documentation/migrations/forum_storage.sql`.
+    - Creates `forum-images` storage bucket.
+13. **Forum seed categories**
+    - Run `Documentation/migrations/forum_seed_categories.sql`.
+    - Seeds default forum categories.
+14. **Profile default game account**
+    - Run `Documentation/migrations/profile_default_game_account.sql`.
+    - Adds `default_game_account_id` column to profiles.
+15. **Article banner**
+    - Run `Documentation/migrations/article_banner.sql`.
+    - Adds `banner_url` column to articles.
+16. **Article edit tracking**
+    - Run `Documentation/migrations/article_updated_by.sql`.
+    - Adds `updated_by` column to articles.
 
 ## Required Env
 
@@ -254,7 +315,9 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 1. **Dashboard widgets**
    - Add personal/clan stats summary cards to the member dashboard.
-2. **Website improvement plan**
+2. **Member directory page**
+   - Implement member directory with search, filter by clan/rank.
+3. **Website improvement plan**
    - See `Documentation/plans/2026-02-07-website-improvement-plan.md` for SEO, security, accessibility, and legal compliance improvements.
 
 ## Known Behaviors
@@ -267,10 +330,18 @@ SUPABASE_SERVICE_ROLE_KEY=...
 - Recurring events store a single DB row; occurrences are expanded client-side for calendar/upcoming display.
 - `recurrence_parent_id` column on events is deprecated and dropped in the v2 migration. Code no longer references it.
 - Author display on events/announcements uses client-side profile resolution (separate query to `profiles` table) rather than FK joins, due to missing FK constraints in the schema.
-- i18n uses `next-intl` with `messages/en.json` and `messages/de.json`.
+- i18n uses `next-intl` with `messages/en.json` and `messages/de.json`. All UI strings are translated.
 - Announcements page uses server-side pagination with Supabase `.range()` and `{ count: "exact" }`.
+- Announcements content is pre-processed via `normalizeContent()` before markdown rendering (converts plain-text bullets/line breaks to markdown syntax).
+- Announcements editing sets `updated_by` instead of `created_by` to protect original authorship. Edit info shown in card meta.
+- Forum categories are managed via a server-side API route (`/api/admin/forum-categories`) with service role client to bypass RLS restrictions.
+- Forum posts support markdown with rich media embeds, thumbnail extraction, and pinned-first sorting.
+- Default game account (`profiles.default_game_account_id`) takes priority over localStorage in sidebar selector.
 - A decorative gold gradient divider line sits below the top bar on all pages.
 - Global `option` CSS ensures dark-themed native `<select>` dropdown menus where RadixSelect is not used.
+- Content Security Policy in `next.config.js` allows YouTube embeds and external media sources.
+- Branding is "[THC] Chiller & Killer" throughout; sidebar shows logo, title "[THC]", subtitle "Chiller & Killer".
+- Navigation: "Truhenauswertung" (formerly "Diagramme"), "Event-Kalender" (formerly "Ereignisse"), "Forum" added to main nav.
 
 ## Critical SQL updates to run (if not yet run)
 

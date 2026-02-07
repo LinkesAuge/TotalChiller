@@ -7,8 +7,9 @@ import IconButton from "../components/ui/icon-button";
 import LabeledSelect from "../components/ui/labeled-select";
 import TableScroll from "../components/table-scroll";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import ForumCategoryAdmin from "./forum-category-admin";
 import { formatLocalDateTime } from "../../lib/date-format";
 import { useToast } from "../components/toast-provider";
 
@@ -183,6 +184,7 @@ function AdminClient(): ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { pushToast } = useToast();
+  const tAdmin = useTranslations("admin");
   const [clans, setClans] = useState<readonly ClanRow[]>([]);
   const [memberships, setMemberships] = useState<readonly MembershipRow[]>([]);
   const [selectedClanId, setSelectedClanId] = useState<string>("");
@@ -274,7 +276,7 @@ function AdminClient(): ReactElement {
   const [scoringScore, setScoringScore] = useState<string>("");
   const [scoringOrder, setScoringOrder] = useState<string>("1");
   const [scoringEditingId, setScoringEditingId] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"clans" | "validation" | "corrections" | "logs" | "users" | "approvals">("clans");
+  const [activeSection, setActiveSection] = useState<"clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum">("clans");
   const [pendingApprovals, setPendingApprovals] = useState<readonly PendingApprovalRow[]>([]);
   const [approvalStatus, setApprovalStatus] = useState<string>("");
   const [isApprovalsLoading, setIsApprovalsLoading] = useState<boolean>(false);
@@ -898,8 +900,8 @@ function AdminClient(): ReactElement {
     return sorted;
   }, [filteredUserRows, getUserSortValue, userSortDirection]);
 
-  function resolveSection(value: string | null): "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" {
-    if (value === "validation" || value === "corrections" || value === "logs" || value === "users" || value === "approvals") {
+  function resolveSection(value: string | null): "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum" {
+    if (value === "validation" || value === "corrections" || value === "logs" || value === "users" || value === "approvals" || value === "forum") {
       return value;
     }
     if (value === "rules") {
@@ -908,7 +910,7 @@ function AdminClient(): ReactElement {
     return "clans";
   }
 
-  function updateActiveSection(nextSection: "clans" | "validation" | "corrections" | "logs" | "users" | "approvals"): void {
+  function updateActiveSection(nextSection: "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum"): void {
     setActiveSection(nextSection);
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", nextSection);
@@ -3496,48 +3498,55 @@ function AdminClient(): ReactElement {
             type="button"
             onClick={() => updateActiveSection("clans")}
           >
-            Clan Management
+            {tAdmin("tabs.clans")}
           </button>
           <button
             className={`tab ${activeSection === "approvals" ? "active" : ""}`}
             type="button"
             onClick={() => updateActiveSection("approvals")}
           >
-            Approvals{pendingApprovals.length > 0 ? ` (${pendingApprovals.length})` : ""}
+            {tAdmin("tabs.approvals")}{pendingApprovals.length > 0 ? ` (${pendingApprovals.length})` : ""}
           </button>
           <button
             className={`tab ${activeSection === "users" ? "active" : ""}`}
             type="button"
             onClick={() => updateActiveSection("users")}
           >
-            Users
+            {tAdmin("tabs.users")}
           </button>
           <button
             className={`tab ${activeSection === "validation" ? "active" : ""}`}
             type="button"
             onClick={() => updateActiveSection("validation")}
           >
-            Validation
+            {tAdmin("tabs.validation")}
           </button>
           <button
             className={`tab ${activeSection === "corrections" ? "active" : ""}`}
             type="button"
             onClick={() => updateActiveSection("corrections")}
           >
-            Corrections
+            {tAdmin("tabs.corrections")}
           </button>
           <button
             className={`tab ${activeSection === "logs" ? "active" : ""}`}
             type="button"
             onClick={() => updateActiveSection("logs")}
           >
-            Audit Logs
+            {tAdmin("tabs.logs")}
+          </button>
+          <button
+            className={`tab ${activeSection === "forum" ? "active" : ""}`}
+            type="button"
+            onClick={() => updateActiveSection("forum")}
+          >
+            {tAdmin("tabs.forum")}
           </button>
           <button className="tab" type="button" onClick={() => handleNavigateAdmin("/admin/data-import")}>
-            Data Import
+            {tAdmin("tabs.dataImport")}
           </button>
           <button className="tab" type="button" onClick={() => handleNavigateAdmin("/admin/data-table")}>
-            Chest Database
+            {tAdmin("tabs.chestDb")}
           </button>
         </div>
       </section>
@@ -6222,6 +6231,19 @@ function AdminClient(): ReactElement {
             </div>
           </div>
         </div>
+      ) : null}
+      {activeSection === "forum" ? (
+      <section className="card" style={{ gridColumn: "1 / -1" }}>
+        <div className="card-header">
+          <div>
+            <div className="card-title">Forum Management</div>
+            <div className="card-subtitle">Create, edit, reorder, and delete forum categories</div>
+          </div>
+        </div>
+        <div style={{ padding: "0 16px 16px" }}>
+          <ForumCategoryAdmin />
+        </div>
+      </section>
       ) : null}
       {status ? (
         <div className="alert info" style={{ gridColumn: "1 / -1" }}>

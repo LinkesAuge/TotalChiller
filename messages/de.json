@@ -604,7 +604,8 @@
       "corrections": "Korrekturen",
       "logs": "Prüfprotokolle",
       "dataImport": "Datenimport",
-      "chestDb": "Truhen-Datenbank"
+      "chestDb": "Truhen-Datenbank",
+      "forum": "Forum"
     },
     "dataImport": {
       "title": "Datenimport",
@@ -1079,6 +1080,7 @@
     "validationRuleAdded": "Validierungsregel hinzugefügt."
   },
   "forum": {
+    "breadcrumb": "TotalChiller \u2022 Clan Plattform",
     "title": "Forum",
     "subtitle": "Diskussionen und Austausch der Community",
     "newPost": "Neuer Beitrag",
@@ -1141,6 +1143,11 @@
     "categorySuggestions": "Vorschläge",
     "categoryOffTopic": "Off-Topic",
     "editComment": "Kommentar bearbeiten",
-    "deleteComment": "Kommentar löschen"
+    "deleteComment": "Kommentar löschen",
+    "write": "Schreiben",
+    "preview": "Vorschau",
+    "previewEmpty": "Noch nichts zum Anzeigen.",
+    "markdownHint": "Unterstützt Markdown: **fett**, _kursiv_, [Links](url), ![Bilder](url), YouTube-Links, Code-Blöcke, Listen und mehr.",
+    "emptyTitle": "Willkommen im Forum"
   }
 }

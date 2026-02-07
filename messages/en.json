@@ -604,7 +604,8 @@
       "corrections": "Corrections",
       "logs": "Audit Logs",
       "dataImport": "Data Import",
-      "chestDb": "Chest Database"
+      "chestDb": "Chest Database",
+      "forum": "Forum"
     },
     "dataImport": {
       "title": "Data Import",
@@ -1079,6 +1080,7 @@
     "validationRuleAdded": "Validation rule added."
   },
   "forum": {
+    "breadcrumb": "TotalChiller \u2022 Clan Platform",
     "title": "Forum",
     "subtitle": "Community discussions and knowledge sharing",
     "newPost": "New Post",
@@ -1141,6 +1143,11 @@
     "categorySuggestions": "Suggestions",
     "categoryOffTopic": "Off-Topic",
     "editComment": "Edit comment",
-    "deleteComment": "Delete comment"
+    "deleteComment": "Delete comment",
+    "write": "Write",
+    "preview": "Preview",
+    "previewEmpty": "Nothing to preview yet.",
+    "markdownHint": "Supports Markdown: **bold**, _italic_, [links](url), ![images](url), YouTube links, code blocks, lists, and more.",
+    "emptyTitle": "Welcome to the Forum"
   }
 }

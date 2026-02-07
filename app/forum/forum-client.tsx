@@ -2,10 +2,14 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams, useRouter } from "next/navigation";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import getIsContentManager from "../../lib/supabase/role-access";
 import useClanContext from "../components/use-clan-context";
+import AuthActions from "../components/auth-actions";
 import SectionHero from "../components/section-hero";
+import ForumMarkdown from "./forum-markdown";
+import MarkdownToolbar, { handleImagePaste, handleImageDrop } from "./markdown-toolbar";
 
 /* ─── Types ─── */
 
@@ -55,15 +59,7 @@ type ViewMode = "list" | "detail" | "create" | "edit";
 
 /* ─── Constants ─── */
 
-/** Fallback categories used when no DB rows exist yet. */
-const FALLBACK_CATEGORIES: ForumCategory[] = [
-  { id: "cat-general", name: "Allgemein", slug: "general", description: null, icon: null, sort_order: 1 },
-  { id: "cat-strategy", name: "Strategie", slug: "strategy", description: null, icon: null, sort_order: 2 },
-  { id: "cat-war", name: "Kriegsplanung", slug: "war-planning", description: null, icon: null, sort_order: 3 },
-  { id: "cat-help", name: "Hilfe", slug: "help", description: null, icon: null, sort_order: 4 },
-  { id: "cat-suggestions", name: "Vorschläge", slug: "suggestions", description: null, icon: null, sort_order: 5 },
-  { id: "cat-offtopic", name: "Off-Topic", slug: "off-topic", description: null, icon: null, sort_order: 6 },
-];
+/** No fallback categories — categories are managed via Admin > Forum. */
 
 const PAGE_SIZE = 20;
 
@@ -143,13 +139,16 @@ function ForumClient(): JSX.Element {
   const supabase = createSupabaseBrowserClient();
   const clanContext = useClanContext();
   const t = useTranslations("forum");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlCategorySlug = searchParams.get("category") ?? "";
 
   /* State */
   const [categories, setCategories] = useState<ForumCategory[]>([]);
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [comments, setComments] = useState<ForumComment[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [sortMode, setSortMode] = useState<SortMode>("hot");
+  const [sortMode, setSortMode] = useState<SortMode>("new");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -159,11 +158,16 @@ function ForumClient(): JSX.Element {
   const [page, setPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
 
+  /* Whether forum tables exist in the DB (migration may not have been run) */
+  const [tablesReady, setTablesReady] = useState<boolean>(true);
+
   /* Create/edit form */
   const [formTitle, setFormTitle] = useState<string>("");
   const [formContent, setFormContent] = useState<string>("");
   const [formCategoryId, setFormCategoryId] = useState<string>("");
   const [editingPostId, setEditingPostId] = useState<string>("");
+  const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
+  const [isImageUploading, setIsImageUploading] = useState<boolean>(false);
 
   /* Comment form */
   const [commentText, setCommentText] = useState<string>("");
@@ -174,6 +178,8 @@ function ForumClient(): JSX.Element {
   const [deletingPostId, setDeletingPostId] = useState<string>("");
 
   const detailRef = useRef<HTMLElement>(null);
+  const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   /* ─── Auth ─── */
   useEffect(() => {
@@ -197,18 +203,37 @@ function ForumClient(): JSX.Element {
         .select("*")
         .eq("clan_id", clanContext.clanId)
         .order("sort_order", { ascending: true });
-      if (!error && data && data.length > 0) {
-        setCategories(data as ForumCategory[]);
-      } else {
-        setCategories(FALLBACK_CATEGORIES);
+      if (error) {
+        const isTableMissing = error.message.includes("schema cache") || error.code === "PGRST204";
+        if (isTableMissing) {
+          setTablesReady(false);
+        }
+        setCategories([]);
+        return;
       }
+      setCategories((data ?? []) as ForumCategory[]);
     }
     void loadCategories();
   }, [supabase, clanContext]);
 
+  /* ─── Sync URL category slug → selectedCategory ID ─── */
+  useEffect(() => {
+    if (categories.length === 0) return;
+    if (!urlCategorySlug) {
+      setSelectedCategory("");
+      return;
+    }
+    const match = categories.find((c) => c.slug === urlCategorySlug);
+    setSelectedCategory(match ? match.id : "");
+  }, [urlCategorySlug, categories]);
+
   /* ─── Load posts ─── */
   const loadPosts = useCallback(async (): Promise<void> => {
-    if (!clanContext) return;
+    if (!clanContext || !tablesReady) {
+      setIsLoading(false);
+      setPosts([]);
+      return;
+    }
     setIsLoading(true);
     let query = supabase
       .from("forum_posts")
@@ -231,8 +256,12 @@ function ForumClient(): JSX.Element {
     const toIdx = fromIdx + PAGE_SIZE - 1;
     const { data, error, count } = await query.range(fromIdx, toIdx);
     if (error) {
-      console.error("Failed to load forum posts:", error.message);
+      const isTableMissing = error.message.includes("schema cache") || error.code === "PGRST204";
+      if (isTableMissing) {
+        setTablesReady(false);
+      }
       setIsLoading(false);
+      setPosts([]);
       return;
     }
     const rawPosts = (data ?? []) as ForumPost[];
@@ -274,7 +303,7 @@ function ForumClient(): JSX.Element {
     }
     setPosts(enriched);
     setIsLoading(false);
-  }, [supabase, clanContext, selectedCategory, sortMode, searchTerm, page, categories, currentUserId]);
+  }, [supabase, clanContext, selectedCategory, sortMode, searchTerm, page, categories, currentUserId, tablesReady]);
 
   useEffect(() => {
     if (clanContext && categories.length > 0) {
@@ -284,13 +313,16 @@ function ForumClient(): JSX.Element {
 
   /* ─── Load comments for a post ─── */
   const loadComments = useCallback(async (postId: string): Promise<void> => {
+    if (!tablesReady) {
+      setComments([]);
+      return;
+    }
     const { data, error } = await supabase
       .from("forum_comments")
       .select("*")
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
     if (error) {
-      console.error("Failed to load comments:", error.message);
       return;
     }
     const rawComments = (data ?? []) as ForumComment[];
@@ -528,10 +560,49 @@ function ForumClient(): JSX.Element {
   if (!clanContext) {
     return (
       <>
-        <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_events.webp" />
+        {/* ── Top Bar ── */}
+        <div className="top-bar">
+          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <div className="top-bar-inner">
+            <div>
+              <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
+              <h1 className="top-bar-title">{t("title")}</h1>
+            </div>
+            <AuthActions />
+          </div>
+        </div>
+        <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <div className="forum-empty">
             <p>Please select a clan to view the forum.</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  /* ─── Forum tables not yet created ─── */
+  if (!tablesReady) {
+    return (
+      <>
+        {/* ── Top Bar ── */}
+        <div className="top-bar">
+          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <div className="top-bar-inner">
+            <div>
+              <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
+              <h1 className="top-bar-title">{t("title")}</h1>
+            </div>
+            <AuthActions />
+          </div>
+        </div>
+        <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
+        <div className="content-inner">
+          <div className="forum-empty">
+            <p style={{ marginBottom: 8 }}>{t("emptyTitle")}</p>
+            <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
+              The forum database tables have not been created yet. Please run the migration in <code>Documentation/migrations/forum_tables.sql</code> against your Supabase instance.
+            </p>
           </div>
         </div>
       </>
@@ -542,7 +613,18 @@ function ForumClient(): JSX.Element {
   if (viewMode === "create") {
     return (
       <>
-        <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_events.webp" />
+        {/* ── Top Bar ── */}
+        <div className="top-bar">
+          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <div className="top-bar-inner">
+            <div>
+              <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
+              <h1 className="top-bar-title">{t("title")}</h1>
+            </div>
+            <AuthActions />
+          </div>
+        </div>
+        <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <button className="button" onClick={() => { resetForm(); setViewMode("list"); }} style={{ marginBottom: 16 }}>
             ← {t("backToForum")}
@@ -578,13 +660,53 @@ function ForumClient(): JSX.Element {
             </div>
             <div className="form-group" style={{ marginBottom: 10 }}>
               <label className="form-label" htmlFor="post-content">{t("postContent")}</label>
-              <textarea
-                id="post-content"
-                value={formContent}
-                onChange={(e) => setFormContent(e.target.value)}
-                placeholder={t("postContentPlaceholder")}
-                rows={8}
-              />
+              <div className="forum-editor-tabs">
+                <button
+                  type="button"
+                  className={`forum-editor-tab${!isPreviewMode ? " active" : ""}`}
+                  onClick={() => setIsPreviewMode(false)}
+                >
+                  {t("write")}
+                </button>
+                <button
+                  type="button"
+                  className={`forum-editor-tab${isPreviewMode ? " active" : ""}`}
+                  onClick={() => setIsPreviewMode(true)}
+                >
+                  {t("preview")}
+                </button>
+              </div>
+              {isPreviewMode ? (
+                <div className="forum-editor-preview">
+                  {formContent.trim() ? (
+                    <ForumMarkdown content={formContent} />
+                  ) : (
+                    <p style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>{t("previewEmpty")}</p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <MarkdownToolbar
+                    textareaRef={contentTextareaRef}
+                    value={formContent}
+                    onChange={setFormContent}
+                    supabase={supabase}
+                    userId={currentUserId}
+                  />
+                  <textarea
+                    id="post-content"
+                    ref={contentTextareaRef}
+                    value={formContent}
+                    onChange={(e) => setFormContent(e.target.value)}
+                    placeholder={t("postContentPlaceholder")}
+                    rows={10}
+                    onPaste={(e) => handleImagePaste(e, supabase, currentUserId, (md) => setFormContent((prev) => prev + md), setIsImageUploading)}
+                    onDrop={(e) => handleImageDrop(e, supabase, currentUserId, (md) => setFormContent((prev) => prev + md), setIsImageUploading)}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  />
+                </>
+              )}
+              <p className="forum-editor-hint">{t("markdownHint")}</p>
             </div>
             <div className="forum-form-row">
               <button className="button primary" onClick={handleSubmitPost} disabled={!formTitle.trim()}>
@@ -606,7 +728,18 @@ function ForumClient(): JSX.Element {
     const canModerate = canManage || isAuthor;
     return (
       <>
-        <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_events.webp" />
+        {/* ── Top Bar ── */}
+        <div className="top-bar">
+          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <div className="top-bar-inner">
+            <div>
+              <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
+              <h1 className="top-bar-title">{t("title")}</h1>
+            </div>
+            <AuthActions />
+          </div>
+        </div>
+        <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <button className="button" onClick={() => setViewMode("list")} style={{ marginBottom: 16 }}>
             ← {t("backToForum")}
@@ -647,7 +780,9 @@ function ForumClient(): JSX.Element {
               </div>
             </div>
             {selectedPost.content && (
-              <div className="forum-detail-content">{selectedPost.content}</div>
+              <div className="forum-detail-content">
+                <ForumMarkdown content={selectedPost.content} />
+              </div>
             )}
             <div className="forum-detail-actions">
               <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.78rem", color: "var(--color-text-muted)" }}>
@@ -776,7 +911,9 @@ function ForumClient(): JSX.Element {
           <div className="forum-comment-meta">
             <strong>{comment.authorName}</strong> · {formatTimeAgo(comment.created_at, t)}
           </div>
-          <div className="forum-comment-text">{comment.content}</div>
+          <div className="forum-comment-text">
+            <ForumMarkdown content={comment.content} />
+          </div>
           <div className="forum-comment-actions">
             {!isReply && selectedPost && !selectedPost.is_locked && (
               <button className="forum-comment-action-btn" onClick={() => { setReplyingTo(comment.id); setReplyText(""); }} type="button">
@@ -792,7 +929,18 @@ function ForumClient(): JSX.Element {
   /* ═══ RENDER: Post List ═══ */
   return (
     <>
-      <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_events.webp" />
+      {/* ── Top Bar ── */}
+      <div className="top-bar">
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <div className="top-bar-inner">
+          <div>
+            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
+            <h1 className="top-bar-title">{t("title")}</h1>
+          </div>
+          <AuthActions />
+        </div>
+      </div>
+      <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
       <div className="content-inner">
         {/* Toolbar: sort + search + create */}
         <div className="forum-toolbar">
@@ -824,7 +972,7 @@ function ForumClient(): JSX.Element {
         <div className="forum-categories" style={{ marginBottom: 16 }}>
           <button
             className={`forum-cat-pill${!selectedCategory ? " active" : ""}`}
-            onClick={() => { setSelectedCategory(""); setPage(1); }}
+            onClick={() => { router.push("/forum"); setPage(1); }}
             type="button"
           >
             {t("allCategories")}
@@ -833,7 +981,7 @@ function ForumClient(): JSX.Element {
             <button
               key={cat.id}
               className={`forum-cat-pill${selectedCategory === cat.id ? " active" : ""}`}
-              onClick={() => { setSelectedCategory(cat.id); setPage(1); }}
+              onClick={() => { router.push(`/forum?category=${cat.slug}`); setPage(1); }}
               type="button"
             >
               {cat.name}
@@ -884,7 +1032,9 @@ function ForumClient(): JSX.Element {
                   </div>
                   <h3 className="forum-post-title">{post.title}</h3>
                   {post.content && (
-                    <div className="forum-post-preview">{post.content}</div>
+                    <div className="forum-post-preview">
+                      <ForumMarkdown content={post.content} preview />
+                    </div>
                   )}
                   <div className="forum-post-footer">
                     <span><CommentIcon /> {post.comment_count} {t("comments")}</span>

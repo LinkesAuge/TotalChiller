@@ -7,6 +7,15 @@ import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import getIsAdminAccess from "../../lib/supabase/admin-access";
 import { useSidebar } from "./sidebar-context";
+import useClanContext from "./use-clan-context";
+
+/** Lightweight forum category type for sidebar sub-items. */
+interface ForumCategorySub {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly sort_order: number;
+}
 
 /** SVG icon path data for each navigation item. */
 const ICONS: Record<string, string> = {
@@ -127,9 +136,11 @@ function SidebarNav(): JSX.Element {
   const searchParams = useSearchParams();
   const { isOpen } = useSidebar();
   const t = useTranslations("nav");
+  const clanContext = useClanContext();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [forumCategories, setForumCategories] = useState<ForumCategorySub[]>([]);
 
   useEffect(() => {
     let isActive = true;
@@ -161,6 +172,31 @@ function SidebarNav(): JSX.Element {
       authListener.subscription.unsubscribe();
     };
   }, [supabase]);
+
+  /* Load forum categories when on the forum page */
+  const isOnForum = pathname.startsWith("/forum");
+  useEffect(() => {
+    if (!isOnForum || !clanContext) {
+      setForumCategories([]);
+      return;
+    }
+    let active = true;
+    async function loadForumCategories(): Promise<void> {
+      const { data, error } = await supabase
+        .from("forum_categories")
+        .select("id, name, slug, sort_order")
+        .eq("clan_id", clanContext!.clanId)
+        .order("sort_order", { ascending: true });
+      if (!active) return;
+      if (error || !data) {
+        setForumCategories([]);
+      } else {
+        setForumCategories(data as ForumCategorySub[]);
+      }
+    }
+    void loadForumCategories();
+    return () => { active = false; };
+  }, [isOnForum, clanContext, supabase]);
 
   if (isLoading) {
     return <nav className="nav" />;
@@ -198,35 +234,55 @@ function SidebarNav(): JSX.Element {
                 {section.items.map((item) => {
                   const isActive = isNavItemActive(pathname, searchParams.get("tab"), item);
                   const label = t(item.labelKey);
+                  const activeCategory = searchParams.get("category") ?? "";
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`${isActive ? "active" : ""}${!isOpen ? " collapsed" : ""}`}
-                      data-tip={!isOpen ? label : undefined}
-                      style={!isOpen ? { justifyContent: "center", padding: "8px 0" } : undefined}
-                    >
-                      {/* Arrow active background */}
-                      {isActive && isOpen && (
-                        <img
-                          src="/assets/vip/backs_31.png"
-                          alt=""
-                          className="nav-active-arrow"
-                        />
-                      )}
-                      {/* Hover glow */}
-                      <div className="nav-icon-glow" />
-                      {/* Icon */}
-                      <span className="nav-icon">
-                        <NavItemIcon item={item} />
-                      </span>
-                      {/* Label */}
-                      {isOpen && (
-                        <span className="nav-label">
-                          {label}
+                    <div key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={`${isActive ? "active" : ""}${!isOpen ? " collapsed" : ""}`}
+                        data-tip={!isOpen ? label : undefined}
+                        style={!isOpen ? { justifyContent: "center", padding: "8px 0" } : undefined}
+                      >
+                        {/* Arrow active background */}
+                        {isActive && isOpen && (
+                          <img
+                            src="/assets/vip/backs_31.png"
+                            alt=""
+                            className="nav-active-arrow"
+                          />
+                        )}
+                        {/* Hover glow */}
+                        <div className="nav-icon-glow" />
+                        {/* Icon */}
+                        <span className="nav-icon">
+                          <NavItemIcon item={item} />
                         </span>
+                        {/* Label */}
+                        {isOpen && (
+                          <span className="nav-label">
+                            {label}
+                          </span>
+                        )}
+                      </Link>
+                      {/* Forum category sub-items */}
+                      {item.iconKey === "forum" && isOnForum && isOpen && forumCategories.length > 0 && (
+                        <div className="nav-sub-items">
+                          {forumCategories.map((cat) => {
+                            const isCatActive = activeCategory === cat.slug;
+                            return (
+                              <Link
+                                key={cat.id}
+                                href={`/forum?category=${cat.slug}`}
+                                className={`nav-sub-item${isCatActive ? " active" : ""}`}
+                              >
+                                <span className="nav-sub-dot" />
+                                <span className="nav-sub-label">{cat.name}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
                       )}
-                    </Link>
+                    </div>
                   );
                 })}
               </div>

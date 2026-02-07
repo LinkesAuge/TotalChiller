@@ -42,7 +42,7 @@ interface NavItem {
   readonly href: string;
   readonly labelKey: string;
   readonly iconKey: string;
-  readonly tab?: "clans" | "users" | "validation" | "corrections" | "logs" | "approvals";
+  readonly tab?: "clans" | "users" | "validation" | "corrections" | "logs" | "approvals" | "forum";
   readonly vipIcon?: string;
 }
 
@@ -78,6 +78,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: "/admin?tab=validation", labelKey: "validation", iconKey: "validation", tab: "validation" },
       { href: "/admin?tab=corrections", labelKey: "corrections", iconKey: "corrections", tab: "corrections" },
       { href: "/admin?tab=logs", labelKey: "auditLogs", iconKey: "auditLogs", tab: "logs" },
+      { href: "/admin?tab=forum", labelKey: "forumAdmin", iconKey: "forum", tab: "forum" },
       { href: "/admin/data-import", labelKey: "dataImport", iconKey: "dataImport" },
       { href: "/admin/data-table", labelKey: "chestDb", iconKey: "admin", vipIcon: "/assets/vip/icons_chest_1.png" },
     ],

@@ -71,8 +71,8 @@ function LoginPage(): JSX.Element {
                 required
               />
             </div>
-            <button className="button leather" type="submit" style={{ width: "100%", marginTop: 8 }}>
-              <img src="/assets/vip/backs_1.png" alt="Leather button texture" className="leather-bg" width={200} height={40} loading="lazy" />
+            <button className="button leather" type="submit" style={{ width: "100%", marginTop: 8, padding: "14px 24px" }}>
+              <img src="/assets/ui/backs_leather_1.png" alt="Leather button texture" className="leather-bg" width={800} height={60} loading="lazy" />
               <span>{t("submit")}</span>
             </button>
             {status ? <p className="text-muted" style={{ marginTop: 8 }}>{status}</p> : null}

@@ -29,8 +29,8 @@
     "builtWith": "Built with care for the community"
   },
   "sidebar": {
-    "title": "The Chillers",
-    "subtitle": "Alpha Division",
+    "title": "[THC]",
+    "subtitle": "Chillers & Killers",
     "collapse": "Collapse",
     "expand": "Expand",
     "selectClan": "Select clan",
@@ -55,7 +55,8 @@
     "auditLogs": "Audit Logs",
     "dataImport": "Data Import",
     "chestDb": "Chest DB",
-    "forum": "Forum"
+    "forum": "Forum",
+    "forumAdmin": "Forum Management"
   },
   "auth": {
     "login": {
@@ -65,7 +66,7 @@
       "identifierPlaceholder": "you@example.com or username",
       "password": "Password",
       "passwordPlaceholder": "••••••••",
-      "submit": "Enter the Sanctum",
+      "submit": "Enter Chiller & Killer Community",
       "signingIn": "Signing in...",
       "signedIn": "Signed in. Redirecting...",
       "usernameNotFound": "Username not found.",
@@ -485,8 +486,8 @@
   "messagesPage": {
     "breadcrumb": "TotalChiller \u2022 Clan Platform",
     "title": "Messages",
-    "heroTitle": "War Room",
-    "heroSubtitle": "Direct messages, command broadcasts, and system updates.",
+    "heroTitle": "Message Center",
+    "heroSubtitle": "Direct messages, broadcasts, and system updates.",
     "compose": "Compose",
     "inbox": "Inbox",
     "sent": "Sent",
@@ -620,7 +621,7 @@
       "logs": "Audit Logs",
       "dataImport": "Data Import",
       "chestDb": "Chest Database",
-      "forum": "Forum"
+      "forum": "Forum Management"
     },
     "dataImport": {
       "title": "Data Import",
@@ -747,6 +748,7 @@
       "cannotRevokeOwn": "You cannot revoke your own admin access.",
       "lastAdminRequired": "At least one admin is required.",
       "noUsersFound": "No users found",
+      "adjustSearch": "Adjust search",
       "noUsersMatch": "No users match the filters",
       "searchPlaceholder": "Email, username, or nickname",
       "admin": "Admin",
@@ -852,6 +854,33 @@
     "forum": {
       "title": "Forum Management",
       "subtitle": "Create, edit, reorder, and delete forum categories"
+    },
+    "forumCategories": {
+      "selectClan": "Please select a clan to manage forum categories.",
+      "tablesNotReady": "Forum tables have not been created yet. Run the migration in Documentation/migrations/forum_tables.sql.",
+      "addCategory": "+ Add Category",
+      "cancel": "Cancel",
+      "newCategory": "New Category",
+      "name": "Name",
+      "namePlaceholder": "e.g. General",
+      "slug": "Slug",
+      "slugPlaceholder": "auto-generated",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional description",
+      "sortOrder": "Sort Order",
+      "createCategory": "Create Category",
+      "save": "Save",
+      "delete": "Delete",
+      "edit": "Edit",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "confirmDeleteText": "Type to confirm deletion:",
+      "loading": "Loading categories...",
+      "noCategories": "No categories yet. Create one to get started.",
+      "categoryCreated": "Category created.",
+      "categoryUpdated": "Category updated.",
+      "categoryDeleted": "Category deleted.",
+      "error": "Error"
     },
     "sortOptions": {
       "field": "Field",
@@ -1084,7 +1113,11 @@
     "pendingApproval": "Pending Approval",
     "requested": "Requested",
     "noAccounts": "No game accounts yet",
-    "addOneAbove": "Add one above"
+    "addOneAbove": "Add one above",
+    "setAsDefault": "Set as default",
+    "defaultAccount": "Default",
+    "defaultSet": "Default account set",
+    "removeDefault": "Remove default"
   },
   "dataImport": {
     "uploadCsv": "Upload CSV",
@@ -1356,6 +1389,7 @@
     "downvote": "Downvote",
     "pin": "Pin",
     "unpin": "Unpin",
+    "pinPost": "Pin post (always appears at top)",
     "lock": "Lock",
     "unlock": "Unlock",
     "locked": "Locked",

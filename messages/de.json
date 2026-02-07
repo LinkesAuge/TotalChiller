@@ -29,8 +29,8 @@
     "builtWith": "Mit Leidenschaft für die Community erstellt"
   },
   "sidebar": {
-    "title": "The Chillers",
-    "subtitle": "Alpha Division",
+    "title": "[THC]",
+    "subtitle": "Chillers & Killers",
     "collapse": "Einklappen",
     "expand": "Ausklappen",
     "selectClan": "Clan auswählen",
@@ -55,7 +55,8 @@
     "auditLogs": "Prüfprotokolle",
     "dataImport": "Datenimport",
     "chestDb": "Truhen-DB",
-    "forum": "Forum"
+    "forum": "Forum",
+    "forumAdmin": "Forum-Verwaltung"
   },
   "auth": {
     "login": {
@@ -65,7 +66,7 @@
       "identifierPlaceholder": "du@beispiel.de oder benutzername",
       "password": "Passwort",
       "passwordPlaceholder": "••••••••",
-      "submit": "Das Sanctum betreten",
+      "submit": "Chiller & Killer Community betreten",
       "signingIn": "Anmeldung läuft...",
       "signedIn": "Angemeldet. Weiterleitung...",
       "usernameNotFound": "Benutzername nicht gefunden.",
@@ -485,8 +486,8 @@
   "messagesPage": {
     "breadcrumb": "TotalChiller \u2022 Clan-Plattform",
     "title": "Nachrichten",
-    "heroTitle": "Kommandozentrale",
-    "heroSubtitle": "Direktnachrichten, Befehls-Broadcasts und System-Updates.",
+    "heroTitle": "Nachrichtenzentrale",
+    "heroSubtitle": "Direktnachrichten, Broadcasts und System-Updates.",
     "compose": "Neue Nachricht",
     "inbox": "Posteingang",
     "sent": "Gesendet",
@@ -620,7 +621,7 @@
       "logs": "Prüfprotokolle",
       "dataImport": "Datenimport",
       "chestDb": "Truhen-Datenbank",
-      "forum": "Forum"
+      "forum": "Forum-Verwaltung"
     },
     "dataImport": {
       "title": "Datenimport",
@@ -747,6 +748,7 @@
       "cannotRevokeOwn": "Du kannst deine eigenen Admin-Rechte nicht entziehen.",
       "lastAdminRequired": "Mindestens ein Administrator ist erforderlich.",
       "noUsersFound": "Keine Benutzer gefunden",
+      "adjustSearch": "Suche anpassen",
       "noUsersMatch": "Keine Benutzer entsprechen den Filtern",
       "searchPlaceholder": "E-Mail, Benutzername oder Spitzname",
       "admin": "Administrator",
@@ -852,6 +854,33 @@
     "forum": {
       "title": "Forum-Verwaltung",
       "subtitle": "Forum-Kategorien erstellen, bearbeiten, sortieren und löschen"
+    },
+    "forumCategories": {
+      "selectClan": "Bitte wähle einen Clan aus, um Forum-Kategorien zu verwalten.",
+      "tablesNotReady": "Die Forum-Tabellen wurden noch nicht erstellt. Führe die Migration in Documentation/migrations/forum_tables.sql aus.",
+      "addCategory": "+ Kategorie hinzufügen",
+      "cancel": "Abbrechen",
+      "newCategory": "Neue Kategorie",
+      "name": "Name",
+      "namePlaceholder": "z.\u00a0B. Allgemein",
+      "slug": "Slug",
+      "slugPlaceholder": "automatisch generiert",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "Optionale Beschreibung",
+      "sortOrder": "Reihenfolge",
+      "createCategory": "Kategorie erstellen",
+      "save": "Speichern",
+      "delete": "Löschen",
+      "edit": "Bearbeiten",
+      "moveUp": "Nach oben",
+      "moveDown": "Nach unten",
+      "confirmDeleteText": "Tippe zum Bestätigen des Löschens:",
+      "loading": "Kategorien werden geladen…",
+      "noCategories": "Noch keine Kategorien vorhanden. Erstelle eine, um loszulegen.",
+      "categoryCreated": "Kategorie erstellt.",
+      "categoryUpdated": "Kategorie aktualisiert.",
+      "categoryDeleted": "Kategorie gelöscht.",
+      "error": "Fehler"
     },
     "sortOptions": {
       "field": "Feld",
@@ -1084,7 +1113,11 @@
     "pendingApproval": "Genehmigung ausstehend",
     "requested": "Beantragt",
     "noAccounts": "Noch keine Spielkonten",
-    "addOneAbove": "Oben hinzufügen"
+    "addOneAbove": "Oben hinzufügen",
+    "setAsDefault": "Als Standard",
+    "defaultAccount": "Standard",
+    "defaultSet": "Standardkonto gesetzt",
+    "removeDefault": "Standard entfernen"
   },
   "dataImport": {
     "uploadCsv": "CSV hochladen",
@@ -1356,6 +1389,7 @@
     "downvote": "Negativ bewerten",
     "pin": "Anheften",
     "unpin": "Lösen",
+    "pinPost": "Beitrag anheften (erscheint immer oben)",
     "lock": "Sperren",
     "unlock": "Entsperren",
     "locked": "Gesperrt",

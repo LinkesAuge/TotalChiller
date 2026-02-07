@@ -91,7 +91,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 /**
  * GET /api/game-accounts
- * Returns the authenticated user's game accounts with their approval status.
+ * Returns the authenticated user's game accounts with their approval status,
+ * plus the current default_game_account_id from the profile.
  */
 export async function GET(): Promise<NextResponse> {
   const supabase = await createSupabaseServerClient();
@@ -100,13 +101,73 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = authData.user.id;
-  const { data: accounts, error: fetchError } = await supabase
-    .from("game_accounts")
-    .select("id,game_username,approval_status,created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  const [{ data: accounts, error: fetchError }, { data: profile }] = await Promise.all([
+    supabase
+      .from("game_accounts")
+      .select("id,game_username,approval_status,created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("default_game_account_id")
+      .eq("id", userId)
+      .maybeSingle(),
+  ]);
   if (fetchError) {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
-  return NextResponse.json({ data: accounts ?? [] });
+  return NextResponse.json({
+    data: accounts ?? [],
+    default_game_account_id: (profile?.default_game_account_id as string | null) ?? null,
+  });
+}
+
+interface SetDefaultBody {
+  readonly default_game_account_id: string | null;
+}
+
+/**
+ * PATCH /api/game-accounts
+ * Sets or clears the user's default game account.
+ * The account must belong to the user and be approved.
+ */
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const supabase = await createSupabaseServerClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = authData.user.id;
+  let body: SetDefaultBody;
+  try {
+    body = (await request.json()) as SetDefaultBody;
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const newDefaultId = body.default_game_account_id ?? null;
+
+  /* If setting (not clearing), validate ownership + approval */
+  if (newDefaultId) {
+    const { data: account } = await supabase
+      .from("game_accounts")
+      .select("id,user_id,approval_status")
+      .eq("id", newDefaultId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!account) {
+      return NextResponse.json({ error: "Game account not found or does not belong to you." }, { status: 404 });
+    }
+    if ((account.approval_status as string) !== "approved") {
+      return NextResponse.json({ error: "Only approved game accounts can be set as default." }, { status: 400 });
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ default_game_account_id: newDefaultId })
+    .eq("id", userId);
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+  return NextResponse.json({ default_game_account_id: newDefaultId });
 }

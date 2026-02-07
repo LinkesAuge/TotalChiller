@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import useClanContext from "../components/use-clan-context";
 
@@ -44,6 +45,7 @@ function toSlug(name: string): string {
 function ForumCategoryAdmin(): JSX.Element {
   const supabase = createSupabaseBrowserClient();
   const clanContext = useClanContext();
+  const t = useTranslations("admin.forumCategories");
 
   const [categories, setCategories] = useState<ForumCategoryRow[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -94,18 +96,24 @@ function ForumCategoryAdmin(): JSX.Element {
     if (!clanContext || !createForm.name.trim()) return;
     const slug = createForm.slug.trim() || toSlug(createForm.name);
     const sortOrder = parseInt(createForm.sort_order, 10) || (categories.length + 1);
-    const { error } = await supabase.from("forum_categories").insert({
-      clan_id: clanContext.clanId,
-      name: createForm.name.trim(),
-      slug,
-      description: createForm.description.trim() || null,
-      sort_order: sortOrder,
+
+    const response = await fetch("/api/admin/forum-categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clan_id: clanContext.clanId,
+        name: createForm.name.trim(),
+        slug,
+        description: createForm.description.trim() || null,
+        sort_order: sortOrder,
+      }),
     });
-    if (error) {
-      setStatus(`Error: ${error.message}`);
+    if (!response.ok) {
+      const result = await response.json();
+      setStatus(`${t("error")}: ${result.error ?? response.statusText}`);
       return;
     }
-    setStatus("Category created.");
+    setStatus(t("categoryCreated"));
     setCreateForm({ ...EMPTY_FORM });
     setShowCreateForm(false);
     await loadCategories();
@@ -125,20 +133,24 @@ function ForumCategoryAdmin(): JSX.Element {
   async function handleSaveEdit(): Promise<void> {
     if (!editForm.name.trim()) return;
     const slug = editForm.slug.trim() || toSlug(editForm.name);
-    const { error } = await supabase
-      .from("forum_categories")
-      .update({
+
+    const response = await fetch("/api/admin/forum-categories", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editingId,
         name: editForm.name.trim(),
         slug,
         description: editForm.description.trim() || null,
         sort_order: parseInt(editForm.sort_order, 10) || 0,
-      })
-      .eq("id", editingId);
-    if (error) {
-      setStatus(`Error: ${error.message}`);
+      }),
+    });
+    if (!response.ok) {
+      const result = await response.json();
+      setStatus(`${t("error")}: ${result.error ?? response.statusText}`);
       return;
     }
-    setStatus("Category updated.");
+    setStatus(t("categoryUpdated"));
     setEditingId("");
     await loadCategories();
   }
@@ -148,15 +160,16 @@ function ForumCategoryAdmin(): JSX.Element {
     const cat = categories.find((c) => c.id === deletingId);
     if (!cat) return;
     if (deleteConfirmInput !== `DELETE ${cat.name}`) return;
-    const { error } = await supabase
-      .from("forum_categories")
-      .delete()
-      .eq("id", deletingId);
-    if (error) {
-      setStatus(`Error: ${error.message}`);
+
+    const response = await fetch(`/api/admin/forum-categories?id=${deletingId}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      const result = await response.json();
+      setStatus(`${t("error")}: ${result.error ?? response.statusText}`);
       return;
     }
-    setStatus("Category deleted.");
+    setStatus(t("categoryDeleted"));
     setDeletingId("");
     setDeleteConfirmInput("");
     await loadCategories();
@@ -167,9 +180,23 @@ function ForumCategoryAdmin(): JSX.Element {
     if (index <= 0) return;
     const current = categories[index];
     const above = categories[index - 1];
+    /* Swap sort_order values; if they are identical, assign distinct values */
+    const currentOrder = current.sort_order;
+    const aboveOrder = above.sort_order;
+    const newCurrentOrder = currentOrder === aboveOrder ? aboveOrder - 1 : aboveOrder;
+    const newAboveOrder = currentOrder === aboveOrder ? currentOrder : currentOrder;
+
     await Promise.all([
-      supabase.from("forum_categories").update({ sort_order: above.sort_order }).eq("id", current.id),
-      supabase.from("forum_categories").update({ sort_order: current.sort_order }).eq("id", above.id),
+      fetch("/api/admin/forum-categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: current.id, sort_order: newCurrentOrder }),
+      }),
+      fetch("/api/admin/forum-categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: above.id, sort_order: newAboveOrder }),
+      }),
     ]);
     await loadCategories();
   }
@@ -178,9 +205,22 @@ function ForumCategoryAdmin(): JSX.Element {
     if (index >= categories.length - 1) return;
     const current = categories[index];
     const below = categories[index + 1];
+    const currentOrder = current.sort_order;
+    const belowOrder = below.sort_order;
+    const newCurrentOrder = currentOrder === belowOrder ? belowOrder + 1 : belowOrder;
+    const newBelowOrder = currentOrder === belowOrder ? currentOrder : currentOrder;
+
     await Promise.all([
-      supabase.from("forum_categories").update({ sort_order: below.sort_order }).eq("id", current.id),
-      supabase.from("forum_categories").update({ sort_order: current.sort_order }).eq("id", below.id),
+      fetch("/api/admin/forum-categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: current.id, sort_order: newCurrentOrder }),
+      }),
+      fetch("/api/admin/forum-categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: below.id, sort_order: newBelowOrder }),
+      }),
     ]);
     await loadCategories();
   }
@@ -188,15 +228,13 @@ function ForumCategoryAdmin(): JSX.Element {
   /* ─── Render ─── */
 
   if (!clanContext) {
-    return <p style={{ color: "var(--color-text-muted)", padding: 16 }}>Please select a clan to manage forum categories.</p>;
+    return <p style={{ color: "var(--color-text-muted)", padding: 16 }}>{t("selectClan")}</p>;
   }
 
   if (!tablesReady) {
     return (
       <div style={{ padding: 16 }}>
-        <p style={{ color: "var(--color-text-muted)" }}>
-          Forum tables have not been created yet. Run the migration in <code>Documentation/migrations/forum_tables.sql</code>.
-        </p>
+        <p style={{ color: "var(--color-text-muted)" }}>{t("tablesNotReady")}</p>
       </div>
     );
   }
@@ -204,13 +242,7 @@ function ForumCategoryAdmin(): JSX.Element {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div>
-          <h3 style={{ margin: 0, fontSize: "1rem", color: "var(--color-gold-2)" }}>Forum Categories</h3>
-          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--color-text-muted)" }}>
-            Manage discussion categories for the forum.
-          </p>
-        </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 16 }}>
         <button
           className="button primary"
           type="button"
@@ -219,7 +251,7 @@ function ForumCategoryAdmin(): JSX.Element {
             setCreateForm({ ...EMPTY_FORM, sort_order: String(categories.length + 1) });
           }}
         >
-          {showCreateForm ? "Cancel" : "+ Add Category"}
+          {showCreateForm ? t("cancel") : t("addCategory")}
         </button>
       </div>
 
@@ -227,51 +259,51 @@ function ForumCategoryAdmin(): JSX.Element {
       {status && (
         <div className="alert info" style={{ marginBottom: 12 }}>
           {status}
-          <button type="button" onClick={() => setStatus("")} style={{ marginLeft: 8, background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: "0.8rem" }}>✕</button>
+          <button type="button" onClick={() => setStatus("")} style={{ marginLeft: 8, background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: "0.8rem" }}>&#10005;</button>
         </div>
       )}
 
       {/* Create form */}
       {showCreateForm && (
         <form onSubmit={handleCreate} className="card" style={{ marginBottom: 16, padding: 16 }}>
-          <h4 style={{ margin: "0 0 10px", fontSize: "0.88rem" }}>New Category</h4>
+          <h4 style={{ margin: "0 0 10px", fontSize: "0.88rem" }}>{t("newCategory")}</h4>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div className="form-group">
-              <label className="form-label" htmlFor="cat-name">Name *</label>
+              <label className="form-label" htmlFor="cat-name">{t("name")} *</label>
               <input
                 id="cat-name"
                 type="text"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value, slug: toSlug(e.target.value) })}
-                placeholder="e.g. General"
+                placeholder={t("namePlaceholder")}
                 required
                 style={{ width: "100%", padding: "6px 10px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)" }}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="cat-slug">Slug</label>
+              <label className="form-label" htmlFor="cat-slug">{t("slug")}</label>
               <input
                 id="cat-slug"
                 type="text"
                 value={createForm.slug}
                 onChange={(e) => setCreateForm({ ...createForm, slug: e.target.value })}
-                placeholder="auto-generated"
+                placeholder={t("slugPlaceholder")}
                 style={{ width: "100%", padding: "6px 10px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)" }}
               />
             </div>
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-              <label className="form-label" htmlFor="cat-desc">Description</label>
+              <label className="form-label" htmlFor="cat-desc">{t("description")}</label>
               <input
                 id="cat-desc"
                 type="text"
                 value={createForm.description}
                 onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                placeholder="Optional description"
+                placeholder={t("descriptionPlaceholder")}
                 style={{ width: "100%", padding: "6px 10px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)" }}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="cat-order">Sort Order</label>
+              <label className="form-label" htmlFor="cat-order">{t("sortOrder")}</label>
               <input
                 id="cat-order"
                 type="number"
@@ -282,17 +314,17 @@ function ForumCategoryAdmin(): JSX.Element {
             </div>
           </div>
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-            <button className="button primary" type="submit" disabled={!createForm.name.trim()}>Create Category</button>
-            <button className="button" type="button" onClick={() => setShowCreateForm(false)}>Cancel</button>
+            <button className="button primary" type="submit" disabled={!createForm.name.trim()}>{t("createCategory")}</button>
+            <button className="button" type="button" onClick={() => setShowCreateForm(false)}>{t("cancel")}</button>
           </div>
         </form>
       )}
 
       {/* Category list */}
       {isLoading ? (
-        <p style={{ color: "var(--color-text-muted)" }}>Loading categories...</p>
+        <p style={{ color: "var(--color-text-muted)" }}>{t("loading")}</p>
       ) : categories.length === 0 ? (
-        <p style={{ color: "var(--color-text-muted)" }}>No categories yet. Create one to get started.</p>
+        <p style={{ color: "var(--color-text-muted)" }}>{t("noCategories")}</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {categories.map((cat, index) => (
@@ -302,7 +334,7 @@ function ForumCategoryAdmin(): JSX.Element {
                 <div className="card" style={{ padding: 12 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 8, alignItems: "end" }}>
                     <div className="form-group">
-                      <label className="form-label">Name</label>
+                      <label className="form-label">{t("name")}</label>
                       <input
                         type="text"
                         value={editForm.name}
@@ -311,7 +343,7 @@ function ForumCategoryAdmin(): JSX.Element {
                       />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Slug</label>
+                      <label className="form-label">{t("slug")}</label>
                       <input
                         type="text"
                         value={editForm.slug}
@@ -320,8 +352,8 @@ function ForumCategoryAdmin(): JSX.Element {
                       />
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button className="button primary" type="button" onClick={handleSaveEdit} style={{ fontSize: "0.75rem", padding: "5px 10px" }}>Save</button>
-                      <button className="button" type="button" onClick={() => setEditingId("")} style={{ fontSize: "0.75rem", padding: "5px 10px" }}>Cancel</button>
+                      <button className="button primary" type="button" onClick={handleSaveEdit} style={{ fontSize: "0.75rem", padding: "5px 10px" }}>{t("save")}</button>
+                      <button className="button" type="button" onClick={() => setEditingId("")} style={{ fontSize: "0.75rem", padding: "5px 10px" }}>{t("cancel")}</button>
                     </div>
                   </div>
                   <div style={{ marginTop: 6 }}>
@@ -329,7 +361,7 @@ function ForumCategoryAdmin(): JSX.Element {
                       type="text"
                       value={editForm.description}
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                      placeholder="Description (optional)"
+                      placeholder={t("descriptionPlaceholder")}
                       style={{ width: "100%", padding: "5px 8px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)", fontSize: "0.82rem" }}
                     />
                   </div>
@@ -338,7 +370,7 @@ function ForumCategoryAdmin(): JSX.Element {
                 /* Delete confirmation */
                 <div className="card" style={{ padding: 12, borderColor: "var(--color-accent-red)" }}>
                   <p style={{ fontSize: "0.82rem", marginBottom: 8 }}>
-                    Type <strong style={{ color: "var(--color-accent-red)" }}>DELETE {cat.name}</strong> to confirm deletion:
+                    {t("confirmDeleteText")} <strong style={{ color: "var(--color-accent-red)" }}>DELETE {cat.name}</strong>
                   </p>
                   <input
                     type="text"
@@ -348,8 +380,8 @@ function ForumCategoryAdmin(): JSX.Element {
                     style={{ width: "100%", padding: "5px 8px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)", fontSize: "0.82rem", marginBottom: 8 }}
                   />
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button className="button danger" type="button" onClick={handleConfirmDelete} disabled={deleteConfirmInput !== `DELETE ${cat.name}`}>Delete</button>
-                    <button className="button" type="button" onClick={() => { setDeletingId(""); setDeleteConfirmInput(""); }}>Cancel</button>
+                    <button className="button danger" type="button" onClick={handleConfirmDelete} disabled={deleteConfirmInput !== `DELETE ${cat.name}`}>{t("delete")}</button>
+                    <button className="button" type="button" onClick={() => { setDeletingId(""); setDeleteConfirmInput(""); }}>{t("cancel")}</button>
                   </div>
                 </div>
               ) : (
@@ -372,20 +404,20 @@ function ForumCategoryAdmin(): JSX.Element {
                       className="forum-mod-btn"
                       onClick={() => handleMoveUp(index)}
                       disabled={index === 0}
-                      title="Move up"
+                      aria-label={t("moveUp")}
                       style={{ fontSize: "0.65rem", padding: "1px 4px" }}
                     >
-                      ▲
+                      &#9650;
                     </button>
                     <button
                       type="button"
                       className="forum-mod-btn"
                       onClick={() => handleMoveDown(index)}
                       disabled={index === categories.length - 1}
-                      title="Move down"
+                      aria-label={t("moveDown")}
                       style={{ fontSize: "0.65rem", padding: "1px 4px" }}
                     >
-                      ▼
+                      &#9660;
                     </button>
                   </div>
                   {/* Info */}
@@ -401,8 +433,8 @@ function ForumCategoryAdmin(): JSX.Element {
                   {/* Sort order */}
                   <span style={{ fontSize: "0.68rem", color: "var(--color-text-muted)" }}>#{cat.sort_order}</span>
                   {/* Actions */}
-                  <button className="forum-mod-btn" type="button" onClick={() => startEdit(cat)} title="Edit">✏️</button>
-                  <button className="forum-mod-btn danger" type="button" onClick={() => { setDeletingId(cat.id); setDeleteConfirmInput(""); }} title="Delete">🗑️</button>
+                  <button className="forum-mod-btn" type="button" onClick={() => startEdit(cat)} aria-label={t("edit")}>&#9998;</button>
+                  <button className="forum-mod-btn danger" type="button" onClick={() => { setDeletingId(cat.id); setDeleteConfirmInput(""); }} aria-label={t("delete")}>&#128465;</button>
                 </div>
               )}
             </div>

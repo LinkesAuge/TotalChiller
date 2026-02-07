@@ -67,7 +67,7 @@ async function ProfilePage(): Promise<JSX.Element> {
   const userId = data.user?.id ?? "Unknown";
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("user_db,username,display_name")
+    .select("user_db,username,display_name,default_game_account_id")
     .eq("id", userId)
     .maybeSingle();
   const emailPrefix = userEmail && userEmail !== "Unknown" ? userEmail.split("@")[0] : "user";
@@ -87,7 +87,7 @@ async function ProfilePage(): Promise<JSX.Element> {
             },
             { onConflict: "id" },
           )
-          .select("user_db,username,display_name")
+          .select("user_db,username,display_name,default_game_account_id")
           .single()
       : { data: profileData };
   const userView: UserProfileView = {
@@ -209,7 +209,11 @@ async function ProfilePage(): Promise<JSX.Element> {
             initialDisplayName={userView.displayName}
           />
         </section>
-        <GameAccountManager userId={userId} initialAccounts={gameAccounts} />
+        <GameAccountManager
+          userId={userId}
+          initialAccounts={gameAccounts}
+          initialDefaultId={(ensuredProfile?.default_game_account_id as string | null) ?? null}
+        />
         <section className="card">
           <div className="card-header">
             <div>

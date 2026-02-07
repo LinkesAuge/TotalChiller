@@ -103,7 +103,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
 
     /* Profile + admin status */
     const [{ data: profile }, isAdmin] = await Promise.all([
-      supabase.from("profiles").select("user_db,username,display_name").eq("id", userId).maybeSingle(),
+      supabase.from("profiles").select("user_db,username,display_name,default_game_account_id").eq("id", userId).maybeSingle(),
       getIsAdminAccess({ supabase }),
     ]);
 
@@ -129,15 +129,24 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           rank: (row.rank as string) ?? null,
         }));
 
-    /* Restore previous selection or pick first */
+    /* Restore previous selection: 1) localStorage, 2) DB default, 3) first option */
     const storedClanId = window.localStorage.getItem(CLAN_STORAGE_KEY) ?? "";
     const storedGameAccountId = window.localStorage.getItem(GAME_ACCOUNT_STORAGE_KEY) ?? "";
     const storedKey = storedClanId && storedGameAccountId ? `${storedClanId}:${storedGameAccountId}` : "";
     const hasStored = options.some((o) => `${o.clanId}:${o.gameAccountId}` === storedKey);
 
+    const dbDefaultGameAccountId = (profile?.default_game_account_id as string | null) ?? null;
+    const dbDefaultOption = dbDefaultGameAccountId
+      ? options.find((o) => o.gameAccountId === dbDefaultGameAccountId)
+      : null;
+
     let selectedKey = "";
     if (hasStored) {
       selectedKey = storedKey;
+    } else if (dbDefaultOption) {
+      selectedKey = `${dbDefaultOption.clanId}:${dbDefaultOption.gameAccountId}`;
+      window.localStorage.setItem(CLAN_STORAGE_KEY, dbDefaultOption.clanId);
+      window.localStorage.setItem(GAME_ACCOUNT_STORAGE_KEY, dbDefaultOption.gameAccountId);
     } else if (options.length > 0) {
       const first = options[0];
       selectedKey = `${first.clanId}:${first.gameAccountId}`;
@@ -199,20 +208,20 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           loading="eager"
         />
 
-        {/* Header — clan identity */}
-        <div className={`sidebar-header${isOpen ? "" : " collapsed"}`}>
+        {/* Header — clan identity with logo */}
+        <div className={`sidebar-header${isOpen ? "" : " collapsed"}`} style={{ flexDirection: "column", alignItems: "center", gap: isOpen ? 8 : 4, padding: isOpen ? "16px 12px 12px" : undefined }}>
           <img
-            src="/assets/ui/components_shield_4.png"
-            alt="The Chillers clan shield"
-            className="sidebar-logo"
-            width={40}
-            height={40}
+            src="/assets/ui/chillerkiller_logo.png"
+            alt="Chillers & Killers logo"
+            width={960}
+            height={967}
+            style={{ objectFit: "contain", width: isOpen ? 160 : 36, height: isOpen ? 160 : 36, flexShrink: 0 }}
             loading="eager"
           />
           {isOpen && (
-            <div style={{ overflow: "hidden" }}>
-              <div className="sidebar-title">{t("title")}</div>
-              <div className="sidebar-subtitle">{t("subtitle")}</div>
+            <div style={{ overflow: "hidden", textAlign: "center" }}>
+              <div className="sidebar-title" style={{ fontSize: "1.3rem" }}>{t("title")}</div>
+              <div className="sidebar-subtitle" style={{ fontSize: "0.8rem" }}>{t("subtitle")}</div>
             </div>
           )}
         </div>

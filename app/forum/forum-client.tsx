@@ -8,7 +8,7 @@ import getIsContentManager from "../../lib/supabase/role-access";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
 import SectionHero from "../components/section-hero";
-import ForumMarkdown from "./forum-markdown";
+import ForumMarkdown, { extractThumbnail, type PostThumbnail } from "./forum-markdown";
 import MarkdownToolbar, { handleImagePaste, handleImageDrop } from "./markdown-toolbar";
 
 /* ─── Types ─── */
@@ -129,6 +129,55 @@ function CommentIcon(): JSX.Element {
   );
 }
 
+/* ─── Thumbnail component for post list ─── */
+
+function PostThumbnailBox({ thumbnail }: { readonly thumbnail: PostThumbnail | null }): JSX.Element | null {
+  if (!thumbnail) return null;
+
+  /* Image or YouTube — show actual thumbnail */
+  if (thumbnail.thumbnailUrl) {
+    return (
+      <div className="forum-thumb">
+        <img
+          src={thumbnail.thumbnailUrl}
+          alt=""
+          loading="lazy"
+          className="forum-thumb-img"
+        />
+        {thumbnail.type === "youtube" && (
+          <span className="forum-thumb-play">&#9654;</span>
+        )}
+      </div>
+    );
+  }
+
+  /* Video without thumbnail (direct mp4/webm) */
+  if (thumbnail.type === "video") {
+    return (
+      <div className="forum-thumb forum-thumb-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none" />
+        </svg>
+      </div>
+    );
+  }
+
+  /* External link / article */
+  if (thumbnail.type === "link") {
+    return (
+      <div className="forum-thumb forum-thumb-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+        </svg>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 /* ─── Main Component ─── */
 
 /**
@@ -165,6 +214,7 @@ function ForumClient(): JSX.Element {
   const [formTitle, setFormTitle] = useState<string>("");
   const [formContent, setFormContent] = useState<string>("");
   const [formCategoryId, setFormCategoryId] = useState<string>("");
+  const [formPinned, setFormPinned] = useState<boolean>(false);
   const [editingPostId, setEditingPostId] = useState<string>("");
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
   const [isImageUploading, setIsImageUploading] = useState<boolean>(false);
@@ -245,12 +295,14 @@ function ForumClient(): JSX.Element {
     if (searchTerm.trim()) {
       query = query.or(`title.ilike.%${searchTerm.trim()}%,content.ilike.%${searchTerm.trim()}%`);
     }
+    /* Pinned posts always first, then apply the chosen sort */
+    query = query.order("is_pinned", { ascending: false });
     if (sortMode === "new") {
       query = query.order("created_at", { ascending: false });
     } else if (sortMode === "top") {
       query = query.order("score", { ascending: false });
     } else {
-      query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
+      query = query.order("created_at", { ascending: false });
     }
     const fromIdx = (page - 1) * PAGE_SIZE;
     const toIdx = fromIdx + PAGE_SIZE - 1;
@@ -435,20 +487,28 @@ function ForumClient(): JSX.Element {
   async function handleSubmitPost(): Promise<void> {
     if (!clanContext || !currentUserId || !formTitle.trim()) return;
     if (editingPostId) {
-      await supabase.from("forum_posts").update({
+      const updatePayload: Record<string, unknown> = {
         title: formTitle.trim(),
         content: formContent.trim() || null,
         category_id: formCategoryId || null,
         updated_at: new Date().toISOString(),
-      }).eq("id", editingPostId);
+      };
+      if (canManage) {
+        updatePayload.is_pinned = formPinned;
+      }
+      await supabase.from("forum_posts").update(updatePayload).eq("id", editingPostId);
     } else {
-      await supabase.from("forum_posts").insert({
+      const insertPayload: Record<string, unknown> = {
         clan_id: clanContext.clanId,
         author_id: currentUserId,
         title: formTitle.trim(),
         content: formContent.trim() || null,
         category_id: formCategoryId || null,
-      });
+      };
+      if (canManage && formPinned) {
+        insertPayload.is_pinned = true;
+      }
+      await supabase.from("forum_posts").insert(insertPayload);
     }
     resetForm();
     setViewMode("list");
@@ -460,6 +520,7 @@ function ForumClient(): JSX.Element {
     setFormTitle("");
     setFormContent("");
     setFormCategoryId("");
+    setFormPinned(false);
     setEditingPostId("");
   }
 
@@ -472,6 +533,7 @@ function ForumClient(): JSX.Element {
     setFormTitle(post.title);
     setFormContent(post.content ?? "");
     setFormCategoryId(post.category_id ?? "");
+    setFormPinned(post.is_pinned);
     setEditingPostId(post.id);
     setViewMode("create");
   }
@@ -658,6 +720,19 @@ function ForumClient(): JSX.Element {
                 ))}
               </select>
             </div>
+            {canManage && (
+              <div className="form-group" style={{ marginBottom: 10 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.84rem", color: "var(--color-text)" }}>
+                  <input
+                    type="checkbox"
+                    checked={formPinned}
+                    onChange={(e) => setFormPinned(e.target.checked)}
+                    style={{ accentColor: "var(--color-gold)" }}
+                  />
+                  {t("pinPost")}
+                </label>
+              </div>
+            )}
             <div className="form-group" style={{ marginBottom: 10 }}>
               <label className="form-label" htmlFor="post-content">{t("postContent")}</label>
               <div className="forum-editor-tabs">
@@ -1021,6 +1096,8 @@ function ForumClient(): JSX.Element {
                     <DownArrow />
                   </button>
                 </div>
+                {/* Thumbnail preview */}
+                <PostThumbnailBox thumbnail={extractThumbnail(post.content)} />
                 {/* Post body */}
                 <div className="forum-post-body">
                   <div className="forum-post-meta">

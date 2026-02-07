@@ -14,6 +14,7 @@ interface GameAccountView {
 interface GameAccountManagerProps {
   readonly userId: string;
   readonly initialAccounts: readonly GameAccountView[];
+  readonly initialDefaultId: string | null;
 }
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
@@ -22,27 +23,55 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 };
 
 /**
- * Displays the user's game accounts with status and a form to request new ones.
+ * Displays the user's game accounts with status, default selection, and a form to request new ones.
  */
-function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps): JSX.Element {
+function GameAccountManager({ userId, initialAccounts, initialDefaultId }: GameAccountManagerProps): JSX.Element {
   const t = useTranslations("gameAccountManager");
   const locale = useLocale();
   const [accounts, setAccounts] = useState<readonly GameAccountView[]>(initialAccounts);
+  const [defaultId, setDefaultId] = useState<string | null>(initialDefaultId);
   const [newGameUsername, setNewGameUsername] = useState<string>("");
   const [requestStatus, setRequestStatus] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
+  const [defaultStatus, setDefaultStatus] = useState<string>("");
   const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
     setAccounts(initialAccounts);
   }, [initialAccounts]);
 
+  useEffect(() => {
+    setDefaultId(initialDefaultId);
+  }, [initialDefaultId]);
+
   async function refreshAccounts(): Promise<void> {
     const response = await fetch("/api/game-accounts");
     if (response.ok) {
       const result = await response.json();
       setAccounts(result.data ?? []);
+      setDefaultId(result.default_game_account_id ?? null);
+    }
+  }
+
+  async function handleSetDefault(accountId: string | null): Promise<void> {
+    setDefaultStatus("");
+    try {
+      const response = await fetch("/api/game-accounts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ default_game_account_id: accountId }),
+      });
+      if (response.ok) {
+        setDefaultId(accountId);
+        setDefaultStatus(accountId ? t("defaultSet") : "");
+      }
+    } catch {
+      /* silently ignore network errors for this action */
+    }
+    /* Clear status after a short delay */
+    if (accountId) {
+      setTimeout(() => setDefaultStatus(""), 2000);
     }
   }
 
@@ -141,6 +170,7 @@ function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps
         </form>
       ) : null}
       {requestStatus && !isFormOpen ? <p className="text-muted">{requestStatus}</p> : null}
+      {defaultStatus ? <p className="text-muted">{defaultStatus}</p> : null}
       <div className="list">
         {accounts.length === 0 ? (
           <div className="list-item">
@@ -148,19 +178,53 @@ function GameAccountManager({ userId, initialAccounts }: GameAccountManagerProps
             <span className="badge">{t("addOneAbove")}</span>
           </div>
         ) : (
-          accounts.map((account) => (
-            <div className="list-item" key={account.id}>
-              <div>
-                <div><strong>{account.game_username}</strong></div>
-                <div className="text-muted" style={{ fontSize: "0.85em" }}>
-                  {t("requested")} {new Date(account.created_at).toLocaleDateString(locale)}
+          accounts.map((account) => {
+            const isDefault = account.id === defaultId;
+            const isApproved = account.approval_status === "approved";
+            return (
+              <div className="list-item" key={account.id}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <strong>{account.game_username}</strong>
+                    {isDefault ? (
+                      <span className="badge success" style={{ fontSize: "0.75em" }}>
+                        {t("defaultAccount")}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="text-muted" style={{ fontSize: "0.85em" }}>
+                    {t("requested")} {new Date(account.created_at).toLocaleDateString(locale)}
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  {isApproved ? (
+                    isDefault ? (
+                      <button
+                        className="button"
+                        type="button"
+                        onClick={() => handleSetDefault(null)}
+                        style={{ fontSize: "0.8em", padding: "0.25rem 0.5rem" }}
+                      >
+                        {t("removeDefault")}
+                      </button>
+                    ) : (
+                      <button
+                        className="button"
+                        type="button"
+                        onClick={() => handleSetDefault(account.id)}
+                        style={{ fontSize: "0.8em", padding: "0.25rem 0.5rem" }}
+                      >
+                        {t("setAsDefault")}
+                      </button>
+                    )
+                  ) : null}
+                  <span className={`badge ${STATUS_BADGE_CLASS[account.approval_status] ?? ""}`}>
+                    {formatStatus(account.approval_status)}
+                  </span>
                 </div>
               </div>
-              <span className={`badge ${STATUS_BADGE_CLASS[account.approval_status] ?? ""}`}>
-                {formatStatus(account.approval_status)}
-              </span>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </section>

@@ -438,140 +438,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
 
   return (
     <div className="grid">
-      <div className="messages-layout">
-        {/* Conversation list */}
-        <section className="card messages-list-panel">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("inbox")}</div>
-              <div className="card-subtitle">
-                {conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)} {t("unread")}
-              </div>
-            </div>
-          </div>
-          <div className="messages-filters">
-            <SearchInput id="messageSearch" label="" value={search} onChange={setSearch} placeholder={t("searchPlaceholder")} />
-            <div className="tabs" style={{ fontSize: "0.8rem" }}>
-              {(["all", "private", "system", "broadcast"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  className={`tab ${typeFilter === tab ? "active" : ""}`}
-                  type="button"
-                  onClick={() => setTypeFilter(tab)}
-                >
-                  {tab === "all" ? t("all") : tab === "private" ? t("private") : tab === "system" ? t("system") : t("broadcast")}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="messages-conversation-list">
-            {isLoading ? (
-              <div className="list-item"><span className="text-muted">{t("loadingMessages")}</span></div>
-            ) : filteredConversations.length === 0 ? (
-              <div className="list-item"><span className="text-muted">{t("noMessages")}</span></div>
-            ) : (
-              filteredConversations.map((conv) => (
-                <button
-                  key={conv.partnerId}
-                  type="button"
-                  className={`messages-conversation-item ${selectedPartnerId === conv.partnerId ? "active" : ""} ${conv.unreadCount > 0 ? "unread" : ""}`}
-                  onClick={() => handleSelectConversation(conv.partnerId)}
-                >
-                  <div className="messages-conversation-header">
-                    <strong>{conv.partnerLabel}</strong>
-                    <span className="text-muted" style={{ fontSize: "0.75rem" }}>
-                      {formatLocalDateTime(conv.lastMessage.created_at, locale)}
-                    </span>
-                  </div>
-                  <div className="messages-conversation-preview">
-                    <span className="text-muted">
-                      {conv.lastMessage.subject
-                        ? conv.lastMessage.subject
-                        : conv.lastMessage.content.length > 60
-                          ? `${conv.lastMessage.content.slice(0, 60)}...`
-                          : conv.lastMessage.content}
-                    </span>
-                    <span className="messages-meta">
-                      {conv.unreadCount > 0 ? (
-                        <span className="badge">{conv.unreadCount}</span>
-                      ) : null}
-                      {getMessageTypeLabel(conv.messageType) ? (
-                        <span className="badge" style={{ fontSize: "0.7rem" }}>{getMessageTypeLabel(conv.messageType)}</span>
-                      ) : null}
-                    </span>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* Thread view */}
-        <section className="card messages-thread-panel">
-          {!selectedPartnerId ? (
-            <div className="messages-empty">
-              <div className="text-muted">{t("selectConversation")}</div>
-            </div>
-          ) : (
-            <>
-              <div className="card-header">
-                <div>
-                  <div className="card-title">{selectedConversation?.partnerLabel ?? t("conversation")}</div>
-                  <div className="card-subtitle">{selectedThread.length} {t("messagesCount")}</div>
-                </div>
-              </div>
-              <div className="messages-thread-list">
-                {selectedThread.map((message) => {
-                  const isSelf = message.sender_id === userId;
-                  const isSystem = message.message_type === "system";
-                  return (
-                    <div
-                      key={message.id}
-                      className={`messages-bubble ${isSelf ? "self" : ""} ${isSystem ? "system" : ""}`}
-                    >
-                      {message.subject ? (
-                        <div className="messages-bubble-subject">{message.subject}</div>
-                      ) : null}
-                      <div className="messages-bubble-content">{message.content}</div>
-                      <div className="messages-bubble-meta">
-                        <span className="text-muted" style={{ fontSize: "0.75rem" }}>
-                          {formatLocalDateTime(message.created_at, locale)}
-                        </span>
-                        {message.recipient_id === userId ? (
-                          <button
-                            type="button"
-                            className="messages-delete-button"
-                            onClick={() => handleDeleteMessage(message.id)}
-                            aria-label={t("deleteMessage")}
-                          >
-                            &times;
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {selectedPartnerId !== SYSTEM_PARTNER_ID ? (
-                <form className="messages-reply-bar" onSubmit={handleSendReply}>
-                  <input
-                    className="messages-reply-input"
-                    value={replyContent}
-                    onChange={(event) => setReplyContent(event.target.value)}
-                    placeholder={t("typeMessage")}
-                    required
-                  />
-                  <button className="button primary" type="submit">
-                    {t("send")}
-                  </button>
-                  {replyStatus ? <span className="text-muted">{replyStatus}</span> : null}
-                </form>
-              ) : null}
-            </>
-          )}
-        </section>
-      </div>
-
       {/* Compose toggle */}
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
         <button
@@ -754,6 +620,140 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
           </form>
         </section>
       ) : null}
+
+      <div className="messages-layout">
+        {/* Conversation list */}
+        <section className="card messages-list-panel">
+          <div className="card-header">
+            <div>
+              <div className="card-title">{t("inbox")}</div>
+              <div className="card-subtitle">
+                {conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)} {t("unread")}
+              </div>
+            </div>
+          </div>
+          <div className="messages-filters">
+            <SearchInput id="messageSearch" label="" value={search} onChange={setSearch} placeholder={t("searchPlaceholder")} />
+            <div className="tabs" style={{ fontSize: "0.8rem" }}>
+              {(["all", "private", "system", "broadcast"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  className={`tab ${typeFilter === tab ? "active" : ""}`}
+                  type="button"
+                  onClick={() => setTypeFilter(tab)}
+                >
+                  {tab === "all" ? t("all") : tab === "private" ? t("private") : tab === "system" ? t("system") : t("broadcast")}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="messages-conversation-list">
+            {isLoading ? (
+              <div className="list-item"><span className="text-muted">{t("loadingMessages")}</span></div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="list-item"><span className="text-muted">{t("noMessages")}</span></div>
+            ) : (
+              filteredConversations.map((conv) => (
+                <button
+                  key={conv.partnerId}
+                  type="button"
+                  className={`messages-conversation-item ${selectedPartnerId === conv.partnerId ? "active" : ""} ${conv.unreadCount > 0 ? "unread" : ""}`}
+                  onClick={() => handleSelectConversation(conv.partnerId)}
+                >
+                  <div className="messages-conversation-header">
+                    <strong>{conv.partnerLabel}</strong>
+                    <span className="text-muted" style={{ fontSize: "0.75rem" }}>
+                      {formatLocalDateTime(conv.lastMessage.created_at, locale)}
+                    </span>
+                  </div>
+                  <div className="messages-conversation-preview">
+                    <span className="text-muted">
+                      {conv.lastMessage.subject
+                        ? conv.lastMessage.subject
+                        : conv.lastMessage.content.length > 60
+                          ? `${conv.lastMessage.content.slice(0, 60)}...`
+                          : conv.lastMessage.content}
+                    </span>
+                    <span className="messages-meta">
+                      {conv.unreadCount > 0 ? (
+                        <span className="badge">{conv.unreadCount}</span>
+                      ) : null}
+                      {getMessageTypeLabel(conv.messageType) ? (
+                        <span className="badge" style={{ fontSize: "0.7rem" }}>{getMessageTypeLabel(conv.messageType)}</span>
+                      ) : null}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* Thread view */}
+        <section className="card messages-thread-panel">
+          {!selectedPartnerId ? (
+            <div className="messages-empty">
+              <div className="text-muted">{t("selectConversation")}</div>
+            </div>
+          ) : (
+            <>
+              <div className="card-header">
+                <div>
+                  <div className="card-title">{selectedConversation?.partnerLabel ?? t("conversation")}</div>
+                  <div className="card-subtitle">{t("messagesCount", { count: selectedThread.length })}</div>
+                </div>
+              </div>
+              <div className="messages-thread-list">
+                {selectedThread.map((message) => {
+                  const isSelf = message.sender_id === userId;
+                  const isSystem = message.message_type === "system";
+                  return (
+                    <div
+                      key={message.id}
+                      className={`messages-bubble ${isSelf ? "self" : ""} ${isSystem ? "system" : ""}`}
+                    >
+                      {message.subject ? (
+                        <div className="messages-bubble-subject">{message.subject}</div>
+                      ) : null}
+                      <div className="messages-bubble-content">{message.content}</div>
+                      <div className="messages-bubble-meta">
+                        <span className="text-muted" style={{ fontSize: "0.75rem" }}>
+                          {formatLocalDateTime(message.created_at, locale)}
+                        </span>
+                        {message.recipient_id === userId ? (
+                          <button
+                            type="button"
+                            className="messages-delete-button"
+                            onClick={() => handleDeleteMessage(message.id)}
+                            aria-label={t("deleteMessage")}
+                          >
+                            &times;
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {selectedPartnerId !== SYSTEM_PARTNER_ID ? (
+                <form className="messages-reply-bar" onSubmit={handleSendReply}>
+                  <input
+                    className="messages-reply-input"
+                    value={replyContent}
+                    onChange={(event) => setReplyContent(event.target.value)}
+                    placeholder={t("typeMessage")}
+                    required
+                  />
+                  <button className="button primary" type="submit">
+                    {t("send")}
+                  </button>
+                  {replyStatus ? <span className="text-muted">{replyStatus}</span> : null}
+                </form>
+              ) : null}
+            </>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

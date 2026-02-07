@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "The Chillers Community Hub",
   description:
     "Welcome to The Chillers — a focused Total Battle clan built around teamwork, planning, and data-driven play. Join our community hub.",
+  alternates: { canonical: "/home" },
 };
 
 /**
@@ -96,8 +97,16 @@ function HomePage(): JSX.Element {
             <div className="card-body">
               <p style={{ margin: 0 }}>
                 The Chillers are a focused Total Battle clan built around
-                teamwork, planning, and data-driven play. Join us for active
-                events, shared strategy, and a modern hub to stay connected.
+                teamwork, planning, and data-driven play. Our mission is to create a
+                community where every member contributes to collective success through
+                coordination, strategy, and active participation in clan events.
+              </p>
+              <p style={{ margin: "12px 0 0" }}>
+                Founded on the principle that organized clans outperform disorganized ones,
+                we built TotalChiller as a custom platform to track chest scores, coordinate
+                war preparations, manage event calendars, and keep every member informed
+                with real-time news and announcements. Whether you are a seasoned veteran
+                or a new recruit, our tools help you contribute meaningfully to the clan.
               </p>
             </div>
           </section>
@@ -105,24 +114,37 @@ function HomePage(): JSX.Element {
           {/* Why Join */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Why Join</h3>
+              <h3 className="card-title">Why Join The Chillers</h3>
               <a className="button primary" href="/auth/register">
-                Apply
+                Apply Now
               </a>
             </div>
             <div className="card-body">
+              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
+                We offer a structured, supportive environment for Total Battle players
+                who want to compete at a higher level while enjoying the social aspect
+                of clan gameplay.
+              </p>
               <div className="list">
                 <div className="list-item">
-                  <span>Weekly coordination</span>
+                  <span>Weekly war coordination and strategy sessions</span>
                   <span className="badge">Active</span>
                 </div>
                 <div className="list-item">
-                  <span>Chest tracking</span>
+                  <span>Automated chest score tracking with performance insights</span>
                   <span className="badge">Insights</span>
                 </div>
                 <div className="list-item">
-                  <span>Event planning</span>
+                  <span>Interactive event calendar with countdown timers</span>
                   <span className="badge">Calendar</span>
+                </div>
+                <div className="list-item">
+                  <span>Real-time clan news and pinned announcements</span>
+                  <span className="badge">News</span>
+                </div>
+                <div className="list-item">
+                  <span>Charts and analytics for individual and clan performance</span>
+                  <span className="badge">Analytics</span>
                 </div>
               </div>
             </div>
@@ -135,34 +157,74 @@ function HomePage(): JSX.Element {
               <span className="badge">Public</span>
             </div>
             <div className="card-body">
+              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
+                Stay informed about what is happening in The Chillers community.
+                Latest updates and recruitment announcements are posted here.
+              </p>
               <div className="list">
                 <div className="list-item">
-                  <span>Recruitment window opens this week</span>
+                  <span>Recruitment window opens this week for new members</span>
                   <span className="badge">News</span>
                 </div>
                 <div className="list-item">
-                  <span>Alliance update posted</span>
+                  <span>Alliance tournament update and results posted</span>
                   <span className="badge">Info</span>
                 </div>
+                <div className="list-item">
+                  <span>Platform update with new chart features and improved data imports</span>
+                  <span className="badge">Update</span>
+                </div>
               </div>
+            </div>
+          </section>
+
+          {/* How It Works */}
+          <section className="card" style={{ gridColumn: "span 2" }}>
+            <div className="card-header">
+              <h3 className="card-title">How TotalChiller Works</h3>
+            </div>
+            <div className="card-body">
+              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
+                TotalChiller is a purpose-built community hub that brings together everything
+                our clan needs in one place. Members can upload chest report data, which is
+                automatically validated and stored for analysis. The platform generates
+                performance charts showing individual scores, clan trends, and top player
+                leaderboards. Our event calendar keeps everyone aligned on war schedules,
+                training sessions, and guild meetings. Clan leaders use the admin panel for
+                user management, data validation rules, and approval workflows.
+              </p>
+              <p style={{ margin: "12px 0 0", fontSize: "0.88rem" }}>
+                All data is secured with row-level security policies, ensuring members
+                only access information relevant to their clan. The platform is built with
+                modern web technologies including Next.js, TypeScript, and Supabase,
+                delivering a fast, reliable experience on any device.
+              </p>
             </div>
           </section>
 
           {/* Contact */}
           <section className="card" style={{ gridColumn: "span 2" }}>
             <div className="card-header">
-              <h3 className="card-title">Contact</h3>
+              <h3 className="card-title">Contact The Chillers</h3>
             </div>
             <div className="card-body">
+              <p style={{ margin: "0 0 12px", fontSize: "0.88rem" }}>
+                Want to reach out? Connect with us through Discord for real-time
+                communication, or send an email for formal inquiries and recruitment questions.
+              </p>
               <div className="list">
                 <div className="list-item">
-                  <span>Discord</span>
+                  <span>Discord — primary communication channel for real-time coordination</span>
                   <span className="badge">Invite</span>
                 </div>
                 <div className="list-item">
-                  <span>Email</span>
-                  <span className="badge">hello@chillers.gg</span>
+                  <span>Email — hello@chillers.gg for formal inquiries</span>
+                  <span className="badge">Email</span>
                 </div>
+              </div>
+              <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
+                <a className="button primary" href="/auth/register">Join The Chillers</a>
+                <a className="button" href="/about">Learn More About Us</a>
               </div>
             </div>
           </section>

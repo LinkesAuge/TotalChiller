@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "About The Chillers",
   description:
     "Learn about The Chillers — a competitive Total Battle clan focused on teamwork, data-driven strategy, and community building.",
+  alternates: { canonical: "/about" },
 };
 
 /**

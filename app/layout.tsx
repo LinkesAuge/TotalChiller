@@ -47,6 +47,11 @@ export const metadata: Metadata = {
 function RootLayout({ children }: RootLayoutProps): JSX.Element {
   return (
     <html lang="en">
+      <head>
+        <link rel="preload" href="/assets/vip/back_left.png" as="image" />
+        <link rel="preload" href="/assets/ui/components_shield_4.png" as="image" />
+        <link rel="preload" href="/assets/vip/components_decor_7.png" as="image" />
+      </head>
       <body>
         <ToastProvider>
           <SidebarProvider>

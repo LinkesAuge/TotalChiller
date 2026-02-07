@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Create Your Account",
   description:
     "Create a TotalChiller account to join The Chillers Total Battle clan. Access chest tracking, event coordination, and analytics charts.",
+  alternates: { canonical: "/auth/register" },
 };
 
 /** Layout wrapper providing metadata for the registration page. */

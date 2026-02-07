@@ -34,10 +34,10 @@
        {!isAuthenticated ? (
          <>
            <a className="button" href="/auth/login">
-             Login
+             Sign In
            </a>
            <a className="button primary" href="/auth/register">
-             Register
+             Join The Chillers
            </a>
          </>
        ) : null}

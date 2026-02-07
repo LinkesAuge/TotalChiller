@@ -126,7 +126,7 @@ function RegisterPage(): JSX.Element {
         </button>
         {formState.status ? <p className="text-muted" style={{ marginTop: 8 }}>{formState.status}</p> : null}
         <div style={{ textAlign: "center", marginTop: 12, fontSize: "0.82rem" }}>
-          Already have an account? <a href="/auth/login" style={{ color: "var(--color-gold)", textDecoration: "none" }}>Sign in</a>
+          Already have an account? <a href="/auth/login" style={{ color: "var(--color-gold)", textDecoration: "none" }}>Sign in to your account</a>
         </div>
       </form>
         </div>

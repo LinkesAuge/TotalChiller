@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Contact The Chillers",
   description:
     "Get in touch with The Chillers clan. Reach out via Discord, email, or use our contact information for recruitment and general inquiries.",
+  alternates: { canonical: "/contact" },
 };
 
 /**

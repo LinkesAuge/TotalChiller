@@ -4,7 +4,8 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "TotalChiller privacy policy — learn how we collect, use, and protect your data within The Chillers community platform.",
+    "TotalChiller privacy policy — learn how we collect, use, and protect your personal data within The Chillers Total Battle community platform.",
+  alternates: { canonical: "/privacy-policy" },
 };
 
 /**

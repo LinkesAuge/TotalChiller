@@ -191,7 +191,7 @@ function NewsClient(): JSX.Element {
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false })
         .range(fromIndex, toIndex);
-      data = fb.data; error = fb.error; count = fb.count;
+      data = fb.data as typeof data; error = fb.error; count = fb.count;
     }
     setIsLoading(false);
     if (error) { pushToast(`${t("loadError")}: ${error.message}`); return; }

@@ -27,9 +27,9 @@ function ForgotPasswordPage(): JSX.Element {
     <div style={{ display: "flex", justifyContent: "center", paddingTop: 40 }}>
       <section className="card" style={{ maxWidth: 440, width: "100%" }}>
         <div className="tooltip-head">
-          <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
+          <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
           <div className="tooltip-head-inner">
-            <img src="/assets/vip/batler_icons_star_4.png" alt="" style={{ width: 18, height: 18 }} />
+            <img src="/assets/vip/batler_icons_star_4.png" alt="Reset password" width={18} height={18} />
             <h1 className="card-title">Reset Password</h1>
           </div>
         </div>

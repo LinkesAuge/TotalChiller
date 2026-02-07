@@ -15,7 +15,7 @@ function HomePage(): JSX.Element {
     <>
       {/* Ornate top bar */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
             <h1 className="top-bar-title">The Chillers Community</h1>
@@ -31,19 +31,28 @@ function HomePage(): JSX.Element {
         <div className="hero-overlay" />
         <img
           src="/assets/banners/banner_gold_dragon.png"
-          alt=""
+          alt="The Chillers clan hero banner featuring a golden dragon"
           className="hero-bg"
+          width={1200}
+          height={300}
+          loading="eager"
+          fetchPriority="high"
         />
         <img
           src="/assets/vip/decor_light_1.png"
           alt=""
           className="hero-light"
+          width={400}
+          height={400}
+          loading="eager"
         />
         <div className="hero-content">
           <img
             src="/assets/vip/components_decor_6.png"
             alt=""
             className="hero-decor"
+            width={300}
+            height={20}
           />
           <h2 className="hero-title">The Chillers</h2>
           <p className="hero-subtitle">
@@ -53,6 +62,8 @@ function HomePage(): JSX.Element {
             src="/assets/vip/components_decor_6.png"
             alt=""
             className="hero-decor flipped"
+            width={300}
+            height={20}
           />
         </div>
       </div>
@@ -66,12 +77,17 @@ function HomePage(): JSX.Element {
                 src="/assets/vip/back_tooltip_2.png"
                 alt=""
                 className="tooltip-head-bg"
+                width={400}
+                height={44}
+                loading="lazy"
               />
               <div className="tooltip-head-inner">
                 <img
                   src="/assets/vip/batler_icons_stat_damage.png"
-                  alt=""
-                  style={{ width: 18, height: 18 }}
+                  alt="Clan mission icon"
+                  width={18}
+                  height={18}
+                  loading="lazy"
                 />
                 <h3 className="card-title">Clan Mission</h3>
                 <span className="pin-badge">Recruiting</span>

@@ -17,7 +17,7 @@ function AdminDataImportPage(): JSX.Element {
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">The Chillers &bull; Command &bull; Data Import</div>

@@ -5,6 +5,8 @@ import useClanContext from "../components/use-clan-context";
 import ClanScopeBanner from "../components/clan-scope-banner";
 import DatePicker from "../components/date-picker";
 import AuthActions from "../components/auth-actions";
+import QuickActions from "../components/quick-actions";
+import SectionHero from "../components/section-hero";
 import {
   ScoreLineChart,
   TopPlayersBar,
@@ -124,7 +126,7 @@ function ChartsClient(): JSX.Element {
     <>
       {/* Top Bar */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">The Chillers &bull; Intelligence</div>
@@ -135,6 +137,12 @@ function ChartsClient(): JSX.Element {
           </div>
         </div>
       </div>
+      <QuickActions />
+      <SectionHero
+        title="Battle Intelligence"
+        subtitle="Trend lines, score signals, and clan performance at a glance."
+        bannerSrc="/assets/banners/banner_doomsday_708.png"
+      />
 
       <div className="content-inner">
       <div className="grid">

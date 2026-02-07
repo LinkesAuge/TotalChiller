@@ -3,6 +3,8 @@
 import { useState } from "react";
 import AuthActions from "./components/auth-actions";
 import ClanScopeBanner from "./components/clan-scope-banner";
+import QuickActions from "./components/quick-actions";
+import SectionHero from "./components/section-hero";
 
 /**
  * Dashboard page — Sanctum Complete design with enriched content.
@@ -14,7 +16,7 @@ function DashboardPage(): JSX.Element {
     <>
       {/* Ornate top bar */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">
@@ -28,79 +30,13 @@ function DashboardPage(): JSX.Element {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div
-        style={{
-          padding: "14px 24px 0",
-          display: "flex",
-          gap: 10,
-        }}
-      >
-        {[
-          {
-            label: "Upload CSV",
-            icon: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
-          },
-          {
-            label: "Review Rules",
-            icon: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
-          },
-          {
-            label: "Event Calendar",
-            icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
-          },
-        ].map((action, i) => (
-          <button key={i} className="action-btn">
-            <img
-              src="/assets/vip/backs_1.png"
-              alt=""
-              className="leather-bg"
-            />
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#e4c778"
-              strokeWidth="2"
-            >
-              <path d={action.icon} />
-            </svg>
-            <span>{action.label}</span>
-          </button>
-        ))}
-      </div>
+      <QuickActions />
 
-      {/* Hero banner */}
-      <div className="hero-banner">
-        <div className="hero-overlay" />
-        <img
-          src="/assets/banners/banner_gold_dragon.png"
-          alt=""
-          className="hero-bg"
-        />
-        <img
-          src="/assets/vip/decor_light_1.png"
-          alt=""
-          className="hero-light"
-        />
-        <div className="hero-content">
-          <img
-            src="/assets/vip/components_decor_6.png"
-            alt=""
-            className="hero-decor"
-          />
-          <h2 className="hero-title">Community Hub</h2>
-          <p className="hero-subtitle">
-            Coordinated. Competitive. Welcoming.
-          </p>
-          <img
-            src="/assets/vip/components_decor_6.png"
-            alt=""
-            className="hero-decor flipped"
-          />
-        </div>
-      </div>
+      <SectionHero
+        title="Community Hub"
+        subtitle="Coordinated. Competitive. Welcoming."
+        bannerSrc="/assets/banners/banner_gold_dragon.png"
+      />
 
       <div className="content-inner">
         <ClanScopeBanner />
@@ -113,12 +49,17 @@ function DashboardPage(): JSX.Element {
                 src="/assets/vip/back_tooltip_2.png"
                 alt=""
                 className="tooltip-head-bg"
+                width={400}
+                height={44}
+                loading="lazy"
               />
               <div className="tooltip-head-inner">
                 <img
                   src="/assets/vip/batler_icons_stat_damage.png"
-                  alt=""
-                  style={{ width: 18, height: 18 }}
+                  alt="Announcements"
+                  width={18}
+                  height={18}
+                  loading="lazy"
                 />
                 <h3 className="card-title">Announcements</h3>
                 <span className="pin-badge">Pinned</span>
@@ -161,7 +102,10 @@ function DashboardPage(): JSX.Element {
                     <img
                       src="/assets/vip/batler_icons_star_4.png"
                       alt=""
-                      style={{ width: 14, height: 14, marginTop: 2 }}
+                      width={14}
+                      height={14}
+                      style={{ marginTop: 2 }}
+                      loading="lazy"
                     />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: "0.88rem" }}>{item.text}</div>
@@ -199,12 +143,17 @@ function DashboardPage(): JSX.Element {
                 src="/assets/vip/back_tooltip_2.png"
                 alt=""
                 className="tooltip-head-bg"
+                width={400}
+                height={44}
+                loading="lazy"
               />
               <div className="tooltip-head-inner">
                 <img
                   src="/assets/vip/batler_icons_stat_armor.png"
-                  alt=""
-                  style={{ width: 18, height: 18 }}
+                  alt="Stats"
+                  width={18}
+                  height={18}
+                  loading="lazy"
                 />
                 <h3 className="card-title">Quick Stats</h3>
                 <span
@@ -252,10 +201,11 @@ function DashboardPage(): JSX.Element {
                 <div key={i} className="stat-cell">
                   <img
                     src={stat.ico}
-                    alt=""
+                    alt={stat.l}
+                    width={20}
+                    height={20}
+                    loading="lazy"
                     style={{
-                      width: 20,
-                      height: 20,
                       margin: "0 auto 4px",
                       display: "block",
                       objectFit: "contain",
@@ -341,7 +291,10 @@ function DashboardPage(): JSX.Element {
           <section className="card">
             <img
               src="/assets/banners/banner_ragnarok_clan_event_708x123.png"
-              alt=""
+              alt="Upcoming clan events banner"
+              width={708}
+              height={123}
+              loading="lazy"
               style={{
                 width: "100%",
                 height: 56,
@@ -454,6 +407,9 @@ function DashboardPage(): JSX.Element {
                       src="/assets/vip/battler_stage_bar_empty.png"
                       alt=""
                       className="game-progress-bg"
+                      width={400}
+                      height={20}
+                      loading="lazy"
                     />
                     <div
                       className="game-progress-fill"
@@ -463,6 +419,9 @@ function DashboardPage(): JSX.Element {
                         src="/assets/vip/battler_stage_bar_full.png"
                         alt=""
                         className="game-progress-bg"
+                        width={400}
+                        height={20}
+                        loading="lazy"
                       />
                     </div>
                   </div>

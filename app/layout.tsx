@@ -58,6 +58,9 @@ function RootLayout({ children }: RootLayoutProps): JSX.Element {
                     src="/assets/vip/components_decor_5.png"
                     alt=""
                     className="app-footer-divider"
+                    width={800}
+                    height={16}
+                    loading="lazy"
                   />
                   <span className="app-footer-text">
                     The Chillers &bull; Community Hub &bull; Total Battle Clan

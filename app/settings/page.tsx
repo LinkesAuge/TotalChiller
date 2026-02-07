@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import AuthActions from "../components/auth-actions";
 import getIsAdminAccess from "../../lib/supabase/admin-access";
+import QuickActions from "../components/quick-actions";
+import SectionHero from "../components/section-hero";
 
 interface SettingsFormState {
   readonly email: string;
@@ -244,7 +246,7 @@ function SettingsPage(): JSX.Element {
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">The Chillers &bull; Account</div>
@@ -255,6 +257,12 @@ function SettingsPage(): JSX.Element {
           </div>
         </div>
       </div>
+      <QuickActions />
+      <SectionHero
+        title="Command Settings"
+        subtitle="Manage account security, identity, and notification controls."
+        bannerSrc="/assets/banners/banner_tournir_kvk.png"
+      />
       <div className="content-inner">
       <div className="grid">
         <section className="card">

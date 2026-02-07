@@ -67,9 +67,9 @@ function RegisterPage(): JSX.Element {
     <div style={{ display: "flex", justifyContent: "center", paddingTop: 40 }}>
       <section className="card" style={{ maxWidth: 480, width: "100%" }}>
         <div className="tooltip-head">
-          <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
+          <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
           <div className="tooltip-head-inner">
-            <img src="/assets/vip/batler_icons_star_4.png" alt="" style={{ width: 18, height: 18 }} />
+            <img src="/assets/vip/batler_icons_star_4.png" alt="Register" width={18} height={18} />
             <h1 className="card-title">Create Account</h1>
           </div>
         </div>
@@ -121,7 +121,7 @@ function RegisterPage(): JSX.Element {
           />
         </div>
         <button className="button leather" type="submit" style={{ width: "100%", marginTop: 8 }}>
-          <img src="/assets/vip/backs_1.png" alt="" className="leather-bg" />
+          <img src="/assets/vip/backs_1.png" alt="" className="leather-bg" width={200} height={40} />
           <span>Create Account</span>
         </button>
         {formState.status ? <p className="text-muted" style={{ marginTop: 8 }}>{formState.status}</p> : null}

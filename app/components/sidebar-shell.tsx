@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSidebar } from "./sidebar-context";
 import SidebarNav from "./sidebar-nav";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
@@ -171,14 +171,20 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           src="/assets/vip/back_left.png"
           alt=""
           className="sidebar-texture"
+          width={236}
+          height={900}
+          loading="eager"
         />
 
         {/* Header — clan identity */}
         <div className={`sidebar-header${isOpen ? "" : " collapsed"}`}>
           <img
             src="/assets/ui/components_shield_4.png"
-            alt=""
+            alt="The Chillers clan shield"
             className="sidebar-logo"
+            width={40}
+            height={40}
+            loading="eager"
           />
           {isOpen && (
             <div style={{ overflow: "hidden" }}>
@@ -193,7 +199,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           onClick={toggle}
           className="sidebar-toggle"
           style={{ justifyContent: isOpen ? "flex-start" : "center" }}
-          aria-label="Toggle sidebar"
+          aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           <svg
             width="14"
@@ -218,18 +224,24 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           <img
             src="/assets/vip/components_decor_7.png"
             alt=""
+            width={200}
+            height={12}
             style={{ width: isOpen ? "85%" : 38 }}
           />
         </div>
 
         {/* Navigation */}
-        <SidebarNav />
+        <Suspense fallback={<nav className="nav" />}>
+          <SidebarNav />
+        </Suspense>
 
         {/* Bottom: user card + clan selector */}
         <div className="sidebar-bottom">
           <img
             src="/assets/vip/components_decor_7.png"
             alt=""
+            width={200}
+            height={12}
             style={{
               width: isOpen ? "85%" : 38,
               height: "auto",

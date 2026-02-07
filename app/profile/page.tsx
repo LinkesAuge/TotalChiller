@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import createSupabaseServerClient from "../../lib/supabase/server-client";
 
 export const metadata: Metadata = {
@@ -29,6 +29,16 @@ interface MembershipView {
 type MembershipQueryView = Omit<MembershipView, "game_accounts"> & {
   readonly game_accounts: { readonly game_username: string } | readonly { readonly game_username: string }[] | null;
 };
+
+/** Localised display names for user roles. */
+const ROLE_LABELS: Record<string, Record<string, string>> = {
+  de: { owner: "Eigentümer", admin: "Administrator", moderator: "Moderator", editor: "Editor", member: "Mitglied" },
+  en: { owner: "Owner", admin: "Admin", moderator: "Moderator", editor: "Editor", member: "Member" },
+};
+
+function formatRole(role: string, locale: string): string {
+  return ROLE_LABELS[locale]?.[role] ?? ROLE_LABELS.en[role] ?? role.charAt(0).toUpperCase() + role.slice(1);
+}
 
 interface ClanView {
   readonly id: string;
@@ -127,9 +137,10 @@ async function ProfilePage(): Promise<JSX.Element> {
     clansById[clan.id] = clan;
   });
   const t = await getTranslations("profile");
+  const locale = await getLocale();
   const primaryMembership: MembershipView | null = memberships[0] ?? null;
   const primaryClan = primaryMembership ? clansById[primaryMembership.clan_id] : null;
-  const roleLabel = userRole;
+  const roleLabel = formatRole(userRole, locale);
   const clanLabel = primaryClan?.name ?? t("noClanAssigned");
 
   return (
@@ -214,8 +225,8 @@ async function ProfilePage(): Promise<JSX.Element> {
                 <span className="badge">{t("joinAClan")}</span>
               </div>
             ) : (
-              memberships.map((membership) => (
-                <div className="list-item" key={`${membership.clan_id}-${membership.game_accounts?.game_username ?? "account"}`}>
+              memberships.map((membership, index) => (
+                <div className="list-item" key={`${membership.clan_id}-${membership.game_accounts?.game_username ?? `account-${index}`}`}>
                   <div>
                     <div>{clansById[membership.clan_id]?.name ?? membership.clan_id}</div>
                     <div className="text-muted">{membership.clan_id}</div>
@@ -225,7 +236,7 @@ async function ProfilePage(): Promise<JSX.Element> {
                       </div>
                     ) : null}
                   </div>
-                  <span className="badge">{userRole}</span>
+                  <span className="badge">{roleLabel}</span>
                 </div>
               ))
             )}

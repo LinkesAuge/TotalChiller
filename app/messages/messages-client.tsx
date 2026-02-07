@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import getIsAdminAccess from "../../lib/supabase/admin-access";
+import getIsContentManager from "../../lib/supabase/role-access";
 import { formatLocalDateTime } from "../../lib/date-format";
 import SearchInput from "../components/ui/search-input";
 import RadixSelect from "../components/ui/radix-select";
@@ -40,15 +40,34 @@ interface ClanOption {
   readonly name: string;
 }
 
+interface RecipientSearchResult {
+  readonly id: string;
+  readonly label: string;
+  readonly username: string | null;
+  readonly gameAccounts: readonly string[];
+}
+
+interface SelectedRecipient {
+  readonly id: string;
+  readonly label: string;
+}
+
+type ComposeMode = "direct" | "clan" | "global";
+
 const SYSTEM_PARTNER_ID = "__system__";
+const CONTENT_MANAGER_ROLES: readonly string[] = ["owner", "admin", "moderator", "editor"];
 
 /**
  * Full messaging UI with conversation list, thread view, and compose.
+ * Supports recipient search by username/game account, multi-recipient,
+ * and clan/global broadcasts for privileged roles.
  */
 function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   const supabase = createSupabaseBrowserClient();
   const locale = useLocale();
   const t = useTranslations("messagesPage");
+
+  /* Message state */
   const [messages, setMessages] = useState<readonly MessageRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileMap>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -57,19 +76,29 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   const [search, setSearch] = useState<string>("");
   const [replyContent, setReplyContent] = useState<string>("");
   const [replyStatus, setReplyStatus] = useState<string>("");
+
+  /* Compose state */
   const [isComposeOpen, setIsComposeOpen] = useState<boolean>(false);
-  const [composeRecipient, setComposeRecipient] = useState<string>("");
+  const [composeMode, setComposeMode] = useState<ComposeMode>("direct");
+  const [composeRecipients, setComposeRecipients] = useState<readonly SelectedRecipient[]>([]);
+  const [composeClanId, setComposeClanId] = useState<string>("");
   const [composeSubject, setComposeSubject] = useState<string>("");
   const [composeContent, setComposeContent] = useState<string>("");
   const [composeStatus, setComposeStatus] = useState<string>("");
-  const [isBroadcastOpen, setIsBroadcastOpen] = useState<boolean>(false);
-  const [broadcastClanId, setBroadcastClanId] = useState<string>("");
-  const [broadcastSubject, setBroadcastSubject] = useState<string>("");
-  const [broadcastContent, setBroadcastContent] = useState<string>("");
-  const [broadcastStatus, setBroadcastStatus] = useState<string>("");
+
+  /* Recipient search state */
+  const [recipientSearch, setRecipientSearch] = useState<string>("");
+  const [recipientResults, setRecipientResults] = useState<readonly RecipientSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* Role / permission state */
+  const [isContentMgr, setIsContentMgr] = useState<boolean>(false);
   const [clans, setClans] = useState<readonly ClanOption[]>([]);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [allUsers, setAllUsers] = useState<readonly { id: string; label: string }[]>([]);
+
+  /* ── Data loading ── */
 
   const loadMessages = useCallback(async (): Promise<void> => {
     const params = typeFilter !== "all" ? `?type=${typeFilter}` : "";
@@ -88,10 +117,10 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   }, [loadMessages]);
 
   useEffect(() => {
-    async function loadAdminAndClans(): Promise<void> {
-      const adminStatus = await getIsAdminAccess({ supabase });
-      setIsAdmin(adminStatus);
-      if (adminStatus) {
+    async function loadRolesAndClans(): Promise<void> {
+      const contentMgrStatus = await getIsContentManager({ supabase });
+      setIsContentMgr(contentMgrStatus);
+      if (contentMgrStatus) {
         const { data: clanData } = await supabase
           .from("clans")
           .select("id,name")
@@ -100,26 +129,56 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         setClans((clanData ?? []) as readonly ClanOption[]);
       }
     }
-    void loadAdminAndClans();
+    void loadRolesAndClans();
   }, [supabase]);
 
+  /* ── Recipient search with debounce ── */
+
   useEffect(() => {
-    async function loadUsers(): Promise<void> {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id,email,display_name,username")
-        .neq("id", userId)
-        .order("email")
-        .limit(100);
-      setAllUsers(
-        (data ?? []).map((profile) => ({
-          id: profile.id as string,
-          label: (profile.display_name as string | null) ?? (profile.username as string | null) ?? (profile.email as string),
-        })),
-      );
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
     }
-    void loadUsers();
-  }, [supabase, userId]);
+    const query = recipientSearch.trim();
+    if (query.length < 2) {
+      setRecipientResults([]);
+      setIsSearchDropdownOpen(false);
+      return;
+    }
+    setIsSearching(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/messages/search-recipients?q=${encodeURIComponent(query)}`);
+        if (response.ok) {
+          const result = await response.json();
+          const results = (result.data ?? []) as RecipientSearchResult[];
+          /* Exclude already selected recipients */
+          const selectedIds = new Set(composeRecipients.map((r) => r.id));
+          setRecipientResults(results.filter((r) => !selectedIds.has(r.id)));
+          setIsSearchDropdownOpen(true);
+        }
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, [recipientSearch, composeRecipients]);
+
+  /* Close search dropdown on outside click */
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent): void {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(event.target as Node)) {
+        setIsSearchDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  /* ── Helpers ── */
 
   function getPartnerLabel(partnerId: string): string {
     if (partnerId === SYSTEM_PARTNER_ID) {
@@ -131,6 +190,37 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     }
     return profile.display_name ?? profile.username ?? profile.email;
   }
+
+  function addRecipient(recipient: SelectedRecipient): void {
+    if (!composeRecipients.some((r) => r.id === recipient.id)) {
+      if (isContentMgr) {
+        setComposeRecipients((prev) => [...prev, recipient]);
+      } else {
+        /* Non-privileged users can only select one recipient */
+        setComposeRecipients([recipient]);
+      }
+    }
+    setRecipientSearch("");
+    setRecipientResults([]);
+    setIsSearchDropdownOpen(false);
+  }
+
+  function removeRecipient(recipientId: string): void {
+    setComposeRecipients((prev) => prev.filter((r) => r.id !== recipientId));
+  }
+
+  function resetCompose(): void {
+    setComposeRecipients([]);
+    setComposeClanId("");
+    setComposeSubject("");
+    setComposeContent("");
+    setComposeStatus("");
+    setRecipientSearch("");
+    setRecipientResults([]);
+    setIsSearchDropdownOpen(false);
+  }
+
+  /* ── Conversations ── */
 
   const conversations = useMemo((): readonly ConversationSummary[] => {
     const grouped = new Map<string, MessageRow[]>();
@@ -197,6 +287,8 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }, [messages, selectedPartnerId, userId]);
 
+  /* ── Handlers ── */
+
   async function handleSelectConversation(partnerId: string): Promise<void> {
     setSelectedPartnerId(partnerId);
     setReplyContent("");
@@ -246,60 +338,66 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
 
   async function handleCompose(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (!composeRecipient || !composeContent.trim()) {
+    if (!composeContent.trim()) {
       setComposeStatus(t("recipientRequired"));
       return;
     }
-    setComposeStatus(t("sending"));
-    const response = await fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipient_id: composeRecipient,
-        subject: composeSubject.trim() || null,
-        content: composeContent.trim(),
-      }),
-    });
-    if (!response.ok) {
-      const result = await response.json();
-      setComposeStatus(result.error ?? t("failedToSend"));
-      return;
-    }
-    setComposeStatus("");
-    setComposeRecipient("");
-    setComposeSubject("");
-    setComposeContent("");
-    setIsComposeOpen(false);
-    await loadMessages();
-    setSelectedPartnerId(composeRecipient);
-  }
 
-  async function handleBroadcast(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    if (!broadcastClanId || !broadcastContent.trim()) {
-      setBroadcastStatus(t("clanAndMessageRequired"));
-      return;
+    if (composeMode === "direct") {
+      if (composeRecipients.length === 0) {
+        setComposeStatus(t("recipientRequired"));
+        return;
+      }
+      setComposeStatus(t("sending"));
+      const recipientIds = composeRecipients.map((r) => r.id);
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient_ids: recipientIds,
+          subject: composeSubject.trim() || null,
+          content: composeContent.trim(),
+        }),
+      });
+      if (!response.ok) {
+        const result = await response.json();
+        setComposeStatus(result.error ?? t("failedToSend"));
+        return;
+      }
+      const result = await response.json();
+      if (recipientIds.length === 1) {
+        setComposeStatus(t("messageSent"));
+        setSelectedPartnerId(recipientIds[0]);
+      } else {
+        setComposeStatus(t("messagesSent", { count: result.count ?? recipientIds.length }));
+      }
+    } else {
+      /* Clan or global broadcast */
+      const clanId = composeMode === "global" ? "all" : composeClanId;
+      if (composeMode === "clan" && !clanId) {
+        setComposeStatus(t("clanAndMessageRequired"));
+        return;
+      }
+      setComposeStatus(t("sendingBroadcast"));
+      const response = await fetch("/api/messages/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clan_id: clanId,
+          subject: composeSubject.trim() || null,
+          content: composeContent.trim(),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setComposeStatus(result.error ?? t("failedToSendBroadcast"));
+        return;
+      }
+      setComposeStatus(t("broadcastSent", { count: result.data?.recipients ?? 0 }));
     }
-    setBroadcastStatus(t("sendingBroadcast"));
-    const response = await fetch("/api/messages/broadcast", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clan_id: broadcastClanId,
-        subject: broadcastSubject.trim() || null,
-        content: broadcastContent.trim(),
-      }),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      setBroadcastStatus(result.error ?? t("failedToSendBroadcast"));
-      return;
-    }
-    setBroadcastStatus(t("broadcastSent", { count: result.data?.recipients ?? 0 }));
-    setBroadcastContent("");
-    setBroadcastSubject("");
-    setBroadcastClanId("");
-    setIsBroadcastOpen(false);
+
+    resetCompose();
+    setIsComposeOpen(false);
     await loadMessages();
   }
 
@@ -322,9 +420,26 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     (conv) => conv.partnerId === selectedPartnerId,
   );
 
+  /* ── Compose mode options ── */
+  const composeModeOptions = useMemo(() => {
+    const options = [
+      { value: "direct", label: t("directMessage") },
+    ];
+    if (isContentMgr) {
+      options.push(
+        { value: "clan", label: t("clanBroadcast") },
+        { value: "global", label: t("globalBroadcast") },
+      );
+    }
+    return options;
+  }, [isContentMgr, t]);
+
+  /* ── Render ── */
+
   return (
     <div className="grid">
       <div className="messages-layout">
+        {/* Conversation list */}
         <section className="card messages-list-panel">
           <div className="card-header">
             <div>
@@ -390,6 +505,8 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
             )}
           </div>
         </section>
+
+        {/* Thread view */}
         <section className="card messages-thread-panel">
           {!selectedPartnerId ? (
             <div className="messages-empty">
@@ -454,39 +571,156 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
           )}
         </section>
       </div>
+
+      {/* Compose toggle */}
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-        <button className="button" type="button" onClick={() => { setIsComposeOpen(!isComposeOpen); setIsBroadcastOpen(false); }}>
+        <button
+          className="button"
+          type="button"
+          onClick={() => {
+            if (isComposeOpen) {
+              resetCompose();
+            }
+            setIsComposeOpen(!isComposeOpen);
+          }}
+        >
           {isComposeOpen ? t("cancel") : t("newMessage")}
         </button>
-        {isAdmin ? (
-          <button className="button primary" type="button" onClick={() => { setIsBroadcastOpen(!isBroadcastOpen); setIsComposeOpen(false); }}>
-            {isBroadcastOpen ? t("cancel") : t("broadcast")}
-          </button>
-        ) : null}
       </div>
+
+      {/* Compose form */}
       {isComposeOpen ? (
         <section className="card" style={{ gridColumn: "1 / -1" }}>
           <div className="card-header">
             <div>
               <div className="card-title">{t("newMessage")}</div>
-              <div className="card-subtitle">{t("newMessageSubtitle")}</div>
+              <div className="card-subtitle">
+                {composeMode === "direct"
+                  ? t("newMessageSubtitle")
+                  : composeMode === "clan"
+                    ? t("broadcastSubtitle")
+                    : t("sendToAll")}
+              </div>
             </div>
           </div>
           <form onSubmit={handleCompose}>
-            <div className="form-group">
-              <label htmlFor="composeRecipient">{t("to")}</label>
-              <RadixSelect
-                id="composeRecipient"
-                ariaLabel={t("to")}
-                value={composeRecipient}
-                onValueChange={(v) => setComposeRecipient(v)}
-                enableSearch
-                options={[
-                  { value: "", label: t("selectUser") },
-                  ...allUsers.map((user) => ({ value: user.id, label: user.label })),
-                ]}
-              />
-            </div>
+            {/* Mode selector (only for content managers) */}
+            {isContentMgr ? (
+              <div className="form-group">
+                <label>{t("recipientType")}</label>
+                <div className="tabs" style={{ fontSize: "0.85rem" }}>
+                  {composeModeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`tab ${composeMode === option.value ? "active" : ""}`}
+                      onClick={() => {
+                        setComposeMode(option.value as ComposeMode);
+                        setComposeRecipients([]);
+                        setComposeClanId("");
+                        setComposeStatus("");
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Recipient selection: direct message mode */}
+            {composeMode === "direct" ? (
+              <div className="form-group">
+                <label>{t("to")}</label>
+                {/* Selected recipient chips */}
+                {composeRecipients.length > 0 ? (
+                  <div className="recipient-chips" style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.5rem" }}>
+                    {composeRecipients.map((recipient) => (
+                      <span key={recipient.id} className="badge" style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                        {recipient.label}
+                        <button
+                          type="button"
+                          onClick={() => removeRecipient(recipient.id)}
+                          aria-label={t("removeRecipient")}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: "1rem", lineHeight: 1 }}
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                {/* Search input with dropdown */}
+                <div ref={searchWrapperRef} style={{ position: "relative" }}>
+                  <input
+                    value={recipientSearch}
+                    onChange={(event) => setRecipientSearch(event.target.value)}
+                    onFocus={() => {
+                      if (recipientResults.length > 0) {
+                        setIsSearchDropdownOpen(true);
+                      }
+                    }}
+                    placeholder={t("searchRecipient")}
+                    autoComplete="off"
+                  />
+                  {isSearching ? (
+                    <div className="combobox-dropdown" style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10 }}>
+                      <div className="combobox-option" style={{ padding: "0.5rem", opacity: 0.6 }}>{t("loadingMessages")}</div>
+                    </div>
+                  ) : isSearchDropdownOpen && recipientResults.length > 0 ? (
+                    <div className="combobox-dropdown" style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10, maxHeight: "240px", overflowY: "auto" }}>
+                      {recipientResults.map((result) => (
+                        <button
+                          key={result.id}
+                          type="button"
+                          className="combobox-option"
+                          style={{ display: "block", width: "100%", textAlign: "left", padding: "0.5rem 0.75rem", cursor: "pointer", border: "none", background: "none" }}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            addRecipient({ id: result.id, label: result.label });
+                          }}
+                        >
+                          <div>
+                            <strong>{result.label}</strong>
+                            {result.username ? (
+                              <span className="text-muted" style={{ marginLeft: "0.5rem", fontSize: "0.85em" }}>@{result.username}</span>
+                            ) : null}
+                          </div>
+                          {result.gameAccounts.length > 0 ? (
+                            <div className="text-muted" style={{ fontSize: "0.8em" }}>
+                              {t("gameAccount")}: {result.gameAccounts.join(", ")}
+                            </div>
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : isSearchDropdownOpen && recipientSearch.trim().length >= 2 ? (
+                    <div className="combobox-dropdown" style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10 }}>
+                      <div className="combobox-option" style={{ padding: "0.5rem", opacity: 0.6 }}>{t("noResults")}</div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Clan selector: clan broadcast mode */}
+            {composeMode === "clan" ? (
+              <div className="form-group">
+                <label htmlFor="composeClan">{t("clan")}</label>
+                <RadixSelect
+                  id="composeClan"
+                  ariaLabel={t("clan")}
+                  value={composeClanId}
+                  onValueChange={(v) => setComposeClanId(v)}
+                  options={[
+                    { value: "", label: t("selectClan") },
+                    ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
+                  ]}
+                />
+              </div>
+            ) : null}
+
+            {/* Subject */}
             <div className="form-group">
               <label htmlFor="composeSubject">{t("subjectOptional")}</label>
               <input
@@ -496,70 +730,27 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                 placeholder={t("subjectPlaceholder")}
               />
             </div>
+
+            {/* Message content */}
             <div className="form-group">
               <label htmlFor="composeContent">{t("message")}</label>
               <textarea
                 id="composeContent"
                 value={composeContent}
                 onChange={(event) => setComposeContent(event.target.value)}
-                placeholder={t("messagePlaceholder")}
+                placeholder={composeMode === "direct" ? t("messagePlaceholder") : t("broadcastPlaceholder")}
                 rows={4}
                 required
               />
             </div>
+
+            {/* Submit */}
             <div className="list inline">
-              <button className="button primary" type="submit">{t("send")}</button>
+              <button className="button primary" type="submit">
+                {composeMode === "direct" ? t("send") : t("sendBroadcast")}
+              </button>
             </div>
             {composeStatus ? <p className="text-muted">{composeStatus}</p> : null}
-          </form>
-        </section>
-      ) : null}
-      {isBroadcastOpen ? (
-        <section className="card" style={{ gridColumn: "1 / -1" }}>
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("broadcast")}</div>
-              <div className="card-subtitle">{t("broadcastSubtitle")}</div>
-            </div>
-          </div>
-          <form onSubmit={handleBroadcast}>
-            <div className="form-group">
-              <label htmlFor="broadcastClan">{t("clan")}</label>
-              <RadixSelect
-                id="broadcastClan"
-                ariaLabel={t("clan")}
-                value={broadcastClanId}
-                onValueChange={(v) => setBroadcastClanId(v)}
-                options={[
-                  { value: "", label: t("selectClan") },
-                  ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
-                ]}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="broadcastSubject">{t("subjectOptional")}</label>
-              <input
-                id="broadcastSubject"
-                value={broadcastSubject}
-                onChange={(event) => setBroadcastSubject(event.target.value)}
-                placeholder={t("subjectPlaceholder")}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="broadcastContent">Message</label>
-              <textarea
-                id="broadcastContent"
-                value={broadcastContent}
-                onChange={(event) => setBroadcastContent(event.target.value)}
-                placeholder="Write your broadcast..."
-                rows={4}
-                required
-              />
-            </div>
-            <div className="list inline">
-              <button className="button primary" type="submit">Send Broadcast</button>
-            </div>
-            {broadcastStatus ? <p className="text-muted">{broadcastStatus}</p> : null}
           </form>
         </section>
       ) : null}

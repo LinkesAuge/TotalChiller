@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState, useCallback } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useSidebar } from "./sidebar-context";
 import SidebarNav from "./sidebar-nav";
 import LanguageSelector from "./language-selector";
@@ -42,11 +42,29 @@ const DEFAULT_USER: SidebarUserData = {
   selectedKey: "",
 };
 
+/** Rank display names keyed by locale then rank key. */
+const RANK_LABELS: Record<string, Record<string, string>> = {
+  de: {
+    leader: "Anführer",
+    superior: "Vorgesetzter",
+    officer: "Offizier",
+    veteran: "Veteran",
+    soldier: "Soldat",
+  },
+  en: {
+    leader: "Leader",
+    superior: "Superior",
+    officer: "Officer",
+    veteran: "Veteran",
+    soldier: "Soldier",
+  },
+};
+
 /**
- * Returns a capitalised label for a rank string.
+ * Returns the localised label for a rank string.
  */
-function formatRank(rank: string): string {
-  return rank.charAt(0).toUpperCase() + rank.slice(1);
+function formatRank(rank: string, locale: string = "de"): string {
+  return RANK_LABELS[locale]?.[rank] ?? RANK_LABELS.en[rank] ?? rank.charAt(0).toUpperCase() + rank.slice(1);
 }
 
 /**
@@ -71,6 +89,7 @@ function resolveHighestRank(options: readonly ClanOption[]): string {
 function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX.Element {
   const { isOpen, toggle, width } = useSidebar();
   const t = useTranslations("sidebar");
+  const locale = useLocale();
   const [userData, setUserData] = useState<SidebarUserData>(DEFAULT_USER);
 
   const loadUserData = useCallback(async (): Promise<void> => {
@@ -91,9 +110,10 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     /* Clan memberships with rank */
     const { data: memberships } = await supabase
       .from("game_account_clan_memberships")
-      .select("clan_id,game_account_id,rank,clans(name,is_unassigned),game_accounts(game_username,approval_status)")
+      .select("clan_id,game_account_id,rank,clans(name,is_unassigned),game_accounts!inner(game_username,approval_status)")
       .eq("is_active", true)
-      .eq("clans.is_unassigned", false);
+      .eq("clans.is_unassigned", false)
+      .eq("game_accounts.user_id", userId);
 
     const options: ClanOption[] =
       (memberships ?? [])
@@ -162,7 +182,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
   }
 
   const roleLabel = userData.isAdmin ? t("admin") : t("member");
-  const rankLabel = userData.highestRank ? formatRank(userData.highestRank) : null;
+  const rankLabel = userData.highestRank ? formatRank(userData.highestRank, locale) : null;
   /* Show rank + role, e.g. "Officer • Admin" or just "Member" */
   const statusLine = rankLabel ? `${rankLabel} \u2022 ${roleLabel}` : roleLabel;
 
@@ -259,7 +279,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
                     value={`${option.clanId}:${option.gameAccountId}`}
                   >
                     {option.clanName} — {option.gameLabel}
-                    {option.rank ? ` (${formatRank(option.rank)})` : ""}
+                    {option.rank ? ` (${formatRank(option.rank, locale)})` : ""}
                   </option>
                 ))}
               </select>

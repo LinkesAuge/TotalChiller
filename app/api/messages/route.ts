@@ -3,7 +3,8 @@ import createSupabaseServerClient from "../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 
 interface SendMessageBody {
-  readonly recipient_id: string;
+  readonly recipient_id?: string;
+  readonly recipient_ids?: readonly string[];
   readonly subject?: string;
   readonly content: string;
 }
@@ -63,7 +64,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 /**
  * POST /api/messages
- * Send a private message to another user.
+ * Send a private message to one or multiple users.
+ * Accepts `recipient_id` (single) or `recipient_ids` (array) for multi-recipient.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createSupabaseServerClient();
@@ -78,38 +80,57 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-  if (!body.recipient_id) {
-    return NextResponse.json({ error: "recipient_id is required." }, { status: 400 });
+
+  /* Resolve recipient list: support both single and multi */
+  const recipientIds: string[] = [];
+  if (body.recipient_ids && body.recipient_ids.length > 0) {
+    for (const id of body.recipient_ids) {
+      if (id && id !== senderId && !recipientIds.includes(id)) {
+        recipientIds.push(id);
+      }
+    }
+  } else if (body.recipient_id && body.recipient_id !== senderId) {
+    recipientIds.push(body.recipient_id);
+  }
+
+  if (recipientIds.length === 0) {
+    return NextResponse.json({ error: "At least one recipient is required." }, { status: 400 });
   }
   if (!body.content?.trim()) {
     return NextResponse.json({ error: "Message content is required." }, { status: 400 });
   }
-  if (body.recipient_id === senderId) {
-    return NextResponse.json({ error: "Cannot send a message to yourself." }, { status: 400 });
-  }
+
   const serviceClient = createSupabaseServiceRoleClient();
-  const { data: recipientProfile } = await serviceClient
+
+  /* Validate all recipients exist */
+  const { data: validProfiles } = await serviceClient
     .from("profiles")
     .select("id")
-    .eq("id", body.recipient_id)
-    .maybeSingle();
-  if (!recipientProfile) {
-    return NextResponse.json({ error: "Recipient not found." }, { status: 404 });
+    .in("id", recipientIds);
+  const validIds = new Set((validProfiles ?? []).map((p) => p.id as string));
+  const invalidIds = recipientIds.filter((id) => !validIds.has(id));
+  if (invalidIds.length > 0) {
+    return NextResponse.json({ error: `Recipient(s) not found: ${invalidIds.join(", ")}` }, { status: 404 });
   }
-  const { data: inserted, error: insertError } = await supabase
+
+  /* Build message rows */
+  const messageRows = recipientIds.map((recipientId) => ({
+    sender_id: senderId,
+    recipient_id: recipientId,
+    message_type: "private" as const,
+    subject: body.subject?.trim() || null,
+    content: body.content.trim(),
+  }));
+
+  const { data: inserted, error: insertError } = await serviceClient
     .from("messages")
-    .insert({
-      sender_id: senderId,
-      recipient_id: body.recipient_id,
-      message_type: "private",
-      subject: body.subject?.trim() || null,
-      content: body.content.trim(),
-    })
-    .select("id,sender_id,recipient_id,message_type,subject,content,is_read,created_at")
-    .single();
+    .insert(messageRows)
+    .select("id,sender_id,recipient_id,message_type,subject,content,is_read,created_at");
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
+
+  /* Create notifications for all recipients */
   const senderProfile = await serviceClient
     .from("profiles")
     .select("display_name,username,email")
@@ -117,12 +138,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .maybeSingle();
   const senderLabel =
     senderProfile.data?.display_name ?? senderProfile.data?.username ?? senderProfile.data?.email ?? "Someone";
-  await serviceClient.from("notifications").insert({
-    user_id: body.recipient_id,
-    type: "message",
-    title: `New message from ${senderLabel}`,
-    body: body.subject?.trim() || body.content.trim().slice(0, 100),
-    reference_id: inserted.id as string,
+
+  const notificationRows = recipientIds.map((recipientId) => {
+    const msg = (inserted ?? []).find((m) => (m.recipient_id as string) === recipientId);
+    return {
+      user_id: recipientId,
+      type: "message" as const,
+      title: `New message from ${senderLabel}`,
+      body: body.subject?.trim() || body.content.trim().slice(0, 100),
+      reference_id: (msg?.id as string) ?? null,
+    };
   });
-  return NextResponse.json({ data: inserted }, { status: 201 });
+  await serviceClient.from("notifications").insert(notificationRows);
+
+  return NextResponse.json({ data: inserted, count: recipientIds.length }, { status: 201 });
 }

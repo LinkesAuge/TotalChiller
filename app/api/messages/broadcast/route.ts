@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+import getIsContentManager from "../../../../lib/supabase/role-access";
 
 interface BroadcastBody {
   readonly clan_id: string;
@@ -10,8 +11,9 @@ interface BroadcastBody {
 
 /**
  * POST /api/messages/broadcast
- * Sends a broadcast message to all active members of a clan.
- * Requires admin access.
+ * Sends a broadcast message to all active members of a clan or globally.
+ * Requires content-manager role (owner, admin, moderator, or editor).
+ * Use clan_id: "all" to broadcast to all users globally.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createSupabaseServerClient();
@@ -19,9 +21,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (authError || !authData.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const { data: isAdmin } = await supabase.rpc("is_any_admin");
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Forbidden: admin access required." }, { status: 403 });
+  const isContentManager = await getIsContentManager({ supabase });
+  if (!isContentManager) {
+    return NextResponse.json({ error: "Forbidden: content manager access required." }, { status: 403 });
   }
   let body: BroadcastBody;
   try {
@@ -30,33 +32,50 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
   if (!body.clan_id) {
-    return NextResponse.json({ error: "clan_id is required." }, { status: 400 });
+    return NextResponse.json({ error: "clan_id is required. Use 'all' for global broadcast." }, { status: 400 });
   }
   if (!body.content?.trim()) {
     return NextResponse.json({ error: "Message content is required." }, { status: 400 });
   }
   const senderId = authData.user.id;
   const serviceClient = createSupabaseServiceRoleClient();
-  const { data: memberships, error: membershipError } = await serviceClient
-    .from("game_account_clan_memberships")
-    .select("game_accounts(user_id)")
-    .eq("clan_id", body.clan_id)
-    .eq("is_active", true);
-  if (membershipError) {
-    return NextResponse.json({ error: membershipError.message }, { status: 500 });
+
+  let recipientIds: string[];
+
+  if (body.clan_id === "all") {
+    /* Global broadcast: send to all users */
+    const { data: allProfiles, error: profileError } = await serviceClient
+      .from("profiles")
+      .select("id")
+      .neq("id", senderId);
+    if (profileError) {
+      return NextResponse.json({ error: profileError.message }, { status: 500 });
+    }
+    recipientIds = (allProfiles ?? []).map((p) => p.id as string);
+  } else {
+    /* Clan-specific broadcast */
+    const { data: memberships, error: membershipError } = await serviceClient
+      .from("game_account_clan_memberships")
+      .select("game_accounts(user_id)")
+      .eq("clan_id", body.clan_id)
+      .eq("is_active", true);
+    if (membershipError) {
+      return NextResponse.json({ error: membershipError.message }, { status: 500 });
+    }
+    recipientIds = Array.from(
+      new Set(
+        (memberships ?? [])
+          .map((row) => {
+            const gameAccount = row.game_accounts as unknown as { user_id: string } | null;
+            return gameAccount?.user_id ?? null;
+          })
+          .filter((id): id is string => id !== null && id !== senderId),
+      ),
+    );
   }
-  const recipientIds = Array.from(
-    new Set(
-      (memberships ?? [])
-        .map((row) => {
-          const gameAccount = row.game_accounts as unknown as { user_id: string } | null;
-          return gameAccount?.user_id ?? null;
-        })
-        .filter((id): id is string => id !== null && id !== senderId),
-    ),
-  );
+
   if (recipientIds.length === 0) {
-    return NextResponse.json({ error: "No active members in this clan." }, { status: 400 });
+    return NextResponse.json({ error: "No recipients found." }, { status: 400 });
   }
   const messageRows = recipientIds.map((recipientId) => ({
     sender_id: senderId,
@@ -76,7 +95,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     type: "message" as const,
     title: body.subject?.trim() || "New broadcast message",
     body: body.content.trim().slice(0, 100),
-    reference_id: body.clan_id,
+    reference_id: body.clan_id === "all" ? "global" : body.clan_id,
   }));
   await serviceClient.from("notifications").insert(notificationRows);
   return NextResponse.json(

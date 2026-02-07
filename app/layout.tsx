@@ -55,14 +55,14 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
   };
 
   return (
-    <html lang={locale}>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="preload" href="/assets/vip/back_left.png" as="image" />
         <link rel="preload" href="/assets/ui/components_shield_4.png" as="image" />
         <link rel="preload" href="/assets/vip/components_decor_7.png" as="image" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <ToastProvider>
             <SidebarProvider>

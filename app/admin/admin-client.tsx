@@ -129,30 +129,65 @@ const ruleFieldOptions: readonly string[] = ["player", "source", "chest", "clan"
 const correctionFieldOptions: readonly string[] = ["all", ...ruleFieldOptions];
 const NEW_VALIDATION_ID = "validation-new";
 const NEW_CORRECTION_ID = "correction-new";
-const validationSortOptions: readonly { value: "field" | "status" | "match_value"; label: string }[] = [
-  { value: "field", label: "Field" },
-  { value: "status", label: "Status" },
-  { value: "match_value", label: "Match value" },
-];
-const correctionSortOptions: readonly { value: "field" | "match_value" | "replacement_value" | "status"; label: string }[] = [
-  { value: "field", label: "Field" },
-  { value: "match_value", label: "Match value" },
-  { value: "replacement_value", label: "Replacement" },
-  { value: "status", label: "Status" },
-];
-const scoringSortOptions: readonly { value: "rule_order" | "score" | "chest_match" | "source_match"; label: string }[] =
-  [
-    { value: "rule_order", label: "Order" },
-    { value: "score", label: "Score" },
-    { value: "chest_match", label: "Chest" },
-    { value: "source_match", label: "Source" },
+type ValidationSortValue = "field" | "status" | "match_value";
+type CorrectionSortValue = "field" | "match_value" | "replacement_value" | "status";
+type ScoringSortValue = "rule_order" | "score" | "chest_match" | "source_match";
+
+function getValidationSortOptions(t: (key: string) => string): readonly { value: ValidationSortValue; label: string }[] {
+  return [
+    { value: "field", label: t("sortOptions.field") },
+    { value: "status", label: t("common.status") },
+    { value: "match_value", label: t("sortOptions.matchValue") },
   ];
+}
+function getCorrectionSortOptions(t: (key: string) => string): readonly { value: CorrectionSortValue; label: string }[] {
+  return [
+    { value: "field", label: t("sortOptions.field") },
+    { value: "match_value", label: t("sortOptions.matchValue") },
+    { value: "replacement_value", label: t("sortOptions.replacementValue") },
+    { value: "status", label: t("common.status") },
+  ];
+}
+function getScoringSortOptions(t: (key: string) => string): readonly { value: ScoringSortValue; label: string }[] {
+  return [
+    { value: "rule_order", label: t("sortOptions.order") },
+    { value: "score", label: t("sortOptions.score") },
+    { value: "chest_match", label: t("sortOptions.chest") },
+    { value: "source_match", label: t("sortOptions.source") },
+  ];
+}
+
+/** Localised display names for ranks. */
+const RANK_LABELS: Record<string, Record<string, string>> = {
+  de: { leader: "Anführer", superior: "Vorgesetzter", officer: "Offizier", veteran: "Veteran", soldier: "Soldat" },
+  en: { leader: "Leader", superior: "Superior", officer: "Officer", veteran: "Veteran", soldier: "Soldier" },
+};
+
+/** Localised display names for user roles. */
+const ROLE_LABELS: Record<string, Record<string, string>> = {
+  de: { owner: "Eigentümer", admin: "Administrator", moderator: "Moderator", editor: "Editor", member: "Mitglied" },
+  en: { owner: "Owner", admin: "Admin", moderator: "Moderator", editor: "Editor", member: "Member" },
+};
 
 function formatLabel(value: string): string {
   if (!value) {
     return value;
   }
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+/**
+ * Returns the localised label for a rank key.
+ */
+function formatRank(rank: string, locale: string): string {
+  return RANK_LABELS[locale]?.[rank] ?? RANK_LABELS.en[rank] ?? formatLabel(rank);
+}
+
+/**
+ * Returns the localised label for a role key.
+ */
+function formatRole(role: string, locale: string): string {
+  return ROLE_LABELS[locale]?.[role] ?? ROLE_LABELS.en[role] ?? formatLabel(role);
 }
 
 function buildFallbackUserDb(email: string, userId: string): string {
@@ -312,10 +347,10 @@ function AdminClient(): ReactElement {
   const clanSelectValue = selectedClanId || clanSelectNone;
   const clanSelectOptions = useMemo(
     () => [
-      { value: clanSelectNone, label: "Select a clan" },
+      { value: clanSelectNone, label: tAdmin("clans.selectClan") },
       ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
     ],
-    [clans, clanSelectNone],
+    [clans, clanSelectNone, tAdmin],
   );
   const clanNameById = useMemo(() => {
     return new Map(clans.map((clan) => [clan.id, clan.name]));
@@ -1576,13 +1611,13 @@ function AdminClient(): ReactElement {
   async function handleToggleAdmin(user: UserRow): Promise<void> {
     const nextValue = !Boolean(user.is_admin);
     if (!nextValue && currentUserId && user.id === currentUserId) {
-      setUserStatus("You cannot revoke your own admin access.");
+      setUserStatus(tAdmin("users.cannotRevokeOwn"));
       return;
     }
     if (!nextValue) {
       const adminCount = userRows.filter((row) => Boolean(row.is_admin)).length;
       if (adminCount <= 1) {
-        setUserStatus("At least one admin is required.");
+        setUserStatus(tAdmin("users.lastAdminRequired"));
         return;
       }
     }
@@ -3488,8 +3523,8 @@ function AdminClient(): ReactElement {
       <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Admin Sections</div>
-            <div className="card-subtitle">Manage clans, validation, corrections, and audit logs</div>
+            <div className="card-title">{tAdmin("sections.title")}</div>
+            <div className="card-subtitle">{tAdmin("sections.subtitle")}</div>
           </div>
         </div>
         <div className="tabs">
@@ -3554,11 +3589,11 @@ function AdminClient(): ReactElement {
       <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Clan Management</div>
-            <div className="card-subtitle">{selectedClan ? selectedClan.name : "Select a clan"}</div>
+            <div className="card-title">{tAdmin("clans.title")}</div>
+            <div className="card-subtitle">{selectedClan ? selectedClan.name : tAdmin("clans.selectClan")}</div>
           </div>
           <IconButton
-            ariaLabel="Delete clan"
+            ariaLabel={tAdmin("clans.deleteClan")}
             onClick={openClanDeleteConfirm}
             disabled={!selectedClanId || selectedClanId === unassignedClanId}
             variant="danger"
@@ -3576,10 +3611,10 @@ function AdminClient(): ReactElement {
           </IconButton>
         </div>
         <div className="admin-clan-row">
-          <label htmlFor="selectedClan">Clan</label>
+          <label htmlFor="selectedClan">{tAdmin("common.clan")}</label>
           <RadixSelect
             id="selectedClan"
-            ariaLabel="Clan"
+            ariaLabel={tAdmin("common.clan")}
             value={clanSelectValue}
             onValueChange={(value) => setSelectedClanId(value === clanSelectNone ? "" : value)}
             options={clanSelectOptions}
@@ -3591,22 +3626,22 @@ function AdminClient(): ReactElement {
                 <span className="select-item-content">
                   <span>{option.label}</span>
                   {defaultClanId && option.value === defaultClanId ? (
-                    <span className="badge select-badge">Default</span>
+                    <span className="badge select-badge">{tAdmin("common.default")}</span>
                   ) : null}
                 </span>
               );
             }}
           />
           <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
-            <span className="text-muted">Clan actions</span>
+            <span className="text-muted">{tAdmin("clans.clanActions")}</span>
             <div className="list inline">
-              <IconButton ariaLabel="Create clan" onClick={openCreateClanModal} variant="primary">
+              <IconButton ariaLabel={tAdmin("clans.createClan")} onClick={openCreateClanModal} variant="primary">
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               </IconButton>
-              <IconButton ariaLabel="Edit clan" onClick={openEditClanModal} disabled={!selectedClanId}>
+              <IconButton ariaLabel={tAdmin("clans.editClan")} onClick={openEditClanModal} disabled={!selectedClanId}>
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path
                     d="M3 11.5L4 8.5L10.5 2L14 5.5L7.5 12L3 11.5Z"
@@ -3617,7 +3652,7 @@ function AdminClient(): ReactElement {
                   <path d="M9.5 3L13 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               </IconButton>
-              <IconButton ariaLabel="Assign game accounts" onClick={openAssignAccountsModal} disabled={!selectedClanId}>
+              <IconButton ariaLabel={tAdmin("clans.assignAccounts")} onClick={openAssignAccountsModal} disabled={!selectedClanId}>
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M5 6.5C6.1 6.5 7 5.6 7 4.5C7 3.4 6.1 2.5 5 2.5C3.9 2.5 3 3.4 3 4.5C3 5.6 3.9 6.5 5 6.5Z" stroke="currentColor" strokeWidth="1.5" />
                   <path d="M1.5 12.5C1.5 10.6 3.1 9 5 9C6.9 9 8.5 10.6 8.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -3626,7 +3661,7 @@ function AdminClient(): ReactElement {
                 </svg>
               </IconButton>
               <IconButton
-                ariaLabel="Set default clan"
+                ariaLabel={tAdmin("clans.setDefault")}
                 onClick={() => {
                   if (!selectedClanId) {
                     setStatus("Select a clan to set default.");
@@ -3664,7 +3699,7 @@ function AdminClient(): ReactElement {
               </IconButton>
               {selectedClanId && selectedClanId === defaultClanId ? (
                 <IconButton
-                  ariaLabel="Clear default clan"
+                  ariaLabel={tAdmin("clans.clearDefault")}
                   onClick={() => {
                     void supabase
                       .from("clans")
@@ -3698,31 +3733,31 @@ function AdminClient(): ReactElement {
         <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
           <SearchInput
             id="memberSearch"
-            label="Search"
+            label={tAdmin("common.search")}
             value={memberSearch}
             onChange={setMemberSearch}
-            placeholder="Game account, username, email, or user id"
+            placeholder={tAdmin("clans.searchPlaceholder")}
           />
           <LabeledSelect
             id="memberRankFilter"
-            label="Rank"
+            label={tAdmin("common.rank")}
             value={memberRankFilter}
             onValueChange={(value) => setMemberRankFilter(value)}
             options={[
-              { value: "all", label: "All" },
-              { value: "", label: "None" },
-              ...rankOptions.map((rank) => ({ value: rank, label: formatLabel(rank) })),
+              { value: "all", label: tAdmin("common.all") },
+              { value: "", label: tAdmin("common.none") },
+              ...rankOptions.map((rank) => ({ value: rank, label: formatRank(rank, locale) })),
             ]}
           />
           <LabeledSelect
             id="memberStatusFilter"
-            label="Status"
+            label={tAdmin("common.status")}
             value={memberStatusFilter}
             onValueChange={(value) => setMemberStatusFilter(value)}
             options={[
-              { value: "all", label: "All" },
-              { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive" },
+              { value: "all", label: tAdmin("common.all") },
+              { value: "active", label: tAdmin("common.active") },
+              { value: "inactive", label: tAdmin("common.inactive") },
             ]}
           />
           <button
@@ -3734,7 +3769,7 @@ function AdminClient(): ReactElement {
               setMemberStatusFilter("all");
             }}
           >
-            Clear filters
+            {tAdmin("common.clearFilters")}
           </button>
           <button
             className="button"
@@ -3742,7 +3777,7 @@ function AdminClient(): ReactElement {
             onClick={handleSaveAllMembershipEdits}
             disabled={Object.keys(membershipEdits).length === 0}
           >
-            Save All
+            {tAdmin("common.saveAll")}
           </button>
           <button
             className="button"
@@ -3750,7 +3785,7 @@ function AdminClient(): ReactElement {
             onClick={cancelAllMembershipEdits}
             disabled={Object.keys(membershipEdits).length === 0}
           >
-            Cancel All
+            {tAdmin("common.cancelAll")}
           </button>
           <span className="text-muted">
             {filteredMemberships.length} / {memberships.length}
@@ -3759,15 +3794,15 @@ function AdminClient(): ReactElement {
         {memberships.length === 0 ? (
           <div className="list">
             <div className="list-item">
-              <span>No game accounts yet</span>
-              <span className="badge">Assign some</span>
+              <span>{tAdmin("clans.noAccountsYet")}</span>
+              <span className="badge">{tAdmin("clans.assignSome")}</span>
             </div>
           </div>
         ) : filteredMemberships.length === 0 ? (
           <div className="list">
             <div className="list-item">
-              <span>No game accounts match the filters</span>
-              <span className="badge">Adjust search</span>
+              <span>{tAdmin("clans.noAccountsMatch")}</span>
+              <span className="badge">{tAdmin("clans.adjustSearch")}</span>
             </div>
           </div>
         ) : (
@@ -3775,12 +3810,12 @@ function AdminClient(): ReactElement {
             <div className="table members">
             <header>
               <span>#</span>
-              <span>{renderMemberSortButton("Game Account", "game")}</span>
-              <span>{renderMemberSortButton("User", "user")}</span>
-              <span>{renderMemberSortButton("Clan", "clan")}</span>
-              <span>{renderMemberSortButton("Rank", "rank")}</span>
-              <span>{renderMemberSortButton("Status", "status")}</span>
-              <span>Actions</span>
+              <span>{renderMemberSortButton(tAdmin("members.gameAccount"), "game")}</span>
+              <span>{renderMemberSortButton(tAdmin("members.user"), "user")}</span>
+              <span>{renderMemberSortButton(tAdmin("common.clan"), "clan")}</span>
+              <span>{renderMemberSortButton(tAdmin("common.rank"), "rank")}</span>
+              <span>{renderMemberSortButton(tAdmin("common.status"), "status")}</span>
+              <span>{tAdmin("common.actions")}</span>
             </header>
             {sortedMemberships.map((membership, index) => (
               <div className="row" key={membership.id}>
@@ -3796,7 +3831,7 @@ function AdminClient(): ReactElement {
                         onChange={(event) =>
                           updateGameAccountEdit(membership.game_accounts?.id ?? "", "game_username", event.target.value)
                         }
-                        placeholder="Game username"
+                        placeholder={tAdmin("clans.gameUsername")}
                       />
                     ) : (
                       <button
@@ -3832,40 +3867,40 @@ function AdminClient(): ReactElement {
                   </div>
                 </div>
                 <RadixSelect
-                  ariaLabel="Clan"
+                  ariaLabel={tAdmin("common.clan")}
                   value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
                   onValueChange={(value) => updateMembershipEdit(membership.id, "clan_id", value)}
                   options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
                   triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "clan_id") ? " is-edited" : ""}`}
                 />
                 <RadixSelect
-                  ariaLabel="Rank"
+                  ariaLabel={tAdmin("common.rank")}
                   value={getMembershipEditValue(membership).rank ?? ""}
                   onValueChange={(value) => updateMembershipEdit(membership.id, "rank", value)}
                   options={[
-                    { value: "", label: "None" },
-                    ...rankOptions.map((rank) => ({ value: rank, label: formatLabel(rank) })),
+                    { value: "", label: tAdmin("common.none") },
+                    ...rankOptions.map((rank) => ({ value: rank, label: formatRank(rank, locale) })),
                   ]}
                   triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "rank") ? " is-edited" : ""}`}
                 />
                 <RadixSelect
-                  ariaLabel="Status"
+                  ariaLabel={tAdmin("common.status")}
                   value={getMembershipEditValue(membership).is_active ? "true" : "false"}
                   onValueChange={(value) => updateMembershipEdit(membership.id, "is_active", value)}
                   options={[
-                    { value: "true", label: "Active" },
-                    { value: "false", label: "Inactive" },
+                    { value: "true", label: tAdmin("common.active") },
+                    { value: "false", label: tAdmin("common.inactive") },
                   ]}
                   triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
                   triggerDataRole="status-select"
                 />
                 <div className="list inline">
-                  <IconButton ariaLabel="Save changes" onClick={() => handleSaveMembershipEdit(membership)}>
+                  <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={() => handleSaveMembershipEdit(membership)}>
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M4 8.5L7 11.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </IconButton>
-                  <IconButton ariaLabel="Cancel changes" onClick={() => cancelMembershipEdits(membership.id)}>
+                  <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={() => cancelMembershipEdits(membership.id)}>
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                       <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -3873,7 +3908,7 @@ function AdminClient(): ReactElement {
                   </IconButton>
                   {membership.game_accounts?.id ? (
                     <IconButton
-                      ariaLabel="Delete game account"
+                      ariaLabel={tAdmin("members.deleteGameAccount")}
                       onClick={() =>
                         openGameAccountDeleteConfirm({
                           id: membership.game_accounts?.id ?? "",
@@ -3905,38 +3940,38 @@ function AdminClient(): ReactElement {
       <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Users</div>
-            <div className="card-subtitle">Manage users and game accounts</div>
+            <div className="card-title">{tAdmin("users.title")}</div>
+            <div className="card-subtitle">{tAdmin("users.subtitle")}</div>
           </div>
           <span className="badge">{filteredUserRows.length}</span>
         </div>
         <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
           <SearchInput
             id="userSearch"
-            label="Search"
+            label={tAdmin("common.search")}
             value={userSearch}
             onChange={setUserSearch}
-            placeholder="Email, username, or nickname"
+            placeholder={tAdmin("users.searchPlaceholder")}
           />
           <LabeledSelect
             id="userRoleFilter"
-            label="Role"
+            label={tAdmin("common.role")}
             value={userRoleFilter}
             onValueChange={(value) => setUserRoleFilter(value)}
             options={[
-              { value: "all", label: "All" },
-              ...roleOptions.map((role) => ({ value: role, label: formatLabel(role) })),
+              { value: "all", label: tAdmin("common.all") },
+              ...roleOptions.map((role) => ({ value: role, label: formatRole(role, locale) })),
             ]}
           />
           <LabeledSelect
             id="userAdminFilter"
-            label="Admin"
+            label={tAdmin("users.admin")}
             value={userAdminFilter}
             onValueChange={(value) => setUserAdminFilter(value)}
             options={[
-              { value: "all", label: "All" },
-              { value: "admin", label: "Admin" },
-              { value: "member", label: "Non-admin" },
+              { value: "all", label: tAdmin("common.all") },
+              { value: "admin", label: tAdmin("users.admin") },
+              { value: "member", label: tAdmin("users.nonAdmin") },
             ]}
           />
           <button
@@ -3960,7 +3995,7 @@ function AdminClient(): ReactElement {
               Object.keys(membershipEdits).length === 0
             }
           >
-            Save All
+            {tAdmin("common.saveAll")}
           </button>
           <button
             className="button"
@@ -3972,28 +4007,28 @@ function AdminClient(): ReactElement {
               Object.keys(membershipEdits).length === 0
             }
           >
-            Cancel All
+            {tAdmin("common.cancelAll")}
           </button>
           <span className="text-muted">
             {filteredUserRows.length} / {userRows.length}
           </span>
           <button className="button primary" type="button" onClick={openCreateUserModal}>
-            Create User
+            {tAdmin("users.createUser")}
           </button>
         </div>
         {userStatus ? <div className="alert info">{userStatus}</div> : null}
         {userRows.length === 0 ? (
           <div className="list">
             <div className="list-item">
-              <span>No users found</span>
-              <span className="badge">Adjust search</span>
+              <span>{tAdmin("users.noUsersFound")}</span>
+              <span className="badge">{tAdmin("users.adjustSearch")}</span>
             </div>
           </div>
         ) : filteredUserRows.length === 0 ? (
           <div className="list">
             <div className="list-item">
-              <span>No users match the filters</span>
-              <span className="badge">Adjust search</span>
+              <span>{tAdmin("users.noUsersMatch")}</span>
+              <span className="badge">{tAdmin("users.adjustSearch")}</span>
             </div>
           </div>
         ) : (
@@ -4001,13 +4036,13 @@ function AdminClient(): ReactElement {
             <div className="table users">
             <header>
               <span>#</span>
-              <span>{renderUserSortButton("Username", "username")}</span>
-              <span>{renderUserSortButton("Email", "email")}</span>
-              <span>{renderUserSortButton("Nickname", "nickname")}</span>
-              <span>{renderUserSortButton("Role", "role")}</span>
-              <span>{renderUserSortButton("Admin", "admin")}</span>
-              <span>{renderUserSortButton("Game Accounts", "accounts")}</span>
-              <span>Actions</span>
+              <span>{renderUserSortButton(tAdmin("users.username"), "username")}</span>
+              <span>{renderUserSortButton(tAdmin("users.email"), "email")}</span>
+              <span>{renderUserSortButton(tAdmin("users.nickname"), "nickname")}</span>
+              <span>{renderUserSortButton(tAdmin("common.role"), "role")}</span>
+              <span>{renderUserSortButton(tAdmin("users.admin"), "admin")}</span>
+              <span>{renderUserSortButton(tAdmin("users.gameAccounts"), "accounts")}</span>
+              <span>{tAdmin("common.actions")}</span>
             </header>
             {sortedUserRows.map((user, index) => {
               const isExpanded = expandedUserIds.includes(user.id);
@@ -4089,14 +4124,14 @@ function AdminClient(): ReactElement {
                     )}
                     <div onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
                       <RadixSelect
-                        ariaLabel="Role"
+                        ariaLabel={tAdmin("common.role")}
                         value={edits.role ?? getUserRole(user.id)}
                         onValueChange={(value) => updateUserEdit(user.id, "role", value)}
-                        options={roleOptions.map((role) => ({ value: role, label: formatLabel(role) }))}
+                        options={roleOptions.map((role) => ({ value: role, label: formatRole(role, locale) }))}
                         triggerClassName={`select-trigger${isUserFieldChanged(user, "role") ? " is-edited" : ""}`}
                       />
                     </div>
-                    <div>{user.is_admin ? "Yes" : "No"}</div>
+                    <div>{user.is_admin ? tAdmin("common.yes") : tAdmin("common.no")}</div>
                     <div className="text-muted" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <span className="badge" aria-label={`${accounts.length} game accounts`}>
                         {accounts.length}
@@ -4109,15 +4144,15 @@ function AdminClient(): ReactElement {
                           className={`list inline user-actions action-icons ${actionCount > 4 ? "action-icons-wrap" : ""}`.trim()}
                         >
                       <IconButton
-                        ariaLabel={user.is_admin ? "Revoke admin" : "Grant admin"}
+                        ariaLabel={user.is_admin ? tAdmin("users.revokeAdmin") : tAdmin("users.grantAdmin")}
                         title={
                           user.is_admin && user.id === currentUserId
-                            ? "You cannot revoke your own admin access."
+                            ? tAdmin("users.cannotRevokeOwn")
                             : user.is_admin && userRows.filter((row) => Boolean(row.is_admin)).length <= 1
-                              ? "At least one admin is required."
+                              ? tAdmin("users.lastAdminRequired")
                               : user.is_admin
-                                ? "Revoke admin"
-                                : "Grant admin"
+                                ? tAdmin("users.revokeAdmin")
+                                : tAdmin("users.grantAdmin")
                         }
                         onClick={() => handleToggleAdmin(user)}
                         disabled={
@@ -4152,7 +4187,7 @@ function AdminClient(): ReactElement {
                         </svg>
                       </IconButton>
                       <IconButton
-                        ariaLabel="Resend invite"
+                        ariaLabel={tAdmin("users.resendInvite")}
                         onClick={() => handleResendInvite(user.email)}
                       >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -4171,7 +4206,7 @@ function AdminClient(): ReactElement {
                           />
                         </svg>
                       </IconButton>
-                      <IconButton ariaLabel="Add game account" onClick={() => openCreateGameAccountModal(user)}>
+                      <IconButton ariaLabel={tAdmin("users.addGameAccount")} onClick={() => openCreateGameAccountModal(user)}>
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
                             d="M4.2 6.5H11.8"
@@ -4200,12 +4235,12 @@ function AdminClient(): ReactElement {
                       </IconButton>
                       {isEditing ? (
                         <>
-                          <IconButton ariaLabel="Save changes" onClick={() => handleSaveUserEdit(user)}>
+                          <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={() => handleSaveUserEdit(user)}>
                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                               <path d="M4 8.5L7 11.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           </IconButton>
-                          <IconButton ariaLabel="Cancel changes" onClick={() => cancelUserEdit(user.id)}>
+                          <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={() => cancelUserEdit(user.id)}>
                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                               <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                               <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -4213,7 +4248,7 @@ function AdminClient(): ReactElement {
                           </IconButton>
                         </>
                       ) : null}
-                      <IconButton ariaLabel="Delete user" onClick={() => openUserDeleteConfirm(user)} variant="danger">
+                      <IconButton ariaLabel={tAdmin("users.deleteUser")} onClick={() => openUserDeleteConfirm(user)} variant="danger">
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
                             d="M3.5 5.5H12.5"
@@ -4243,18 +4278,18 @@ function AdminClient(): ReactElement {
                     <div className="row subrow">
                       <div style={{ gridColumn: "1 / -1" }}>
                         {accounts.length === 0 ? (
-                          <div className="text-muted">No game accounts yet.</div>
+                          <div className="text-muted">{tAdmin("clans.noAccountsYet")}</div>
                         ) : (
                           <TableScroll>
                             <div className="table members">
                             <header>
                               <span>#</span>
-                              <span>{renderMemberSortButton("Game Account", "game")}</span>
-                              <span>{renderMemberSortButton("User", "user")}</span>
-                              <span>{renderMemberSortButton("Clan", "clan")}</span>
-                              <span>{renderMemberSortButton("Rank", "rank")}</span>
-                              <span>{renderMemberSortButton("Status", "status")}</span>
-                              <span>Actions</span>
+                              <span>{renderMemberSortButton(tAdmin("members.gameAccount"), "game")}</span>
+                              <span>{renderMemberSortButton(tAdmin("members.user"), "user")}</span>
+                              <span>{renderMemberSortButton(tAdmin("common.clan"), "clan")}</span>
+                              <span>{renderMemberSortButton(tAdmin("common.rank"), "rank")}</span>
+                              <span>{renderMemberSortButton(tAdmin("common.status"), "status")}</span>
+                              <span>{tAdmin("common.actions")}</span>
                             </header>
                             {sortedAccounts.map((account, index) => {
                               const membership = userMembershipsByAccountId[account.id];
@@ -4271,7 +4306,7 @@ function AdminClient(): ReactElement {
                                     </div>
                                     <div className="text-muted">-</div>
                                     <div className="text-muted">-</div>
-                                  <div className="text-muted">Missing membership</div>
+                                  <div className="text-muted">{tAdmin("members.missingMembership")}</div>
                                   <div />
                                   </div>
                                 );
@@ -4290,7 +4325,7 @@ function AdminClient(): ReactElement {
                                           onChange={(event) =>
                                             updateGameAccountEdit(membership.game_accounts?.id ?? "", "game_username", event.target.value)
                                           }
-                                          placeholder="Game username"
+                                          placeholder={tAdmin("clans.gameUsername")}
                                         />
                                       ) : (
                                         <button
@@ -4316,35 +4351,35 @@ function AdminClient(): ReactElement {
                                     <div className="text-muted">{user.display_name ?? user.username ?? "-"}</div>
                                   </div>
                                   <RadixSelect
-                                    ariaLabel="Clan"
+                                    ariaLabel={tAdmin("common.clan")}
                                     value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
                                     onValueChange={(value) => updateMembershipEdit(membership.id, "clan_id", value)}
                                     options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
                                     triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "clan_id") ? " is-edited" : ""}`}
                                   />
                                   <RadixSelect
-                                    ariaLabel="Rank"
+                                    ariaLabel={tAdmin("common.rank")}
                                     value={getMembershipEditValue(membership).rank ?? ""}
                                     onValueChange={(value) => updateMembershipEdit(membership.id, "rank", value)}
                                     options={[
-                                      { value: "", label: "None" },
-                                      ...rankOptions.map((rank) => ({ value: rank, label: formatLabel(rank) })),
+                                      { value: "", label: tAdmin("common.none") },
+                                      ...rankOptions.map((rank) => ({ value: rank, label: formatRank(rank, locale) })),
                                     ]}
                                     triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "rank") ? " is-edited" : ""}`}
                                   />
                                   <RadixSelect
-                                    ariaLabel="Status"
+                                    ariaLabel={tAdmin("common.status")}
                                     value={getMembershipEditValue(membership).is_active ? "true" : "false"}
                                     onValueChange={(value) => updateMembershipEdit(membership.id, "is_active", value)}
                                     options={[
-                                      { value: "true", label: "Active" },
-                                      { value: "false", label: "Inactive" },
+                                      { value: "true", label: tAdmin("common.active") },
+                                      { value: "false", label: tAdmin("common.inactive") },
                                     ]}
                                     triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
                                     triggerDataRole="status-select"
                                   />
                 <div className="list inline action-icons">
-                                    <IconButton ariaLabel="Save changes" onClick={() => handleSaveMembershipEdit(membership)}>
+                                    <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={() => handleSaveMembershipEdit(membership)}>
                                       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                                         <path
                                           d="M4 8.5L7 11.5L12 5"
@@ -4356,7 +4391,7 @@ function AdminClient(): ReactElement {
                                       </svg>
                                     </IconButton>
                                     <IconButton
-                                      ariaLabel="Cancel changes"
+                                      ariaLabel={tAdmin("common.cancelChanges")}
                                       onClick={() => cancelMembershipEdits(membership.id)}
                                     >
                                       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -4376,7 +4411,7 @@ function AdminClient(): ReactElement {
                                     </IconButton>
                   {membership.game_accounts?.id ? (
                     <IconButton
-                      ariaLabel="Delete game account"
+                      ariaLabel={tAdmin("members.deleteGameAccount")}
                       onClick={() =>
                         openGameAccountDeleteConfirm({
                           id: membership.game_accounts?.id ?? "",
@@ -4425,8 +4460,8 @@ function AdminClient(): ReactElement {
       <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Validation Rules</div>
-            <div className="card-subtitle">Exact match validation</div>
+            <div className="card-title">{tAdmin("validation.title")}</div>
+            <div className="card-subtitle">{tAdmin("validation.subtitle")}</div>
           </div>
         </div>
         <div className="rule-bar">
@@ -4448,13 +4483,13 @@ function AdminClient(): ReactElement {
             ))}
           </div>
           <div className="list inline action-icons">
-            <IconButton ariaLabel="Add rule" onClick={handleCreateValidationRow}>
+            <IconButton ariaLabel={tAdmin("validation.addRule")} onClick={handleCreateValidationRow}>
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </IconButton>
-            <IconButton ariaLabel="Backup Rules List" onClick={handleBackupValidationList}>
+            <IconButton ariaLabel={tAdmin("validation.backupRules")} onClick={handleBackupValidationList}>
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 4.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M4.5 4.5V12C4.5 12.6 5 13 5.6 13H10.4C11 13 11.5 12.6 11.5 12V4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -4462,14 +4497,14 @@ function AdminClient(): ReactElement {
               </svg>
             </IconButton>
             <span className="rule-bar-separator" aria-hidden="true" />
-            <IconButton ariaLabel="Import Rules List" onClick={() => setIsValidationImportOpen(true)}>
+            <IconButton ariaLabel={tAdmin("validation.importRules")} onClick={() => setIsValidationImportOpen(true)}>
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 11.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M8 3.5V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M5.5 8L8 10.5L10.5 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </IconButton>
-            <IconButton ariaLabel="Export Rules List" onClick={handleExportValidationList}>
+            <IconButton ariaLabel={tAdmin("validation.exportRules")} onClick={handleExportValidationList}>
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 12.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M8 12V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -4478,7 +4513,7 @@ function AdminClient(): ReactElement {
             </IconButton>
             <span className="rule-bar-separator" aria-hidden="true" />
             <IconButton
-              ariaLabel="Delete selected rules"
+              ariaLabel={tAdmin("validation.deleteSelectedRules")}
               onClick={openValidationDeleteConfirm}
               variant="danger"
               disabled={validationSelectedIds.length === 0}
@@ -4495,48 +4530,48 @@ function AdminClient(): ReactElement {
         <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
           <SearchInput
             id="validationSearch"
-            label="Search"
+            label={tAdmin("common.search")}
             value={validationSearch}
             onChange={(value) => {
               setValidationSearch(value);
               setValidationPage(1);
             }}
-            placeholder="Value or status"
+            placeholder={tAdmin("validation.searchPlaceholder")}
           />
           <LabeledSelect
             id="validationStatusFilter"
-            label="Status"
+            label={tAdmin("common.status")}
             value={validationStatusFilter}
             onValueChange={(value) => {
               setValidationStatusFilter(value);
               setValidationPage(1);
             }}
             options={[
-              { value: "all", label: "All" },
-              { value: "valid", label: "valid" },
-              { value: "invalid", label: "invalid" },
+              { value: "all", label: tAdmin("common.all") },
+              { value: "valid", label: tAdmin("common.valid") },
+              { value: "invalid", label: tAdmin("common.invalid") },
             ]}
           />
           <LabeledSelect
             id="validationSort"
-            label="Sort"
+            label={tAdmin("common.sort")}
             value={validationSortKey}
             onValueChange={(value) => {
               setValidationSortKey(value as "field" | "status" | "match_value");
               setValidationPage(1);
             }}
-            options={validationSortOptions.map((option) => ({ value: option.value, label: option.label }))}
+            options={getValidationSortOptions(tAdmin).map((option) => ({ value: option.value, label: option.label }))}
           />
           <RadixSelect
-            ariaLabel="Validation sort direction"
+            ariaLabel={tAdmin("validation.sortDirection")}
             value={validationSortDirection}
             onValueChange={(value) => {
               setValidationSortDirection(value as "asc" | "desc");
               setValidationPage(1);
             }}
             options={[
-              { value: "asc", label: "Asc" },
-              { value: "desc", label: "Desc" },
+              { value: "asc", label: tAdmin("common.asc") },
+              { value: "desc", label: tAdmin("common.desc") },
             ]}
           />
           <button
@@ -4551,22 +4586,22 @@ function AdminClient(): ReactElement {
               setValidationPage(1);
             }}
           >
-            Reset
+            {tAdmin("common.reset")}
           </button>
           <span className="text-muted">
-            {formatLabel(validationListField)} rules: {activeValidationCounts.total} ({activeValidationCounts.active} active)
-            {validationSelectedIds.length > 0 ? ` • ${validationSelectedIds.length} selected` : ""}
+            {formatLabel(validationListField)} {tAdmin("validation.rules")}: {activeValidationCounts.total} ({activeValidationCounts.active} {tAdmin("common.active")})
+            {validationSelectedIds.length > 0 ? ` • ${validationSelectedIds.length} ${tAdmin("common.selected")}` : ""}
           </span>
         </div>
         {filteredValidationRules.length > 0 ? (
           <div className="pagination-bar table-pagination">
             <div className="pagination-page-size">
               <label htmlFor="validationPageSize" className="text-muted">
-                Page size
+                {tAdmin("common.pageSize")}
               </label>
               <RadixSelect
                 id="validationPageSize"
-                ariaLabel="Page size"
+                ariaLabel={tAdmin("common.pageSize")}
                 value={String(validationPageSize)}
                 onValueChange={(value) => {
                   setValidationPageSize(Number(value));
@@ -4581,13 +4616,13 @@ function AdminClient(): ReactElement {
               />
             </div>
             <span className="text-muted">
-              Showing {filteredValidationRules.length === 0 ? 0 : (validationPage - 1) * validationPageSize + 1}–
-              {Math.min(validationPage * validationPageSize, filteredValidationRules.length)} of {filteredValidationRules.length}
+              {tAdmin("common.showing")} {filteredValidationRules.length === 0 ? 0 : (validationPage - 1) * validationPageSize + 1}–
+              {Math.min(validationPage * validationPageSize, filteredValidationRules.length)} {tAdmin("common.of")} {filteredValidationRules.length}
             </span>
             <div className="pagination-actions">
               <div className="pagination-page-indicator">
                 <label htmlFor="validationPageJump" className="text-muted">
-                  Page
+                  {tAdmin("common.page")}
                 </label>
                 <input
                   id="validationPageJump"
@@ -4606,7 +4641,7 @@ function AdminClient(): ReactElement {
                 <span className="text-muted">/ {validationTotalPages}</span>
               </div>
               <IconButton
-                ariaLabel="Previous page"
+                ariaLabel={tAdmin("common.previousPage")}
                 onClick={() => setValidationPage((current) => Math.max(1, current - 1))}
                 disabled={validationPage === 1}
               >
@@ -4615,7 +4650,7 @@ function AdminClient(): ReactElement {
                 </svg>
               </IconButton>
               <IconButton
-                ariaLabel="Next page"
+                ariaLabel={tAdmin("common.nextPage")}
                 onClick={() => setValidationPage((current) => current + 1)}
                 disabled={validationPage >= validationTotalPages}
               >
@@ -4636,12 +4671,12 @@ function AdminClient(): ReactElement {
                 ref={validationSelectAllRef}
                 checked={areAllValidationRowsSelected}
                 onChange={toggleValidationSelectAll}
-                aria-label="Select all rules on this page"
+                aria-label={tAdmin("common.selectAll")}
               />
             </span>
-            <span>{renderValidationSortButton("Value", "match_value")}</span>
-            <span>{renderValidationSortButton("Status", "status")}</span>
-            <span>Actions</span>
+            <span>{renderValidationSortButton(tAdmin("validation.value"), "match_value")}</span>
+            <span>{renderValidationSortButton(tAdmin("common.status"), "status")}</span>
+            <span>{tAdmin("common.actions")}</span>
           </header>
           {[
             ...(validationEditingId === NEW_VALIDATION_ID
@@ -4659,7 +4694,7 @@ function AdminClient(): ReactElement {
             <div className="row">
               <span />
               <span />
-              <span>No validation entries</span>
+              <span>{tAdmin("validation.noEntries")}</span>
               <span />
               <span />
             </div>
@@ -4667,7 +4702,7 @@ function AdminClient(): ReactElement {
             <div className="row">
               <span />
               <span />
-              <span>No entries match the filters</span>
+              <span>{tAdmin("validation.noEntriesMatch")}</span>
               <span />
               <span />
             </div>
@@ -4698,7 +4733,7 @@ function AdminClient(): ReactElement {
                       checked={isSelected}
                       onChange={isSelectable ? () => toggleValidationSelect(rule.id) : undefined}
                       disabled={!isSelectable}
-                      aria-label="Select rule"
+                      aria-label={tAdmin("common.selectRule")}
                     />
                   </span>
                   {isEditing ? (
@@ -4711,12 +4746,12 @@ function AdminClient(): ReactElement {
                   )}
                   {isEditing ? (
                     <RadixSelect
-                      ariaLabel="Status"
+                      ariaLabel={tAdmin("common.status")}
                       value={validationStatus}
                       onValueChange={(value) => setValidationStatus(value)}
                       options={[
-                        { value: "valid", label: "valid" },
-                        { value: "invalid", label: "invalid" },
+                        { value: "valid", label: tAdmin("common.valid") },
+                        { value: "invalid", label: tAdmin("common.invalid") },
                       ]}
                     />
                   ) : (
@@ -4725,7 +4760,7 @@ function AdminClient(): ReactElement {
                   <div className="list inline action-icons">
                     {isEditing ? (
                       <>
-                        <IconButton ariaLabel="Save changes" onClick={handleSaveValidationRow}>
+                        <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={handleSaveValidationRow}>
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path
                               d="M4 8.5L7 11.5L12 5"
@@ -4736,7 +4771,7 @@ function AdminClient(): ReactElement {
                             />
                           </svg>
                         </IconButton>
-                        <IconButton ariaLabel="Cancel changes" onClick={handleCancelValidationEdit}>
+                        <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={handleCancelValidationEdit}>
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                             <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -4745,13 +4780,13 @@ function AdminClient(): ReactElement {
                       </>
                     ) : (
                       <>
-                        <IconButton ariaLabel="Edit rule" onClick={() => handleEditValidationRule(rule)}>
+                        <IconButton ariaLabel={tAdmin("validation.editRule")} onClick={() => handleEditValidationRule(rule)}>
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M3 11.5L11.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                             <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                           </svg>
                         </IconButton>
-                        <IconButton ariaLabel="Delete rule" onClick={() => handleDeleteValidationRule(rule.id)} variant="danger">
+                        <IconButton ariaLabel={tAdmin("validation.deleteRule")} onClick={() => handleDeleteValidationRule(rule.id)} variant="danger">
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                             <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -4773,8 +4808,8 @@ function AdminClient(): ReactElement {
       <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Correction Rules</div>
-            <div className="card-subtitle">Automatic value replacement</div>
+            <div className="card-title">{tAdmin("corrections.title")}</div>
+            <div className="card-subtitle">{tAdmin("corrections.subtitle")}</div>
           </div>
         </div>
         <div className="rule-bar">
@@ -4791,18 +4826,18 @@ function AdminClient(): ReactElement {
                   setCorrectionPage(1);
                 }}
               >
-                {field === "all" ? "All" : formatLabel(field)}
+                {field === "all" ? tAdmin("common.all") : formatLabel(field)}
               </button>
             ))}
           </div>
           <div className="list inline action-icons">
-            <IconButton ariaLabel="Add rule" onClick={handleCreateCorrectionRow}>
+            <IconButton ariaLabel={tAdmin("corrections.addRule")} onClick={handleCreateCorrectionRow}>
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </IconButton>
-            <IconButton ariaLabel="Backup Rules List" onClick={handleBackupCorrectionList}>
+            <IconButton ariaLabel={tAdmin("corrections.backupRules")} onClick={handleBackupCorrectionList}>
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 4.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M4.5 4.5V12C4.5 12.6 5 13 5.6 13H10.4C11 13 11.5 12.6 11.5 12V4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -4810,14 +4845,14 @@ function AdminClient(): ReactElement {
               </svg>
             </IconButton>
             <span className="rule-bar-separator" aria-hidden="true" />
-            <IconButton ariaLabel="Import Rules List" onClick={() => setIsCorrectionImportOpen(true)}>
+            <IconButton ariaLabel={tAdmin("corrections.importRules")} onClick={() => setIsCorrectionImportOpen(true)}>
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 11.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M8 3.5V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M5.5 8L8 10.5L10.5 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </IconButton>
-            <IconButton ariaLabel="Export Rules List" onClick={handleExportCorrectionList}>
+            <IconButton ariaLabel={tAdmin("corrections.exportRules")} onClick={handleExportCorrectionList}>
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 12.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M8 12V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -4826,7 +4861,7 @@ function AdminClient(): ReactElement {
             </IconButton>
             <span className="rule-bar-separator" aria-hidden="true" />
             <IconButton
-              ariaLabel="Delete selected rules"
+              ariaLabel={tAdmin("corrections.deleteSelectedRules")}
               onClick={openCorrectionDeleteConfirm}
               variant="danger"
               disabled={correctionSelectedIds.length === 0}
@@ -4843,48 +4878,48 @@ function AdminClient(): ReactElement {
         <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
           <SearchInput
             id="correctionSearch"
-            label="Search"
+            label={tAdmin("common.search")}
             value={correctionSearch}
             onChange={(value) => {
               setCorrectionSearch(value);
               setCorrectionPage(1);
             }}
-            placeholder="Match or replacement"
+            placeholder={tAdmin("corrections.searchPlaceholder")}
           />
           <LabeledSelect
             id="correctionStatusFilter"
-            label="Status"
+            label={tAdmin("common.status")}
             value={correctionStatusFilter}
             onValueChange={(value) => {
               setCorrectionStatusFilter(value);
               setCorrectionPage(1);
             }}
             options={[
-              { value: "all", label: "All" },
-              { value: "active", label: "active" },
-              { value: "inactive", label: "inactive" },
+              { value: "all", label: tAdmin("common.all") },
+              { value: "active", label: tAdmin("common.active") },
+              { value: "inactive", label: tAdmin("common.inactive") },
             ]}
           />
           <LabeledSelect
             id="correctionSort"
-            label="Sort"
+            label={tAdmin("common.sort")}
             value={correctionSortKey}
             onValueChange={(value) => {
               setCorrectionSortKey(value as "field" | "match_value" | "replacement_value" | "status");
               setCorrectionPage(1);
             }}
-            options={correctionSortOptions.map((option) => ({ value: option.value, label: option.label }))}
+            options={getCorrectionSortOptions(tAdmin).map((option) => ({ value: option.value, label: option.label }))}
           />
           <RadixSelect
-            ariaLabel="Correction sort direction"
+            ariaLabel={tAdmin("corrections.sortDirection")}
             value={correctionSortDirection}
             onValueChange={(value) => {
               setCorrectionSortDirection(value as "asc" | "desc");
               setCorrectionPage(1);
             }}
             options={[
-              { value: "asc", label: "Asc" },
-              { value: "desc", label: "Desc" },
+              { value: "asc", label: tAdmin("common.asc") },
+              { value: "desc", label: tAdmin("common.desc") },
             ]}
           />
           <button
@@ -4899,23 +4934,23 @@ function AdminClient(): ReactElement {
               setCorrectionPage(1);
             }}
           >
-            Reset
+            {tAdmin("common.reset")}
           </button>
           <span className="text-muted">
-            {correctionListField === "all" ? "All" : formatLabel(correctionListField)} corrections:{" "}
-            {activeCorrectionCounts.total} ({activeCorrectionCounts.active} active)
-            {correctionSelectedIds.length > 0 ? ` • ${correctionSelectedIds.length} selected` : ""}
+            {correctionListField === "all" ? tAdmin("common.all") : formatLabel(correctionListField)} {tAdmin("corrections.corrections")}:{" "}
+            {activeCorrectionCounts.total} ({activeCorrectionCounts.active} {tAdmin("common.active")})
+            {correctionSelectedIds.length > 0 ? ` • ${correctionSelectedIds.length} ${tAdmin("common.selected")}` : ""}
           </span>
         </div>
         {filteredCorrectionRules.length > 0 ? (
           <div className="pagination-bar table-pagination">
             <div className="pagination-page-size">
               <label htmlFor="correctionPageSize" className="text-muted">
-                Page size
+                {tAdmin("common.pageSize")}
               </label>
               <RadixSelect
                 id="correctionPageSize"
-                ariaLabel="Page size"
+                ariaLabel={tAdmin("common.pageSize")}
                 value={String(correctionPageSize)}
                 onValueChange={(value) => {
                   setCorrectionPageSize(Number(value));
@@ -4930,13 +4965,13 @@ function AdminClient(): ReactElement {
               />
             </div>
             <span className="text-muted">
-              Showing {filteredCorrectionRules.length === 0 ? 0 : (correctionPage - 1) * correctionPageSize + 1}–
-              {Math.min(correctionPage * correctionPageSize, filteredCorrectionRules.length)} of {filteredCorrectionRules.length}
+              {tAdmin("common.showing")} {filteredCorrectionRules.length === 0 ? 0 : (correctionPage - 1) * correctionPageSize + 1}–
+              {Math.min(correctionPage * correctionPageSize, filteredCorrectionRules.length)} {tAdmin("common.of")} {filteredCorrectionRules.length}
             </span>
             <div className="pagination-actions">
               <div className="pagination-page-indicator">
                 <label htmlFor="correctionPageJump" className="text-muted">
-                  Page
+                  {tAdmin("common.page")}
                 </label>
                 <input
                   id="correctionPageJump"
@@ -4955,7 +4990,7 @@ function AdminClient(): ReactElement {
                 <span className="text-muted">/ {correctionTotalPages}</span>
               </div>
               <IconButton
-                ariaLabel="Previous page"
+                ariaLabel={tAdmin("common.previousPage")}
                 onClick={() => setCorrectionPage((current) => Math.max(1, current - 1))}
                 disabled={correctionPage === 1}
               >
@@ -4964,7 +4999,7 @@ function AdminClient(): ReactElement {
                 </svg>
               </IconButton>
               <IconButton
-                ariaLabel="Next page"
+                ariaLabel={tAdmin("common.nextPage")}
                 onClick={() => setCorrectionPage((current) => current + 1)}
                 disabled={correctionPage >= correctionTotalPages}
               >
@@ -4985,13 +5020,13 @@ function AdminClient(): ReactElement {
                 ref={correctionSelectAllRef}
                 checked={areAllCorrectionRowsSelected}
                 onChange={toggleCorrectionSelectAll}
-                aria-label="Select all rules on this page"
+                aria-label={tAdmin("common.selectAll")}
               />
             </span>
-            <span>{renderCorrectionSortButton("Match", "match_value")}</span>
-            <span>{renderCorrectionSortButton("Replacement", "replacement_value")}</span>
-            <span>{renderCorrectionSortButton("Status", "status")}</span>
-            <span>Actions</span>
+            <span>{renderCorrectionSortButton(tAdmin("corrections.match"), "match_value")}</span>
+            <span>{renderCorrectionSortButton(tAdmin("corrections.replacement"), "replacement_value")}</span>
+            <span>{renderCorrectionSortButton(tAdmin("common.status"), "status")}</span>
+            <span>{tAdmin("common.actions")}</span>
           </header>
           {[
             ...(correctionEditingId === NEW_CORRECTION_ID
@@ -5010,7 +5045,7 @@ function AdminClient(): ReactElement {
             <div className="row">
               <span />
               <span />
-              <span>No correction entries</span>
+              <span>{tAdmin("corrections.noEntries")}</span>
               <span />
               <span />
               <span />
@@ -5019,7 +5054,7 @@ function AdminClient(): ReactElement {
             <div className="row">
               <span />
               <span />
-              <span>No entries match the filters</span>
+              <span>{tAdmin("corrections.noEntriesMatch")}</span>
               <span />
               <span />
               <span />
@@ -5052,7 +5087,7 @@ function AdminClient(): ReactElement {
                       checked={isSelected}
                       onChange={isSelectable ? () => toggleCorrectionSelect(rule.id) : undefined}
                       disabled={!isSelectable}
-                      aria-label="Select rule"
+                      aria-label={tAdmin("common.selectRule")}
                     />
                   </span>
                   {isEditing ? (
@@ -5073,12 +5108,12 @@ function AdminClient(): ReactElement {
                   )}
                   {isEditing ? (
                     <RadixSelect
-                      ariaLabel="Status"
+                      ariaLabel={tAdmin("common.status")}
                       value={correctionStatus}
                       onValueChange={(value) => setCorrectionStatus(value)}
                       options={[
-                        { value: "active", label: "active" },
-                        { value: "inactive", label: "inactive" },
+                        { value: "active", label: tAdmin("common.active") },
+                        { value: "inactive", label: tAdmin("common.inactive") },
                       ]}
                     />
                   ) : (
@@ -5087,7 +5122,7 @@ function AdminClient(): ReactElement {
                   <div className="list inline action-icons">
                     {isEditing ? (
                       <>
-                        <IconButton ariaLabel="Save changes" onClick={handleSaveCorrectionRow}>
+                        <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={handleSaveCorrectionRow}>
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path
                               d="M4 8.5L7 11.5L12 5"
@@ -5098,7 +5133,7 @@ function AdminClient(): ReactElement {
                             />
                           </svg>
                         </IconButton>
-                        <IconButton ariaLabel="Cancel changes" onClick={handleCancelCorrectionEdit}>
+                        <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={handleCancelCorrectionEdit}>
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                             <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -5107,13 +5142,13 @@ function AdminClient(): ReactElement {
                       </>
                     ) : (
                       <>
-                        <IconButton ariaLabel="Edit rule" onClick={() => handleEditCorrectionRule(rule)}>
+                        <IconButton ariaLabel={tAdmin("corrections.editRule")} onClick={() => handleEditCorrectionRule(rule)}>
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M3 11.5L11.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                             <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                           </svg>
                         </IconButton>
-                        <IconButton ariaLabel="Delete rule" onClick={() => handleDeleteCorrectionRule(rule.id)} variant="danger">
+                        <IconButton ariaLabel={tAdmin("corrections.deleteRule")} onClick={() => handleDeleteCorrectionRule(rule.id)} variant="danger">
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                             <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -5135,56 +5170,56 @@ function AdminClient(): ReactElement {
       <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Audit Logs</div>
-            <div className="card-subtitle">Latest clan activity</div>
+            <div className="card-title">{tAdmin("logs.title")}</div>
+            <div className="card-subtitle">{tAdmin("logs.subtitle")}</div>
           </div>
-          <span className="badge">{auditTotalCount} total</span>
+          <span className="badge">{auditTotalCount} {tAdmin("logs.total")}</span>
         </div>
         <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
           <SearchInput
             id="auditSearch"
-            label="Search"
+            label={tAdmin("common.search")}
             value={auditSearch}
             onChange={setAuditSearch}
-            placeholder="Action, entity, or id"
+            placeholder={tAdmin("logs.searchPlaceholder")}
           />
           <LabeledSelect
             id="auditClanFilter"
-            label="Clan"
+            label={tAdmin("common.clan")}
             value={auditClanFilter || "all"}
             onValueChange={(value) => setAuditClanFilter(value)}
             options={[
-              { value: "all", label: "All" },
+              { value: "all", label: tAdmin("common.all") },
               ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
             ]}
           />
           <LabeledSelect
             id="auditActionFilter"
-            label="Action"
+            label={tAdmin("logs.action")}
             value={auditActionFilter}
             onValueChange={(value) => setAuditActionFilter(value)}
             options={[
-              { value: "all", label: "All" },
+              { value: "all", label: tAdmin("common.all") },
               ...auditActionOptions.map((option) => ({ value: option, label: option })),
             ]}
           />
           <LabeledSelect
             id="auditEntityFilter"
-            label="Entity"
+            label={tAdmin("logs.entity")}
             value={auditEntityFilter}
             onValueChange={(value) => setAuditEntityFilter(value)}
             options={[
-              { value: "all", label: "All" },
+              { value: "all", label: tAdmin("common.all") },
               ...auditEntityOptions.map((option) => ({ value: option, label: option })),
             ]}
           />
           <LabeledSelect
             id="auditActorFilter"
-            label="Actor"
+            label={tAdmin("logs.actor")}
             value={auditActorFilter}
             onValueChange={(value) => setAuditActorFilter(value)}
             options={[
-              { value: "all", label: "All" },
+              { value: "all", label: tAdmin("common.all") },
               ...auditActorOptions.map((actorId) => ({
                 value: actorId,
                 label: getAuditActorLabel(actorId),
@@ -5213,11 +5248,11 @@ function AdminClient(): ReactElement {
           <div className="pagination-bar table-pagination">
             <div className="pagination-page-size">
               <label htmlFor="auditPageSize" className="text-muted">
-                Page size
+                {tAdmin("common.pageSize")}
               </label>
               <RadixSelect
                 id="auditPageSize"
-                ariaLabel="Page size"
+                ariaLabel={tAdmin("common.pageSize")}
                 value={String(auditPageSize)}
                 onValueChange={(value) => {
                   setAuditPageSize(Number(value));
@@ -5232,13 +5267,13 @@ function AdminClient(): ReactElement {
               />
             </div>
             <span className="text-muted">
-              Showing {auditTotalCount === 0 ? 0 : (auditPage - 1) * auditPageSize + 1}–
-              {Math.min(auditPage * auditPageSize, auditTotalCount)} of {auditTotalCount}
+              {tAdmin("common.showing")} {auditTotalCount === 0 ? 0 : (auditPage - 1) * auditPageSize + 1}–
+              {Math.min(auditPage * auditPageSize, auditTotalCount)} {tAdmin("common.of")} {auditTotalCount}
             </span>
             <div className="pagination-actions">
               <div className="pagination-page-indicator">
                 <label htmlFor="auditPageJump" className="text-muted">
-                  Page
+                  {tAdmin("common.page")}
                 </label>
                 <input
                   id="auditPageJump"
@@ -5257,7 +5292,7 @@ function AdminClient(): ReactElement {
                 <span className="text-muted">/ {auditTotalPages}</span>
               </div>
               <IconButton
-                ariaLabel="Previous page"
+                ariaLabel={tAdmin("common.previousPage")}
                 onClick={() => setAuditPage((current) => Math.max(1, current - 1))}
                 disabled={auditPage === 1}
               >
@@ -5266,7 +5301,7 @@ function AdminClient(): ReactElement {
                 </svg>
               </IconButton>
               <IconButton
-                ariaLabel="Next page"
+                ariaLabel={tAdmin("common.nextPage")}
                 onClick={() => setAuditPage((current) => current + 1)}
                 disabled={auditPage >= auditTotalPages}
               >
@@ -5280,8 +5315,8 @@ function AdminClient(): ReactElement {
         <div className="list">
           {auditLogs.length === 0 ? (
             <div className="list-item">
-              <span>No audit entries yet</span>
-              <span className="badge">Make a change</span>
+              <span>{tAdmin("logs.noEntries")}</span>
+              <span className="badge">{tAdmin("logs.makeAChange")}</span>
             </div>
           ) : (
             auditLogs.map((entry) => (
@@ -5308,23 +5343,23 @@ function AdminClient(): ReactElement {
       <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Game Account Approvals</div>
-            <div className="card-subtitle">Review pending game account requests from users</div>
+            <div className="card-title">{tAdmin("approvals.title")}</div>
+            <div className="card-subtitle">{tAdmin("approvals.subtitle")}</div>
           </div>
-          <span className="badge">{pendingApprovals.length} pending</span>
+          <span className="badge">{pendingApprovals.length} {tAdmin("approvals.pending")}</span>
         </div>
         {approvalStatus ? <div className="alert info">{approvalStatus}</div> : null}
         {isApprovalsLoading ? (
           <div className="list">
             <div className="list-item">
-              <span className="text-muted">Loading pending approvals...</span>
+              <span className="text-muted">{tAdmin("approvals.loading")}</span>
             </div>
           </div>
         ) : pendingApprovals.length === 0 ? (
           <div className="list">
             <div className="list-item">
-              <span>No pending requests</span>
-              <span className="badge">All clear</span>
+              <span>{tAdmin("approvals.noPending")}</span>
+              <span className="badge">{tAdmin("approvals.allClear")}</span>
             </div>
           </div>
         ) : (
@@ -5332,11 +5367,11 @@ function AdminClient(): ReactElement {
             <div className="table approvals-list">
               <header>
                 <span>#</span>
-                <span>Game Username</span>
-                <span>User</span>
-                <span>Email</span>
-                <span>Requested</span>
-                <span>Actions</span>
+                <span>{tAdmin("approvals.gameUsername")}</span>
+                <span>{tAdmin("approvals.user")}</span>
+                <span>{tAdmin("approvals.email")}</span>
+                <span>{tAdmin("approvals.requested")}</span>
+                <span>{tAdmin("approvals.actions")}</span>
               </header>
               {pendingApprovals.map((approval, index) => (
                 <div className="row" key={approval.id}>
@@ -5345,13 +5380,13 @@ function AdminClient(): ReactElement {
                     <strong>{approval.game_username}</strong>
                   </div>
                   <div>
-                    <div>{approval.profiles?.display_name ?? approval.profiles?.username ?? "Unknown"}</div>
+                    <div>{approval.profiles?.display_name ?? approval.profiles?.username ?? tAdmin("common.unknown")}</div>
                     {approval.profiles?.username && approval.profiles?.display_name ? (
                       <div className="text-muted">{approval.profiles.username}</div>
                     ) : null}
                   </div>
                   <div>
-                    <span className="text-muted">{approval.profiles?.email ?? "Unknown"}</span>
+                    <span className="text-muted">{approval.profiles?.email ?? tAdmin("common.unknown")}</span>
                   </div>
                   <div>
                     <span className="text-muted">{formatLocalDateTime(approval.created_at, locale)}</span>
@@ -5362,14 +5397,14 @@ function AdminClient(): ReactElement {
                       type="button"
                       onClick={() => handleApprovalAction(approval.id, "approve")}
                     >
-                      Approve
+                      {tAdmin("common.approve")}
                     </button>
                     <button
                       className="button danger"
                       type="button"
                       onClick={() => handleApprovalAction(approval.id, "reject")}
                     >
-                      Reject
+                      {tAdmin("common.reject")}
                     </button>
                   </div>
                 </div>
@@ -5384,9 +5419,9 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Delete selected rules</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("corrections.deleteRules")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="list">
@@ -5396,10 +5431,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={openCorrectionDeleteInput}>
-                Continue
+                {tAdmin("common.continue")}
               </button>
               <button className="button" type="button" onClick={closeCorrectionDeleteConfirm}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5410,16 +5445,16 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Confirm deletion</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("danger.confirmDeletion")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="alert danger">
               Deleting these rules will remove them permanently. Make sure you intend to proceed.
             </div>
             <div className="form-group">
-              <label htmlFor="correctionDeleteInput">Confirmation phrase</label>
+              <label htmlFor="correctionDeleteInput">{tAdmin("common.confirmationPhrase")}</label>
               <input
                 id="correctionDeleteInput"
                 value={correctionDeleteInput}
@@ -5429,10 +5464,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={handleDeleteSelectedCorrectionRules}>
-                Delete Rules
+                {tAdmin("corrections.deleteRules")}
               </button>
               <button className="button" type="button" onClick={closeCorrectionDeleteInput}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5443,13 +5478,13 @@ function AdminClient(): ReactElement {
           <div className="modal card wide">
             <div className="card-header">
               <div>
-                <div className="card-title">Import correction list</div>
-                <div className="card-subtitle">Upload Match,Replacement,Field,Status</div>
+                <div className="card-title">{tAdmin("corrections.importTitle")}</div>
+                <div className="card-subtitle">{tAdmin("corrections.importHint")}</div>
               </div>
             </div>
             <div className="form-grid">
               <div className="form-group">
-                <label>File</label>
+                <label>{tAdmin("common.file")}</label>
                 <input
                   id="correctionImportFile"
                   type="file"
@@ -5459,27 +5494,27 @@ function AdminClient(): ReactElement {
                 />
                 <div className="list inline" style={{ alignItems: "center" }}>
                   <label className="button" htmlFor="correctionImportFile">
-                    Choose file
+                    {tAdmin("common.chooseFile")}
                   </label>
-                  <span className="text-muted">{correctionImportFileName || "No file selected"}</span>
+                  <span className="text-muted">{correctionImportFileName || tAdmin("common.noFileSelected")}</span>
                 </div>
               </div>
               <div className="form-group">
-                <label htmlFor="correctionImportMode">Mode</label>
+                <label htmlFor="correctionImportMode">{tAdmin("common.mode")}</label>
                 <RadixSelect
                   id="correctionImportMode"
-                  ariaLabel="Import mode"
+                  ariaLabel={tAdmin("common.mode")}
                   value={correctionImportMode}
                   onValueChange={(value) => setCorrectionImportMode(value as "append" | "replace")}
                   triggerClassName="select-trigger compact"
                   options={[
-                    { value: "append", label: "Append" },
-                    { value: "replace", label: "Replace" },
+                    { value: "append", label: tAdmin("common.append") },
+                    { value: "replace", label: tAdmin("common.replace") },
                   ]}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="correctionIgnoreDuplicates">Ignore duplicates</label>
+                <label htmlFor="correctionIgnoreDuplicates">{tAdmin("common.ignoreDuplicates")}</label>
                 <div className="list inline" style={{ alignItems: "center" }}>
                   <input
                     id="correctionIgnoreDuplicates"
@@ -5494,12 +5529,12 @@ function AdminClient(): ReactElement {
               <div className="alert danger">{correctionImportErrors.slice(0, 3).join(" ")}</div>
             ) : null}
             <div className="list-item">
-              <span>Imported entries</span>
+              <span>{tAdmin("common.importedEntries")}</span>
               <span className="badge">{correctionImportEntries.length}</span>
             </div>
             {correctionImportSelected.length > 0 ? (
               <div className="list-item">
-                <span>Selected entries</span>
+                <span>{tAdmin("common.selectedEntries")}</span>
                 <span className="badge">{correctionImportSelected.length}</span>
               </div>
             ) : null}
@@ -5507,15 +5542,15 @@ function AdminClient(): ReactElement {
               <div className="table correction-import-list">
                 <header>
                   <span>#</span>
-                  <span>Select</span>
-                  <span>Match</span>
-                  <span>Replacement</span>
-                  <span>Status</span>
-                  <span>Field</span>
+                  <span>{tAdmin("common.select")}</span>
+                  <span>{tAdmin("corrections.match")}</span>
+                  <span>{tAdmin("corrections.replacement")}</span>
+                  <span>{tAdmin("common.status")}</span>
+                  <span>{tAdmin("common.field")}</span>
                 </header>
                 {correctionImportEntries.length === 0 ? (
                   <div className="row">
-                    <span>No entries loaded</span>
+                    <span>{tAdmin("common.noEntriesLoaded")}</span>
                     <span />
                     <span />
                     <span />
@@ -5542,16 +5577,16 @@ function AdminClient(): ReactElement {
                         }
                       />
                       <RadixSelect
-                        ariaLabel="Status"
+                        ariaLabel={tAdmin("common.status")}
                         value={entry.status ?? "active"}
                         onValueChange={(value) => handleUpdateCorrectionImportEntry(index, "status", value)}
                         triggerClassName="select-trigger compact"
                         options={[
-                          { value: "active", label: "active" },
-                          { value: "inactive", label: "inactive" },
+                          { value: "active", label: tAdmin("common.active") },
+                          { value: "inactive", label: tAdmin("common.inactive") },
                         ]}
                       />
-                      <span>{entry.field === "all" ? "All" : formatLabel(entry.field ?? "")}</span>
+                      <span>{entry.field === "all" ? tAdmin("common.all") : formatLabel(entry.field ?? "")}</span>
                     </div>
                   ))
                 )}
@@ -5564,14 +5599,14 @@ function AdminClient(): ReactElement {
                 onClick={handleRemoveSelectedCorrectionImportEntries}
                 disabled={correctionImportSelected.length === 0}
               >
-                Delete selected
+                {tAdmin("common.deleteSelected")}
               </button>
               <div className="list inline">
                 <button className="button" type="button" onClick={handleCloseCorrectionImport}>
-                  Cancel
+                  {tAdmin("common.cancel")}
                 </button>
                 <button className="button primary" type="button" onClick={handleApplyCorrectionImport}>
-                  Apply import
+                  {tAdmin("common.applyImport")}
                 </button>
               </div>
             </div>
@@ -5583,9 +5618,9 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Replace correction list</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("common.replaceList")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="alert danger">
@@ -5593,10 +5628,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={handleConfirmCorrectionReplaceImport}>
-                Continue
+                {tAdmin("common.continue")}
               </button>
               <button className="button" type="button" onClick={() => setIsCorrectionReplaceConfirmOpen(false)}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5607,9 +5642,9 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Delete selected rules</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("validation.deleteRules")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="list">
@@ -5619,10 +5654,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={openValidationDeleteInput}>
-                Continue
+                {tAdmin("common.continue")}
               </button>
               <button className="button" type="button" onClick={closeValidationDeleteConfirm}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5633,16 +5668,16 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Confirm deletion</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("danger.confirmDeletion")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="alert danger">
               Deleting these rules will remove them permanently. Make sure you intend to proceed.
             </div>
             <div className="form-group">
-              <label htmlFor="validationDeleteInput">Confirmation phrase</label>
+              <label htmlFor="validationDeleteInput">{tAdmin("common.confirmationPhrase")}</label>
               <input
                 id="validationDeleteInput"
                 value={validationDeleteInput}
@@ -5652,10 +5687,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={handleDeleteSelectedValidationRules}>
-                Delete Rules
+                {tAdmin("validation.deleteRules")}
               </button>
               <button className="button" type="button" onClick={closeValidationDeleteInput}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5666,13 +5701,13 @@ function AdminClient(): ReactElement {
           <div className="modal card wide">
             <div className="card-header">
               <div>
-                <div className="card-title">Import validation list</div>
-                <div className="card-subtitle">Upload one value per line or Value,Status</div>
+                <div className="card-title">{tAdmin("validation.importTitle")}</div>
+                <div className="card-subtitle">{tAdmin("validation.importHint")}</div>
               </div>
             </div>
             <div className="form-grid">
               <div className="form-group">
-                <label>File</label>
+                <label>{tAdmin("common.file")}</label>
                 <input
                   id="validationImportFile"
                   type="file"
@@ -5682,27 +5717,27 @@ function AdminClient(): ReactElement {
                 />
                 <div className="list inline" style={{ alignItems: "center" }}>
                   <label className="button" htmlFor="validationImportFile">
-                    Choose file
+                    {tAdmin("common.chooseFile")}
                   </label>
-                  <span className="text-muted">{validationImportFileName || "No file selected"}</span>
+                  <span className="text-muted">{validationImportFileName || tAdmin("common.noFileSelected")}</span>
                 </div>
               </div>
               <div className="form-group">
-                <label htmlFor="validationImportMode">Mode</label>
+                <label htmlFor="validationImportMode">{tAdmin("common.mode")}</label>
                 <RadixSelect
                   id="validationImportMode"
-                  ariaLabel="Import mode"
+                  ariaLabel={tAdmin("common.mode")}
                   value={validationImportMode}
                   onValueChange={(value) => setValidationImportMode(value as "append" | "replace")}
                   triggerClassName="select-trigger compact"
                   options={[
-                    { value: "append", label: "Append" },
-                    { value: "replace", label: "Replace" },
+                    { value: "append", label: tAdmin("common.append") },
+                    { value: "replace", label: tAdmin("common.replace") },
                   ]}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="validationIgnoreDuplicates">Ignore duplicates</label>
+                <label htmlFor="validationIgnoreDuplicates">{tAdmin("common.ignoreDuplicates")}</label>
                 <div className="list inline" style={{ alignItems: "center" }}>
                   <input
                     id="validationIgnoreDuplicates"
@@ -5717,12 +5752,12 @@ function AdminClient(): ReactElement {
               <div className="alert danger">{validationImportErrors.slice(0, 3).join(" ")}</div>
             ) : null}
             <div className="list-item">
-              <span>Imported entries</span>
+              <span>{tAdmin("common.importedEntries")}</span>
               <span className="badge">{validationImportEntries.length}</span>
             </div>
             {validationImportSelected.length > 0 ? (
               <div className="list-item">
-                <span>Selected entries</span>
+                <span>{tAdmin("common.selectedEntries")}</span>
                 <span className="badge">{validationImportSelected.length}</span>
               </div>
             ) : null}
@@ -5730,14 +5765,14 @@ function AdminClient(): ReactElement {
               <div className="table validation-import-list">
                 <header>
                   <span>#</span>
-                  <span>Select</span>
-                  <span>Value</span>
-                  <span>Status</span>
-                  <span>Field</span>
+                  <span>{tAdmin("common.select")}</span>
+                  <span>{tAdmin("validation.value")}</span>
+                  <span>{tAdmin("common.status")}</span>
+                  <span>{tAdmin("common.field")}</span>
                 </header>
                 {validationImportEntries.length === 0 ? (
                   <div className="row">
-                    <span>No entries loaded</span>
+                    <span>{tAdmin("common.noEntriesLoaded")}</span>
                     <span />
                     <span />
                     <span />
@@ -5757,13 +5792,13 @@ function AdminClient(): ReactElement {
                         onChange={(event) => handleUpdateImportEntry(index, "match_value", event.target.value)}
                       />
                       <RadixSelect
-                        ariaLabel="Status"
+                        ariaLabel={tAdmin("common.status")}
                         value={entry.status ?? "valid"}
                         onValueChange={(value) => handleUpdateImportEntry(index, "status", value)}
                         triggerClassName="select-trigger compact"
                         options={[
-                          { value: "valid", label: "valid" },
-                          { value: "invalid", label: "invalid" },
+                          { value: "valid", label: tAdmin("common.valid") },
+                          { value: "invalid", label: tAdmin("common.invalid") },
                         ]}
                       />
                       <span>{formatLabel(entry.field ?? "")}</span>
@@ -5779,14 +5814,14 @@ function AdminClient(): ReactElement {
                 onClick={handleRemoveSelectedImportEntries}
                 disabled={validationImportSelected.length === 0}
               >
-                Delete selected
+                {tAdmin("common.deleteSelected")}
               </button>
               <div className="list inline">
                 <button className="button primary" type="button" onClick={handleApplyValidationImport}>
-                  Import
+                  {tAdmin("common.import")}
                 </button>
                 <button className="button" type="button" onClick={handleCloseValidationImport}>
-                  Cancel
+                  {tAdmin("common.cancel")}
                 </button>
               </div>
             </div>
@@ -5798,9 +5833,9 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Replace validation list</div>
-                <div className="card-subtitle">This will remove the current list before importing.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("common.replaceList")}</div>
+                <div className="card-subtitle">{tAdmin("danger.replaceListWarning")}</div>
               </div>
             </div>
             <div className="alert danger">
@@ -5808,10 +5843,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={handleConfirmReplaceImport}>
-                Replace List
+                {tAdmin("common.replaceList")}
               </button>
               <button className="button" type="button" onClick={() => setIsValidationReplaceConfirmOpen(false)}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5822,13 +5857,13 @@ function AdminClient(): ReactElement {
           <div className="modal card">
             <div className="card-header">
               <div>
-                <div className="card-title">{clanModalMode === "edit" ? "Edit Clan" : "Create Clan"}</div>
-                <div className="card-subtitle">Name and description</div>
+                <div className="card-title">{clanModalMode === "edit" ? tAdmin("clans.editClan") : tAdmin("clans.createClan")}</div>
+                <div className="card-subtitle">{tAdmin("clans.nameAndDescription")}</div>
               </div>
             </div>
             <form onSubmit={handleSaveClan}>
               <div className="form-group">
-                <label htmlFor="clanModalName">Clan name</label>
+                <label htmlFor="clanModalName">{tAdmin("clans.clanName")}</label>
                 <input
                   id="clanModalName"
                   value={clanModalName}
@@ -5838,7 +5873,7 @@ function AdminClient(): ReactElement {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="clanModalDescription">Description</label>
+                <label htmlFor="clanModalDescription">{tAdmin("clans.description")}</label>
                 <input
                   id="clanModalDescription"
                   value={clanModalDescription}
@@ -5848,10 +5883,10 @@ function AdminClient(): ReactElement {
               </div>
               <div className="list">
                 <button className="button primary" type="submit">
-                  {clanModalMode === "edit" ? "Save Changes" : "Create Clan"}
+                  {clanModalMode === "edit" ? tAdmin("common.saveChanges") : tAdmin("clans.createClan")}
                 </button>
                 <button className="button" type="button" onClick={closeClanModal}>
-                  Cancel
+                  {tAdmin("common.cancel")}
                 </button>
               </div>
             </form>
@@ -5863,9 +5898,9 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Delete Clan</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("clans.deleteClan")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="list">
@@ -5875,10 +5910,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={openClanDeleteInput}>
-                Continue
+                {tAdmin("common.continue")}
               </button>
               <button className="button" type="button" onClick={closeClanDeleteConfirm}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5889,16 +5924,16 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Confirm deletion</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("danger.confirmDeletion")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="alert danger">
               Deleting a clan removes all associated data. Make sure you intend to proceed.
             </div>
             <div className="form-group">
-              <label htmlFor="clanDeleteInput">Confirmation phrase</label>
+              <label htmlFor="clanDeleteInput">{tAdmin("common.confirmationPhrase")}</label>
               <input
                 id="clanDeleteInput"
                 value={clanDeleteInput}
@@ -5908,10 +5943,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={handleDeleteClan}>
-                Delete Clan
+                {tAdmin("clans.deleteClan")}
               </button>
               <button className="button" type="button" onClick={closeClanDeleteInput}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5922,9 +5957,9 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Delete User</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("users.deleteUser")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="list">
@@ -5934,10 +5969,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={openUserDeleteInput}>
-                Continue
+                {tAdmin("common.continue")}
               </button>
               <button className="button" type="button" onClick={closeUserDeleteConfirm}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5948,16 +5983,16 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Confirm deletion</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("danger.confirmDeletion")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="alert danger">
               Deleting a user removes their profile, roles, and game accounts. Make sure you intend to proceed.
             </div>
             <div className="form-group">
-              <label htmlFor="userDeleteInput">Confirmation phrase</label>
+              <label htmlFor="userDeleteInput">{tAdmin("common.confirmationPhrase")}</label>
               <input
                 id="userDeleteInput"
                 value={userDeleteInput}
@@ -5967,10 +6002,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={handleDeleteUser}>
-                Delete User
+                {tAdmin("users.deleteUser")}
               </button>
               <button className="button" type="button" onClick={closeUserDeleteInput}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -5981,12 +6016,12 @@ function AdminClient(): ReactElement {
           <div className="modal card">
             <div className="card-header">
               <div>
-                <div className="card-title">Create User</div>
+                <div className="card-title">{tAdmin("users.createUser")}</div>
                 <div className="card-subtitle">An email invite will be sent to confirm registration.</div>
               </div>
             </div>
             <div className="form-group">
-              <label htmlFor="createUserEmail">Email</label>
+              <label htmlFor="createUserEmail">{tAdmin("users.email")}</label>
               <input
                 id="createUserEmail"
                 value={createUserEmail}
@@ -5995,7 +6030,7 @@ function AdminClient(): ReactElement {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="createUserUsername">Username</label>
+              <label htmlFor="createUserUsername">{tAdmin("users.username")}</label>
               <input
                 id="createUserUsername"
                 value={createUserUsername}
@@ -6004,7 +6039,7 @@ function AdminClient(): ReactElement {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="createUserDisplayName">Nickname (optional)</label>
+              <label htmlFor="createUserDisplayName">{tAdmin("users.nicknameOptional")}</label>
               <input
                 id="createUserDisplayName"
                 value={createUserDisplayName}
@@ -6015,10 +6050,10 @@ function AdminClient(): ReactElement {
             {createUserStatus ? <div className="alert info">{createUserStatus}</div> : null}
             <div className="list inline">
               <button className="button primary" type="button" onClick={handleCreateUser}>
-                Send Invite
+                {tAdmin("users.sendInvite")}
               </button>
               <button className="button" type="button" onClick={closeCreateUserModal}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -6029,61 +6064,61 @@ function AdminClient(): ReactElement {
           <div className="modal card">
             <div className="card-header">
               <div>
-                <div className="card-title">Add Game Account</div>
+                <div className="card-title">{tAdmin("gameAccounts.addTitle")}</div>
                 <div className="card-subtitle">
-                  {createGameAccountUser?.email ?? "Select a user"}
+                  {createGameAccountUser?.email ?? tAdmin("gameAccounts.selectUser")}
                 </div>
               </div>
             </div>
             <div className="form-group">
-              <label htmlFor="createGameAccountUsername">Game username</label>
+              <label htmlFor="createGameAccountUsername">{tAdmin("clans.gameUsername")}</label>
               <input
                 id="createGameAccountUsername"
                 value={createGameAccountUsername}
                 onChange={(event) => setCreateGameAccountUsername(event.target.value)}
-                placeholder="Game username"
+                placeholder={tAdmin("clans.gameUsername")}
               />
             </div>
             <div className="form-group">
-              <label htmlFor="createGameAccountClan">Clan</label>
+              <label htmlFor="createGameAccountClan">{tAdmin("common.clan")}</label>
               <RadixSelect
                 id="createGameAccountClan"
-                ariaLabel="Clan"
+                ariaLabel={tAdmin("common.clan")}
                 value={createGameAccountClanId}
                 onValueChange={(value) => setCreateGameAccountClanId(value)}
                 options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
               />
             </div>
             <div className="form-group">
-              <label htmlFor="createGameAccountRank">Rank</label>
+              <label htmlFor="createGameAccountRank">{tAdmin("common.rank")}</label>
               <RadixSelect
                 id="createGameAccountRank"
-                ariaLabel="Rank"
+                ariaLabel={tAdmin("common.rank")}
                 value={createGameAccountRank}
                 onValueChange={(value) => setCreateGameAccountRank(value)}
-                options={rankOptions.map((rank) => ({ value: rank, label: formatLabel(rank) }))}
+                options={rankOptions.map((rank) => ({ value: rank, label: formatRank(rank, locale) }))}
               />
             </div>
             <div className="form-group">
-              <label htmlFor="createGameAccountStatus">Status</label>
+              <label htmlFor="createGameAccountStatus">{tAdmin("common.status")}</label>
               <RadixSelect
                 id="createGameAccountStatus"
-                ariaLabel="Status"
+                                    ariaLabel={tAdmin("common.status")}
                 value={createGameAccountStatus}
                 onValueChange={(value) => setCreateGameAccountStatus(value)}
                 options={[
-                  { value: "active", label: "Active" },
-                  { value: "inactive", label: "Inactive" },
+                  { value: "active", label: tAdmin("common.active") },
+                  { value: "inactive", label: tAdmin("common.inactive") },
                 ]}
               />
             </div>
             {createGameAccountMessage ? <div className="alert info">{createGameAccountMessage}</div> : null}
             <div className="list inline">
               <button className="button primary" type="button" onClick={handleCreateGameAccount}>
-                Add Game Account
+                {tAdmin("users.addGameAccount")}
               </button>
               <button className="button" type="button" onClick={closeCreateGameAccountModal}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -6094,9 +6129,9 @@ function AdminClient(): ReactElement {
           <div className="modal card">
             <div className="card-header">
               <div>
-                <div className="card-title">Assign Game Accounts</div>
+                <div className="card-title">{tAdmin("gameAccounts.assignTitle")}</div>
                 <div className="card-subtitle">
-                  {selectedClan ? `Assign to ${selectedClan.name}` : "Select a clan"}
+                  {selectedClan ? `Assign to ${selectedClan.name}` : tAdmin("gameAccounts.selectClan")}
                 </div>
               </div>
             </div>
@@ -6104,24 +6139,24 @@ function AdminClient(): ReactElement {
               <div className="form-group" style={{ minWidth: 240 }}>
                 <SearchInput
                   id="assignSearch"
-                  label="Search"
+                  label={tAdmin("common.search")}
                   value={assignSearch}
                   onChange={setAssignSearch}
-                  placeholder="Search accounts or users"
+                  placeholder={tAdmin("gameAccounts.searchPlaceholder")}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="assignFilter">Show</label>
+                <label htmlFor="assignFilter">{tAdmin("common.show")}</label>
                 <RadixSelect
                   id="assignFilter"
-                  ariaLabel="Show"
+                  ariaLabel={tAdmin("common.show")}
                   value={assignFilter}
                   onValueChange={(value) => setAssignFilter(value as "unassigned" | "current" | "other" | "all")}
                   options={[
-                    { value: "unassigned", label: "Unassigned" },
-                    { value: "current", label: "Current clan" },
-                    { value: "other", label: "Other clans" },
-                    { value: "all", label: "All" },
+                    { value: "unassigned", label: tAdmin("gameAccounts.unassigned") },
+                    { value: "current", label: tAdmin("gameAccounts.currentClan") },
+                    { value: "other", label: tAdmin("gameAccounts.otherClans") },
+                    { value: "all", label: tAdmin("common.all") },
                   ]}
                 />
               </div>
@@ -6141,7 +6176,7 @@ function AdminClient(): ReactElement {
                 {filteredAssignableAccounts.map((account) => {
                   const clanName =
                     clans.find((clan) => clan.id === account.clan_id)?.name ??
-                    (account.clan_id ? "Unknown clan" : "Unassigned");
+                    (account.clan_id ? tAdmin("common.unknown") : "Unassigned");
                   const isSelected = assignSelectedIds.includes(account.id);
                   return (
                     <label key={account.id} className="list-item" style={{ cursor: "pointer" }}>
@@ -6164,10 +6199,10 @@ function AdminClient(): ReactElement {
             )}
             <div className="list inline">
               <button className="button primary" type="button" onClick={handleAssignAccounts}>
-                Assign Selected
+                {tAdmin("gameAccounts.assignSelected")}
               </button>
               <button className="button" type="button" onClick={closeAssignAccountsModal}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -6178,9 +6213,9 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Delete Game Account</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("gameAccounts.deleteTitle")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="list">
@@ -6190,10 +6225,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={openGameAccountDeleteInput}>
-                Continue
+                {tAdmin("common.continue")}
               </button>
               <button className="button" type="button" onClick={closeGameAccountDeleteConfirm}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -6204,16 +6239,16 @@ function AdminClient(): ReactElement {
           <div className="modal card danger">
             <div className="card-header">
               <div>
-                <div className="danger-label">Danger Zone</div>
-                <div className="card-title">Confirm deletion</div>
-                <div className="card-subtitle">This action cannot be undone.</div>
+                <div className="danger-label">{tAdmin("danger.title")}</div>
+                <div className="card-title">{tAdmin("danger.confirmDeletion")}</div>
+                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
               </div>
             </div>
             <div className="alert danger">
               Deleting a game account removes its memberships and data. Make sure you intend to proceed.
             </div>
             <div className="form-group">
-              <label htmlFor="gameAccountDeleteInput">Confirmation phrase</label>
+              <label htmlFor="gameAccountDeleteInput">{tAdmin("common.confirmationPhrase")}</label>
               <input
                 id="gameAccountDeleteInput"
                 value={gameAccountDeleteInput}
@@ -6223,10 +6258,10 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={handleConfirmDeleteGameAccount}>
-                Delete Game Account
+                {tAdmin("gameAccounts.deleteTitle")}
               </button>
               <button className="button" type="button" onClick={closeGameAccountDeleteInput}>
-                Cancel
+                {tAdmin("common.cancel")}
               </button>
             </div>
           </div>
@@ -6236,8 +6271,8 @@ function AdminClient(): ReactElement {
       <section className="card" style={{ gridColumn: "1 / -1" }}>
         <div className="card-header">
           <div>
-            <div className="card-title">Forum Management</div>
-            <div className="card-subtitle">Create, edit, reorder, and delete forum categories</div>
+            <div className="card-title">{tAdmin("forum.title")}</div>
+            <div className="card-subtitle">{tAdmin("forum.subtitle")}</div>
           </div>
         </div>
         <div style={{ padding: "0 16px 16px" }}>

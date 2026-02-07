@@ -43,7 +43,7 @@ function LoginPage(): JSX.Element {
           <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
           <div className="tooltip-head-inner">
             <img src="/assets/vip/batler_icons_star_4.png" alt="" style={{ width: 18, height: 18 }} />
-            <h3 className="card-title">Log In</h3>
+            <h1 className="card-title">Log In</h1>
           </div>
         </div>
         <div className="card-body">

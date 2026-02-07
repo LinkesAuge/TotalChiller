@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import DataTableClient from "../../data-table/data-table-client";
 import AuthActions from "../../components/auth-actions";
 import AdminSectionTabs from "../admin-section-tabs";
+import QuickActions from "../../components/quick-actions";
+import SectionHero from "../../components/section-hero";
+
+export const metadata: Metadata = {
+  title: "Chest Database",
+  description: "Review, filter, and correct chest records with full audit traceability.",
+};
 
 /**
  * Renders the admin data table page shell.
@@ -20,6 +28,12 @@ function AdminDataTablePage(): JSX.Element {
           </div>
         </div>
       </div>
+      <QuickActions />
+      <SectionHero
+        title="Chest Database"
+        subtitle="Review, filter, and correct records with full audit traceability."
+        bannerSrc="/assets/banners/banner_doomsday_708.png"
+      />
       <div className="content-inner">
         <div className="admin-tabs-container">
           <AdminSectionTabs />

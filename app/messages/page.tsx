@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import createSupabaseServerClient from "../../lib/supabase/server-client";
 import AuthActions from "../components/auth-actions";
+import QuickActions from "../components/quick-actions";
+import SectionHero from "../components/section-hero";
 import MessagesClient from "./messages-client";
+
+export const metadata: Metadata = {
+  title: "Messages",
+  description: "Direct messages, command broadcasts, and system notifications.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +36,12 @@ async function MessagesPage(): Promise<JSX.Element> {
           </div>
         </div>
       </div>
+      <QuickActions />
+      <SectionHero
+        title="War Room"
+        subtitle="Direct messages, command broadcasts, and system updates."
+        bannerSrc="/assets/banners/banner_captain.png"
+      />
       <div className="content-inner">
         <MessagesClient userId={data.user.id} />
       </div>

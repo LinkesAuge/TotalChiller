@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import AuthActions from "../components/auth-actions";
+
+export const metadata: Metadata = {
+  title: "Not Authorized",
+  description: "You do not have permission to view this page.",
+};
 
 /**
  * Renders the unauthorized access page.

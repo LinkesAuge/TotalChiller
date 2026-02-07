@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import DataImportClient from "../../data-import/data-import-client";
 import AuthActions from "../../components/auth-actions";
 import AdminSectionTabs from "../admin-section-tabs";
+import QuickActions from "../../components/quick-actions";
+import SectionHero from "../../components/section-hero";
+
+export const metadata: Metadata = {
+  title: "Data Import",
+  description: "Import chest reports with validation and correction guardrails.",
+};
 
 /**
  * Renders the admin data import page shell.
@@ -20,6 +28,12 @@ function AdminDataImportPage(): JSX.Element {
           </div>
         </div>
       </div>
+      <QuickActions />
+      <SectionHero
+        title="Data Import"
+        subtitle="Ingest chest reports with validation and correction guardrails."
+        bannerSrc="/assets/banners/banner_chest.png"
+      />
       <div className="content-inner">
         <div className="admin-tabs-container">
           <AdminSectionTabs />

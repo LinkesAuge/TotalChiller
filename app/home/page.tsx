@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import PublicAuthActions from "../components/public-auth-actions";
+
+export const metadata: Metadata = {
+  title: "The Chillers Community Hub",
+  description:
+    "Welcome to The Chillers — a focused Total Battle clan built around teamwork, planning, and data-driven play. Join our community hub.",
+};
 
 /**
  * Renders the public landing page with Sanctum medieval hero design.

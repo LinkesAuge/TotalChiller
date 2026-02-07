@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import AdminClient from "./admin-client";
 import AuthActions from "../components/auth-actions";
 import AdminSectionBadge from "./admin-section-badge";
+import QuickActions from "../components/quick-actions";
+import SectionHero from "../components/section-hero";
+
+export const metadata: Metadata = {
+  title: "Admin Panel",
+  description: "Clan administration — user management, approvals, validation rules, and audit logs.",
+};
 
 /**
  * Renders the admin panel page shell.
@@ -21,6 +29,12 @@ function AdminPage(): JSX.Element {
           </div>
         </div>
       </div>
+      <QuickActions />
+      <SectionHero
+        title="Command Center"
+        subtitle="Governance, approvals, and validation controls."
+        bannerSrc="/assets/banners/banner_tournir_kvk.png"
+      />
       <div className="content-inner">
         <AdminClient />
       </div>

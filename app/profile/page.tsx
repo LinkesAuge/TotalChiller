@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import createSupabaseServerClient from "../../lib/supabase/server-client";
+
+export const metadata: Metadata = {
+  title: "Profile",
+  description: "Your member profile, clan memberships, and game account management.",
+};
 import DisplayNameEditor from "./display-name-editor";
 import GameAccountManager from "./game-account-manager";
 import AuthActions from "../components/auth-actions";
+import QuickActions from "../components/quick-actions";
+import SectionHero from "../components/section-hero";
 
 interface UserProfileView {
   readonly id: string;
@@ -17,6 +25,10 @@ interface MembershipView {
   readonly is_active: boolean;
   readonly game_accounts: { readonly game_username: string } | null;
 }
+
+type MembershipQueryView = Omit<MembershipView, "game_accounts"> & {
+  readonly game_accounts: { readonly game_username: string } | readonly { readonly game_username: string }[] | null;
+};
 
 interface ClanView {
   readonly id: string;
@@ -86,7 +98,12 @@ async function ProfilePage(): Promise<JSX.Element> {
     .eq("game_accounts.user_id", userId)
     .eq("is_active", true)
     .order("clan_id");
-  const memberships = membershipData ?? [];
+  const memberships: readonly MembershipView[] = ((membershipData ?? []) as readonly MembershipQueryView[]).map((membership) => ({
+    ...membership,
+    game_accounts: Array.isArray(membership.game_accounts)
+      ? (membership.game_accounts[0] ?? null)
+      : membership.game_accounts,
+  }));
   const { data: gameAccountData } = await supabase
     .from("game_accounts")
     .select("id,game_username,approval_status,created_at")
@@ -105,10 +122,10 @@ async function ProfilePage(): Promise<JSX.Element> {
   const { data: clanData } = clanIds.length
     ? await supabase.from("clans").select("id,name").in("id", clanIds)
     : { data: [] as ClanView[] };
-  const clansById = (clanData ?? []).reduce<Record<string, ClanView>>((acc, clan) => {
-    acc[clan.id] = clan;
-    return acc;
-  }, {});
+  const clansById: Record<string, ClanView> = {};
+  (clanData ?? []).forEach((clan) => {
+    clansById[clan.id] = clan;
+  });
   const primaryMembership: MembershipView | null = memberships[0] ?? null;
   const primaryClan = primaryMembership ? clansById[primaryMembership.clan_id] : null;
   const roleLabel = userRole;
@@ -129,6 +146,12 @@ async function ProfilePage(): Promise<JSX.Element> {
           </div>
         </div>
       </div>
+      <QuickActions />
+      <SectionHero
+        title="Member Profile"
+        subtitle="Identity, clan context, and account readiness at a glance."
+        bannerSrc="/assets/banners/banner_captain.png"
+      />
       <div className="content-inner">
       <div className="grid">
         <section className="card">

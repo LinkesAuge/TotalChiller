@@ -28,6 +28,7 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/privacy-policy") ||
     pathname.startsWith("/not-authorized") ||
     pathname.startsWith("/redesign") ||
+    pathname.startsWith("/api/site-content") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
     pathname.startsWith("/sitemap") ||

@@ -1008,7 +1008,18 @@ body {
   line-height: 1.65;
 }
 
-/* Markdown inside cards should inherit the card's font size, not forum defaults */
+/* ForumMarkdown inside editable wrappers must inherit the surrounding context's
+   font-size / line-height / color so it looks the same as plain text would. */
+.editable-text-wrap .forum-md {
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+/* Single-paragraph ForumMarkdown should not add extra bottom margin */
+.editable-text-wrap .forum-md > p:only-child {
+  margin: 0;
+}
+/* Also inside .card-body for non-editable forum-md */
 .card-body .forum-md {
   font-size: inherit;
   line-height: inherit;

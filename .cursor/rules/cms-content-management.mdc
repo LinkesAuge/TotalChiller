@@ -1,6 +1,6 @@
 ---
 description: CMS content management system conventions for all public pages
-globs: app/**/page.tsx, app/**/*-client.tsx, app/components/editable-text.tsx, app/api/site-content/**
+globs: app/**/page.tsx, app/**/*-client.tsx, app/components/editable-text.tsx, app/api/site-content/**, proxy.ts
 alwaysApply: false
 ---
 
@@ -9,7 +9,8 @@ alwaysApply: false
 ## Architecture
 
 - CMS data is stored in `site_content` table (Supabase) with `page`, `section_key`, `field_key`, `content_de`, `content_en`.
-- Use the shared hook `useSiteContent(pageName)` from `app/components/use-site-content.ts` for all CMS pages.
+- Use the shared hook `useSiteContent(pageName)` from `app/components/use-site-content.ts` for **ALL** CMS pages — including the homepage.
+- Never duplicate CMS logic inline. Always use the shared hook.
 - All public pages (home, about, contact, privacy-policy) follow the same pattern.
 
 ## Page Structure
@@ -22,15 +23,19 @@ alwaysApply: false
 
 - Every text element on public pages wraps in `<EditableText>`.
 - Pencil button is always an **absolute hover overlay** — never takes layout space.
-- Multi-line text fields use `markdown` prop with `ForumMarkdown` rendering + `MarkdownToolbar` for editing.
-- Single-line fields (titles, badges) use `singleLine` prop.
+- **Three rendering paths** (do NOT mix them):
+  1. **`children`** — if `children` prop is provided, renders children inside the original HTML tag. No CMS text.
+  2. **`singleLine`** — renders plain text inside the original HTML tag (e.g. `<h2>`, `<span>`). No markdown. Editing uses simple DE/EN dual inputs (no MarkdownToolbar).
+  3. **Multi-line** (default) — renders content through `ForumMarkdown` inside a `<div>`. Markdown formatting (bold, links, lists, images) works fully. Editing uses `MarkdownToolbar` + preview tabs.
 - Badges use `className="badge"` — pencil centers over the badge on hover.
 
 ## Formatting Rules
 
-- All text content renders through `ForumMarkdown` when `markdown` is enabled.
+- Multi-line content renders through `ForumMarkdown` — markdown formatting is supported.
+- Single-line content (titles, badges) renders as plain text — no markdown.
 - `normalizeContent()` converts bullets (`•`, `–`, `—`) to markdown lists and preserves line breaks.
-- Inside `.card-body`, `.forum-md` inherits the card's `font-size` and `line-height` (not forum defaults).
+- `.editable-text-wrap .forum-md` inherits parent `font-size`, `line-height`, and `color` (not forum defaults).
+- `.editable-text-wrap .forum-md > p:only-child` has `margin: 0` to avoid extra spacing for single paragraphs.
 - Box sections within pages use consistent styling: `background: rgba(8, 16, 26, 0.55)`, `border: 1px solid rgba(201, 163, 74, 0.2)`, `border-radius: var(--radius-md)`, `padding: 16px 20px`.
 
 ## Access Control
@@ -39,6 +44,14 @@ alwaysApply: false
 - `PATCH /api/site-content` is admin-only (checks `is_any_admin` or `profiles.is_admin`).
 - `canEdit` state is set via `getIsContentManager()`, gracefully handles unauthenticated users.
 - All content is visible to everyone; only edit controls are restricted to admins.
+- **CRITICAL**: `/api/site-content` MUST be listed in `isPublicPath()` in `proxy.ts`. Without this, unauthenticated users get redirected instead of receiving CMS JSON, causing content discrepancy between logged-in/logged-out users and breaking markdown rendering.
+
+## Naming Conventions
+
+- Buttons: "Registrieren" / "Register" (not "Jetzt bewerben", "Mitgliedschaft beantragen", "beitreten").
+- Buttons: "Einloggen" / "Sign In" (not "Anmelden", "Bei deinem Konto anmelden").
+- Section: "Clan-Neuigkeiten" / "Clan News" (not "Öffentliche Neuigkeiten").
+- Badge: "Clan-News" / "Clan News" (not "Öffentlich").
 
 ## Adding CMS to a New Page
 
@@ -47,3 +60,4 @@ alwaysApply: false
 3. Wrap all text in `<EditableText>` with appropriate props.
 4. Keep `page.tsx` as thin server wrapper with metadata.
 5. Add seed data to `Documentation/migrations/site_content.sql`.
+6. Ensure `/api/site-content` is in `isPublicPath()` in `proxy.ts` (already done — do not remove it).

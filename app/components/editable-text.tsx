@@ -120,9 +120,9 @@ function EditableText({
   if (isEditing) {
     return (
       <div className="editable-text-editor">
-        {isMultiLine && (
+        {isMultiLine ? (
           <>
-            {/* Tab selector DE / EN */}
+            {/* Tab selector DE / EN + Preview toggle */}
             <div className="editable-text-tabs">
               <button
                 className={`editable-text-tab${activeTab === "de" ? " active" : ""}`}
@@ -144,7 +144,7 @@ function EditableText({
               </button>
             </div>
 
-            {/* Markdown Toolbar */}
+            {/* Markdown toolbar (only for multi-line) */}
             <MarkdownToolbar
               textareaRef={currentRef}
               value={currentValue}
@@ -153,7 +153,6 @@ function EditableText({
               userId={userId}
             />
 
-            {/* Preview or textarea */}
             {showPreview ? (
               <div className="editable-text-preview">
                 <ForumMarkdown content={normalizeContent(currentValue)} />
@@ -168,9 +167,8 @@ function EditableText({
               />
             )}
           </>
-        )}
-
-        {singleLine && (
+        ) : (
+          /* Simple dual-input for single-line fields */
           <div className="editable-text-fields">
             <div className="editable-text-field-group">
               <label className="editable-text-label">DE</label>
@@ -216,18 +214,36 @@ function EditableText({
     </button>
   ) : null;
 
-  /* All editable elements use the same hover-overlay pattern */
+  /* Decide rendering strategy:
+     - children override → render children in original Tag
+     - singleLine → render plain text in original Tag (no markdown needed for titles/badges)
+     - multi-line → ALWAYS render through ForumMarkdown in a <div>
+       (ForumMarkdown creates block-level <div class="forum-md">,
+        so the wrapper must be <div>, not <span>/<p>/<h3>) */
+  if (children) {
+    return (
+      <Tag className={`editable-text-wrap${canEdit ? " editable" : ""} ${className}`.trim()}>
+        {children}
+        {pencilBtn}
+      </Tag>
+    );
+  }
+
+  if (singleLine) {
+    return (
+      <Tag className={`editable-text-wrap${canEdit ? " editable" : ""} ${className}`.trim()}>
+        {value}
+        {pencilBtn}
+      </Tag>
+    );
+  }
+
+  /* Multi-line: always render markdown */
   return (
-    <Tag className={`editable-text-wrap${canEdit ? " editable" : ""} ${className}`.trim()}>
-      {markdown ? (
-        <ForumMarkdown content={normalizeContent(value)} />
-      ) : children ? (
-        children
-      ) : (
-        value
-      )}
+    <div className={`editable-text-wrap${canEdit ? " editable" : ""} ${className}`.trim()}>
+      <ForumMarkdown content={normalizeContent(value)} />
       {pencilBtn}
-    </Tag>
+    </div>
   );
 }
 

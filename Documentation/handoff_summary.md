@@ -76,17 +76,21 @@ This file is a compact context transfer for a new chat.
 - **CMS (Content Management System)** — Inline-editable content for all public pages
   - Database table `site_content` stores bilingual content (DE/EN) keyed by `page`, `section_key`, `field_key`.
   - Shared hook `useSiteContent(page)` in `app/components/use-site-content.ts` provides CMS state, admin check, and save helpers.
+  - **All CMS pages** (including homepage) use this shared hook — no inline CMS code duplication.
   - `EditableText` component (`app/components/editable-text.tsx`) renders inline text with hover pencil overlay for admins.
   - Pencil edit buttons are **always absolute hover overlays** — never consume layout space.
-  - Multi-line fields use `ForumMarkdown` rendering + `MarkdownToolbar` for rich editing (links, images, videos, formatting).
+  - **Rendering paths**: multi-line fields always render through `ForumMarkdown` (Markdown formatting works); single-line fields (titles, badges) render as plain text in their original HTML tag.
+  - `MarkdownToolbar` is only shown for multi-line fields during editing; single-line fields use simple DE/EN dual inputs.
   - `normalizeContent()` converts plain bullets (`•`, `–`, `—`) to Markdown lists, handles `\r\n` line endings, preserves line breaks.
-  - Inside `.card-body`, `.forum-md` inherits the card's font-size (not forum defaults of 0.88rem).
+  - `.editable-text-wrap .forum-md` inherits parent font-size/line-height/color (not forum defaults of 0.88rem).
   - API: `GET /api/site-content?page=X` (public, service role), `PATCH /api/site-content` (admin-only with upsert/delete).
+  - **CRITICAL**: `/api/site-content` must be in the `isPublicPath()` list in `proxy.ts` — otherwise unauthenticated users get redirected and CMS data fails to load.
   - CMS-enabled pages (all use Client Component + `useSiteContent`):
-    - **Home** — `app/home/home-client.tsx` (page: "home"). Hero, Über uns, Why Join, Public News, How It Works, Contact sections.
+    - **Home** — `app/home/home-client.tsx` (page: "home"). Hero, Über uns, Clan-Neuigkeiten, Why Join, How It Works, Contact sections.
     - **About** — `app/about/about-client.tsx` (page: "about"). Mission, Features, Values, Technology, CTA sections.
     - **Contact** — `app/contact/contact-client.tsx` (page: "contact"). Contact methods, Recruitment, Response times, FAQ sections.
     - **Privacy Policy** — `app/privacy-policy/privacy-client.tsx` (page: "privacy"). Full policy as one editable Markdown block.
+  - **Content visibility**: ALL users (logged in or not) see identical content. Only edit controls (pencil, add/remove buttons) are admin-only. No element-level permissions — all permissions are page-level.
   - Fallback: if CMS has no data, `next-intl` translation files are used as default content.
   - Cursor rule: `.cursor/rules/cms-content-management.mdc` documents all CMS conventions.
   - Migration: `Documentation/migrations/site_content.sql`
@@ -94,6 +98,14 @@ This file is a compact context transfer for a new chat.
 - **Branding: [THC] Chiller & Killer**
   - All instances of "The Chillers" replaced with "[THC] Chiller & Killer" across all pages, metadata, descriptions.
   - Sidebar title: `[THC]`, subtitle: `Chiller & Killer`, logo: `/public/assets/ui/chillerkiller_logo.png`.
+- **Button & Label Standardization** (Feb 2026)
+  - "Jetzt bewerben" / "Mitgliedschaft beantragen" → "Registrieren" / "Register" globally across all pages.
+  - "Bei deinem Konto anmelden" → "Einloggen" / "Sign In" globally.
+  - "[THC] Chiller & Killer beitreten" → "Registrieren" / "Register" on auth and homepage.
+  - "Öffentliche Neuigkeiten" → "Clan-Neuigkeiten" / "Clan News" (section title).
+  - "Öffentlich" badge → "Clan-News" / "Clan News" badge.
+  - "Mehr über uns erfahren" → "Erfahre mehr über uns" / "Learn More About Us" (moved to "Über uns" section as primary button).
+  - Files: `messages/de.json`, `messages/en.json`, `app/home/home-client.tsx`, `app/components/public-auth-actions.tsx`
 - **Forum System** (full Reddit-style forum)
   - Categories managed via admin API route `/api/admin/forum-categories` (service role client, bypasses RLS).
   - Posts: title, content (markdown), category, pinning, voting (up/down), view count.
@@ -230,15 +242,18 @@ This file is a compact context transfer for a new chat.
   - Rich `MarkdownToolbar` and `ForumMarkdown` components shared with Announcements.
 - **CMS system** (Feb 2026):
   - Full inline CMS for all public pages (home, about, contact, privacy-policy).
+  - **All pages** (including homepage) use shared `useSiteContent(page)` hook — no duplicated CMS logic.
   - Edit pencil buttons are hover-only absolute overlays on all elements.
-  - `useSiteContent(page)` shared hook extracts all CMS logic for reuse.
-  - `EditableText` supports markdown mode with `MarkdownToolbar` and live preview.
+  - `EditableText` has three rendering paths: children (original tag), singleLine (plain text in original tag), multi-line (ForumMarkdown in div).
   - `EditableList` supports dynamic add/remove of list items with badges.
   - Deletion optimistic UI: removes item + badge from state immediately, parallel API delete.
   - `deriveItems()` helper handles both numbered and legacy CMS keys.
   - Homepage "Über uns" section with THC hero background image (opacity 0.15, no blur).
+  - "Erfahre mehr über uns" button added to Über uns section (primary button style, centered).
+  - "Clan-Neuigkeiten" replaces "Öffentliche Neuigkeiten" as section title.
   - Unified box styling for all sub-sections (Voraussetzungen, Bewerbung, Extras, Disclaimer).
-  - `.forum-md` inside `.card-body` inherits card font-size/line-height instead of forum defaults.
+  - `.forum-md` inherits parent font-size/line-height/color instead of forum defaults.
+  - **Proxy fix**: `/api/site-content` whitelisted in `isPublicPath()` in `proxy.ts` — critical for unauthenticated users to load CMS data (without this, they get redirected and see fallback content only).
 - **Branding update** (Feb 2026):
   - "The Chillers" → "[THC] Chiller & Killer" across all pages and metadata.
   - Sidebar: title "[THC]", subtitle "Chiller & Killer", logo added.
@@ -379,8 +394,12 @@ SUPABASE_SERVICE_ROLE_KEY=...
 - CMS content (`site_content` table) is loaded via `useSiteContent(page)` hook on all public pages (home, about, contact, privacy-policy). Falls back to `next-intl` translations if CMS has no data.
 - CMS edit controls (pencil buttons) are only visible to admins on hover. All content is publicly visible.
 - CMS API uses service role client for reads (bypasses RLS) and admin-checks for writes.
+- **CMS API must be in public paths**: `/api/site-content` is whitelisted in `isPublicPath()` in `proxy.ts`. Without this, unauthenticated users get redirected and see only fallback content.
 - Homepage hero background uses `thc_hero.png` at 15% opacity with no blur effect.
-- All CMS text fields support Markdown (bold, links, images, videos, lists) via `ForumMarkdown` and `MarkdownToolbar`.
+- Multi-line CMS text fields support Markdown (bold, links, images, videos, lists) via `ForumMarkdown` and `MarkdownToolbar`. Single-line fields (titles, badges) render as plain text.
+- Buttons standardized: "Registrieren"/"Register" for registration, "Einloggen"/"Sign In" for login, across all pages.
+- Homepage section renamed: "Clan-Neuigkeiten" (formerly "Öffentliche Neuigkeiten"), badge "Clan-News" (formerly "Öffentlich").
+- "Erfahre mehr über uns" primary button in the "Über uns" section links to the About page.
 
 ## Critical SQL updates to run (if not yet run)
 

@@ -200,7 +200,7 @@
     "aboutExtras": "Goldpässe sind erwünscht, jedoch kein Muss.\n**Diplomat:** Spieler Cenn / Mahoni\n**Ancient:** Herzi / Anararad",
     "aboutDisclaimer": "Wir interessieren uns hier nicht für Politik und Religion. Wir spielen ein Spiel und halten uns an die Richtlinien von Total Battle. Spielt fair und verhaltet euch entsprechend!",
     "whyJoinTitle": "Warum [THC] Chiller & Killer beitreten",
-    "applyNow": "Jetzt bewerben",
+    "applyNow": "Registrieren",
     "whyJoinText": "Wir bieten eine strukturierte, unterstützende Umgebung für Total Battle Spieler, die auf einem höheren Niveau konkurrieren und gleichzeitig den sozialen Aspekt des Allianz-Gameplays genießen möchten.",
     "feature1": "Wöchentliche Kriegskoordination und Strategiesitzungen",
     "feature1Badge": "Aktiv",
@@ -212,8 +212,8 @@
     "feature4Badge": "Nachrichten",
     "feature5": "Diagramme und Analysen für individuelle und Clanleistung",
     "feature5Badge": "Analysen",
-    "publicNews": "Öffentliche Neuigkeiten",
-    "publicNewsBadge": "Öffentlich",
+    "publicNews": "Clan-Neuigkeiten",
+    "publicNewsBadge": "Clan-News",
     "publicNewsText": "Bleib informiert über das Geschehen in der Chillers-Community. Neueste Updates und Rekrutierungsankündigungen werden hier veröffentlicht.",
     "news1": "Rekrutierungsfenster öffnet diese Woche für neue Mitglieder",
     "news1Badge": "News",
@@ -230,8 +230,8 @@
     "contactDiscordBadge": "Einladen",
     "contactEmail": "E-Mail — hello@chillers.gg für formelle Anfragen",
     "contactEmailBadge": "E-Mail",
-    "joinTheChillers": "[THC] Chiller & Killer beitreten",
-    "learnMoreAbout": "Mehr über uns erfahren"
+    "joinTheChillers": "Registrieren",
+    "learnMoreAbout": "Erfahre mehr über uns"
   },
   "dashboard": {
     "breadcrumb": "TotalChiller \u2022 Clan-Plattform",
@@ -940,7 +940,7 @@
     "techText1": "TotalChiller ist mit <strong>Next.js</strong> und <strong>TypeScript</strong> im Frontend gebaut, angetrieben von <strong>Supabase</strong> für Authentifizierung, Echtzeit-Updates und PostgreSQL-Speicher. Die Plattform wird auf <strong>Vercel</strong> für optimale Leistung und globale Verfügbarkeit bereitgestellt und gewährleistet schnelle Ladezeiten, unabhängig davon, wo sich unsere Mitglieder befinden.",
     "techText2": "Wir folgen modernen Web-Best-Practices einschließlich responsivem Design, Barrierefreiheitsstandards (WCAG), progressiver Verbesserung und Security-First-Architektur mit Row-Level-Security-Richtlinien. Jede Seite ist für Suchmaschinen optimiert, verwendet semantisches HTML und erfüllt Barrierefreiheitsrichtlinien, um ein inklusives Erlebnis für alle Benutzer zu gewährleisten.",
     "ctaText": "Interesse, [THC] Chiller & Killer beizutreten? Wir suchen immer engagierte Spieler, die Teamarbeit schätzen und Teil einer organisierten, wettbewerbsfähigen Allianz sein möchten.",
-    "applyForMembership": "Mitgliedschaft beantragen",
+    "applyForMembership": "Registrieren",
     "getInTouch": "Kontakt aufnehmen",
     "visitHome": "Startseite besuchen"
   },
@@ -969,8 +969,8 @@
     "orVisit": "oder besuche die",
     "homePage": "Startseite",
     "forOverview": "für einen Überblick über die Community-Plattform und ihre Funktionen.",
-    "applyForMembership": "Mitgliedschaft beantragen",
-    "existingMemberSignIn": "Bestehendes Mitglied anmelden",
+    "applyForMembership": "Registrieren",
+    "existingMemberSignIn": "Einloggen",
     "responseTitle": "Antwortzeiten",
     "responseSubtitle": "Was dich erwartet",
     "responseIntro": "Wir bemühen uns, alle Anfragen zeitnah zu beantworten. Antwortzeiten variieren je nach Kommunikationskanal und Art der Anfrage. Nachfolgend unsere typischen Bearbeitungszeiten für jede Methode.",
@@ -1063,8 +1063,8 @@
     "signOut": "Abmelden"
   },
   "publicAuth": {
-    "signIn": "Bei deinem Konto anmelden",
-    "joinTheChillers": "[THC] Chiller & Killer beitreten"
+    "signIn": "Einloggen",
+    "joinTheChillers": "Registrieren"
   },
   "languageSelector": {
     "label": "Sprache",

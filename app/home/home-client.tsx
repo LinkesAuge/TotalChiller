@@ -1,31 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useTranslations, useLocale } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import getIsContentManager from "../../lib/supabase/role-access";
+import { useMemo } from "react";
+import { useTranslations } from "next-intl";
+import { useSiteContent, type ContentMap } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
 import PublicAuthActions from "../components/public-auth-actions";
-
-/* ─── Types ─── */
-
-interface ContentRow {
-  readonly page: string;
-  readonly section_key: string;
-  readonly field_key: string;
-  readonly content_de: string;
-  readonly content_en: string;
-}
-
-type ContentMap = Record<string, Record<string, { de: string; en: string }>>;
 
 /* ─── EditableList Sub-component ─── */
 
 interface EditableListProps {
   section: string;
-  itemPrefix: string;         // e.g. "feature" or "news"
-  badgePrefix: string;        // e.g. "Badge"
-  items: string[];            // ordered field keys, e.g. ["feature1","feature2",...]
+  itemPrefix: string;
+  badgePrefix: string;
+  items: string[];
   canEdit: boolean;
   locale: string;
   content: ContentMap;
@@ -71,6 +58,7 @@ function EditableList({
         const badgeValue = cVal(badgeFieldKey, safeT(badgeFieldKey));
         return (
           <div className="list-item" key={key}>
+            {/* Item text — same for ALL users, edit only for admins */}
             <EditableText
               value={cVal(key, safeT(key) || key)}
               valueEn={cEnVal(key)}
@@ -79,19 +67,23 @@ function EditableList({
               singleLine
               onSave={(de, en) => onSave(section, key, de, en)}
             />
-            {canEdit ? (
-              <EditableText
-                className="badge"
-                value={badgeValue || "Tag"}
-                valueEn={cEnVal(badgeFieldKey)}
-                canEdit={canEdit}
-                locale={locale}
-                singleLine
-                onSave={(de, en) => onSave(section, badgeFieldKey, de, en)}
-              />
-            ) : (
-              badgeValue ? <span className="badge">{badgeValue}</span> : null
-            )}
+            {/* Badge — visible to ALL users when it has content */}
+            {badgeValue ? (
+              canEdit ? (
+                <EditableText
+                  className="badge"
+                  value={badgeValue}
+                  valueEn={cEnVal(badgeFieldKey)}
+                  canEdit={canEdit}
+                  locale={locale}
+                  singleLine
+                  onSave={(de, en) => onSave(section, badgeFieldKey, de, en)}
+                />
+              ) : (
+                <span className="badge">{badgeValue}</span>
+              )
+            ) : null}
+            {/* Remove button — admin only */}
             {canEdit && (
               <button
                 className="editable-list-remove"
@@ -105,6 +97,7 @@ function EditableList({
           </div>
         );
       })}
+      {/* Add button — admin only */}
       {canEdit && (
         <button
           className="editable-list-add"
@@ -122,77 +115,11 @@ function EditableList({
 /* ─── Main Component ─── */
 
 function HomeClient(): JSX.Element {
-  const supabase = createSupabaseBrowserClient();
   const t = useTranslations("home");
-  const locale = useLocale();
 
-  const [canEdit, setCanEdit] = useState(false);
-  const [userId, setUserId] = useState<string | undefined>();
-  const [content, setContent] = useState<ContentMap>({});
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  /* Load CMS content */
-  const loadContent = useCallback(async () => {
-    try {
-      const res = await fetch("/api/site-content?page=home");
-      if (res.ok) {
-        const rows: ContentRow[] = await res.json();
-        const map: ContentMap = {};
-        for (const row of rows) {
-          if (!map[row.section_key]) map[row.section_key] = {};
-          map[row.section_key][row.field_key] = { de: row.content_de, en: row.content_en };
-        }
-        setContent(map);
-      }
-    } catch {
-      /* Fallback to translations if API fails */
-    }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    void loadContent();
-    /* Admin check — gracefully handle unauthenticated users */
-    void getIsContentManager({ supabase }).then(setCanEdit).catch(() => setCanEdit(false));
-    void supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? undefined));
-  }, [supabase, loadContent]);
-
-  /** Get a CMS field value, falling back to a translation key */
-  function c(section: string, field: string, fallback: string): string {
-    const entry = content[section]?.[field];
-    if (entry) {
-      const val = locale === "en" ? entry.en : entry.de;
-      if (val) return val;
-    }
-    return fallback;
-  }
-
-  /** Get English value for a field */
-  function cEn(section: string, field: string): string {
-    return content[section]?.[field]?.en ?? "";
-  }
-
-  /** Save a CMS field */
-  async function saveField(section: string, field: string, valueDe: string, valueEn: string): Promise<void> {
-    await fetch("/api/site-content", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        page: "home",
-        section_key: section,
-        field_key: field,
-        content_de: valueDe,
-        content_en: valueEn,
-      }),
-    });
-    setContent((prev) => ({
-      ...prev,
-      [section]: {
-        ...(prev[section] ?? {}),
-        [field]: { de: valueDe, en: valueEn },
-      },
-    }));
-  }
+  /* Use the SAME shared hook as About/Contact/Privacy pages */
+  const { content, canEdit, userId, supabase, locale, isLoaded, c, cEn, saveField, setContent } =
+    useSiteContent("home");
 
   /** Add a new list item to a section */
   async function addListItem(section: string, prefix: string): Promise<void> {
@@ -200,9 +127,7 @@ function HomeClient(): JSX.Element {
     const nums = existing.map((k) => parseInt(k.replace(prefix, ""), 10)).filter((n) => !isNaN(n));
     const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
     const newKey = `${prefix}${nextNum}`;
-    const placeholderDe = "Neuer Eintrag";
-    const placeholderEn = "New item";
-    await saveField(section, newKey, placeholderDe, placeholderEn);
+    await saveField(section, newKey, "Neuer Eintrag", "New item");
   }
 
   /** Remove a list item from a section — optimistic UI update, then DB delete */
@@ -232,21 +157,10 @@ function HomeClient(): JSX.Element {
 
   /* ─── Derive dynamic list keys from CMS content ─── */
 
-  /** Generic helper: extract item keys from a CMS section.
-   *  Includes both numbered keys (feature1, news2, contact3) and
-   *  legacy named keys (contactDiscord, contactEmail). */
-  function deriveItems(
-    sectionKey: string,
-    prefix: string,
-    fallback: string[],
-  ): string[] {
+  function deriveItems(sectionKey: string, prefix: string, fallback: string[]): string[] {
     const sectionData = content[sectionKey] ?? {};
     const allKeys = Object.keys(sectionData);
-    /* Item keys start with the prefix and are NOT badge keys */
-    const itemKeys = allKeys.filter(
-      (k) => k.startsWith(prefix) && !k.endsWith("Badge"),
-    );
-    /* Filter to only keys that actually have content */
+    const itemKeys = allKeys.filter((k) => k.startsWith(prefix) && !k.endsWith("Badge"));
     const withContent = itemKeys.filter((k) => {
       const e = sectionData[k];
       return e && (e.de || e.en);
@@ -255,18 +169,13 @@ function HomeClient(): JSX.Element {
       return withContent.sort((a, b) => {
         const na = parseInt(a.replace(/\D+/g, ""), 10);
         const nb = parseInt(b.replace(/\D+/g, ""), 10);
-        /* Numbered keys first, sorted numerically */
         if (!isNaN(na) && !isNaN(nb)) return na - nb;
         if (!isNaN(na)) return -1;
         if (!isNaN(nb)) return 1;
-        /* Non-numbered keys alphabetically */
         return a.localeCompare(b);
       });
     }
-    /* If the section has ANY data at all (title/text), CMS was loaded —
-       items were intentionally deleted, so return empty list. */
     if (allKeys.length > 0) return [];
-    /* No CMS data at all — use translation fallbacks */
     return fallback;
   }
 
@@ -431,10 +340,13 @@ function HomeClient(): JSX.Element {
                     onSave={(de, en) => saveField("aboutUs", "disclaimer", de, en)}
                   />
                 </div>
+                <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+                  <a className="button primary" href="/about">{t("learnMoreAbout")}</a>
+                </div>
               </div>
           </section>
 
-          {/* ═══ Why Join + Public News (side by side) ═══ */}
+          {/* ═══ Why Join ═══ */}
           <section className="card">
             <div className="card-header">
               <EditableText
@@ -451,12 +363,12 @@ function HomeClient(): JSX.Element {
             </div>
             <div className="card-body">
               <EditableText
-                as="p"
-                className="card-text-muted"
+                as="div"
                 value={c("whyJoin", "text", t("whyJoinText"))}
                 valueEn={cEn("whyJoin", "text")}
                 canEdit={canEdit}
                 locale={locale}
+                markdown
                 supabase={supabase}
                 userId={userId}
                 onSave={(de, en) => saveField("whyJoin", "text", de, en)}
@@ -494,12 +406,12 @@ function HomeClient(): JSX.Element {
             </div>
             <div className="card-body">
               <EditableText
-                as="p"
-                className="card-text-muted"
+                as="div"
                 value={c("publicNews", "text", t("publicNewsText"))}
                 valueEn={cEn("publicNews", "text")}
                 canEdit={canEdit}
                 locale={locale}
+                markdown
                 supabase={supabase}
                 userId={userId}
                 onSave={(de, en) => saveField("publicNews", "text", de, en)}
@@ -602,10 +514,6 @@ function HomeClient(): JSX.Element {
                 onRemove={removeListItem}
                 t={t}
               />
-              <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
-                <a className="button primary" href="/auth/register">{t("joinTheChillers")}</a>
-                <a className="button" href="/about">{t("learnMoreAbout")}</a>
-              </div>
             </div>
           </section>
 

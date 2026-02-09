@@ -74,8 +74,8 @@ INSERT INTO public.site_content (page, section_key, field_key, content_de, conte
 ('home', 'whyJoin', 'feature5', 'Diagramme und Analysen für individuelle und Clanleistung', 'Charts and analytics for individual and clan performance'),
 ('home', 'whyJoin', 'feature5Badge', 'Analysen', 'Analytics'),
 
--- Public News
-('home', 'publicNews', 'title', 'Öffentliche Neuigkeiten', 'Public News'),
+-- Clan News (formerly Public News)
+('home', 'publicNews', 'title', 'Clan-Neuigkeiten', 'Clan News'),
 ('home', 'publicNews', 'text', 'Bleib informiert über das Geschehen in der Chiller & Killer Community. Neueste Updates und Rekrutierungsankündigungen werden hier veröffentlicht.', 'Stay informed about what is happening in the Chiller & Killer community. Latest updates and recruitment announcements are posted here.'),
 ('home', 'publicNews', 'news1', 'Rekrutierungsfenster öffnet diese Woche für neue Mitglieder', 'Recruitment window opens this week for new members'),
 ('home', 'publicNews', 'news1Badge', 'News', 'News'),

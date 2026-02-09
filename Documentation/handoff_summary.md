@@ -92,7 +92,7 @@ This file is a compact context transfer for a new chat.
     - **CRITICAL**: Both `/api/site-content` and `/api/site-list-items` must be in `isPublicPath()` in `proxy.ts`.
   - **Pages**: Home, About, Contact, Privacy Policy — all use the same `useSiteContent` hook pattern.
   - **Testing**: 40 Playwright tests (API, Markdown rendering, public view, responsive, components).
-  - **Migrations**: `site_content.sql`, `site_list_items.sql`, `cms_icons_bucket.sql`.
+  - **Migrations**: `site_content.sql`, `site_list_items.sql`, `cms_icons_bucket.sql`, `fix_broken_markdown.sql`.
   - **Cursor rule**: `.cursor/rules/cms-content-management.mdc`.
   - **Files**: `app/components/cms-markdown.tsx`, `app/components/cms-markdown-toolbar.tsx`, `app/components/cms-shared.tsx`, `app/components/editable-text.tsx`, `app/components/editable-list.tsx`, `app/components/use-site-content.ts`, `app/components/markdown-renderers.tsx`, `app/api/site-content/route.ts`, `app/api/site-list-items/route.ts`
 - **Branding: [THC] Chiller & Killer**
@@ -360,6 +360,10 @@ Run these if the base SQL has not been run or if upgrades were applied increment
     - Follow `Documentation/migrations/cms_icons_bucket.sql` to manually create the `cms-icons` Supabase Storage bucket.
     - Public bucket, max 50KB, allowed MIME type: `image/svg+xml`.
     - RLS: public read, admin-only insert/delete.
+20. **Fix broken Markdown in CMS content**
+    - Run `Documentation/migrations/fix_broken_markdown.sql`.
+    - Fixes `**word **` → `**word**` and `*word *` → `*word*` in `site_content` and `site_list_items` tables.
+    - Safe to re-run (idempotent).
 
 ## Required Env
 
@@ -406,7 +410,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 - CMS edit controls (pencil buttons) are only visible to admins on hover. All content is publicly visible.
 - CMS API uses service role client for reads (bypasses RLS) and admin-checks for writes.
 - **CMS API must be in public paths**: Both `/api/site-content` and `/api/site-list-items` are whitelisted in `isPublicPath()` in `proxy.ts`. Without this, unauthenticated users get redirected and see only fallback content.
-- CMS Markdown rendering uses `CmsMarkdown` (not `ForumMarkdown`). CSS class `.cms-md` inherits parent styles.
+- CMS Markdown rendering uses `CmsMarkdown` (not `ForumMarkdown`). CSS class `.cms-md` inherits parent styles. Built-in `sanitizeCmsMarkdown()` auto-fixes broken emphasis markers (`**word **` → `**word**`).
 - Homepage hero background uses `thc_hero.png` at 32% opacity with no blur effect.
 - Buttons standardized: "Registrieren"/"Register" for registration, "Einloggen"/"Sign In" for login, across all pages.
 - Homepage section renamed: "Clan-Neuigkeiten" (formerly "Öffentliche Neuigkeiten"), badge "Clan-News" (formerly "Öffentlich").

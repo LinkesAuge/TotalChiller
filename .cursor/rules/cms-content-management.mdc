@@ -28,7 +28,7 @@ The CMS uses two Supabase tables:
 ### Key Design Decisions
 
 - **CmsMarkdown instead of ForumMarkdown** — CMS uses its own Markdown renderer with `.cms-md` CSS that inherits parent font-size/line-height/color. ForumMarkdown is only for the forum.
-- **No `normalizeContent()`** — Removed entirely. CmsMarkdown only normalizes Windows line endings (`\r\n` → `\n`). No trailing-space injection.
+- **No `normalizeContent()`** — Removed entirely. `CmsMarkdown` runs a `sanitizeCmsMarkdown()` function that normalizes Windows line endings and auto-fixes broken emphasis markers (`**word **` → `**word**`, `*word *` → `*word*`).
 - **Admin-only permissions** — Both client and server check `is_any_admin` or `profiles.is_admin`. No `getIsContentManager()` in CMS context.
 - **Lists in separate table** — `site_list_items` with proper sort_order, icons, badges per item. Not stored as flat key-value pairs.
 - **Error handling** — `saveField()` and list operations throw on failure. `EditableText` and `EditableList` show errors inline.

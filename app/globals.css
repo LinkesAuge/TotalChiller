@@ -4337,3 +4337,196 @@ input[type="checkbox"]:disabled {
   .news-card-body { padding: 16px 18px; }
   .news-banner-option { width: 90px; height: 40px; }
 }
+
+/* =============================
+   Home Page — About Us Card
+   ============================= */
+
+.home-about-card {
+  border: 1px solid rgba(201, 163, 74, 0.25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.home-about-body {
+  padding: 28px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.home-about-intro {
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.home-about-section-title {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-gold);
+  font-weight: 600;
+}
+
+.home-about-requirements {
+  background: rgba(201, 163, 74, 0.06);
+  border: 1px solid rgba(201, 163, 74, 0.15);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.home-about-apply {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.home-about-extras {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.home-about-disclaimer {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  opacity: 0.85;
+  border-top: 1px solid var(--color-edge);
+  padding-top: 16px;
+}
+
+/* =============================
+   Home Page — Logo Divider
+   ============================= */
+
+.home-logo-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 16px 0;
+}
+
+.home-logo-img {
+  width: 220px;
+  height: auto;
+  object-fit: contain;
+  image-rendering: auto;
+  filter: drop-shadow(0 4px 16px rgba(201, 163, 74, 0.25));
+}
+
+.home-logo-decor {
+  width: 140px;
+  height: auto;
+  opacity: 0.5;
+}
+
+/* =============================
+   Editable Text Component
+   ============================= */
+
+.editable-text-wrap {
+  position: relative;
+}
+
+.editable-text-wrap.editable {
+  cursor: default;
+}
+
+.editable-text-pencil {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--color-edge);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--color-gold);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  vertical-align: middle;
+}
+
+.editable-text-wrap.editable:hover .editable-text-pencil,
+.editable-text-pencil:focus {
+  opacity: 1;
+}
+
+.editable-text-pencil:hover {
+  background: rgba(201, 163, 74, 0.15);
+}
+
+.editable-text-editor {
+  padding: 12px;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.editable-text-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editable-text-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.editable-text-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-gold);
+  font-weight: 600;
+}
+
+.editable-text-input {
+  width: 100%;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-family: inherit;
+}
+
+.editable-text-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.editable-text-input:focus,
+.editable-text-textarea:focus {
+  outline: none;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 2px rgba(201, 163, 74, 0.15);
+}
+
+.editable-text-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+@media (max-width: 640px) {
+  .home-about-body { padding: 18px 16px 20px; }
+  .home-logo-img { width: 160px; }
+  .home-logo-decor { width: 80px; }
+}

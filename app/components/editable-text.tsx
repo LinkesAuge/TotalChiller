@@ -1,28 +1,22 @@
 "use client";
 
+/**
+ * EditableText — Inline-editable text component for CMS pages.
+ *
+ * Renders text content that admins can edit inline via a hover pencil button.
+ * Supports bilingual editing (DE/EN) with live preview.
+ *
+ * Rendering paths (explicit, no implicit behavior):
+ * 1. `children` provided → renders children in original Tag (no CMS text)
+ * 2. `singleLine` → plain text in original Tag, simple DE/EN inputs for editing
+ * 3. `markdown={true}` → CmsMarkdown in <div>, CmsMarkdownToolbar for editing
+ * 4. `markdown={false}` (default) → plain text with <br> in <div>
+ */
+
 import { useState, useRef, useEffect, type ReactNode } from "react";
-import ForumMarkdown from "../forum/forum-markdown";
-import MarkdownToolbar from "../forum/markdown-toolbar";
+import CmsMarkdown from "./cms-markdown";
+import CmsMarkdownToolbar from "./cms-markdown-toolbar";
 import type { SupabaseClient } from "@supabase/supabase-js";
-
-/* ─── Helpers ─── */
-
-/** Normalise plain text / bullet chars into valid markdown */
-function normalizeContent(raw: string): string {
-  let text = raw;
-  /* Normalize Windows line endings */
-  text = text.replace(/\r\n/g, "\n");
-  text = text.replace(/\r/g, "\n");
-  /* Convert bullet chars to markdown list syntax */
-  text = text.replace(/^[ \t]*[•–—][ \t]*/gm, "- ");
-  /* Ensure blank line before numbered list items */
-  text = text.replace(/\n(\d+\.\s)/g, "\n\n$1");
-  /* Ensure blank line before unordered list items */
-  text = text.replace(/([^\n])\n(- )/g, "$1\n\n$2");
-  /* Single newlines → trailing spaces for <br> (preserves double newlines as paragraphs) */
-  text = text.replace(/([^\n]) *\n(?!\n)/g, "$1  \n");
-  return text;
-}
 
 /* ─── Types ─── */
 
@@ -37,7 +31,7 @@ interface EditableTextProps {
   readonly locale: string;
   /** The English content (for bilingual editing) */
   readonly valueEn?: string;
-  /** Render as markdown (default: false) */
+  /** Render as markdown via CmsMarkdown (default: false) */
   readonly markdown?: boolean;
   /** Use a single-line input instead of textarea */
   readonly singleLine?: boolean;
@@ -57,7 +51,6 @@ interface EditableTextProps {
  * Renders text content that admins can edit inline.
  * Displays a small pencil icon on hover (admin only).
  * Click opens a bilingual edit form with Save/Cancel.
- * Multi-line fields get a MarkdownToolbar + live preview.
  */
 function EditableText({
   value,
@@ -77,6 +70,7 @@ function EditableText({
   const [editDe, setEditDe] = useState("");
   const [editEn, setEditEn] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [activeTab, setActiveTab] = useState<"de" | "en">("de");
   const [showPreview, setShowPreview] = useState(false);
   const textareaDeRef = useRef<HTMLTextAreaElement>(null);
@@ -88,6 +82,7 @@ function EditableText({
     setEditEn(locale === "en" ? value : valueEn || value);
     setActiveTab("de");
     setShowPreview(false);
+    setSaveError("");
     setIsEditing(true);
   }
 
@@ -100,27 +95,33 @@ function EditableText({
 
   async function handleSave(): Promise<void> {
     setIsSaving(true);
+    setSaveError("");
     try {
       await onSave(editDe, editEn);
+      setIsEditing(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Speichern fehlgeschlagen");
     } finally {
       setIsSaving(false);
-      setIsEditing(false);
     }
   }
 
   function handleCancel(): void {
     setIsEditing(false);
+    setSaveError("");
   }
 
-  const isMultiLine = !singleLine;
+  const useMarkdownEditor = !singleLine && markdown;
   const currentValue = activeTab === "de" ? editDe : editEn;
   const currentRef = activeTab === "de" ? textareaDeRef : textareaEnRef;
   const currentSetter = activeTab === "de" ? setEditDe : setEditEn;
 
+  /* ─── Editing UI ─── */
+
   if (isEditing) {
     return (
       <div className="editable-text-editor">
-        {isMultiLine ? (
+        {!singleLine ? (
           <>
             {/* Tab selector DE / EN + Preview toggle */}
             <div className="editable-text-tabs">
@@ -135,27 +136,31 @@ function EditableText({
                 onClick={() => setActiveTab("en")}
               >EN</button>
               <div className="editable-text-tab-spacer" />
-              <button
-                className={`editable-text-tab${showPreview ? " active" : ""}`}
-                type="button"
-                onClick={() => setShowPreview(!showPreview)}
-              >
-                {showPreview ? "Editor" : "Vorschau"}
-              </button>
+              {useMarkdownEditor && (
+                <button
+                  className={`editable-text-tab${showPreview ? " active" : ""}`}
+                  type="button"
+                  onClick={() => setShowPreview(!showPreview)}
+                >
+                  {showPreview ? "Editor" : "Vorschau"}
+                </button>
+              )}
             </div>
 
-            {/* Markdown toolbar (only for multi-line) */}
-            <MarkdownToolbar
-              textareaRef={currentRef}
-              value={currentValue}
-              onChange={currentSetter}
-              supabase={supabase}
-              userId={userId}
-            />
+            {/* Markdown toolbar (only for markdown-enabled fields) */}
+            {useMarkdownEditor && (
+              <CmsMarkdownToolbar
+                textareaRef={currentRef}
+                value={currentValue}
+                onChange={currentSetter}
+                supabase={supabase}
+                userId={userId}
+              />
+            )}
 
-            {showPreview ? (
+            {showPreview && useMarkdownEditor ? (
               <div className="editable-text-preview">
-                <ForumMarkdown content={normalizeContent(currentValue)} />
+                <CmsMarkdown content={currentValue} />
               </div>
             ) : (
               <textarea
@@ -190,15 +195,35 @@ function EditableText({
           </div>
         )}
 
+        {/* Error message */}
+        {saveError && (
+          <div className="editable-text-error">{saveError}</div>
+        )}
+
         <div className="editable-text-actions">
-          <button className="button primary" type="button" onClick={handleSave} disabled={isSaving}>
+          <button
+            className="button primary"
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            aria-label="Speichern"
+          >
             {isSaving ? "…" : "Speichern"}
           </button>
-          <button className="button" type="button" onClick={handleCancel}>Abbrechen</button>
+          <button
+            className="button"
+            type="button"
+            onClick={handleCancel}
+            aria-label="Abbrechen"
+          >
+            Abbrechen
+          </button>
         </div>
       </div>
     );
   }
+
+  /* ─── Display UI ─── */
 
   const pencilBtn = canEdit ? (
     <button
@@ -214,12 +239,7 @@ function EditableText({
     </button>
   ) : null;
 
-  /* Decide rendering strategy:
-     - children override → render children in original Tag
-     - singleLine → render plain text in original Tag (no markdown needed for titles/badges)
-     - multi-line → ALWAYS render through ForumMarkdown in a <div>
-       (ForumMarkdown creates block-level <div class="forum-md">,
-        so the wrapper must be <div>, not <span>/<p>/<h3>) */
+  /* Path 1: children override → render children in original Tag */
   if (children) {
     return (
       <Tag className={`editable-text-wrap${canEdit ? " editable" : ""} ${className}`.trim()}>
@@ -229,6 +249,7 @@ function EditableText({
     );
   }
 
+  /* Path 2: singleLine → plain text in original Tag */
   if (singleLine) {
     return (
       <Tag className={`editable-text-wrap${canEdit ? " editable" : ""} ${className}`.trim()}>
@@ -238,10 +259,25 @@ function EditableText({
     );
   }
 
-  /* Multi-line: always render markdown */
+  /* Path 3: markdown={true} → CmsMarkdown in <div> */
+  if (markdown) {
+    return (
+      <div className={`editable-text-wrap${canEdit ? " editable" : ""} ${className}`.trim()}>
+        <CmsMarkdown content={value} />
+        {pencilBtn}
+      </div>
+    );
+  }
+
+  /* Path 4: markdown={false} (default) → plain text with <br> in <div> */
   return (
     <div className={`editable-text-wrap${canEdit ? " editable" : ""} ${className}`.trim()}>
-      <ForumMarkdown content={normalizeContent(value)} />
+      {value.split("\n").map((line, i, arr) => (
+        <span key={i}>
+          {line}
+          {i < arr.length - 1 && <br />}
+        </span>
+      ))}
       {pencilBtn}
     </div>
   );

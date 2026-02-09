@@ -3,10 +3,11 @@
 import { useTranslations } from "next-intl";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
+import { LoadingSkeleton, ErrorBanner } from "../components/cms-shared";
 
 function PrivacyClient(): JSX.Element {
   const t = useTranslations("privacyPolicy");
-  const { canEdit, userId, supabase, locale, isLoaded, c, cEn, saveField } = useSiteContent("privacy");
+  const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, saveField } = useSiteContent("privacy");
 
   if (!isLoaded) {
     return (
@@ -20,7 +21,7 @@ function PrivacyClient(): JSX.Element {
             </div>
           </div>
         </div>
-        <div className="content-inner"><div className="alert info loading">Laden...</div></div>
+        <div className="content-inner"><LoadingSkeleton rows={4} /></div>
       </>
     );
   }
@@ -51,6 +52,7 @@ function PrivacyClient(): JSX.Element {
         </div>
       </div>
       <div className="content-inner">
+        {error && <ErrorBanner message={error} />}
         <div className="grid">
 
           <section className="card" style={{ gridColumn: "1 / -1" }}>

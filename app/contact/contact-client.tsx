@@ -4,10 +4,11 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
+import { LoadingSkeleton, ErrorBanner } from "../components/cms-shared";
 
 function ContactClient(): JSX.Element {
   const t = useTranslations("contact");
-  const { canEdit, userId, supabase, locale, isLoaded, c, cEn, saveField } = useSiteContent("contact");
+  const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, saveField } = useSiteContent("contact");
 
   if (!isLoaded) {
     return (
@@ -21,7 +22,7 @@ function ContactClient(): JSX.Element {
             </div>
           </div>
         </div>
-        <div className="content-inner"><div className="alert info loading">Laden...</div></div>
+        <div className="content-inner"><LoadingSkeleton rows={4} /></div>
       </>
     );
   }
@@ -38,6 +39,7 @@ function ContactClient(): JSX.Element {
         </div>
       </div>
       <div className="content-inner">
+        {error && <ErrorBanner message={error} />}
         <div className="grid">
 
           {/* ═══ Contact Methods ═══ */}

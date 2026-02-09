@@ -1,63 +1,102 @@
 ---
 description: CMS content management system conventions for all public pages
-globs: app/**/page.tsx, app/**/*-client.tsx, app/components/editable-text.tsx, app/api/site-content/**, proxy.ts
+globs: app/**/page.tsx, app/**/*-client.tsx, app/components/editable-text.tsx, app/components/cms-markdown.tsx, app/components/cms-markdown-toolbar.tsx, app/components/cms-shared.tsx, app/components/editable-list.tsx, app/components/use-site-content.ts, app/components/markdown-renderers.tsx, app/api/site-content/**, app/api/site-list-items/**, proxy.ts
 alwaysApply: false
 ---
 
 # CMS Content Management System
 
-## Architecture
+## Architecture Overview
 
-- CMS data is stored in `site_content` table (Supabase) with `page`, `section_key`, `field_key`, `content_de`, `content_en`.
-- Use the shared hook `useSiteContent(pageName)` from `app/components/use-site-content.ts` for **ALL** CMS pages — including the homepage.
-- Never duplicate CMS logic inline. Always use the shared hook.
-- All public pages (home, about, contact, privacy-policy) follow the same pattern.
+The CMS uses two Supabase tables:
+- **`site_content`** — Text fields (title, body text, etc.) with bilingual DE/EN support.
+- **`site_list_items`** — Structured list items with sort_order, badges, icons, and links.
+
+### Components
+
+| Component | Purpose |
+|-----------|---------|
+| `CmsMarkdown` | Configurable Markdown renderer (`.cms-md` CSS, inherits parent styles) |
+| `CmsMarkdownToolbar` | Editing toolbar for CMS markdown textareas |
+| `EditableText` | Inline-editable text with bilingual editing, 4 rendering paths |
+| `EditableList` | List component with drag-and-drop, badges, icons, inline edit modal |
+| `useSiteContent(page)` | Shared hook: loads content + lists, admin check, CRUD helpers |
+| `LoadingSkeleton` | Animated skeleton loading state |
+| `ErrorBanner` | Error display with optional retry |
+| `markdown-renderers.tsx` | Shared embed utilities for CmsMarkdown and ForumMarkdown |
+
+### Key Design Decisions
+
+- **CmsMarkdown instead of ForumMarkdown** — CMS uses its own Markdown renderer with `.cms-md` CSS that inherits parent font-size/line-height/color. ForumMarkdown is only for the forum.
+- **No `normalizeContent()`** — Removed entirely. CmsMarkdown only normalizes Windows line endings (`\r\n` → `\n`). No trailing-space injection.
+- **Admin-only permissions** — Both client and server check `is_any_admin` or `profiles.is_admin`. No `getIsContentManager()` in CMS context.
+- **Lists in separate table** — `site_list_items` with proper sort_order, icons, badges per item. Not stored as flat key-value pairs.
+- **Error handling** — `saveField()` and list operations throw on failure. `EditableText` and `EditableList` show errors inline.
 
 ## Page Structure
 
-- Server Component `page.tsx` is a thin wrapper that renders the Client Component.
-- Client Component `*-client.tsx` uses `useSiteContent(pageName)` for CMS state.
-- Fallback content comes from `next-intl` translation files (`messages/de.json`, `messages/en.json`).
+- Server Component `page.tsx` is a thin wrapper.
+- Client Component `*-client.tsx` uses `useSiteContent(pageName)`.
+- Fallback content from `next-intl` translation files.
 
-## EditableText Component
+```typescript
+const {
+  content, lists, canEdit, userId, supabase, locale, isLoaded, error,
+  c, cEn, saveField,
+  addListItem, updateListItem, removeListItem, reorderListItems,
+} = useSiteContent("page");
 
-- Every text element on public pages wraps in `<EditableText>`.
-- Pencil button is always an **absolute hover overlay** — never takes layout space.
-- **Three rendering paths** (do NOT mix them):
-  1. **`children`** — if `children` prop is provided, renders children inside the original HTML tag. No CMS text.
-  2. **`singleLine`** — renders plain text inside the original HTML tag (e.g. `<h2>`, `<span>`). No markdown. Editing uses simple DE/EN dual inputs (no MarkdownToolbar).
-  3. **Multi-line** (default) — renders content through `ForumMarkdown` inside a `<div>`. Markdown formatting (bold, links, lists, images) works fully. Editing uses `MarkdownToolbar` + preview tabs.
-- Badges use `className="badge"` — pencil centers over the badge on hover.
+if (!isLoaded) return <LoadingSkeleton rows={4} />;
+if (error) return <ErrorBanner message={error} />;
+```
 
-## Formatting Rules
+## EditableText — 4 Rendering Paths
 
-- Multi-line content renders through `ForumMarkdown` — markdown formatting is supported.
-- Single-line content (titles, badges) renders as plain text — no markdown.
-- `normalizeContent()` converts bullets (`•`, `–`, `—`) to markdown lists and preserves line breaks.
-- `.editable-text-wrap .forum-md` inherits parent `font-size`, `line-height`, and `color` (not forum defaults).
-- `.editable-text-wrap .forum-md > p:only-child` has `margin: 0` to avoid extra spacing for single paragraphs.
-- Box sections within pages use consistent styling: `background: rgba(8, 16, 26, 0.55)`, `border: 1px solid rgba(201, 163, 74, 0.2)`, `border-radius: var(--radius-md)`, `padding: 16px 20px`.
+1. **`children`** — Renders children inside original HTML tag. No CMS text.
+2. **`singleLine`** — Plain text in original tag. Simple DE/EN inputs for editing.
+3. **`markdown={true}`** — CmsMarkdown in `<div>`. CmsMarkdownToolbar + preview for editing.
+4. **`markdown={false}` (default)** — Plain text with `<br>` in `<div>`. Textarea for editing.
+
+The `markdown` prop is now **explicitly checked** — it is NOT ignored.
+
+Pencil button is always an **absolute hover overlay** — never takes layout space.
+
+## EditableList
+
+- Items from `useSiteContent` hook via `lists["sectionKey"]`.
+- Drag-and-drop reordering via native HTML Drag API.
+- Inline edit modal for text (DE/EN), badge, link, icon.
+- CmsMarkdown rendering for item text.
+- Preset icon picker (15 icons).
+- Add/remove/edit buttons are hover-only overlays.
 
 ## Access Control
 
-- `GET /api/site-content?page=X` is public (uses service role client to bypass RLS).
-- `PATCH /api/site-content` is admin-only (checks `is_any_admin` or `profiles.is_admin`).
-- `canEdit` state is set via `getIsContentManager()`, gracefully handles unauthenticated users.
-- All content is visible to everyone; only edit controls are restricted to admins.
-- **CRITICAL**: `/api/site-content` MUST be listed in `isPublicPath()` in `proxy.ts`. Without this, unauthenticated users get redirected instead of receiving CMS JSON, causing content discrepancy between logged-in/logged-out users and breaking markdown rendering.
+- `GET /api/site-content?page=X` — Public (service role client).
+- `PATCH /api/site-content` — Admin-only.
+- `GET /api/site-list-items?page=X` — Public (service role client).
+- `PATCH /api/site-list-items` — Admin-only (create/update/delete/reorder).
+- **CRITICAL**: Both `/api/site-content` and `/api/site-list-items` MUST be in `isPublicPath()` in `proxy.ts`.
+
+## CSS
+
+- `.cms-md` — CMS Markdown: inherits font-size/line-height/color from parent.
+- `.cms-md p:only-child` — margin: 0 (no extra spacing for single paragraphs).
+- `.forum-md` — Forum-specific (0.88rem, own colors). Do NOT use in CMS context.
+- Edit buttons use `opacity: 0` → `opacity: 1` on hover with `transition: 0.15s`.
 
 ## Naming Conventions
 
-- Buttons: "Registrieren" / "Register" (not "Jetzt bewerben", "Mitgliedschaft beantragen", "beitreten").
-- Buttons: "Einloggen" / "Sign In" (not "Anmelden", "Bei deinem Konto anmelden").
-- Section: "Clan-Neuigkeiten" / "Clan News" (not "Öffentliche Neuigkeiten").
-- Badge: "Clan-News" / "Clan News" (not "Öffentlich").
+- "Registrieren" / "Register" (not "Jetzt bewerben").
+- "Einloggen" / "Sign In" (not "Anmelden").
+- "Clan-Neuigkeiten" / "Clan News" (not "Öffentliche Neuigkeiten").
 
 ## Adding CMS to a New Page
 
 1. Create `app/{page}/{page}-client.tsx` as "use client" component.
-2. Use `const { content, canEdit, userId, supabase, locale, isLoaded, c, cEn, saveField } = useSiteContent("{page}");`
-3. Wrap all text in `<EditableText>` with appropriate props.
-4. Keep `page.tsx` as thin server wrapper with metadata.
-5. Add seed data to `Documentation/migrations/site_content.sql`.
-6. Ensure `/api/site-content` is in `isPublicPath()` in `proxy.ts` (already done — do not remove it).
+2. Use `useSiteContent("{page}")` — get content, lists, canEdit, helpers.
+3. Wrap text in `<EditableText>` with `markdown` for multi-line formatted fields.
+4. Use `<EditableList>` for dynamic list sections.
+5. Add `<LoadingSkeleton>` for loading and `<ErrorBanner>` for errors.
+6. Add seed data to `Documentation/migrations/site_content.sql` and/or `site_list_items.sql`.
+7. Ensure API paths are in `isPublicPath()` in `proxy.ts` (already done for both).

@@ -3,112 +3,16 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
+import {
+  buildMarkdownComponents,
+  extractYouTubeId,
+  isImageUrl,
+  isVideoUrl,
+} from "../components/markdown-renderers";
 
-/* ─── Video embed helpers ─── */
+/* ─── Custom renderers for react-markdown (forum-specific) ─── */
 
-const YOUTUBE_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/;
-const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)(\?.*)?$/i;
-const VIDEO_EXTENSIONS = /\.(mp4|webm|ogg)(\?.*)?$/i;
-
-/** Extract YouTube video ID from a URL, or null. */
-function extractYouTubeId(url: string): string | null {
-  const match = url.match(YOUTUBE_REGEX);
-  return match ? match[1] : null;
-}
-
-/** Check if a URL is a direct image link. */
-function isImageUrl(url: string): boolean {
-  return IMAGE_EXTENSIONS.test(url);
-}
-
-/** Check if a URL is a direct video link. */
-function isVideoUrl(url: string): boolean {
-  return VIDEO_EXTENSIONS.test(url);
-}
-
-/* ─── Custom renderers for react-markdown ─── */
-
-const markdownComponents: Components = {
-  /* Render images with constrained size and rounded corners */
-  img: ({ src, alt, ...rest }) => {
-    if (!src) return null;
-    return (
-      <span className="forum-md-media">
-        <img
-          src={src}
-          alt={alt ?? ""}
-          loading="lazy"
-          className="forum-md-image"
-          {...rest}
-        />
-      </span>
-    );
-  },
-  /* Render links — auto-embed YouTube, images, and videos */
-  a: ({ href, children, ...rest }) => {
-    if (!href) return <a {...rest}>{children}</a>;
-    /* YouTube embed */
-    const ytId = extractYouTubeId(href);
-    if (ytId) {
-      return (
-        <span className="forum-md-media">
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${ytId}`}
-            title="YouTube video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="forum-md-video"
-          />
-        </span>
-      );
-    }
-    /* Direct image URL */
-    if (isImageUrl(href)) {
-      return (
-        <span className="forum-md-media">
-          <img src={href} alt={typeof children === "string" ? children : ""} loading="lazy" className="forum-md-image" />
-        </span>
-      );
-    }
-    /* Direct video URL */
-    if (isVideoUrl(href)) {
-      return (
-        <span className="forum-md-media">
-          <video src={href} controls className="forum-md-video" preload="metadata" />
-        </span>
-      );
-    }
-    /* Normal link */
-    return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className="forum-md-link" {...rest}>
-        {children}
-      </a>
-    );
-  },
-  /* Style code blocks */
-  code: ({ className, children, ...rest }) => {
-    const isInline = !className;
-    if (isInline) {
-      return <code className="forum-md-code-inline" {...rest}>{children}</code>;
-    }
-    return (
-      <code className={`forum-md-code-block ${className ?? ""}`} {...rest}>
-        {children}
-      </code>
-    );
-  },
-  pre: ({ children, ...rest }) => (
-    <pre className="forum-md-pre" {...rest}>{children}</pre>
-  ),
-  blockquote: ({ children, ...rest }) => (
-    <blockquote className="forum-md-blockquote" {...rest}>{children}</blockquote>
-  ),
-  table: ({ children, ...rest }) => (
-    <div className="forum-md-table-wrap">
-      <table className="forum-md-table" {...rest}>{children}</table>
-    </div>
-  ),
-};
+const markdownComponents: Components = buildMarkdownComponents("forum-md");
 
 /* ─── ForumMarkdown: renders markdown content with embeds ─── */
 

@@ -73,6 +73,24 @@ This file is a compact context transfer for a new chat.
   - Correction rules applied on save; validation uses corrected values.
   - Combobox inputs for player/source/chest fields with suggestions from validation rules.
   - `app/data-table/data-table-client.tsx`
+- **CMS (Content Management System)** — Inline-editable content for all public pages
+  - Database table `site_content` stores bilingual content (DE/EN) keyed by `page`, `section_key`, `field_key`.
+  - Shared hook `useSiteContent(page)` in `app/components/use-site-content.ts` provides CMS state, admin check, and save helpers.
+  - `EditableText` component (`app/components/editable-text.tsx`) renders inline text with hover pencil overlay for admins.
+  - Pencil edit buttons are **always absolute hover overlays** — never consume layout space.
+  - Multi-line fields use `ForumMarkdown` rendering + `MarkdownToolbar` for rich editing (links, images, videos, formatting).
+  - `normalizeContent()` converts plain bullets (`•`, `–`, `—`) to Markdown lists, handles `\r\n` line endings, preserves line breaks.
+  - Inside `.card-body`, `.forum-md` inherits the card's font-size (not forum defaults of 0.88rem).
+  - API: `GET /api/site-content?page=X` (public, service role), `PATCH /api/site-content` (admin-only with upsert/delete).
+  - CMS-enabled pages (all use Client Component + `useSiteContent`):
+    - **Home** — `app/home/home-client.tsx` (page: "home"). Hero, Über uns, Why Join, Public News, How It Works, Contact sections.
+    - **About** — `app/about/about-client.tsx` (page: "about"). Mission, Features, Values, Technology, CTA sections.
+    - **Contact** — `app/contact/contact-client.tsx` (page: "contact"). Contact methods, Recruitment, Response times, FAQ sections.
+    - **Privacy Policy** — `app/privacy-policy/privacy-client.tsx` (page: "privacy"). Full policy as one editable Markdown block.
+  - Fallback: if CMS has no data, `next-intl` translation files are used as default content.
+  - Cursor rule: `.cursor/rules/cms-content-management.mdc` documents all CMS conventions.
+  - Migration: `Documentation/migrations/site_content.sql`
+  - Files: `app/components/use-site-content.ts`, `app/components/editable-text.tsx`, `app/api/site-content/route.ts`
 - **Branding: [THC] Chiller & Killer**
   - All instances of "The Chillers" replaced with "[THC] Chiller & Killer" across all pages, metadata, descriptions.
   - Sidebar title: `[THC]`, subtitle: `Chiller & Killer`, logo: `/public/assets/ui/chillerkiller_logo.png`.
@@ -210,6 +228,17 @@ This file is a compact context transfer for a new chat.
   - Full forum with categories, posts, comments, voting, markdown, thumbnails.
   - Admin tab for category management via service role API route.
   - Rich `MarkdownToolbar` and `ForumMarkdown` components shared with Announcements.
+- **CMS system** (Feb 2026):
+  - Full inline CMS for all public pages (home, about, contact, privacy-policy).
+  - Edit pencil buttons are hover-only absolute overlays on all elements.
+  - `useSiteContent(page)` shared hook extracts all CMS logic for reuse.
+  - `EditableText` supports markdown mode with `MarkdownToolbar` and live preview.
+  - `EditableList` supports dynamic add/remove of list items with badges.
+  - Deletion optimistic UI: removes item + badge from state immediately, parallel API delete.
+  - `deriveItems()` helper handles both numbered and legacy CMS keys.
+  - Homepage "Über uns" section with THC hero background image (opacity 0.15, no blur).
+  - Unified box styling for all sub-sections (Voraussetzungen, Bewerbung, Extras, Disclaimer).
+  - `.forum-md` inside `.card-body` inherits card font-size/line-height instead of forum defaults.
 - **Branding update** (Feb 2026):
   - "The Chillers" → "[THC] Chiller & Killer" across all pages and metadata.
   - Sidebar: title "[THC]", subtitle "Chiller & Killer", logo added.
@@ -300,6 +329,11 @@ Run these if the base SQL has not been run or if upgrades were applied increment
 16. **Article edit tracking**
     - Run `Documentation/migrations/article_updated_by.sql`.
     - Adds `updated_by` column to articles.
+17. **Site content (CMS)**
+    - Run `Documentation/migrations/site_content.sql`.
+    - Creates `site_content` table with `page`, `section_key`, `field_key`, `content_de`, `content_en`, `updated_by`, `updated_at`.
+    - RLS: public read, admin-only write.
+    - Seeds initial homepage content (aboutUs, whyJoin, publicNews, howItWorks, contact sections).
 
 ## Required Env
 
@@ -342,6 +376,11 @@ SUPABASE_SERVICE_ROLE_KEY=...
 - Content Security Policy in `next.config.js` allows YouTube embeds and external media sources.
 - Branding is "[THC] Chiller & Killer" throughout; sidebar shows logo, title "[THC]", subtitle "Chiller & Killer".
 - Navigation: "Truhenauswertung" (formerly "Diagramme"), "Event-Kalender" (formerly "Ereignisse"), "Forum" added to main nav.
+- CMS content (`site_content` table) is loaded via `useSiteContent(page)` hook on all public pages (home, about, contact, privacy-policy). Falls back to `next-intl` translations if CMS has no data.
+- CMS edit controls (pencil buttons) are only visible to admins on hover. All content is publicly visible.
+- CMS API uses service role client for reads (bypasses RLS) and admin-checks for writes.
+- Homepage hero background uses `thc_hero.png` at 15% opacity with no blur effect.
+- All CMS text fields support Markdown (bold, links, images, videos, lists) via `ForumMarkdown` and `MarkdownToolbar`.
 
 ## Critical SQL updates to run (if not yet run)
 

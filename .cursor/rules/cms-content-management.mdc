@@ -1,0 +1,49 @@
+---
+description: CMS content management system conventions for all public pages
+globs: app/**/page.tsx, app/**/*-client.tsx, app/components/editable-text.tsx, app/api/site-content/**
+alwaysApply: false
+---
+
+# CMS Content Management System
+
+## Architecture
+
+- CMS data is stored in `site_content` table (Supabase) with `page`, `section_key`, `field_key`, `content_de`, `content_en`.
+- Use the shared hook `useSiteContent(pageName)` from `app/components/use-site-content.ts` for all CMS pages.
+- All public pages (home, about, contact, privacy-policy) follow the same pattern.
+
+## Page Structure
+
+- Server Component `page.tsx` is a thin wrapper that renders the Client Component.
+- Client Component `*-client.tsx` uses `useSiteContent(pageName)` for CMS state.
+- Fallback content comes from `next-intl` translation files (`messages/de.json`, `messages/en.json`).
+
+## EditableText Component
+
+- Every text element on public pages wraps in `<EditableText>`.
+- Pencil button is always an **absolute hover overlay** — never takes layout space.
+- Multi-line text fields use `markdown` prop with `ForumMarkdown` rendering + `MarkdownToolbar` for editing.
+- Single-line fields (titles, badges) use `singleLine` prop.
+- Badges use `className="badge"` — pencil centers over the badge on hover.
+
+## Formatting Rules
+
+- All text content renders through `ForumMarkdown` when `markdown` is enabled.
+- `normalizeContent()` converts bullets (`•`, `–`, `—`) to markdown lists and preserves line breaks.
+- Inside `.card-body`, `.forum-md` inherits the card's `font-size` and `line-height` (not forum defaults).
+- Box sections within pages use consistent styling: `background: rgba(8, 16, 26, 0.55)`, `border: 1px solid rgba(201, 163, 74, 0.2)`, `border-radius: var(--radius-md)`, `padding: 16px 20px`.
+
+## Access Control
+
+- `GET /api/site-content?page=X` is public (uses service role client to bypass RLS).
+- `PATCH /api/site-content` is admin-only (checks `is_any_admin` or `profiles.is_admin`).
+- `canEdit` state is set via `getIsContentManager()`, gracefully handles unauthenticated users.
+- All content is visible to everyone; only edit controls are restricted to admins.
+
+## Adding CMS to a New Page
+
+1. Create `app/{page}/{page}-client.tsx` as "use client" component.
+2. Use `const { content, canEdit, userId, supabase, locale, isLoaded, c, cEn, saveField } = useSiteContent("{page}");`
+3. Wrap all text in `<EditableText>` with appropriate props.
+4. Keep `page.tsx` as thin server wrapper with metadata.
+5. Add seed data to `Documentation/migrations/site_content.sql`.

@@ -29,6 +29,38 @@ interface CmsMarkdownProps {
   readonly className?: string;
 }
 
+/* ─── Content sanitizer ─── */
+
+/**
+ * Fixes common Markdown formatting mistakes that break react-markdown parsing.
+ *
+ * CommonMark spec: a right-flanking delimiter run (closing ** or *) must NOT
+ * be preceded by Unicode whitespace. So `**word **` is not valid bold — the
+ * space before `**` prevents it from being a closing delimiter.
+ *
+ * This sanitizer:
+ * 1. Normalizes Windows line endings
+ * 2. Fixes `**word **` → `**word**` (broken bold)
+ * 3. Fixes `*word *` → `*word*` (broken italic, without touching bold **)
+ */
+function sanitizeCmsMarkdown(raw: string): string {
+  let s = raw;
+
+  /* 1. Normalize line endings */
+  s = s.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+  /* 2. Fix broken bold: **word ** → **word**
+        Uses negative lookahead (?!\*\*) inside the content group to avoid
+        matching across two separate ** pairs. */
+  s = s.replace(/\*\*((?:(?!\*\*).)+?)\s+\*\*/g, "**$1**");
+
+  /* 3. Fix broken italic: *word * → *word*
+        Negative look-behind/ahead ensure we don't touch ** bold markers. */
+  s = s.replace(/(?<!\*)\*((?:(?!\*).)+?)\s+\*(?!\*)/g, "*$1*");
+
+  return s;
+}
+
 /* ─── Component ─── */
 
 /**
@@ -42,8 +74,8 @@ function CmsMarkdown({ content, features, className }: CmsMarkdownProps): JSX.El
     [features],
   );
 
-  /* Normalize Windows line endings only — no other transformations */
-  const normalizedContent = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  /* Sanitize content: fix line endings + broken emphasis markers */
+  const normalizedContent = sanitizeCmsMarkdown(content);
 
   return (
     <div className={`cms-md${className ? ` ${className}` : ""}`}>

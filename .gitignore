@@ -17,3 +17,7 @@ Documentation/auth.txt
 .playwright-cli/
 output/
 squirrel.toml
+
+# Misc
+*.png.bak
+window bug.png

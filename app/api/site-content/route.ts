@@ -12,15 +12,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!page) {
     return NextResponse.json({ error: "Missing ?page= parameter" }, { status: 400 });
   }
-  const supabase = createSupabaseServiceRoleClient();
-  const { data, error } = await supabase
-    .from("site_content")
-    .select("page,section_key,field_key,content_de,content_en")
-    .eq("page", page);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    const supabase = createSupabaseServiceRoleClient();
+    const { data, error } = await supabase
+      .from("site_content")
+      .select("page,section_key,field_key,content_de,content_en")
+      .eq("page", page);
+    if (error) {
+      /* Table might not exist yet — return empty array so page still works */
+      console.warn("[site-content GET] DB error:", error.message);
+      return NextResponse.json([]);
+    }
+    return NextResponse.json(data ?? []);
+  } catch (err) {
+    /* Graceful fallback — page will use translation file defaults */
+    console.warn("[site-content GET] Unexpected error:", err);
+    return NextResponse.json([]);
   }
-  return NextResponse.json(data ?? []);
 }
 
 /**
@@ -50,12 +58,28 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   }
 
   const body = await request.json();
-  const { page, section_key, field_key, content_de, content_en } = body as Record<string, string>;
+  const { page, section_key, field_key, content_de, content_en, _delete } = body as Record<string, string | boolean>;
   if (!page || !section_key || !field_key) {
     return NextResponse.json({ error: "Missing required fields: page, section_key, field_key" }, { status: 400 });
   }
 
   const supabase = createSupabaseServiceRoleClient();
+
+  /* Delete mode: remove the row entirely */
+  if (_delete) {
+    const { error } = await supabase
+      .from("site_content")
+      .delete()
+      .eq("page", page as string)
+      .eq("section_key", section_key as string)
+      .eq("field_key", field_key as string);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, deleted: true });
+  }
+
+  /* Upsert mode: create or update */
   const { error } = await supabase
     .from("site_content")
     .upsert(
@@ -63,8 +87,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         page,
         section_key,
         field_key,
-        content_de: content_de ?? "",
-        content_en: content_en ?? "",
+        content_de: (content_de as string) ?? "",
+        content_en: (content_en as string) ?? "",
         updated_by: userId,
         updated_at: new Date().toISOString(),
       },

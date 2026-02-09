@@ -38,12 +38,6 @@ ON public.site_content FOR DELETE
 TO authenticated
 USING (public.is_any_admin());
 
--- Auto-update updated_at
-CREATE TRIGGER site_content_updated_at
-  BEFORE UPDATE ON public.site_content
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
-
 -- ============================================================
 -- Seed: home page content
 -- ============================================================
@@ -70,17 +64,25 @@ INSERT INTO public.site_content (page, section_key, field_key, content_de, conte
 ('home', 'whyJoin', 'title', 'Warum [THC] Chiller & Killer beitreten', 'Why Join [THC] Chiller & Killer'),
 ('home', 'whyJoin', 'text', 'Wir bieten eine strukturierte, unterstützende Umgebung für Total Battle Spieler, die auf einem höheren Niveau konkurrieren und gleichzeitig den sozialen Aspekt des Allianz-Gameplays genießen möchten.', 'We offer a structured, supportive environment for Total Battle players who want to compete at a higher level while enjoying the social aspect of alliance gameplay.'),
 ('home', 'whyJoin', 'feature1', 'Wöchentliche Kriegskoordination und Strategiesitzungen', 'Weekly war coordination and strategy sessions'),
+('home', 'whyJoin', 'feature1Badge', 'Aktiv', 'Active'),
 ('home', 'whyJoin', 'feature2', 'Automatisiertes Truhen-Score-Tracking mit Leistungseinblicken', 'Automated chest score tracking with performance insights'),
+('home', 'whyJoin', 'feature2Badge', 'Einblicke', 'Insights'),
 ('home', 'whyJoin', 'feature3', 'Interaktiver Veranstaltungskalender mit Countdown-Timern', 'Interactive event calendar with countdown timers'),
+('home', 'whyJoin', 'feature3Badge', 'Kalender', 'Calendar'),
 ('home', 'whyJoin', 'feature4', 'Echtzeit-Clan-Nachrichten und angeheftete Ankündigungen', 'Real-time clan news and pinned announcements'),
+('home', 'whyJoin', 'feature4Badge', 'Nachrichten', 'News'),
 ('home', 'whyJoin', 'feature5', 'Diagramme und Analysen für individuelle und Clanleistung', 'Charts and analytics for individual and clan performance'),
+('home', 'whyJoin', 'feature5Badge', 'Analysen', 'Analytics'),
 
 -- Public News
 ('home', 'publicNews', 'title', 'Öffentliche Neuigkeiten', 'Public News'),
 ('home', 'publicNews', 'text', 'Bleib informiert über das Geschehen in der Chiller & Killer Community. Neueste Updates und Rekrutierungsankündigungen werden hier veröffentlicht.', 'Stay informed about what is happening in the Chiller & Killer community. Latest updates and recruitment announcements are posted here.'),
 ('home', 'publicNews', 'news1', 'Rekrutierungsfenster öffnet diese Woche für neue Mitglieder', 'Recruitment window opens this week for new members'),
+('home', 'publicNews', 'news1Badge', 'News', 'News'),
 ('home', 'publicNews', 'news2', 'Allianz-Turnier-Update und Ergebnisse veröffentlicht', 'Alliance tournament update and results posted'),
+('home', 'publicNews', 'news2Badge', 'Info', 'Info'),
 ('home', 'publicNews', 'news3', 'Plattform-Update mit neuen Diagramm-Funktionen und verbesserten Datenimporten', 'Platform update with new chart features and improved data imports'),
+('home', 'publicNews', 'news3Badge', 'Update', 'Update'),
 
 -- How It Works
 ('home', 'howItWorks', 'title', 'Wie TotalChiller funktioniert', 'How TotalChiller Works'),
@@ -91,5 +93,7 @@ INSERT INTO public.site_content (page, section_key, field_key, content_de, conte
 ('home', 'contact', 'title', '[THC] Chiller & Killer kontaktieren', 'Contact [THC] Chiller & Killer'),
 ('home', 'contact', 'text', 'Möchtest du Kontakt aufnehmen? Verbinde dich mit uns über Discord für Echtzeit-Kommunikation oder sende eine E-Mail für formelle Anfragen und Rekrutierungsfragen.', 'Want to reach out? Connect with us through Discord for real-time communication, or send an email for formal inquiries and recruitment questions.'),
 ('home', 'contact', 'discord', 'Discord — primärer Kommunikationskanal für Echtzeit-Koordination', 'Discord — primary communication channel for real-time coordination'),
-('home', 'contact', 'email', 'E-Mail — hello@chillers.gg für formelle Anfragen', 'Email — hello@chillers.gg for formal inquiries')
+('home', 'contact', 'discordBadge', 'Einladung', 'Invite'),
+('home', 'contact', 'email', 'E-Mail — hello@chillers.gg für formelle Anfragen', 'Email — hello@chillers.gg for formal inquiries'),
+('home', 'contact', 'emailBadge', 'E-Mail', 'Email')
 ON CONFLICT (page, section_key, field_key) DO NOTHING;

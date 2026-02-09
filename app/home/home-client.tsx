@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import getIsContentManager from "../../lib/supabase/role-access";
 import EditableText from "../components/editable-text";
 import PublicAuthActions from "../components/public-auth-actions";
-import ForumMarkdown from "../forum/forum-markdown";
 
 /* ─── Types ─── */
 
@@ -20,7 +19,107 @@ interface ContentRow {
 
 type ContentMap = Record<string, Record<string, { de: string; en: string }>>;
 
-/* ─── Component ─── */
+/* ─── EditableList Sub-component ─── */
+
+interface EditableListProps {
+  section: string;
+  itemPrefix: string;         // e.g. "feature" or "news"
+  badgePrefix: string;        // e.g. "Badge"
+  items: string[];            // ordered field keys, e.g. ["feature1","feature2",...]
+  canEdit: boolean;
+  locale: string;
+  content: ContentMap;
+  onSave: (section: string, field: string, de: string, en: string) => Promise<void>;
+  onAdd: (section: string, prefix: string) => Promise<void>;
+  onRemove: (section: string, field: string) => Promise<void>;
+  t: ReturnType<typeof useTranslations<"home">>;
+}
+
+/** Known translation keys under "home.*" to avoid MISSING_MESSAGE warnings */
+const KNOWN_TRANSLATION_KEYS = new Set([
+  "feature1", "feature2", "feature3", "feature4", "feature5",
+  "feature1Badge", "feature2Badge", "feature3Badge", "feature4Badge", "feature5Badge",
+  "news1", "news2", "news3",
+  "news1Badge", "news2Badge", "news3Badge",
+  "contactDiscord", "contactDiscordBadge", "contactEmail", "contactEmailBadge",
+]);
+
+function EditableList({
+  section, itemPrefix, badgePrefix, items, canEdit, locale, content, onSave, onAdd, onRemove, t,
+}: EditableListProps): JSX.Element {
+  function cVal(field: string, fallback: string): string {
+    const entry = content[section]?.[field];
+    if (entry) {
+      const val = locale === "en" ? entry.en : entry.de;
+      if (val) return val;
+    }
+    return fallback;
+  }
+  function cEnVal(field: string): string {
+    return content[section]?.[field]?.en ?? "";
+  }
+
+  /** Safely get a translation — returns empty string if key doesn't exist */
+  function safeT(key: string): string {
+    return KNOWN_TRANSLATION_KEYS.has(key) ? t(key as "feature1") : "";
+  }
+
+  return (
+    <div className="list" style={{ marginTop: 12 }}>
+      {items.map((key) => {
+        const badgeFieldKey = `${key}${badgePrefix}`;
+        const badgeValue = cVal(badgeFieldKey, safeT(badgeFieldKey));
+        return (
+          <div className="list-item" key={key}>
+            <EditableText
+              value={cVal(key, safeT(key) || key)}
+              valueEn={cEnVal(key)}
+              canEdit={canEdit}
+              locale={locale}
+              singleLine
+              onSave={(de, en) => onSave(section, key, de, en)}
+            />
+            {canEdit ? (
+              <EditableText
+                className="badge"
+                value={badgeValue || "Tag"}
+                valueEn={cEnVal(badgeFieldKey)}
+                canEdit={canEdit}
+                locale={locale}
+                singleLine
+                onSave={(de, en) => onSave(section, badgeFieldKey, de, en)}
+              />
+            ) : (
+              badgeValue ? <span className="badge">{badgeValue}</span> : null
+            )}
+            {canEdit && (
+              <button
+                className="editable-list-remove"
+                type="button"
+                title="Entfernen"
+                onClick={() => onRemove(section, key)}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            )}
+          </div>
+        );
+      })}
+      {canEdit && (
+        <button
+          className="editable-list-add"
+          type="button"
+          onClick={() => onAdd(section, itemPrefix)}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          {locale === "en" ? "Add item" : "Element hinzufügen"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ─── Main Component ─── */
 
 function HomeClient(): JSX.Element {
   const supabase = createSupabaseBrowserClient();
@@ -28,6 +127,7 @@ function HomeClient(): JSX.Element {
   const locale = useLocale();
 
   const [canEdit, setCanEdit] = useState(false);
+  const [userId, setUserId] = useState<string | undefined>();
   const [content, setContent] = useState<ContentMap>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -52,7 +152,9 @@ function HomeClient(): JSX.Element {
 
   useEffect(() => {
     void loadContent();
-    void getIsContentManager({ supabase }).then(setCanEdit);
+    /* Admin check — gracefully handle unauthenticated users */
+    void getIsContentManager({ supabase }).then(setCanEdit).catch(() => setCanEdit(false));
+    void supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? undefined));
   }, [supabase, loadContent]);
 
   /** Get a CMS field value, falling back to a translation key */
@@ -83,7 +185,6 @@ function HomeClient(): JSX.Element {
         content_en: valueEn,
       }),
     });
-    /* Update local state */
     setContent((prev) => ({
       ...prev,
       [section]: {
@@ -92,6 +193,100 @@ function HomeClient(): JSX.Element {
       },
     }));
   }
+
+  /** Add a new list item to a section */
+  async function addListItem(section: string, prefix: string): Promise<void> {
+    const existing = Object.keys(content[section] ?? {}).filter((k) => k.startsWith(prefix) && /\d+$/.test(k));
+    const nums = existing.map((k) => parseInt(k.replace(prefix, ""), 10)).filter((n) => !isNaN(n));
+    const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+    const newKey = `${prefix}${nextNum}`;
+    const placeholderDe = "Neuer Eintrag";
+    const placeholderEn = "New item";
+    await saveField(section, newKey, placeholderDe, placeholderEn);
+  }
+
+  /** Remove a list item from a section — optimistic UI update, then DB delete */
+  async function removeListItem(section: string, field: string): Promise<void> {
+    const badgeKey = `${field}Badge`;
+    /* Remove both item and its badge from local state immediately */
+    setContent((prev) => {
+      const sectionMap = { ...(prev[section] ?? {}) };
+      delete sectionMap[field];
+      delete sectionMap[badgeKey];
+      return { ...prev, [section]: sectionMap };
+    });
+    /* Delete item + badge from DB in parallel */
+    const deleteReq = (key: string) =>
+      fetch("/api/site-content", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: "home",
+          section_key: section,
+          field_key: key,
+          _delete: true,
+        }),
+      });
+    await Promise.all([deleteReq(field), deleteReq(badgeKey)]);
+  }
+
+  /* ─── Derive dynamic list keys from CMS content ─── */
+
+  /** Generic helper: extract item keys from a CMS section.
+   *  Includes both numbered keys (feature1, news2, contact3) and
+   *  legacy named keys (contactDiscord, contactEmail). */
+  function deriveItems(
+    sectionKey: string,
+    prefix: string,
+    fallback: string[],
+  ): string[] {
+    const sectionData = content[sectionKey] ?? {};
+    const allKeys = Object.keys(sectionData);
+    /* Item keys start with the prefix and are NOT badge keys */
+    const itemKeys = allKeys.filter(
+      (k) => k.startsWith(prefix) && !k.endsWith("Badge"),
+    );
+    /* Filter to only keys that actually have content */
+    const withContent = itemKeys.filter((k) => {
+      const e = sectionData[k];
+      return e && (e.de || e.en);
+    });
+    if (withContent.length > 0) {
+      return withContent.sort((a, b) => {
+        const na = parseInt(a.replace(/\D+/g, ""), 10);
+        const nb = parseInt(b.replace(/\D+/g, ""), 10);
+        /* Numbered keys first, sorted numerically */
+        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+        if (!isNaN(na)) return -1;
+        if (!isNaN(nb)) return 1;
+        /* Non-numbered keys alphabetically */
+        return a.localeCompare(b);
+      });
+    }
+    /* If the section has ANY data at all (title/text), CMS was loaded —
+       items were intentionally deleted, so return empty list. */
+    if (allKeys.length > 0) return [];
+    /* No CMS data at all — use translation fallbacks */
+    return fallback;
+  }
+
+  const whyJoinItems = useMemo(
+    () => deriveItems("whyJoin", "feature", ["feature1", "feature2", "feature3", "feature4", "feature5"]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [content],
+  );
+
+  const publicNewsItems = useMemo(
+    () => deriveItems("publicNews", "news", ["news1", "news2", "news3"]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [content],
+  );
+
+  const contactItems = useMemo(
+    () => deriveItems("contact", "contact", ["contactDiscord", "contactEmail"]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [content],
+  );
 
   if (!isLoaded) {
     return (
@@ -139,112 +334,107 @@ function HomeClient(): JSX.Element {
       <div className="content-inner">
         <div className="grid">
 
-          {/* ═══ Über uns ═══ */}
+          {/* ═══ Über uns (with background image) ═══ */}
           <section className="card home-about-card" style={{ gridColumn: "1 / -1" }}>
+            <div className="home-about-bg" />
             <div className="tooltip-head">
-              <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} loading="lazy" />
-              <div className="tooltip-head-inner">
-                <img src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} loading="lazy" />
-                <EditableText
-                  as="h3"
-                  className="card-title"
-                  value={c("aboutUs", "title", t("missionTitle"))}
-                  valueEn={cEn("aboutUs", "title")}
-                  canEdit={canEdit}
-                  locale={locale}
-                  singleLine
-                  onSave={(de, en) => saveField("aboutUs", "title", de, en)}
-                />
-                <span className="pin-badge">
+                <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} loading="lazy" />
+                <div className="tooltip-head-inner">
+                  <img src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} loading="lazy" />
                   <EditableText
-                    value={c("aboutUs", "badge", t("missionBadge"))}
-                    valueEn={cEn("aboutUs", "badge")}
+                    as="h3"
+                    className="card-title"
+                    value={c("aboutUs", "title", t("missionTitle"))}
+                    valueEn={cEn("aboutUs", "title")}
                     canEdit={canEdit}
                     locale={locale}
                     singleLine
-                    onSave={(de, en) => saveField("aboutUs", "badge", de, en)}
+                    onSave={(de, en) => saveField("aboutUs", "title", de, en)}
                   />
-                </span>
+                  <span className="pin-badge">
+                    <EditableText
+                      value={c("aboutUs", "badge", t("missionBadge"))}
+                      valueEn={cEn("aboutUs", "badge")}
+                      canEdit={canEdit}
+                      locale={locale}
+                      singleLine
+                      onSave={(de, en) => saveField("aboutUs", "badge", de, en)}
+                    />
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="card-body home-about-body">
-              {/* Intro */}
-              <div className="home-about-intro">
-                <EditableText
-                  as="div"
-                  value={c("aboutUs", "intro", t("missionText1"))}
-                  valueEn={cEn("aboutUs", "intro")}
-                  canEdit={canEdit}
-                  locale={locale}
-                  markdown
-                  onSave={(de, en) => saveField("aboutUs", "intro", de, en)}
-                />
+              <div className="card-body home-about-body">
+                <div className="home-about-intro">
+                  <EditableText
+                    as="div"
+                    value={c("aboutUs", "intro", t("missionText1"))}
+                    valueEn={cEn("aboutUs", "intro")}
+                    canEdit={canEdit}
+                    locale={locale}
+                    markdown
+                    supabase={supabase}
+                    userId={userId}
+                    onSave={(de, en) => saveField("aboutUs", "intro", de, en)}
+                  />
+                </div>
+                <div className="home-about-requirements">
+                  <h4 className="home-about-section-title">{locale === "en" ? "Requirements" : "Voraussetzungen"}</h4>
+                  <EditableText
+                    as="div"
+                    value={c("aboutUs", "requirements", t("aboutRequirements"))}
+                    valueEn={cEn("aboutUs", "requirements")}
+                    canEdit={canEdit}
+                    locale={locale}
+                    markdown
+                    supabase={supabase}
+                    userId={userId}
+                    onSave={(de, en) => saveField("aboutUs", "requirements", de, en)}
+                  />
+                </div>
+                <div className="home-about-apply">
+                  <h4 className="home-about-section-title">{locale === "en" ? "Apply" : "Bewerbung"}</h4>
+                  <EditableText
+                    as="div"
+                    value={c("aboutUs", "contact", t("aboutContact"))}
+                    valueEn={cEn("aboutUs", "contact")}
+                    canEdit={canEdit}
+                    locale={locale}
+                    markdown
+                    supabase={supabase}
+                    userId={userId}
+                    onSave={(de, en) => saveField("aboutUs", "contact", de, en)}
+                  />
+                </div>
+                <div className="home-about-extras">
+                  <EditableText
+                    as="div"
+                    value={c("aboutUs", "extras", t("aboutExtras"))}
+                    valueEn={cEn("aboutUs", "extras")}
+                    canEdit={canEdit}
+                    locale={locale}
+                    markdown
+                    supabase={supabase}
+                    userId={userId}
+                    onSave={(de, en) => saveField("aboutUs", "extras", de, en)}
+                  />
+                </div>
+                <div className="home-about-disclaimer">
+                  <EditableText
+                    as="div"
+                    value={c("aboutUs", "disclaimer", t("aboutDisclaimer"))}
+                    valueEn={cEn("aboutUs", "disclaimer")}
+                    canEdit={canEdit}
+                    locale={locale}
+                    markdown
+                    supabase={supabase}
+                    userId={userId}
+                    onSave={(de, en) => saveField("aboutUs", "disclaimer", de, en)}
+                  />
+                </div>
               </div>
-
-              {/* Requirements */}
-              <div className="home-about-requirements">
-                <h4 className="home-about-section-title">{locale === "en" ? "Requirements" : "Voraussetzungen"}</h4>
-                <EditableText
-                  as="div"
-                  value={c("aboutUs", "requirements", "")}
-                  valueEn={cEn("aboutUs", "requirements")}
-                  canEdit={canEdit}
-                  locale={locale}
-                  markdown
-                  onSave={(de, en) => saveField("aboutUs", "requirements", de, en)}
-                />
-              </div>
-
-              {/* Contact / Application */}
-              <div className="home-about-apply">
-                <h4 className="home-about-section-title">{locale === "en" ? "Apply" : "Bewerbung"}</h4>
-                <EditableText
-                  as="div"
-                  value={c("aboutUs", "contact", "")}
-                  valueEn={cEn("aboutUs", "contact")}
-                  canEdit={canEdit}
-                  locale={locale}
-                  markdown
-                  onSave={(de, en) => saveField("aboutUs", "contact", de, en)}
-                />
-              </div>
-
-              {/* Extras — diplomats, ancient */}
-              <div className="home-about-extras">
-                <EditableText
-                  as="div"
-                  value={c("aboutUs", "extras", "")}
-                  valueEn={cEn("aboutUs", "extras")}
-                  canEdit={canEdit}
-                  locale={locale}
-                  markdown
-                  onSave={(de, en) => saveField("aboutUs", "extras", de, en)}
-                />
-              </div>
-
-              {/* Disclaimer */}
-              <div className="home-about-disclaimer">
-                <EditableText
-                  as="div"
-                  value={c("aboutUs", "disclaimer", "")}
-                  valueEn={cEn("aboutUs", "disclaimer")}
-                  canEdit={canEdit}
-                  locale={locale}
-                  markdown
-                  onSave={(de, en) => saveField("aboutUs", "disclaimer", de, en)}
-                />
-              </div>
-            </div>
           </section>
 
-          {/* ═══ Logo Divider ═══ */}
-          <div className="home-logo-divider" style={{ gridColumn: "1 / -1" }}>
-            <img src="/assets/vip/components_decor_6.png" alt="" className="home-logo-decor" width={200} height={12} loading="lazy" />
-            <img src="/assets/ui/chillerkiller_logo.png" alt="Chiller & Killer Logo" className="home-logo-img" width={960} height={967} loading="lazy" />
-            <img src="/assets/vip/components_decor_6.png" alt="" className="home-logo-decor flipped" width={200} height={12} loading="lazy" />
-          </div>
-
-          {/* ═══ Why Join ═══ */}
+          {/* ═══ Why Join + Public News (side by side) ═══ */}
           <section className="card">
             <div className="card-header">
               <EditableText
@@ -267,23 +457,23 @@ function HomeClient(): JSX.Element {
                 valueEn={cEn("whyJoin", "text")}
                 canEdit={canEdit}
                 locale={locale}
+                supabase={supabase}
+                userId={userId}
                 onSave={(de, en) => saveField("whyJoin", "text", de, en)}
               />
-              <div className="list" style={{ marginTop: 12 }}>
-                {(["feature1", "feature2", "feature3", "feature4", "feature5"] as const).map((key, i) => (
-                  <div className="list-item" key={key}>
-                    <EditableText
-                      value={c("whyJoin", key, t(key))}
-                      valueEn={cEn("whyJoin", key)}
-                      canEdit={canEdit}
-                      locale={locale}
-                      singleLine
-                      onSave={(de, en) => saveField("whyJoin", key, de, en)}
-                    />
-                    <span className="badge">{t(`${key}Badge` as "feature1Badge")}</span>
-                  </div>
-                ))}
-              </div>
+              <EditableList
+                section="whyJoin"
+                itemPrefix="feature"
+                badgePrefix="Badge"
+                items={whyJoinItems}
+                canEdit={canEdit}
+                locale={locale}
+                content={content}
+                onSave={saveField}
+                onAdd={addListItem}
+                onRemove={removeListItem}
+                t={t}
+              />
             </div>
           </section>
 
@@ -310,23 +500,23 @@ function HomeClient(): JSX.Element {
                 valueEn={cEn("publicNews", "text")}
                 canEdit={canEdit}
                 locale={locale}
+                supabase={supabase}
+                userId={userId}
                 onSave={(de, en) => saveField("publicNews", "text", de, en)}
               />
-              <div className="list" style={{ marginTop: 12 }}>
-                {(["news1", "news2", "news3"] as const).map((key) => (
-                  <div className="list-item" key={key}>
-                    <EditableText
-                      value={c("publicNews", key, t(key))}
-                      valueEn={cEn("publicNews", key)}
-                      canEdit={canEdit}
-                      locale={locale}
-                      singleLine
-                      onSave={(de, en) => saveField("publicNews", key, de, en)}
-                    />
-                    <span className="badge">{t(`${key}Badge` as "news1Badge")}</span>
-                  </div>
-                ))}
-              </div>
+              <EditableList
+                section="publicNews"
+                itemPrefix="news"
+                badgePrefix="Badge"
+                items={publicNewsItems}
+                canEdit={canEdit}
+                locale={locale}
+                content={content}
+                onSave={saveField}
+                onAdd={addListItem}
+                onRemove={removeListItem}
+                t={t}
+              />
             </div>
           </section>
 
@@ -346,21 +536,27 @@ function HomeClient(): JSX.Element {
             </div>
             <div className="card-body">
               <EditableText
-                as="p"
+                as="div"
                 className="card-text-muted"
                 value={c("howItWorks", "text1", t("howItWorksText1"))}
                 valueEn={cEn("howItWorks", "text1")}
                 canEdit={canEdit}
                 locale={locale}
+                markdown
+                supabase={supabase}
+                userId={userId}
                 onSave={(de, en) => saveField("howItWorks", "text1", de, en)}
               />
               <EditableText
-                as="p"
+                as="div"
                 className="card-text-muted"
                 value={c("howItWorks", "text2", t("howItWorksText2"))}
                 valueEn={cEn("howItWorks", "text2")}
                 canEdit={canEdit}
                 locale={locale}
+                markdown
+                supabase={supabase}
+                userId={userId}
                 onSave={(de, en) => saveField("howItWorks", "text2", de, en)}
               />
             </div>
@@ -382,38 +578,30 @@ function HomeClient(): JSX.Element {
             </div>
             <div className="card-body">
               <EditableText
-                as="p"
+                as="div"
                 className="card-text-muted"
                 value={c("contact", "text", t("contactText"))}
                 valueEn={cEn("contact", "text")}
                 canEdit={canEdit}
                 locale={locale}
+                markdown
+                supabase={supabase}
+                userId={userId}
                 onSave={(de, en) => saveField("contact", "text", de, en)}
               />
-              <div className="list" style={{ marginTop: 12 }}>
-                <div className="list-item">
-                  <EditableText
-                    value={c("contact", "discord", t("contactDiscord"))}
-                    valueEn={cEn("contact", "discord")}
-                    canEdit={canEdit}
-                    locale={locale}
-                    singleLine
-                    onSave={(de, en) => saveField("contact", "discord", de, en)}
-                  />
-                  <span className="badge">{t("contactDiscordBadge")}</span>
-                </div>
-                <div className="list-item">
-                  <EditableText
-                    value={c("contact", "email", t("contactEmail"))}
-                    valueEn={cEn("contact", "email")}
-                    canEdit={canEdit}
-                    locale={locale}
-                    singleLine
-                    onSave={(de, en) => saveField("contact", "email", de, en)}
-                  />
-                  <span className="badge">{t("contactEmailBadge")}</span>
-                </div>
-              </div>
+              <EditableList
+                section="contact"
+                itemPrefix="contact"
+                badgePrefix="Badge"
+                items={contactItems}
+                canEdit={canEdit}
+                locale={locale}
+                content={content}
+                onSave={saveField}
+                onAdd={addListItem}
+                onRemove={removeListItem}
+                t={t}
+              />
               <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
                 <a className="button primary" href="/auth/register">{t("joinTheChillers")}</a>
                 <a className="button" href="/about">{t("learnMoreAbout")}</a>

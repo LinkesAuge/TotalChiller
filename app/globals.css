@@ -73,11 +73,12 @@ html {
 
 body {
   font-family: var(--font-heading), var(--font-body);
+  font-size: 0.95rem;
   background: var(--color-bg);
   background-image: var(--color-bg-gradient);
   background-attachment: fixed;
   color: var(--color-text);
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -392,7 +393,7 @@ body {
   text-decoration: none;
   color: var(--color-text);
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -454,8 +455,8 @@ body {
 }
 
 .nav-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -589,6 +590,9 @@ body {
 
 .content-inner {
   padding: 20px 24px 48px;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Top bar — ornate gold header */
@@ -1000,11 +1004,19 @@ body {
 
 .card-body {
   padding: 12px 18px;
+  font-size: 0.97rem;
+  line-height: 1.65;
+}
+
+/* Markdown inside cards should inherit the card's font size, not forum defaults */
+.card-body .forum-md {
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .card-title {
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: 1.0rem;
   font-weight: 700;
   color: var(--color-gold-2);
   flex: 1;
@@ -1065,9 +1077,10 @@ body {
 }
 
 .list-item {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   padding: 12px 14px;
   border: 1px solid rgba(201, 163, 74, 0.1);
   border-radius: var(--radius-md);
@@ -1079,6 +1092,29 @@ body {
 .list-item:hover {
   background: rgba(201, 163, 74, 0.04);
   border-color: rgba(201, 163, 74, 0.25);
+}
+
+.list-item > .editable-text-wrap:first-child,
+.list-item > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-item > .badge,
+.list-item > .editable-text-wrap.badge {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Badge editable in list items */
+.list-item .editable-text-wrap.badge {
+  font-size: 0.72rem;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-gold);
+  color: var(--color-gold-2);
+  background: linear-gradient(180deg, rgba(201, 163, 74, 0.15), rgba(138, 109, 47, 0.08));
+  white-space: nowrap;
 }
 
 .list-item strong {
@@ -4343,8 +4379,25 @@ input[type="checkbox"]:disabled {
    ============================= */
 
 .home-about-card {
+  position: relative;
   border: 1px solid rgba(201, 163, 74, 0.25);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.home-about-bg {
+  position: absolute;
+  inset: 0;
+  background: url('/assets/ui/thc_hero.png') center center / cover no-repeat;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-about-card > .tooltip-head,
+.home-about-card > .card-body {
+  position: relative;
+  z-index: 1;
 }
 
 .home-about-body {
@@ -4352,13 +4405,15 @@ input[type="checkbox"]:disabled {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  font-size: 0.95rem;
-  line-height: 1.7;
+  font-size: 1.0rem;
+  line-height: 1.75;
+  color: #e8e0d0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .home-about-intro {
-  font-size: 1.05rem;
-  color: var(--color-text);
+  font-size: 1.1rem;
+  color: #f0eadc;
 }
 
 .home-about-section-title {
@@ -4370,58 +4425,27 @@ input[type="checkbox"]:disabled {
   font-weight: 600;
 }
 
-.home-about-requirements {
-  background: rgba(201, 163, 74, 0.06);
-  border: 1px solid rgba(201, 163, 74, 0.15);
-  border-radius: var(--radius-md);
-  padding: 16px 20px;
-}
-
+.home-about-requirements,
 .home-about-apply {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-edge);
+  background: rgba(8, 16, 26, 0.55);
+  border: 1px solid rgba(201, 163, 74, 0.2);
   border-radius: var(--radius-md);
   padding: 16px 20px;
 }
 
-.home-about-extras {
-  font-size: 0.88rem;
-  color: var(--color-text-muted);
-}
-
+.home-about-extras,
 .home-about-disclaimer {
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-  opacity: 0.85;
-  border-top: 1px solid var(--color-edge);
-  padding-top: 16px;
+  background: rgba(8, 16, 26, 0.55);
+  border: 1px solid rgba(201, 163, 74, 0.2);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  font-size: 0.92rem;
+  color: #d0c8b8;
 }
 
 /* =============================
-   Home Page — Logo Divider
+   Home Page — About Us Card with BG Image
    ============================= */
-
-.home-logo-divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 16px 0;
-}
-
-.home-logo-img {
-  width: 220px;
-  height: auto;
-  object-fit: contain;
-  image-rendering: auto;
-  filter: drop-shadow(0 4px 16px rgba(201, 163, 74, 0.25));
-}
-
-.home-logo-decor {
-  width: 140px;
-  height: auto;
-  opacity: 0.5;
-}
 
 /* =============================
    Editable Text Component
@@ -4435,30 +4459,57 @@ input[type="checkbox"]:disabled {
   cursor: default;
 }
 
+/* Pencil button — absolute overlay for ALL editable elements */
 .editable-text-pencil {
+  position: absolute;
+  top: 2px;
+  right: 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 6px;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 1px solid var(--color-edge);
-  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(201, 163, 74, 0.4);
+  background: rgba(8, 16, 26, 0.85);
   color: var(--color-gold);
   cursor: pointer;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.15s ease, background 0.15s ease;
-  vertical-align: middle;
+  z-index: 3;
 }
 
-.editable-text-wrap.editable:hover .editable-text-pencil,
+.editable-text-wrap.editable:hover > .editable-text-pencil,
 .editable-text-pencil:focus {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .editable-text-pencil:hover {
-  background: rgba(201, 163, 74, 0.15);
+  background: rgba(201, 163, 74, 0.2);
+  border-color: var(--color-gold);
+}
+
+/* Badge-specific: center the pencil over the badge */
+.editable-text-wrap.badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.editable-text-wrap.badge > .editable-text-pencil {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+}
+
+.editable-text-wrap.badge.editable:hover {
+  opacity: 0.6;
 }
 
 .editable-text-editor {
@@ -4519,14 +4570,115 @@ input[type="checkbox"]:disabled {
   box-shadow: 0 0 0 2px rgba(201, 163, 74, 0.15);
 }
 
+.editable-text-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.editable-text-tab {
+  padding: 4px 14px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.editable-text-tab.active {
+  background: rgba(201, 163, 74, 0.15);
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+.editable-text-tab:hover:not(.active) {
+  border-color: rgba(201, 163, 74, 0.3);
+  color: var(--color-text);
+}
+
+.editable-text-tab-spacer {
+  flex: 1;
+}
+
+.editable-text-preview {
+  padding: 12px 14px;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  min-height: 80px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.88rem;
+}
+
 .editable-text-actions {
   display: flex;
   gap: 8px;
   margin-top: 10px;
 }
 
+/* =============================
+   Editable List — Add / Remove
+   ============================= */
+
+.editable-list-remove {
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(220, 80, 80, 0.4);
+  background: rgba(30, 10, 10, 0.9);
+  color: rgba(220, 80, 80, 0.9);
+  cursor: pointer;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.list-item:hover .editable-list-remove {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.editable-list-remove:hover {
+  background: rgba(220, 80, 80, 0.35);
+  color: #dc5050;
+  border-color: rgba(220, 80, 80, 0.7);
+}
+
+.editable-list-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  margin-top: 8px;
+  border: 1px dashed var(--color-edge);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.editable-list-add:hover {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
 @media (max-width: 640px) {
   .home-about-body { padding: 18px 16px 20px; }
-  .home-logo-img { width: 160px; }
-  .home-logo-decor { width: 80px; }
 }

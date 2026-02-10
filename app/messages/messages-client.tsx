@@ -810,7 +810,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
               placeholder={t("searchPlaceholder")}
             />
             <div className="tabs text-[0.8rem]">
-              {(["all", "private", "broadcast", "clan"] as const).map((tab) => (
+              {(["all", "private", "clan", "broadcast"] as const).map((tab) => (
                 <button
                   key={tab}
                   className={`tab ${typeFilter === tab ? "active" : ""}`}
@@ -821,9 +821,9 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                     ? t("all")
                     : tab === "private"
                       ? t("private")
-                      : tab === "broadcast"
-                        ? t("broadcast")
-                        : t("clan")}
+                      : tab === "clan"
+                        ? t("clan")
+                        : t("broadcast")}
                 </button>
               ))}
             </div>

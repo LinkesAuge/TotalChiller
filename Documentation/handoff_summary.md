@@ -193,7 +193,7 @@ This file is a compact context transfer for a new chat.
   - Full inbox with private messages, global/clan broadcasts, and system notifications.
   - Flat message model: `messages` table with `sender_id`, `recipient_id`, `message_type` (`private`/`broadcast`/`system`/`clan`).
   - Two-column layout: conversation list (420px, left) with search/filter, thread view (right) with compose.
-  - Filter tabs: All, Private, Broadcast, Clan. "Broadcast" filter includes both global broadcasts and legacy system messages. "Clan" filter shows clan-specific broadcasts.
+  - Filter tabs: All, Private, Clan, Broadcast. "Broadcast" filter includes both global broadcasts and legacy system messages. "Clan" filter shows clan-specific broadcasts.
   - Content manager "Broadcast" button sends to all users (global, `message_type: broadcast`) or all active clan members (clan-specific, `message_type: clan`).
   - System messages sent automatically on game account approval/rejection (`message_type: system`, grouped under Broadcast filter).
   - RLS enforces users can only see their own messages; service role inserts system messages.

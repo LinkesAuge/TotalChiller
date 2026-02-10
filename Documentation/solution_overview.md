@@ -317,7 +317,7 @@ app/admin/
 - Global broadcasts: sender_id = admin, one row per user, message_type = `broadcast`. Sent when `clan_id: "all"`.
 - Clan broadcasts: sender_id = admin, one row per clan member, message_type = `clan`. Sent when targeting a specific clan.
 - System notifications: sender_id = null, recipient_id = user, message_type = `system`. Sent on game account approval/rejection. Displayed under the "Broadcast" filter in the UI (merged with broadcasts).
-- UI filter tabs: All, Private, Broadcast, Clan. The "Broadcast" filter includes both `broadcast` and legacy `system` messages. The "Clan" filter shows only `clan`-type messages.
+- UI filter tabs: All, Private, Clan, Broadcast. The "Broadcast" filter includes both `broadcast` and legacy `system` messages. The "Clan" filter shows only `clan`-type messages.
 - Conversations derived by grouping messages between two users (no separate conversation table).
 - Two-column UI: conversation list (420px) with search/filter, thread view with compose.
 - Compose recipient and broadcast clan dropdowns use themed `RadixSelect` (no native `<select>`). Recipient dropdown includes search support.

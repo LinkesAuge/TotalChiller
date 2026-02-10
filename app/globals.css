@@ -734,6 +734,10 @@ body {
 
 .content-inner {
   padding: 20px 24px 48px;
+}
+
+/* Opt-in max-width for pages that need centered, narrower content (e.g. home). */
+.content-constrained {
   max-width: 1400px;
   margin-left: auto;
   margin-right: auto;

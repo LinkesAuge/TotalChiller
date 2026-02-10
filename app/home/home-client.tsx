@@ -67,6 +67,7 @@ function HomeClient(): JSX.Element {
       heroSlot={heroBanner}
       isLoaded={isLoaded}
       error={error}
+      contentClassName="content-constrained"
     >
       {/* ═══ Über uns (with background image) ═══ */}
       <section className="card home-about-card col-span-full">

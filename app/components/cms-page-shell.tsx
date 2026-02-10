@@ -25,6 +25,8 @@ interface CmsPageShellProps {
   readonly error: string | null;
   /** Number of skeleton rows while loading (default 4). */
   readonly loadingRows?: number;
+  /** Extra class names for the .content-inner wrapper (e.g. "content-constrained"). */
+  readonly contentClassName?: string;
   /** Page-specific grid content — rendered inside .content-inner > .grid. */
   readonly children: React.ReactNode;
 }
@@ -37,6 +39,7 @@ export default function CmsPageShell({
   isLoaded,
   error,
   loadingRows = 4,
+  contentClassName,
   children,
 }: CmsPageShellProps): JSX.Element {
   return (
@@ -45,7 +48,7 @@ export default function CmsPageShell({
 
       {isLoaded ? heroSlot : null}
 
-      <div className="content-inner">
+      <div className={`content-inner ${contentClassName ?? ""}`}>
         {!isLoaded ? (
           <LoadingSkeleton rows={loadingRows} />
         ) : (

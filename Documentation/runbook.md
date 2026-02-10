@@ -53,7 +53,7 @@ Open: `http://localhost:3000`
 - Register: `/auth/register`
 - Login: `/auth/login`
 - Forgot password: `/auth/forgot`
-- Update password: `/auth/update`
+- Update password: `/auth/update` — redirects to dashboard after 2 seconds on success
 
 ### New User Onboarding Flow
 
@@ -70,6 +70,7 @@ Email templates (dual-theme: light for Outlook, dark for modern clients) are doc
 - Unauthenticated `/` redirects to `/home`
 - Authenticated `/home` redirects to `/`
 - **API routes** (`/api/`) are **not** redirected by the proxy — they handle their own auth and return JSON error responses (e.g. 401, 403)
+- **PKCE catch-all:** Stray auth codes (when Supabase ignores redirectTo) are caught by the proxy and redirected to `/auth/callback`. Registration, email change, and forgot-password set `auth_redirect_next` fallback cookie.
 - Non-API, non-public page routes redirect unauthenticated users to `/home`
 - Admin page routes (`/admin`, `/data-import`, `/data-table`) require admin role; non-admins redirected to `/not-authorized?reason=admin` (admin-specific access denied message). "Verwaltung" nav section is visible to all authenticated users.
 

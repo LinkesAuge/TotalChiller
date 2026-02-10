@@ -11,7 +11,7 @@ This document defines the screen-by-screen prototype for the clan community webs
   - Sidebar shell: logo with VIP decoration, collapse toggle (top), icon/text navigation, user status + clan selector (bottom).
   - Background: VIP `back_left.png` with dark gradient overlay.
 - Top bar: VIP `header_3.png` background, breadcrumb (uppercase, gold text), page title (Fontin Sans heading font), user actions (notification bell + user menu).
-- Main content area with 2-column card grid.
+- Main content area with 2-column card grid. Profile and Settings pages use compact layout (900px max-width, centered).
 
 ### Navigation
 

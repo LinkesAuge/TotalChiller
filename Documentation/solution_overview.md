@@ -121,7 +121,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Auth callback: `app/auth/callback/route.ts` — exchanges PKCE code for session, redirects to `next` query parameter.
 - Registration success panel shows 4-step onboarding guide (confirm email → log in → create game account → wait for clan assignment).
 - Login page first-login detection: queries `game_accounts` for the authenticated user; redirects to `/profile` if none exist, otherwise to `/`.
-- Proxy guard: `proxy.ts` redirects unauthenticated users to `/home` for page routes, enforces admin access for admin routes with `/not-authorized?reason=admin` redirect (context-specific access denied message). API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns JSON error responses.
+- Proxy guard: `proxy.ts` redirects unauthenticated users to `/home` for page routes, enforces admin access for admin routes with `/not-authorized?reason=admin` redirect (context-specific access denied message). Catches stray PKCE auth codes (when Supabase ignores redirectTo) and redirects to `/auth/callback`; registration, email change, and forgot-password set `auth_redirect_next` fallback cookie. API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns JSON error responses.
 - Added `app/auth/update` for reset flows and `app/components/auth-actions.tsx` for sign-out (restyled with Sanctum dropdown panel, icons, and dividers).
 - Protected example: `app/profile` (middleware enforces auth).
 - Bilingual email templates (DE/EN) with dual-theme design (light for Outlook, dark for modern clients) for Supabase Dashboard: `Documentation/supabase-email-templates.md`.
@@ -194,7 +194,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Clan context selector in sidebar bottom section (native `<select>`) scopes clan data views. `ClanScopeBanner` removed; context visible in sidebar only.
 - Removed `QuickActions` top-bar buttons from all pages. Deleted `app/components/quick-actions.tsx` and `app/components/clan-scope-banner.tsx`.
 - Decorative gold gradient divider line below `.top-bar` on all pages (CSS pseudo-element `::after`). Hero banner margin removed for seamless layout.
-- Global `option` CSS styling ensures dark-themed native dropdown menus where `RadixSelect` is not used.
+- Settings language selector uses RadixSelect (same as admin area). Global `option` CSS styling ensures dark-themed native dropdown menus where `RadixSelect` is not used.
 - ESLint uses Next.js flat config (`eslint.config.js`); run `npx eslint .`.
 
 ### Admin Panel Architecture (refactored Feb 2026)
@@ -364,6 +364,7 @@ app/admin/
 - Users can select a default game account in their profile settings.
 - `profiles.default_game_account_id` (nullable FK to `game_accounts`).
 - Sidebar clan/game account selector prioritizes: 1) DB default, 2) localStorage, 3) first available.
+- Primary clan on profile: resolved via default account's active clan membership, falls back to first active membership. Membership query uses game account IDs directly (not PostgREST foreign-table filter).
 - Migration: `Documentation/migrations/profile_default_game_account.sql`.
 
 ## Event Calendar: Scroll to Day

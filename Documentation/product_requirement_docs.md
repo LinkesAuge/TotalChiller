@@ -184,9 +184,9 @@ This section covers user registration, login, and profile management.
   4. Create a game account in the profile (add Total Battle player name).
   5. Wait for an admin to assign the user to a clan (typically 24–48 hours).
 - Session management handled by Supabase Auth.
-- Include a "Forgot Password" mechanism for password recovery (standard Supabase Auth feature).
+- Include a "Forgot Password" mechanism for password recovery (standard Supabase Auth feature). Cloudflare Turnstile CAPTCHA required when `TURNSTILE_SECRET_KEY` is configured; bypassed otherwise for dev/staging. Password update page redirects to dashboard after success.
 - **Profile Management (User Settings Page):**
-  - Authenticated users (excluding Guests) can access a dedicated settings page to manage their profile.
+  - Authenticated users (excluding Guests) can access a dedicated settings page to manage their profile. Profile and Settings pages use compact layout (900px max-width). Profile displays clan memberships with clan names and game account usernames (not raw IDs). Primary clan resolved via `default_game_account_id`.
   - **Editable Fields:**
     - Display Name/Alias (for website usage).
     - Email Address (requires re-verification if changed).

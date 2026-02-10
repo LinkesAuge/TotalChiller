@@ -41,9 +41,9 @@ This file is a compact context transfer for a new chat.
   - Bilingual (DE/EN) Supabase email templates for all auth emails: Confirm Signup, Reset Password, Change Email, Invite User, Magic Link. Dual-theme design: light theme for Outlook (via MSO conditional comments), dark/gold theme for modern clients (Gmail, Apple Mail, etc.). Templates documented in `Documentation/supabase-email-templates.md`.
   - Files: `app/auth/register/page.tsx`, `app/auth/login/page.tsx`, `Documentation/supabase-email-templates.md`
 - **Profile + Settings**
-  - `/profile` shows user info, game accounts (with approval status), and clan memberships.
+  - `/profile` shows user info, game accounts (with approval status), and clan memberships. Compact layout (900px max-width). Primary clan resolved via `default_game_account_id` or first active membership. Membership query uses game account IDs directly (not PostgREST foreign-table filter). Clan memberships show clan names and game account usernames (not raw UUIDs).
   - Users can request new game accounts from the profile page (pending admin approval).
-  - `/settings` allows email/password update and notification preference toggles.
+  - `/settings` allows email/password update and notification preference toggles. Compact layout (900px max-width). Language selector uses RadixSelect (same as admin area). Email change passes `emailRedirectTo` and sets fallback cookie.
 - **Core model shift**: `user → game_account → clan`.
   - New tables: `game_accounts`, `game_account_clan_memberships`.
   - RLS updated to use game-account memberships.
@@ -65,6 +65,7 @@ This file is a compact context transfer for a new chat.
 - **Admin gating**
   - "Verwaltung" (Administration) nav section visible to all authenticated users. Non-admins who click admin links are redirected to `/not-authorized?reason=admin` with a context-specific access denied message.
   - Admin page routes protected by `proxy.ts` middleware (`is_any_admin` RPC check).
+  - `proxy.ts` also catches stray PKCE auth codes (when Supabase ignores redirectTo) and redirects to `/auth/callback`. Registration, email change, and forgot-password flows set `auth_redirect_next` fallback cookie.
   - API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns proper JSON error responses (401/403).
   - Admin toggle + safeguard to keep at least one admin.
   - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
@@ -236,6 +237,7 @@ This file is a compact context transfer for a new chat.
 
 - **Clan Management**: Fixed init effect re-running, game account deletion refreshing membership list, race condition guards for concurrent fetches.
 - **Proxy API route**: All `/api/` paths bypass the proxy auth redirect — each route handles its own auth (401/403 JSON).
+- **Password update page**: Redirects to dashboard after 2 seconds on success.
 - **Create-user route**: Fixed duplicate variable declaration in `app/api/admin/create-user/route.ts`.
 - **RLS**: `clans` table was missing `enable row level security`.
 - **UI Cleanup**: Removed `QuickActions` and `ClanScopeBanner` components. Added gold divider below top bar. Messages link moved to user menu dropdown.

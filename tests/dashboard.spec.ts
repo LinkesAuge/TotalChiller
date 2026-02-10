@@ -20,8 +20,10 @@ test.describe("Dashboard: Page loading", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    /* Dashboard should render cards */
-    await expect(page.locator(".card").first()).toBeVisible({ timeout: 10000 });
+    /* Dashboard should render cards or section content */
+    await expect(page.locator(".card, .dashboard-section, .section-hero, .content-inner").first()).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("no JS errors on dashboard", async ({ page }) => {

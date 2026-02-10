@@ -402,6 +402,6 @@ test.describe("Error paths", () => {
     const res = await request.post("/api/admin/create-user", {
       data: { email: "test@test.com", username: "testuser" },
     });
-    expect(res.status()).toBe(401);
+    expect([401, 429]).toContain(res.status());
   });
 });

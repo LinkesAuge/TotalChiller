@@ -109,8 +109,9 @@ test.describe("Auth: Forgot password page", () => {
     await page.locator('input[type="email"]').fill("test@example.com");
     await page.locator('button[type="submit"]').click();
 
-    /* Should show a confirmation message (password reset email sent or similar) */
-    await expect(page.locator("text=/sent|check|email|link|reset/i")).toBeVisible({ timeout: 10000 });
+    /* Should show a confirmation message (password reset email sent or similar).
+       Use .first() because the page may contain multiple elements matching the pattern. */
+    await expect(page.locator("text=/sent|check|email|link|reset/i").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("has link back to login", async ({ page }) => {

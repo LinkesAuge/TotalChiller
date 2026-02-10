@@ -41,8 +41,8 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin");
     await page.waitForLoadState("networkidle");
 
-    /* Should have tab buttons in the admin tabs container */
-    const tabs = page.locator(".admin-tabs-container button, .admin-tabs-container [role=tab]");
+    /* Should have tab links — main admin page uses .tabs directly in .content-inner */
+    const tabs = page.locator(".content-inner .tabs .tab, .content-inner .tabs a");
     expect(await tabs.count()).toBeGreaterThan(3);
   });
 

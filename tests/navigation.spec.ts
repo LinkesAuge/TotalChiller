@@ -76,10 +76,11 @@ test.describe("Navigation: Not-authorized page", () => {
     await page.goto("/not-authorized");
     await page.waitForLoadState("networkidle");
 
-    /* Should have some error/not authorized text */
-    await expect(page.locator("main, .content")).toContainText(/not authorized|access denied|no permission|zugriff/i, {
-      timeout: 10000,
-    });
+    /* Should have some error/not authorized text (EN or DE) */
+    await expect(page.locator("main, .content")).toContainText(
+      /not authorized|access denied|no permission|zugriff|autorisiert|nicht autorisiert/i,
+      { timeout: 10000 },
+    );
 
     /* Should have a link/button to go home */
     const homeLink = page.locator('a[href*="/home"], a[href="/"]');

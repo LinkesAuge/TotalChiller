@@ -16,6 +16,7 @@
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { buildMarkdownComponents, type MarkdownFeatures } from "./markdown-renderers";
 
 /* ─── Types ─── */
@@ -69,17 +70,14 @@ function sanitizeCmsMarkdown(raw: string): string {
  */
 function CmsMarkdown({ content, features, className }: CmsMarkdownProps): JSX.Element {
   /* Memoize components so react-markdown doesn't re-create them on every render */
-  const components = useMemo(
-    () => buildMarkdownComponents("cms-md", features),
-    [features],
-  );
+  const components = useMemo(() => buildMarkdownComponents("cms-md", features), [features]);
 
   /* Sanitize content: fix line endings + broken emphasis markers */
   const normalizedContent = sanitizeCmsMarkdown(content);
 
   return (
     <div className={`cms-md${className ? ` ${className}` : ""}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={components}>
         {normalizedContent}
       </ReactMarkdown>
     </div>

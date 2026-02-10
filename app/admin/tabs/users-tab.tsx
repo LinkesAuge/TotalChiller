@@ -726,7 +726,7 @@ export default function UsersTab(): ReactElement {
   const hasEdits = Object.keys(userEdits).length > 0 || Object.keys(gameAccountEdits).length > 0;
 
   return (
-    <section className="card col-span-full">
+    <section className="card">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("users.title")}</div>

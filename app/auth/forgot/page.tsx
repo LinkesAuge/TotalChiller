@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
@@ -23,7 +24,7 @@ function ForgotPasswordPage(): JSX.Element {
       return;
     }
     setStatus(t("sending"));
-    const redirectTo = `${window.location.origin}/auth/update`;
+    const redirectTo = `${window.location.origin}/auth/callback?next=/auth/update`;
 
     const response = await fetch("/api/auth/forgot-password", {
       method: "POST",
@@ -45,21 +46,19 @@ function ForgotPasswordPage(): JSX.Element {
     <div className="flex flex-col items-center gap-6 pt-10 mx-auto max-w-[720px]">
       <section className="card max-w-[440px] w-full">
         <div className="tooltip-head">
-          <img
+          <Image
             src="/assets/vip/back_tooltip_2.png"
             alt="Card header decorative background"
             className="tooltip-head-bg"
             width={400}
             height={44}
-            loading="lazy"
           />
           <div className="tooltip-head-inner">
-            <img
+            <Image
               src="/assets/vip/batler_icons_star_4.png"
               alt="Reset password icon"
               width={18}
               height={18}
-              loading="lazy"
             />
             <h1 className="card-title">{t("heading")}</h1>
           </div>

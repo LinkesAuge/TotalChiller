@@ -678,7 +678,7 @@ export default function ClansTab(): ReactElement {
   /* status → toast is handled by AdminProvider */
 
   return (
-    <section className="card col-span-full">
+    <section className="card">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("clans.title")}</div>

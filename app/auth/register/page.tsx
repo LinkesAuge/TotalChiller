@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../../lib/supabase/browser-client";
@@ -52,6 +53,7 @@ function RegisterPage(): JSX.Element {
       email: formState.email,
       password: formState.password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/auth/login`,
         data: {
           username: nextUsername,
           display_name: nextUsername,
@@ -69,21 +71,19 @@ function RegisterPage(): JSX.Element {
     <div className="flex flex-col items-center gap-6 pt-10 mx-auto max-w-[720px]">
       <section className="card max-w-[480px] w-full">
         <div className="tooltip-head">
-          <img
+          <Image
             src="/assets/vip/back_tooltip_2.png"
             alt="Card header decorative background"
             className="tooltip-head-bg"
             width={400}
             height={44}
-            loading="lazy"
           />
           <div className="tooltip-head-inner">
-            <img
+            <Image
               src="/assets/vip/batler_icons_star_4.png"
               alt="Registration icon"
               width={18}
               height={18}
-              loading="lazy"
             />
             <h1 className="card-title">{t("heading")}</h1>
           </div>
@@ -136,13 +136,12 @@ function RegisterPage(): JSX.Element {
               />
             </div>
             <button className="button leather mt-2 w-full" type="submit">
-              <img
+              <Image
                 src="/assets/vip/backs_1.png"
                 alt="Leather button texture"
                 className="leather-bg"
                 width={200}
                 height={40}
-                loading="lazy"
               />
               <span>{t("submit")}</span>
             </button>

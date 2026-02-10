@@ -11,7 +11,7 @@ export default function ForumTab(): ReactElement {
   const tAdmin = useTranslations("admin");
 
   return (
-    <section className="card col-span-full">
+    <section className="card">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("forum.title")}</div>

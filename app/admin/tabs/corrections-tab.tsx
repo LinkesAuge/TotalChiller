@@ -296,7 +296,7 @@ export default function CorrectionsTab(): ReactElement {
   const isNoMatch = ruleList.filteredRules.length === 0 && editingId !== NEW_CORRECTION_ID && ruleList.rules.length > 0;
 
   return (
-    <section className="card col-span-full">
+    <section className="card">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("corrections.title")}</div>

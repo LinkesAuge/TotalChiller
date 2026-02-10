@@ -35,7 +35,7 @@ const ForumTab = dynamic(() => import("./tabs/forum-tab"), {
 
 function TabSkeleton(): ReactElement {
   return (
-    <section className="card col-span-full">
+    <section className="card">
       <div className="card-header">
         <div className="skeleton" style={{ width: "40%", height: 20 }} />
       </div>
@@ -69,9 +69,9 @@ function AdminInner(): ReactElement {
   const ActiveTab = TAB_MAP[activeSection] ?? ClansTab;
 
   return (
-    <div className="grid">
+    <div className="admin-grid">
       {/* ── Tab bar ── */}
-      <section className="card col-span-full">
+      <section className="card">
         <div className="card-header">
           <div>
             <div className="card-title">{tAdmin("sections.title")}</div>

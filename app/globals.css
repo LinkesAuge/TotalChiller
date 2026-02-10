@@ -1107,6 +1107,14 @@ body {
   margin-top: 20px;
 }
 
+/* Admin grid — single-column layout for the admin area */
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-top: 20px;
+}
+
 /* Legacy 12-column grid for admin/table pages */
 .grid-12 {
   display: grid;
@@ -1124,15 +1132,6 @@ body {
   overflow: hidden;
   transition: all 0.2s ease;
   position: relative;
-}
-
-/*
- * Tailwind v4 utilities live in @layer utilities which loses to unlayered CSS.
- * Since .card sets grid-column: span 1 (unlayered), we must also provide
- * col-span-full as unlayered CSS so it can override .card in the cascade.
- */
-.col-span-full {
-  grid-column: 1 / -1;
 }
 
 .card:hover {

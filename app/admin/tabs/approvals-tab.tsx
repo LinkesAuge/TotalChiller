@@ -66,7 +66,7 @@ export default function ApprovalsTab(): ReactElement {
   );
 
   return (
-    <section className="card col-span-full">
+    <section className="card">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("approvals.title")}</div>

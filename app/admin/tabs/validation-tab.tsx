@@ -240,7 +240,7 @@ export default function ValidationTab(): ReactElement {
   const displayImportStatus = ruleList.importStatus || importStatus;
 
   return (
-    <section className="card col-span-full">
+    <section className="card">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("validation.title")}</div>

@@ -39,11 +39,34 @@ async function isUserAdmin(supabase: ReturnType<typeof createServerClient>): Pro
   return getIsAdminAccess({ supabase });
 }
 
+const AUTH_CALLBACK_PATH = "/auth/callback";
+const AUTH_CODE_REDIRECT_COOKIE = "auth_redirect_next";
+
 /**
  * Ensures protected routes require an authenticated session
  * and handles locale detection via the NEXT_LOCALE cookie.
+ *
+ * Also catches Supabase PKCE auth codes that land on the wrong route
+ * (e.g. when Supabase ignores redirectTo and falls back to the site URL)
+ * and redirects them to the auth callback handler.
  */
 export async function proxy(request: NextRequest): Promise<NextResponse> {
+  /* --- Auth code catch-all: redirect stray PKCE codes to /auth/callback --- */
+  const code = request.nextUrl.searchParams.get("code");
+  if (code && request.nextUrl.pathname !== AUTH_CALLBACK_PATH) {
+    const url = request.nextUrl.clone();
+    url.pathname = AUTH_CALLBACK_PATH;
+    if (!url.searchParams.has("next")) {
+      const cookieNext = request.cookies.get(AUTH_CODE_REDIRECT_COOKIE)?.value;
+      if (cookieNext) {
+        url.searchParams.set("next", cookieNext);
+      }
+    }
+    const redirectResponse = NextResponse.redirect(url);
+    redirectResponse.cookies.set(AUTH_CODE_REDIRECT_COOKIE, "", { maxAge: 0, path: "/" });
+    return redirectResponse;
+  }
+
   const response = NextResponse.next();
   const existingLocale = request.cookies.get(LOCALE_COOKIE)?.value;
   if (!existingLocale || !routing.locales.includes(existingLocale as (typeof routing.locales)[number])) {

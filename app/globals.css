@@ -494,6 +494,7 @@ body {
 }
 
 .nav-group-title {
+  font-family: var(--font-heading);
   font-size: 0.6rem;
   font-weight: 700;
   color: var(--color-text-2);
@@ -621,6 +622,7 @@ body {
 }
 
 .nav-label {
+  font-family: var(--font-heading);
   overflow: hidden;
   text-overflow: ellipsis;
   position: relative;

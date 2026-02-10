@@ -6,6 +6,19 @@ export const metadata: Metadata = {
   description:
     "Sign in to your TotalChiller account to access [THC] Chiller & Killer community hub. View clan stats, coordinate events, and track chest scores.",
   alternates: { canonical: "/auth/login" },
+  openGraph: {
+    title: "Sign In to Your Account",
+    description:
+      "Sign in to your TotalChiller account to access [THC] Chiller & Killer community hub. View clan stats, coordinate events, and track chest scores.",
+    images: [{ url: "/assets/banners/banner_gold_dragon.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sign In to Your Account",
+    description:
+      "Sign in to your TotalChiller account to access [THC] Chiller & Killer community hub. View clan stats, coordinate events, and track chest scores.",
+    images: ["/assets/banners/banner_gold_dragon.png"],
+  },
 };
 
 /** Layout wrapper providing metadata for the login page. */

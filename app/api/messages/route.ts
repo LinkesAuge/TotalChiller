@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { z } from "zod";
 import createSupabaseServerClient from "../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
@@ -130,20 +130,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     content: body.content.trim(),
   }));
 
-  const { data: inserted, error: insertError } = await serviceClient
-    .from("messages")
-    .insert(messageRows)
-    .select("id,sender_id,recipient_id,message_type,subject,content,is_read,created_at");
+  /* Insert messages and fetch sender profile in parallel */
+  const [insertResult, senderProfile] = await Promise.all([
+    serviceClient
+      .from("messages")
+      .insert(messageRows)
+      .select("id,sender_id,recipient_id,message_type,subject,content,is_read,created_at"),
+    serviceClient.from("profiles").select("display_name,username,email").eq("id", senderId).maybeSingle(),
+  ]);
+  const { data: inserted, error: insertError } = insertResult;
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
-
-  /* Create notifications for all recipients */
-  const senderProfile = await serviceClient
-    .from("profiles")
-    .select("display_name,username,email")
-    .eq("id", senderId)
-    .maybeSingle();
   const senderLabel =
     senderProfile.data?.display_name ?? senderProfile.data?.username ?? senderProfile.data?.email ?? "Someone";
 
@@ -157,7 +155,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       reference_id: (msg?.id as string) ?? null,
     };
   });
-  await serviceClient.from("notifications").insert(notificationRows);
+  after(async () => {
+    await serviceClient.from("notifications").insert(notificationRows);
+  });
 
   return NextResponse.json({ data: inserted, count: recipientIds.length }, { status: 201 });
 }

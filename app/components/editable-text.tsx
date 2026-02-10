@@ -13,9 +13,13 @@
  * 4. `markdown={false}` (default) → plain text with <br> in <div>
  */
 
+import dynamic from "next/dynamic";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import CmsMarkdown from "./cms-markdown";
+
+const CmsMarkdown = dynamic(() => import("./cms-markdown"), {
+  loading: () => <div className="skeleton h-20 rounded" />,
+});
 import CmsMarkdownToolbar from "./cms-markdown-toolbar";
 import type { SupabaseClient } from "@supabase/supabase-js";
 

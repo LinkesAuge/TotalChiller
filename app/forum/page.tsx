@@ -5,6 +5,17 @@ export const metadata: Metadata = {
   title: "Forum",
   description: "Community discussion forum for [THC] Chiller & Killer clan.",
   alternates: { canonical: "/forum" },
+  openGraph: {
+    title: "Forum",
+    description: "Community discussion forum for [THC] Chiller & Killer clan.",
+    images: [{ url: "/assets/banners/banner_gold_dragon.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Forum",
+    description: "Community discussion forum for [THC] Chiller & Killer clan.",
+    images: ["/assets/banners/banner_gold_dragon.png"],
+  },
 };
 
 /**

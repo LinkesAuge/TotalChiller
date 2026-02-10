@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import useClanContext from "../components/use-clan-context";
@@ -7,8 +8,34 @@ import DatePicker from "../components/date-picker";
 import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
 import SectionHero from "../components/section-hero";
-import { ScoreLineChart, TopPlayersBar, ChestTypePie, PersonalScoreChart, SummaryPanel } from "./chart-components";
 import type { ChartsApiResponse, ChartSummary } from "./chart-types";
+
+const chartLoading = () => <div className="skeleton h-64 rounded-lg" />;
+
+const ScoreLineChart = dynamic(() => import("./chart-components").then((mod) => mod.ScoreLineChart), {
+  loading: chartLoading,
+  ssr: false,
+});
+
+const TopPlayersBar = dynamic(() => import("./chart-components").then((mod) => mod.TopPlayersBar), {
+  loading: chartLoading,
+  ssr: false,
+});
+
+const ChestTypePie = dynamic(() => import("./chart-components").then((mod) => mod.ChestTypePie), {
+  loading: chartLoading,
+  ssr: false,
+});
+
+const PersonalScoreChart = dynamic(() => import("./chart-components").then((mod) => mod.PersonalScoreChart), {
+  loading: chartLoading,
+  ssr: false,
+});
+
+const SummaryPanel = dynamic(() => import("./chart-components").then((mod) => mod.SummaryPanel), {
+  loading: chartLoading,
+  ssr: false,
+});
 
 /** Empty summary used as default before data loads. */
 const EMPTY_SUMMARY: ChartSummary = {

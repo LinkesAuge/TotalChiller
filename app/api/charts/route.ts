@@ -53,7 +53,7 @@ export async function GET(request: Request): Promise<Response> {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  /* ── Fetch chest entries (RLS enforced) ── */
+  /* ── Build chest entries query ── */
   let query = supabase.from("chest_entries").select("collected_date,player,source,chest,score,clan_id");
 
   if (clanId) {
@@ -74,31 +74,29 @@ export async function GET(request: Request): Promise<Response> {
 
   query = query.order("collected_date", { ascending: true });
 
-  const { data: rows, error: rowsError } = await query;
-  if (rowsError) {
-    return NextResponse.json({ error: rowsError.message }, { status: 500 });
-  }
-  const entries = (rows ?? []) as readonly ChestRow[];
+  /* ── Build game accounts query for personal score ── */
+  const accountsQuery = gameAccountId
+    ? supabase.from("game_accounts").select("game_username").eq("id", gameAccountId).maybeSingle()
+    : supabase
+        .from("game_accounts")
+        .select("game_username")
+        .eq("user_id", userData.user.id)
+        .eq("approval_status", "approved");
 
-  /* ── Fetch current user's game account usernames for personal score ── */
-  let personalUsernames: readonly string[] = [];
-  if (gameAccountId) {
-    const { data: singleAccount } = await supabase
-      .from("game_accounts")
-      .select("game_username")
-      .eq("id", gameAccountId)
-      .maybeSingle();
-    if (singleAccount) {
-      personalUsernames = [(singleAccount as GameAccountRow).game_username.toLowerCase()];
-    }
+  /* ── Fetch chest entries and game accounts in parallel ── */
+  const [chestResult, accountResult] = await Promise.all([query, accountsQuery]);
+  if (chestResult.error) {
+    return NextResponse.json({ error: chestResult.error.message }, { status: 500 });
   }
-  if (personalUsernames.length === 0) {
-    const { data: allAccounts } = await supabase
-      .from("game_accounts")
-      .select("game_username")
-      .eq("user_id", userData.user.id)
-      .eq("approval_status", "approved");
-    personalUsernames = (allAccounts ?? []).map((a) => (a as GameAccountRow).game_username.toLowerCase());
+  const entries = (chestResult.data ?? []) as readonly ChestRow[];
+
+  let personalUsernames: readonly string[] = [];
+  if (gameAccountId && accountResult.data) {
+    personalUsernames = [(accountResult.data as GameAccountRow).game_username.toLowerCase()];
+  } else if (!gameAccountId && accountResult.data) {
+    personalUsernames = ((accountResult.data as GameAccountRow[] | null) ?? []).map((a) =>
+      a.game_username.toLowerCase(),
+    );
   }
   const personalSet = new Set(personalUsernames);
 

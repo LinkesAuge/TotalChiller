@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { z } from "zod";
 import { useTranslations, useLocale } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
@@ -15,8 +16,12 @@ import RadixSelect from "../components/ui/radix-select";
 import IconButton from "../components/ui/icon-button";
 import DatePicker from "../components/date-picker";
 import SearchInput from "../components/ui/search-input";
+import dynamic from "next/dynamic";
 import SectionHero from "../components/section-hero";
-import ForumMarkdown from "../forum/forum-markdown";
+
+const ForumMarkdown = dynamic(() => import("../forum/forum-markdown"), {
+  loading: () => <div className="skeleton h-32 rounded" />,
+});
 import MarkdownToolbar, { handleImagePaste, handleImageDrop } from "../forum/markdown-toolbar";
 
 /* ─── Banner templates ─── */
@@ -429,7 +434,7 @@ function NewsClient(): JSX.Element {
                         className={`news-banner-option${bannerUrl === tmpl.src ? " selected" : ""}`}
                         onClick={() => setBannerUrl(tmpl.src)}
                       >
-                        <img src={tmpl.src} alt={tmpl.label} />
+                        <Image src={tmpl.src} alt={tmpl.label} width={80} height={48} />
                       </button>
                     ))}
                     {/* Custom upload */}
@@ -706,13 +711,12 @@ function NewsClient(): JSX.Element {
                     />
                     <div className="news-card-banner-overlay" />
                     {/* Decorative line */}
-                    <img
+                    <Image
                       src="/assets/vip/components_decor_6.png"
                       alt=""
                       className="news-card-decor"
                       width={240}
                       height={12}
-                      loading="lazy"
                     />
                     {/* Title + meta over banner */}
                     <div className="news-card-banner-content">

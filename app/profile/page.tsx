@@ -65,11 +65,27 @@ async function ProfileContent(): Promise<JSX.Element> {
   }
   const userEmail = data.user?.email ?? "Unknown";
   const userId = data.user?.id ?? "Unknown";
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("user_db,username,display_name,default_game_account_id")
-    .eq("id", userId)
-    .maybeSingle();
+  /* Fetch profile + independent data in parallel */
+  const [{ data: profileData }, membershipResult, gameAccountResult, userRoleResult, t] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("user_db,username,display_name,default_game_account_id")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase
+      .from("game_account_clan_memberships")
+      .select("clan_id,is_active,game_accounts(game_username)")
+      .eq("game_accounts.user_id", userId)
+      .eq("is_active", true)
+      .order("clan_id"),
+    supabase
+      .from("game_accounts")
+      .select("id,game_username,approval_status,created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+    supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
+    getTranslations("profile"),
+  ]);
   const emailPrefix = userEmail && userEmail !== "Unknown" ? userEmail.split("@")[0] : "user";
   const fallbackSuffix = userId !== "Unknown" ? userId.replace(/-/g, "").slice(-6) : "000000";
   const fallbackUsername = `${emailPrefix}_${fallbackSuffix}`.toLowerCase();
@@ -98,13 +114,7 @@ async function ProfileContent(): Promise<JSX.Element> {
       ensuredProfile?.username ?? (userEmail && userEmail !== "Unknown" ? userEmail.split("@")[0] : "Unknown"),
     displayName: ensuredProfile?.display_name ?? ensuredProfile?.username ?? "Unknown",
   };
-  const { data: membershipData } = await supabase
-    .from("game_account_clan_memberships")
-    .select("clan_id,is_active,game_accounts(game_username)")
-    .eq("game_accounts.user_id", userId)
-    .eq("is_active", true)
-    .order("clan_id");
-  const memberships: readonly MembershipView[] = ((membershipData ?? []) as readonly MembershipQueryView[]).map(
+  const memberships: readonly MembershipView[] = ((membershipResult.data ?? []) as readonly MembershipQueryView[]).map(
     (membership) => ({
       ...membership,
       game_accounts: Array.isArray(membership.game_accounts)
@@ -112,14 +122,8 @@ async function ProfileContent(): Promise<JSX.Element> {
         : membership.game_accounts,
     }),
   );
-  const { data: gameAccountData } = await supabase
-    .from("game_accounts")
-    .select("id,game_username,approval_status,created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-  const gameAccounts = (gameAccountData ?? []) as readonly GameAccountView[];
-  const { data: userRoleData } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
-  const userRole = userRoleData?.role ?? "member";
+  const gameAccounts = (gameAccountResult.data ?? []) as readonly GameAccountView[];
+  const userRole = userRoleResult.data?.role ?? "member";
   const clanIds = memberships.map((membership) => membership.clan_id);
   const { data: clanData } = clanIds.length
     ? await supabase.from("clans").select("id,name").in("id", clanIds)
@@ -128,8 +132,6 @@ async function ProfileContent(): Promise<JSX.Element> {
   (clanData ?? []).forEach((clan) => {
     clansById[clan.id] = clan;
   });
-  const t = await getTranslations("profile");
-  const _locale = await getLocale();
   const primaryMembership: MembershipView | null = memberships[0] ?? null;
   const primaryClan = primaryMembership ? clansById[primaryMembership.clan_id] : null;
   const roleLabel = formatRole(userRole);

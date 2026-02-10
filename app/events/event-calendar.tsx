@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRef } from "react";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { CalendarDay, DisplayEvent } from "./events-types";
@@ -51,22 +52,9 @@ export function EventCalendar({
   return (
     <section className="card event-calendar-card">
       <div className="tooltip-head">
-        <img
-          src="/assets/vip/back_tooltip_2.png"
-          alt=""
-          className="tooltip-head-bg"
-          width={400}
-          height={44}
-          loading="lazy"
-        />
+        <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
         <div className="tooltip-head-inner">
-          <img
-            src="/assets/vip/batler_icons_stat_armor.png"
-            alt={t("calendarOverview")}
-            width={18}
-            height={18}
-            loading="lazy"
-          />
+          <Image src="/assets/vip/batler_icons_stat_armor.png" alt={t("calendarOverview")} width={18} height={18} />
           <h3 className="card-title">{t("monthlyOverview")}</h3>
           <span className="pin-badge">
             {totalEventsCount} {t("totalEvents")}
@@ -74,14 +62,7 @@ export function EventCalendar({
         </div>
       </div>
       <div className="event-calendar-body">
-        <img
-          src="/assets/vip/backs_21.png"
-          alt=""
-          className="event-calendar-bg"
-          width={800}
-          height={600}
-          loading="lazy"
-        />
+        <Image src="/assets/vip/backs_21.png" alt="" className="event-calendar-bg" width={800} height={600} />
         <div className="event-calendar-layout">
           <div>
             <div className="calendar-toolbar">

@@ -12,9 +12,13 @@
  * - Badge display per item
  */
 
+import dynamic from "next/dynamic";
 import { useState, useRef, useCallback, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
-import CmsMarkdown from "./cms-markdown";
+
+const CmsMarkdown = dynamic(() => import("./cms-markdown"), {
+  loading: () => <div className="skeleton h-20 rounded" />,
+});
 import type { ListItem } from "./use-site-content";
 import type { SupabaseClient } from "@supabase/supabase-js";
 

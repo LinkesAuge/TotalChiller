@@ -1,7 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { RefObject } from "react";
-import ForumMarkdown from "./forum-markdown";
+
+const ForumMarkdown = dynamic(() => import("./forum-markdown"), {
+  loading: () => <div className="skeleton h-32 rounded" />,
+});
 import { UpArrow, DownArrow, CommentIcon } from "./forum-icons";
 import { formatTimeAgo, type TFunction } from "./forum-utils";
 import type { ForumPost, ForumComment } from "./forum-types";

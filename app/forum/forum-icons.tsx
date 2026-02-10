@@ -1,6 +1,6 @@
 "use client";
 
-import type { PostThumbnail } from "./forum-markdown";
+import type { PostThumbnail } from "./forum-thumbnail";
 
 export function UpArrow(): JSX.Element {
   return (

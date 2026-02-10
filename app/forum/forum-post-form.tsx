@@ -1,9 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { RefObject } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ForumCategory } from "@/lib/types/domain";
-import ForumMarkdown from "./forum-markdown";
+
+const ForumMarkdown = dynamic(() => import("./forum-markdown"), {
+  loading: () => <div className="skeleton h-32 rounded" />,
+});
 import MarkdownToolbar, { handleImagePaste, handleImageDrop } from "./markdown-toolbar";
 import type { TFunction } from "./forum-utils";
 

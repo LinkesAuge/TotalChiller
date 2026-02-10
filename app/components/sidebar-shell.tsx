@@ -103,22 +103,22 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
       return;
     }
 
-    /* Profile */
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("user_db,username,display_name,default_game_account_id")
-      .eq("id", userId)
-      .maybeSingle();
-
-    /* Clan memberships with rank */
-    const { data: memberships } = await supabase
-      .from("game_account_clan_memberships")
-      .select(
-        "clan_id,game_account_id,rank,clans(name,is_unassigned),game_accounts!inner(game_username,approval_status)",
-      )
-      .eq("is_active", true)
-      .eq("clans.is_unassigned", false)
-      .eq("game_accounts.user_id", userId);
+    /* Fetch profile and clan memberships in parallel */
+    const [{ data: profile }, { data: memberships }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("user_db,username,display_name,default_game_account_id")
+        .eq("id", userId)
+        .maybeSingle(),
+      supabase
+        .from("game_account_clan_memberships")
+        .select(
+          "clan_id,game_account_id,rank,clans(name,is_unassigned),game_accounts!inner(game_username,approval_status)",
+        )
+        .eq("is_active", true)
+        .eq("clans.is_unassigned", false)
+        .eq("game_accounts.user_id", userId),
+    ]);
 
     const options: ClanOption[] = (memberships ?? [])
       .filter((row) => {
@@ -210,6 +210,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           className="sidebar-texture"
           width={236}
           height={900}
+          sizes="236px"
           priority
         />
 

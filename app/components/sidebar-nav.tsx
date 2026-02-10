@@ -119,7 +119,7 @@ function isNavItemActive(pathname: string, activeTab: string | null, item: NavIt
 /** Renders an SVG icon for a nav item, or a VIP image icon. */
 function NavItemIcon({ item }: { readonly item: NavItem }): JSX.Element {
   if (item.vipIcon) {
-    return <img src={item.vipIcon} alt="" className="w-4 h-4 object-contain" />;
+    return <Image src={item.vipIcon} alt="" className="w-4 h-4 object-contain" width={16} height={16} />;
   }
   const iconPath = ICONS[item.iconKey] ?? ICONS.dashboard;
   return (

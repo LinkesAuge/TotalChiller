@@ -15,13 +15,14 @@ const PUBLIC_ROUTES: readonly PublicRoute[] = [
   { path: "/auth/login", changeFrequency: "weekly", priority: 0.7 },
   { path: "/auth/register", changeFrequency: "weekly", priority: 0.7 },
   { path: "/auth/forgot", changeFrequency: "monthly", priority: 0.3 },
-  /* /news requires authentication and redirects unauthenticated users */
+  { path: "/forum", changeFrequency: "daily", priority: 0.6 },
+  { path: "/events", changeFrequency: "daily", priority: 0.6 },
+  { path: "/charts", changeFrequency: "weekly", priority: 0.4 },
 ];
 
 /** Generates a dynamic sitemap that adapts to the current request host. */
 async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  let baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app";
+  let baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app";
 
   try {
     const headersList = await headers();

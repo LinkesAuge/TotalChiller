@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { after } from "next/server";
 import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
@@ -58,35 +59,43 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
-    await serviceClient.from("messages").insert({
-      sender_id: null,
-      recipient_id: accountUserId,
-      message_type: "system",
-      subject: "Game Account Approved",
-      content: `Your game account "${gameUsername}" has been approved. You can now be assigned to a clan.`,
-    });
-    await serviceClient.from("notifications").insert({
-      user_id: accountUserId,
-      type: "approval",
-      title: "Game Account Approved",
-      body: `Your game account "${gameUsername}" has been approved.`,
-      reference_id: body.game_account_id,
+    after(async () => {
+      await Promise.all([
+        serviceClient.from("messages").insert({
+          sender_id: null,
+          recipient_id: accountUserId,
+          message_type: "system",
+          subject: "Game Account Approved",
+          content: `Your game account "${gameUsername}" has been approved. You can now be assigned to a clan.`,
+        }),
+        serviceClient.from("notifications").insert({
+          user_id: accountUserId,
+          type: "approval",
+          title: "Game Account Approved",
+          body: `Your game account "${gameUsername}" has been approved.`,
+          reference_id: body.game_account_id,
+        }),
+      ]);
     });
     return NextResponse.json({ data: { id: body.game_account_id, approval_status: "approved" } });
   }
-  await serviceClient.from("messages").insert({
-    sender_id: null,
-    recipient_id: accountUserId,
-    message_type: "system",
-    subject: "Game Account Rejected",
-    content: `Your game account request for "${gameUsername}" has been rejected. You may try again with a different game account.`,
-  });
-  await serviceClient.from("notifications").insert({
-    user_id: accountUserId,
-    type: "approval",
-    title: "Game Account Rejected",
-    body: `Your request for "${gameUsername}" has been rejected.`,
-    reference_id: body.game_account_id,
+  after(async () => {
+    await Promise.all([
+      serviceClient.from("messages").insert({
+        sender_id: null,
+        recipient_id: accountUserId,
+        message_type: "system",
+        subject: "Game Account Rejected",
+        content: `Your game account request for "${gameUsername}" has been rejected. You may try again with a different game account.`,
+      }),
+      serviceClient.from("notifications").insert({
+        user_id: accountUserId,
+        type: "approval",
+        title: "Game Account Rejected",
+        body: `Your request for "${gameUsername}" has been rejected.`,
+        reference_id: body.game_account_id,
+      }),
+    ]);
   });
   const { error: deleteError } = await serviceClient.from("game_accounts").delete().eq("id", body.game_account_id);
   if (deleteError) {

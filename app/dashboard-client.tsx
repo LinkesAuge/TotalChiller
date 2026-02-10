@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../lib/supabase/browser-client";
@@ -198,22 +199,9 @@ function DashboardClient(): JSX.Element {
         {/* ── Announcements (real data) ── */}
         <section className="card col-span-2">
           <div className="tooltip-head">
-            <img
-              src="/assets/vip/back_tooltip_2.png"
-              alt=""
-              className="tooltip-head-bg"
-              width={400}
-              height={44}
-              loading="lazy"
-            />
+            <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
             <div className="tooltip-head-inner">
-              <img
-                src="/assets/vip/batler_icons_stat_damage.png"
-                alt="Announcements"
-                width={18}
-                height={18}
-                loading="lazy"
-              />
+              <Image src="/assets/vip/batler_icons_stat_damage.png" alt="Announcements" width={18} height={18} />
               <h3 className="card-title">{t("announcementsTitle")}</h3>
               <Link href="/news" className="ml-auto text-[0.65rem] text-gold no-underline">
                 {t("viewAll")} →
@@ -233,7 +221,7 @@ function DashboardClient(): JSX.Element {
                   <div key={article.id}>
                     {i > 0 && <div className="gold-divider" />}
                     <div className="flex items-start gap-2.5 py-2.5">
-                      <img
+                      <Image
                         src={
                           article.is_pinned
                             ? "/assets/vip/batler_icons_star_5.png"
@@ -243,7 +231,6 @@ function DashboardClient(): JSX.Element {
                         width={14}
                         height={14}
                         className="mt-0.5"
-                        loading="lazy"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-[0.88rem]">{article.title}</div>
@@ -276,16 +263,9 @@ function DashboardClient(): JSX.Element {
         {/* ── Stats (placeholder — retained from original design) ── */}
         <section className="card col-span-2">
           <div className="tooltip-head">
-            <img
-              src="/assets/vip/back_tooltip_2.png"
-              alt=""
-              className="tooltip-head-bg"
-              width={400}
-              height={44}
-              loading="lazy"
-            />
+            <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
             <div className="tooltip-head-inner">
-              <img src="/assets/vip/batler_icons_stat_armor.png" alt="Stats" width={18} height={18} loading="lazy" />
+              <Image src="/assets/vip/batler_icons_stat_armor.png" alt="Stats" width={18} height={18} />
               <h3 className="card-title">{t("quickStatsTitle")}</h3>
               <span className="coming-soon-badge ml-2">{t("comingSoon")}</span>
               <span
@@ -331,12 +311,11 @@ function DashboardClient(): JSX.Element {
               },
             ].map((stat, i) => (
               <div key={i} className="stat-cell">
-                <img
+                <Image
                   src={stat.ico}
                   alt={stat.l}
                   width={20}
                   height={20}
-                  loading="lazy"
                   className="my-0 mx-auto mb-1 block object-contain"
                 />
                 <div className="stat-value">{stat.v}</div>
@@ -348,12 +327,11 @@ function DashboardClient(): JSX.Element {
 
         {/* ── Events (real data) ── */}
         <section className="card">
-          <img
+          <Image
             src="/assets/banners/banner_ragnarok_clan_event_708x123.png"
             alt="Upcoming clan events banner"
             width={708}
             height={123}
-            loading="lazy"
             className="w-full h-14 object-cover opacity-70"
           />
           <div className="py-2.5 px-4">
@@ -434,22 +412,20 @@ function DashboardClient(): JSX.Element {
                   </span>
                 </div>
                 <div className="game-progress">
-                  <img
+                  <Image
                     src="/assets/vip/battler_stage_bar_empty.png"
                     alt=""
                     className="game-progress-bg"
                     width={400}
                     height={20}
-                    loading="lazy"
                   />
                   <div className="game-progress-fill" style={{ width: `${bar.value}%` }}>
-                    <img
+                    <Image
                       src="/assets/vip/battler_stage_bar_full.png"
                       alt=""
                       className="game-progress-bg"
                       width={400}
                       height={20}
-                      loading="lazy"
                     />
                   </div>
                 </div>

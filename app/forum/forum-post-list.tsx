@@ -1,6 +1,11 @@
 "use client";
 
-import ForumMarkdown, { extractThumbnail } from "./forum-markdown";
+import dynamic from "next/dynamic";
+import { extractThumbnail } from "./forum-thumbnail";
+
+const ForumMarkdown = dynamic(() => import("./forum-markdown"), {
+  loading: () => <div className="skeleton h-32 rounded" />,
+});
 import { UpArrow, DownArrow, CommentIcon, PostThumbnailBox } from "./forum-icons";
 import { formatTimeAgo } from "./forum-utils";
 import type { ForumPost, SortMode } from "./forum-types";

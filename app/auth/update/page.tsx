@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../../lib/supabase/browser-client";
@@ -47,9 +48,9 @@ function UpdatePasswordPage(): JSX.Element {
     <div className="flex justify-center pt-10">
       <section className="card max-w-[440px] w-full">
         <div className="tooltip-head">
-          <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
+          <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
           <div className="tooltip-head-inner">
-            <img src="/assets/vip/batler_icons_star_4.png" alt="Update password" width={18} height={18} />
+            <Image src="/assets/vip/batler_icons_star_4.png" alt="Update password" width={18} height={18} />
             <h3 className="card-title">{t("heading")}</h3>
           </div>
         </div>

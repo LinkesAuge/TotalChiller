@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Image from "next/image";
+import { Cinzel, Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
@@ -8,6 +9,20 @@ import { SidebarProvider } from "./components/sidebar-context";
 import SidebarShell from "./components/sidebar-shell";
 import { ToastProvider } from "./components/toast-provider";
 import ClanAccessGate from "./components/clan-access-gate";
+
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  weight: ["500", "700"],
+  display: "swap",
+  variable: "--font-heading",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-body",
+});
 
 interface RootLayoutProps {
   readonly children: ReactNode;
@@ -46,15 +61,14 @@ export const metadata: Metadata = {
  * Provides collapsible sidebar, ornate footer, clan access gating, and i18n.
  */
 async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
-  const locale = await getLocale();
-  const messages = await getMessages();
+  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
   const t = (ns: string, key: string): string => {
     const section = (messages as Record<string, Record<string, string>>)[ns];
     return section?.[key] ?? key;
   };
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} className={`${cinzel.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="preload" href="/assets/vip/back_left.png" as="image" />
@@ -104,6 +118,7 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
                       className="app-footer-divider"
                       width={800}
                       height={16}
+                      sizes="(max-width: 800px) 100vw, 800px"
                     />
                     <span className="app-footer-text">{t("footer", "tagline")}</span>
                     <div className="app-footer-links">

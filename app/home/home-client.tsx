@@ -8,6 +8,7 @@
  * No more inline EditableList, deriveItems, or normalizeContent.
  */
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
@@ -41,35 +42,20 @@ function HomeClient(): JSX.Element {
   const heroBanner = (
     <div className="hero-banner">
       <div className="hero-overlay" />
-      <img
+      <Image
         src="/assets/banners/banner_gold_dragon.webp"
         alt={t("heroBannerAlt")}
         className="hero-bg"
         width={1200}
         height={300}
-        loading="eager"
-        fetchPriority="high"
+        priority
       />
-      <img src="/assets/vip/decor_light_1.png" alt="" className="hero-light" width={400} height={400} loading="eager" />
+      <Image src="/assets/vip/decor_light_1.png" alt="" className="hero-light" width={400} height={400} priority />
       <div className="hero-content">
-        <img
-          src="/assets/vip/components_decor_6.png"
-          alt=""
-          className="hero-decor"
-          width={300}
-          height={20}
-          loading="lazy"
-        />
+        <Image src="/assets/vip/components_decor_6.png" alt="" className="hero-decor" width={300} height={20} />
         <h2 className="hero-title">{t("heroTitle")}</h2>
         <p className="hero-subtitle">{t("heroSubtitle")}</p>
-        <img
-          src="/assets/vip/components_decor_6.png"
-          alt=""
-          className="hero-decor flipped"
-          width={300}
-          height={20}
-          loading="lazy"
-        />
+        <Image src="/assets/vip/components_decor_6.png" alt="" className="hero-decor flipped" width={300} height={20} />
       </div>
     </div>
   );
@@ -86,16 +72,9 @@ function HomeClient(): JSX.Element {
       <section className="card home-about-card col-span-full">
         <div className="home-about-bg" />
         <div className="tooltip-head">
-          <img
-            src="/assets/vip/back_tooltip_2.png"
-            alt=""
-            className="tooltip-head-bg"
-            width={400}
-            height={44}
-            loading="lazy"
-          />
+          <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
           <div className="tooltip-head-inner">
-            <img src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} loading="lazy" />
+            <Image src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} />
             <EditableText
               as="h3"
               className="card-title"
@@ -198,16 +177,9 @@ function HomeClient(): JSX.Element {
       <section className="card home-whyjoin-card col-span-full">
         <div className="home-whyjoin-bg" />
         <div className="tooltip-head">
-          <img
-            src="/assets/vip/back_tooltip_2.png"
-            alt=""
-            className="tooltip-head-bg"
-            width={400}
-            height={44}
-            loading="lazy"
-          />
+          <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
           <div className="tooltip-head-inner">
-            <img src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} loading="lazy" />
+            <Image src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} />
             <EditableText
               as="h3"
               className="card-title"

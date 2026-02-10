@@ -195,6 +195,47 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Global `option` CSS styling ensures dark-themed native dropdown menus where `RadixSelect` is not used.
 - ESLint uses Next.js flat config (`eslint.config.js`); run `npx eslint .`.
 
+### Admin Panel Architecture (refactored Feb 2026)
+
+The admin panel was refactored from a monolithic 6,286-line `admin-client.tsx` into a modular, code-split architecture:
+
+```
+app/admin/
+  admin-client.tsx            # Slim orchestrator (~140 lines) — tab bar + dynamic imports
+  admin-context.tsx           # Shared state context (supabase, clans, user, section routing)
+  admin-types.ts              # Types, constants, pure utility functions
+  hooks/
+    use-pagination.ts         # Pagination state + derived values
+    use-sortable.ts           # Sort key + direction toggle + generic comparator
+    use-confirm-delete.ts     # 3-step delete flow state machine
+    use-rule-list.ts          # Shared validation/correction rule management hook
+  components/
+    danger-confirm-modal.tsx  # Reusable 2-step delete confirmation modal
+    sortable-column-header.tsx # Sortable table header button with direction indicator
+    pagination-bar.tsx        # Reusable pagination controls (page size, jump, prev/next)
+    rule-import-modal.tsx     # Shared CSV/TXT import preview modal
+  tabs/
+    clans-tab.tsx             # Clan management + membership table
+    users-tab.tsx             # User management + game account CRUD
+    validation-tab.tsx        # Validation rule list (uses useRuleList hook)
+    corrections-tab.tsx       # Correction rule list (uses useRuleList hook)
+    logs-tab.tsx              # Audit log viewer with filters + pagination
+    approvals-tab.tsx         # Pending game account approval queue
+    forum-tab.tsx             # Forum category management (wraps ForumCategoryAdmin)
+```
+
+**Key design principles:**
+
+- **Code splitting**: Each tab is lazy-loaded via `next/dynamic`, so only the active tab's JS ships to the browser.
+- **Deduplication**: 5 duplicated patterns (~900 lines) eliminated via shared hooks and components:
+  - Delete confirmation modals → `useConfirmDelete` + `DangerConfirmModal`
+  - Sort buttons → `useSortable` + `SortableColumnHeader`
+  - Pagination UI → `usePagination` + `PaginationBar`
+  - Rule list management → `useRuleList` (validation + correction tabs share one configurable hook)
+  - Import modals → `RuleImportModal`
+- **Context-based state sharing**: `AdminProvider` context exposes supabase client, clan data, section routing, and global status — no prop drilling.
+- **Self-contained tabs**: Each tab owns its local state and effects, calling `useAdminContext()` for shared data.
+
 ## Handoff Summary
 
 - `Documentation/handoff_summary.md` contains current status and next steps.
@@ -339,3 +380,4 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Dashboard widgets (personal/clan stats summary cards).
 - Website improvement plan: SEO, security, accessibility, legal compliance (see `Documentation/plans/2026-02-07-website-improvement-plan.md`).
 - Consider adding FK constraint from `events.created_by` → `profiles.id` and `articles.created_by` → `profiles.id` to enable PostgREST joins (currently resolved client-side).
+- Admin panel refactoring is complete (Feb 2026). All 7 tabs extracted, shared hooks and components created. See "Admin Panel Architecture" section above.

@@ -60,14 +60,20 @@ This file is a compact context transfer for a new chat.
   - Admin routes protected by `proxy.ts` with `/not-authorized` fallback.
   - Admin toggle + safeguard to keep at least one admin.
   - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
-- **Admin UI**
-  - Tabs: Clan Management, Users, Validation, Corrections, Audit Logs, Approvals, Data Import, Chest Database.
+- **Admin UI** (refactored Feb 2026 — modular architecture)
+  - Tabs: Clan Management, Users, Validation, Corrections, Audit Logs, Approvals, Data Import, Chest Database, Forum.
   - Clan Management manages **game accounts** (not users) and supports assign‑to‑clan modal.
   - Users tab supports search/filters, inline edits, add game accounts, create users (invite), delete users. Game account status badges (pending/rejected) shown inline.
   - Approvals tab: review and approve/reject pending game account requests from users. Shows requester info, game username, and request date.
   - Global save/cancel applies to user + game account edits.
   - Validation + Correction rules are **global** (not clan-specific). Support: sorting, selection, batch delete, import/export, active/inactive status (corrections).
-  - Files: `app/admin/admin-client.tsx`, `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`, `app/api/admin/game-account-approvals/route.ts`
+  - **Architecture**: Slim orchestrator (`admin-client.tsx`, ~140 lines) with `AdminProvider` context, lazy-loaded tabs via `next/dynamic`, and shared hooks/components that eliminate ~900 lines of duplicated patterns (delete modals, sort buttons, pagination, rule list management, import modals).
+  - Files:
+    - Orchestrator: `app/admin/admin-client.tsx`, `app/admin/admin-context.tsx`, `app/admin/admin-types.ts`
+    - Hooks: `app/admin/hooks/use-pagination.ts`, `use-sortable.ts`, `use-confirm-delete.ts`, `use-rule-list.ts`
+    - Shared components: `app/admin/components/danger-confirm-modal.tsx`, `sortable-column-header.tsx`, `pagination-bar.tsx`, `rule-import-modal.tsx`
+    - Tabs: `app/admin/tabs/clans-tab.tsx`, `users-tab.tsx`, `validation-tab.tsx`, `corrections-tab.tsx`, `logs-tab.tsx`, `approvals-tab.tsx`, `forum-tab.tsx`
+    - APIs: `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`, `app/api/admin/game-account-approvals/route.ts`
 - **Data import (Pattern 1)**
   - Creates missing clans and commits chest data via an admin API endpoint.
   - Does not validate players against game accounts on import.
@@ -284,6 +290,13 @@ This file is a compact context transfer for a new chat.
   - Replaced native `<select>` dropdowns (compose recipient, broadcast clan) with themed `RadixSelect` components.
   - Compose recipient dropdown includes search support.
   - Added `max-height` constraint on messages layout and panels for proper inbox/thread scrolling.
+- **Admin panel refactoring** (Feb 2026):
+  - Broke monolithic `admin-client.tsx` (6,286 lines) into modular architecture.
+  - Slim orchestrator (`admin-client.tsx`, ~140 lines) with `AdminProvider` context.
+  - 7 lazy-loaded tab components via `next/dynamic` for code splitting.
+  - 4 shared hooks (`usePagination`, `useSortable`, `useConfirmDelete`, `useRuleList`) eliminating ~900 lines of duplication.
+  - 4 shared components (`DangerConfirmModal`, `SortableColumnHeader`, `PaginationBar`, `RuleImportModal`).
+  - Updated Playwright tests with async assertions and 15s timeouts for lazy-loaded content.
 - **Linting**
   - ESLint configured with Next.js flat config.
   - Run `npx eslint .`
@@ -388,14 +401,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-## Test Suite (2026-02-09)
+## Test Suite (2026-02-09, updated 2026-02-10)
 
 Comprehensive Playwright test suite covering all page functionality, organized by feature area.
 
-- **~251 tests** across 15 spec files in `tests/`.
+- **~253 tests** across 22 spec files in `tests/`.
 - **Shared auth helper** at `tests/helpers/auth.ts` — `loginAs(page, role)` logs in as one of 6 test users (owner, admin, moderator, editor, member, guest).
 - **Test user setup**: `Documentation/test-user-setup.sql` — creates roles for the pre-provisioned test users.
 - **Design document**: `Documentation/plans/2026-02-09-test-suite-design.md`.
+- **Admin tests updated** for lazy-loaded tab architecture — uses Playwright's auto-retrying `toContainText` assertions with 15s timeouts to wait for `next/dynamic` chunks. Added tests for logs and forum tabs.
 
 | Category                               | File                           | Auth  |
 | -------------------------------------- | ------------------------------ | ----- |
@@ -426,6 +440,27 @@ Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
    - Implement member directory with search, filter by clan/rank.
 3. **Website improvement plan**
    - See `Documentation/plans/2026-02-07-website-improvement-plan.md` for SEO, security, accessibility, and legal compliance improvements.
+   - Batch 2 (Image optimization) and Batch 3 (Security hardening) are partially implemented — `next/image` migration, CSP headers, API rate limiting, Sentry error monitoring, Zod input validation are done.
+   - Remaining: SEO metadata (Batch 1), CAPTCHA (Batch 3b), E-E-A-T & Legal (Batch 5), UI/UX polish (Batch 6).
+
+## Completed (Feb 2026)
+
+- **Admin panel architecture refactoring** — monolithic 6,286-line `admin-client.tsx` refactored into modular architecture with shared hooks, components, context, and lazy-loaded tabs. See "Admin UI" section above for full file listing.
+- **Website improvement plan — partial implementation**:
+  - API rate limiting (sliding-window, strict/standard/relaxed tiers) — `lib/rate-limit.ts`
+  - Zod input validation on all API routes
+  - Sentry error monitoring (client, server, edge) — `sentry.*.config.ts`
+  - `next/image` migration for decorative images across 18+ pages
+  - Content-Security-Policy headers in `next.config.js`
+  - `@next/bundle-analyzer` integration
+  - Custom error page (`app/error.tsx`) and 404 page (`app/not-found.tsx`)
+  - Route-level loading UI (`app/loading.tsx`)
+  - React Suspense streaming for admin, profile, messages pages
+  - Stricter TypeScript (`strict: true` in `tsconfig.json`)
+  - Developer tooling: Prettier, Husky pre-commit hooks, lint-staged, GitHub Actions CI
+  - Playwright E2E test suite (~253 tests across 22 spec files)
+  - Accessibility tests with `@axe-core/playwright`
+  - Internationalization of hardcoded German strings in `editable-text.tsx` and `editable-list.tsx`
 
 ## Known Behaviors
 

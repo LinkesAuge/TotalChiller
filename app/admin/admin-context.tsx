@@ -1,0 +1,217 @@
+"use client";
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "../components/toast-provider";
+import type { ClanRow, AdminSection, PendingApprovalRow } from "./admin-types";
+import { resolveSection } from "./admin-types";
+
+/* ── Context value ── */
+
+export interface AdminContextValue {
+  readonly supabase: SupabaseClient;
+
+  /* Clans */
+  readonly clans: readonly ClanRow[];
+  readonly selectedClanId: string;
+  readonly setSelectedClanId: (id: string) => void;
+  readonly unassignedClanId: string;
+  readonly defaultClanId: string;
+  readonly setDefaultClanId: (id: string) => void;
+  readonly clanNameById: ReadonlyMap<string, string>;
+  readonly loadClans: () => Promise<void>;
+
+  /* User */
+  readonly currentUserId: string;
+
+  /* Section routing */
+  readonly activeSection: AdminSection;
+  readonly updateActiveSection: (section: AdminSection) => void;
+  readonly navigateAdmin: (path: string) => void;
+
+  /* Global status */
+  readonly status: string;
+  readonly setStatus: (msg: string) => void;
+
+  /* Approval badge count (shared for tab bar) */
+  readonly pendingApprovals: readonly PendingApprovalRow[];
+  readonly setPendingApprovals: React.Dispatch<React.SetStateAction<readonly PendingApprovalRow[]>>;
+}
+
+const AdminContext = createContext<AdminContextValue | null>(null);
+
+/**
+ * Reads the shared admin context. Throws if used outside `<AdminProvider>`.
+ */
+export function useAdminContext(): AdminContextValue {
+  const ctx = useContext(AdminContext);
+  if (!ctx) throw new Error("useAdminContext must be used within <AdminProvider>");
+  return ctx;
+}
+
+/* ── Provider ── */
+
+interface AdminProviderProps {
+  readonly children: ReactNode;
+}
+
+export default function AdminProvider({ children }: AdminProviderProps): ReactElement {
+  const supabase = createSupabaseBrowserClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { pushToast } = useToast();
+
+  /* ── Shared state ── */
+  const [clans, setClans] = useState<readonly ClanRow[]>([]);
+  const [selectedClanId, setSelectedClanId] = useState("");
+  const [unassignedClanId, setUnassignedClanId] = useState("");
+  const [defaultClanId, setDefaultClanId] = useState("");
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [activeSection, setActiveSection] = useState<AdminSection>("clans");
+  const [status, setStatus] = useState("");
+  const [pendingApprovals, setPendingApprovals] = useState<readonly PendingApprovalRow[]>([]);
+
+  const clanNameById = useMemo(() => new Map(clans.map((c) => [c.id, c.name])), [clans]);
+
+  /* ── Load clans ── */
+  const loadClans = useCallback(async () => {
+    const { data, error } = await supabase.from("clans").select("id,name,description,is_unassigned").order("name");
+    if (error) {
+      setStatus(`Failed to load clans: ${error.message}`);
+      return;
+    }
+    const rows = data ?? [];
+    setClans(rows);
+    const unassigned = rows.find((c) => c.is_unassigned);
+    setUnassignedClanId(unassigned?.id ?? "");
+  }, [supabase]);
+
+  /* ── Initialize once ── */
+  useEffect(() => {
+    async function init(): Promise<void> {
+      // Load clans
+      const { data: clanData } = await supabase.from("clans").select("id,name,description,is_unassigned").order("name");
+      const clanRows = clanData ?? [];
+      setClans(clanRows);
+      const unassigned = clanRows.find((c) => c.is_unassigned);
+      setUnassignedClanId(unassigned?.id ?? "");
+
+      // Restore selected clan
+      if (clanRows.length > 0) {
+        const stored = window.localStorage.getItem("tc.currentClanId") ?? "";
+        const match = stored ? clanRows.find((c) => c.id === stored) : undefined;
+        setSelectedClanId(match?.id ?? clanRows[0].id);
+      }
+
+      // Default clan
+      const { data: defClan } = await supabase.from("clans").select("id").eq("is_default", true).maybeSingle();
+      setDefaultClanId(defClan?.id ?? "");
+
+      // Current user
+      const { data: authData } = await supabase.auth.getUser();
+      setCurrentUserId(authData.user?.id ?? "");
+
+      // Pending approvals (for badge)
+      try {
+        const res = await fetch("/api/admin/game-account-approvals");
+        if (res.ok) {
+          const result = await res.json();
+          setPendingApprovals(result.data ?? []);
+        }
+      } catch {
+        /* ignore fetch failure for badge count */
+      }
+    }
+    void init();
+     
+  }, [supabase]);
+
+  /* ── Sync active section from URL ── */
+  useEffect(() => {
+    const rawTab = searchParams.get("tab");
+    const next = resolveSection(rawTab);
+    setActiveSection(next);
+    if (rawTab === "rules") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", "validation");
+      router.replace(`/admin?${params.toString()}`);
+    }
+  }, [router, searchParams]);
+
+  /* ── Toast status messages ── */
+  useEffect(() => {
+    if (status) pushToast(status);
+  }, [pushToast, status]);
+
+  /* ── Sync default clan selection ── */
+  useEffect(() => {
+    if (clans.length === 0) return;
+    if (defaultClanId && clans.some((c) => c.id === defaultClanId)) {
+      setSelectedClanId(defaultClanId);
+    }
+  }, [clans, defaultClanId]);
+
+  /* ── Section navigation ── */
+  const updateActiveSection = useCallback(
+    (next: AdminSection) => {
+      setActiveSection(next);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", next);
+      router.replace(`/admin?${params.toString()}`);
+    },
+    [router, searchParams],
+  );
+
+  const navigateAdmin = useCallback((path: string) => router.push(path), [router]);
+
+  /* ── Context value ── */
+  const value = useMemo<AdminContextValue>(
+    () => ({
+      supabase,
+      clans,
+      selectedClanId,
+      setSelectedClanId,
+      unassignedClanId,
+      defaultClanId,
+      setDefaultClanId,
+      clanNameById,
+      loadClans,
+      currentUserId,
+      activeSection,
+      updateActiveSection,
+      navigateAdmin,
+      status,
+      setStatus,
+      pendingApprovals,
+      setPendingApprovals,
+    }),
+    [
+      supabase,
+      clans,
+      selectedClanId,
+      unassignedClanId,
+      defaultClanId,
+      clanNameById,
+      loadClans,
+      currentUserId,
+      activeSection,
+      updateActiveSection,
+      navigateAdmin,
+      status,
+      pendingApprovals,
+    ],
+  );
+
+  return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
+}

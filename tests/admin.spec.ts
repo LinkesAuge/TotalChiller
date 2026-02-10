@@ -51,9 +51,8 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=users");
     await page.waitForLoadState("networkidle");
 
-    /* Users section should show a table or user list */
-    const body = await page.textContent("body");
-    expect(body?.toLowerCase()).toMatch(/user|benutzer|email/i);
+    /* Wait for the lazy-loaded tab content to appear */
+    await expect(page.locator("body")).toContainText(/user|benutzer|email/i, { timeout: 15000 });
   });
 
   test("can switch to approvals tab", async ({ page }) => {
@@ -61,8 +60,7 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=approvals");
     await page.waitForLoadState("networkidle");
 
-    const body = await page.textContent("body");
-    expect(body?.toLowerCase()).toMatch(/approval|genehmigung|pending/i);
+    await expect(page.locator("body")).toContainText(/approval|genehmigung|pending/i, { timeout: 15000 });
   });
 
   test("can switch to validation tab", async ({ page }) => {
@@ -70,8 +68,7 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=validation");
     await page.waitForLoadState("networkidle");
 
-    const body = await page.textContent("body");
-    expect(body?.toLowerCase()).toMatch(/validation|validierung|rule|regel/i);
+    await expect(page.locator("body")).toContainText(/validation|validierung|rule|regel/i, { timeout: 15000 });
   });
 
   test("can switch to corrections tab", async ({ page }) => {
@@ -79,8 +76,23 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=corrections");
     await page.waitForLoadState("networkidle");
 
-    const body = await page.textContent("body");
-    expect(body?.toLowerCase()).toMatch(/correction|korrektur/i);
+    await expect(page.locator("body")).toContainText(/correction|korrektur/i, { timeout: 15000 });
+  });
+
+  test("can switch to logs tab", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/admin?tab=logs");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator("body")).toContainText(/log|protokoll|audit/i, { timeout: 15000 });
+  });
+
+  test("can switch to forum tab", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/admin?tab=forum");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator("body")).toContainText(/forum|kategor/i, { timeout: 15000 });
   });
 });
 
@@ -90,9 +102,8 @@ test.describe("Admin: Clans section", () => {
     await page.goto("/admin?tab=clans");
     await page.waitForLoadState("networkidle");
 
-    /* Should have a table or list of clans */
-    const tableOrList = page.locator("table, .table, .list, header");
-    expect(await tableOrList.count()).toBeGreaterThan(0);
+    /* Wait for lazy-loaded clans tab, then verify table/list renders */
+    await expect(page.locator("table, .table, .list, header").first()).toBeVisible({ timeout: 15000 });
   });
 });
 
@@ -101,6 +112,9 @@ test.describe("Admin: Users section", () => {
     await loginAs(page, "admin");
     await page.goto("/admin?tab=users");
     await page.waitForLoadState("networkidle");
+
+    /* Wait for lazy-loaded users tab to render */
+    await expect(page.locator(".card-title").first()).toBeVisible({ timeout: 15000 });
 
     /* Should have search input */
     const searchInput = page.locator('input[type="search"], input[placeholder*="such"], input[placeholder*="search"]');
@@ -111,9 +125,12 @@ test.describe("Admin: Users section", () => {
     await loginAs(page, "admin");
     await page.goto("/admin?tab=users");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
 
-    /* Should have role filter or role select */
+    /* Wait for lazy-loaded users tab to render its selects */
+    await expect(page.locator("select, [role=combobox], button[class*='select']").first()).toBeVisible({
+      timeout: 15000,
+    });
+
     const selects = page.locator("select, [role=combobox], button[class*='select']");
     expect(await selects.count()).toBeGreaterThan(0);
   });

@@ -63,7 +63,7 @@ Open: `http://localhost:3000`
 4. **Create game account** — in the profile page, the user adds their Total Battle player name.
 5. **Clan assignment** — an admin assigns the user to a clan (typically within 24–48 hours).
 
-Email templates are documented in `Documentation/supabase-email-templates.md` and must be configured in the Supabase Dashboard under **Authentication → Email Templates**.
+Email templates (dual-theme: light for Outlook, dark for modern clients) are documented in `Documentation/supabase-email-templates.md` and must be configured in the Supabase Dashboard under **Authentication → Email Templates**.
 
 ## 5) Routing Behavior
 

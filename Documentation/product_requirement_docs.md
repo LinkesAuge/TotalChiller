@@ -173,7 +173,7 @@ This section covers user registration, login, and profile management.
   - Users can register for a new account using an email address, username, and password.
   - Upon successful registration, a success panel displays 4 clear onboarding steps.
   - The user is created in the database (Supabase) with the default role of "Member" (via `handle_new_user` trigger).
-- **Email Verification:** A bilingual (DE/EN) confirmation email is sent. The link confirms the email and redirects to the login page. Email templates are themed to match the platform and must be configured in Supabase Dashboard (see `Documentation/supabase-email-templates.md`).
+- **Email Verification:** A bilingual (DE/EN) confirmation email is sent. The link confirms the email and redirects to the login page. Email templates use a dual-theme approach (light for Outlook, dark for modern clients) and must be configured in Supabase Dashboard (see `Documentation/supabase-email-templates.md`).
 - **Login:**
   - Registered users can log in using their email (or username) and password.
   - **First-login redirect:** After login, the system checks whether the user has any game accounts. If none exist, the user is redirected to `/profile` to create one. Otherwise, the user is directed to the dashboard.

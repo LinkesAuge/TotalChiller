@@ -24,7 +24,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 ### Architecture
 
 - **Frontend**: Next.js App Router, server components by default, client components for interactive tables, editors, and charts.
-- **Auth**: Supabase Auth with email verification and password reset. New user onboarding: confirm email → log in → auto-redirect to profile → create game account → admin assigns clan. First-login detection in login page redirects users without game accounts to `/profile`. Bilingual (DE/EN) email templates configured in Supabase Dashboard (see `Documentation/supabase-email-templates.md`).
+- **Auth**: Supabase Auth with email verification and password reset. New user onboarding: confirm email → log in → auto-redirect to profile → create game account → admin assigns clan. First-login detection in login page redirects users without game accounts to `/profile`. Bilingual (DE/EN) email templates with dual-theme design (light for Outlook, dark for modern clients) configured in Supabase Dashboard (see `Documentation/supabase-email-templates.md`).
 - **Backend**: Supabase Postgres with RLS for clan-scoped data and permissions (via game accounts).
 - **Validation/Correction/Scoring**: Zod schemas for import validation; validation and correction rules are **global** (not clan-specific) and applied during preview and re-scoring; scoring rules remain per-clan; correction rules support field‑specific and `all` matches with active/inactive status.
 
@@ -124,7 +124,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Proxy guard: `proxy.ts` redirects unauthenticated users to `/home` for page routes, enforces admin access for admin routes with `/not-authorized` fallback. API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns JSON error responses.
 - Added `app/auth/update` for reset flows and `app/components/auth-actions.tsx` for sign-out (restyled with Sanctum dropdown panel, icons, and dividers).
 - Protected example: `app/profile` (middleware enforces auth).
-- Bilingual email templates (DE/EN) for Supabase Dashboard: `Documentation/supabase-email-templates.md`.
+- Bilingual email templates (DE/EN) with dual-theme design (light for Outlook, dark for modern clients) for Supabase Dashboard: `Documentation/supabase-email-templates.md`.
 
 ## Data Model & Permissions
 
@@ -372,7 +372,7 @@ app/admin/
 
 A comprehensive audit was performed covering security, architecture, SEO, accessibility, legal compliance, UI/UX, and code quality. Production audit score: **84/100 (B)**, up from 68/100. Key improvements:
 
-- **Security**: API rate limiting, Zod validation, Cloudflare Turnstile CAPTCHA, Sentry with PII filtering, CSP headers.
+- **Security**: API rate limiting, Zod validation, Cloudflare Turnstile CAPTCHA (required on forgot-password when `TURNSTILE_SECRET_KEY` is configured; bypassed otherwise for dev/staging), Sentry with PII filtering, CSP headers.
 - **Architecture**: Component extraction, Tailwind CSS v4 migration, server/client splits, Supabase client dedup.
 - **SEO**: `metadataBase`, canonical URLs, Open Graph, Twitter Cards, JSON-LD (WebSite + Organization), sitemap, robots.txt.
 - **Legal**: Impressum page, cookie consent banner, GDPR-compliant privacy policy.

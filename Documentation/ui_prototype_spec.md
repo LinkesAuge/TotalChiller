@@ -70,7 +70,7 @@ This document defines the screen-by-screen prototype for the clan community webs
 ### 4. Auth - Forgot Password
 
 **Purpose:** Trigger reset.
-**Fields:** email.
+**Fields:** email; Cloudflare Turnstile CAPTCHA widget (shown when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is configured).
 **States:** confirmation and error handling.
 
 ### 5. Guest Dashboard

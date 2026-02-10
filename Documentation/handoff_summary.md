@@ -38,7 +38,7 @@ This file is a compact context transfer for a new chat.
   - After registration, a success panel shows 4 numbered steps: confirm email → log in → create game account → wait for clan assignment.
   - Confirmation email redirects to `/auth/login` (user must authenticate before accessing the platform).
   - Login page detects first-time users (no game accounts in DB) and automatically redirects to `/profile`.
-  - Bilingual (DE/EN) Supabase email templates for all auth emails: Confirm Signup, Reset Password, Change Email, Invite User, Magic Link. Themed to match the platform (dark/gold). Templates documented in `Documentation/supabase-email-templates.md`.
+  - Bilingual (DE/EN) Supabase email templates for all auth emails: Confirm Signup, Reset Password, Change Email, Invite User, Magic Link. Dual-theme design: light theme for Outlook (via MSO conditional comments), dark/gold theme for modern clients (Gmail, Apple Mail, etc.). Templates documented in `Documentation/supabase-email-templates.md`.
   - Files: `app/auth/register/page.tsx`, `app/auth/login/page.tsx`, `Documentation/supabase-email-templates.md`
 - **Profile + Settings**
   - `/profile` shows user info, game accounts (with approval status), and clan memberships.
@@ -304,7 +304,7 @@ Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
 
 Production audit score: **84/100 (B)**, up from 43/100. Key areas:
 
-- **Security**: API rate limiting, Zod validation, Cloudflare Turnstile CAPTCHA, Sentry with PII filtering, CSP headers.
+- **Security**: API rate limiting, Zod validation, Cloudflare Turnstile CAPTCHA (required on forgot-password when `TURNSTILE_SECRET_KEY` is configured; bypassed otherwise for dev/staging), Sentry with PII filtering, CSP headers.
 - **SEO**: `metadataBase`, canonical URLs, Open Graph, Twitter Cards, JSON-LD, sitemap, robots.txt.
 - **Legal**: Impressum, cookie consent banner, GDPR privacy policy.
 - **UI/UX**: Animated sidebar, mobile menu, skeleton loaders, focus-visible outlines, scroll-to-top, toast animations, empty states, form validation.

@@ -124,12 +124,12 @@ Add `headers()` function returning:
 | `Referrer-Policy`         | `strict-origin-when-cross-origin`                              | Control referrer info |
 | `Permissions-Policy`      | Disable camera, microphone, geolocation                        | Reduce attack surface |
 
-### 3b. CAPTCHA on forgot-password form
+### 3b. CAPTCHA on forgot-password form — ✅ Implemented
 
-Add CAPTCHA to `/auth/forgot` to prevent automated abuse. Options:
+Cloudflare Turnstile added to `/auth/forgot` to prevent automated abuse. CAPTCHA is required only when `TURNSTILE_SECRET_KEY` is configured (production); when unset, the form works without CAPTCHA (dev/staging).
 
-- **Cloudflare Turnstile** (recommended — free, privacy-friendly)
-- **hCaptcha** (alternative)
+- **Cloudflare Turnstile** (implemented — free, privacy-friendly)
+- **hCaptcha** (alternative, not used)
 - **Rate limiting** on Supabase side (simpler but less visible protection)
 
 ### 3c. HTTPS verification for production

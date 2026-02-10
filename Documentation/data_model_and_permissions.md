@@ -113,14 +113,85 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - created_at (timestamp)
 - updated_at (timestamp)
 
-### comments
+### forum_votes
 
 - id (uuid, pk)
-- article_id (uuid, fk articles)
-- parent_id (uuid, fk comments, nullable)
-- content (text)
-- created_by (uuid, fk users)
+- post_id (uuid, fk forum_posts)
+- user_id (uuid, fk users)
+- vote (integer) — +1 or -1
 - created_at (timestamp)
+
+> Unique constraint on `(post_id, user_id)`.
+
+### forum_comments
+
+- id (uuid, pk)
+- post_id (uuid, fk forum_posts)
+- parent_id (uuid, fk forum_comments, nullable)
+- content (text) — markdown
+- created_by (uuid, fk users)
+- upvotes (integer, default: 0)
+- downvotes (integer, default: 0)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+### forum_comment_votes
+
+- id (uuid, pk)
+- comment_id (uuid, fk forum_comments)
+- user_id (uuid, fk users)
+- vote (integer) — +1 or -1
+- created_at (timestamp)
+
+> Unique constraint on `(comment_id, user_id)`.
+
+### notifications
+
+- id (uuid, pk)
+- user_id (uuid, fk users)
+- type (text, enum: message, news, event, approval)
+- title (text)
+- body (text, nullable)
+- link (text, nullable)
+- is_read (boolean, default: false)
+- created_at (timestamp)
+
+### user_notification_settings
+
+- user_id (uuid, pk, fk users)
+- messages (boolean, default: true)
+- news (boolean, default: true)
+- events (boolean, default: true)
+- system (boolean, default: true)
+- updated_at (timestamp)
+
+### site_content
+
+- page (text)
+- section_key (text)
+- field_key (text)
+- content_de (text)
+- content_en (text)
+- updated_by (uuid, fk users, nullable)
+- updated_at (timestamp)
+
+> Composite PK on `(page, section_key, field_key)`. RLS: public read, admin-only write.
+
+### site_list_items
+
+- id (uuid, pk)
+- page (text)
+- section_key (text)
+- sort_order (integer)
+- text_de (text)
+- text_en (text)
+- badge_de (text, nullable)
+- badge_en (text, nullable)
+- link_url (text, nullable)
+- icon (text, nullable)
+- icon_type (text, nullable) — "preset" or "custom"
+
+> Composite index on `(page, section_key, sort_order)`. RLS: public read, admin-only write.
 
 ### chest_entries
 
@@ -139,7 +210,7 @@ This document defines the core data model (Supabase/Postgres) and the permission
 ### validation_rules
 
 - id (uuid, pk)
-- clan_id (uuid, fk clans)
+- clan_id (uuid, fk clans, **nullable** — rules are global, not clan-specific)
 - field (text)
 - match_value (text)
 - status (text, enum: valid, invalid)
@@ -149,7 +220,7 @@ This document defines the core data model (Supabase/Postgres) and the permission
 ### correction_rules
 
 - id (uuid, pk)
-- clan_id (uuid, fk clans)
+- clan_id (uuid, fk clans, **nullable** — rules are global, not clan-specific)
 - field (text)
 - match_value (text)
 - replacement_value (text)
@@ -267,13 +338,9 @@ Permissions are additive: Role + Rank + Cross‑Clan overrides.
 - profile:edit:own (limited)
 - admin_panel:view (restricted to onboarding screen)
 
-## Rank Add‑Ons (Examples)
+## Ranks
 
-- Leader: +article:approve, +rules:manage, +message:send:broadcast
-- Superior: +comment:delete:any
-- Officer: +article:edit:any
-- Veteran: +event:create
-- Soldier: no additional permissions
+Ranks on `game_account_clan_memberships` are **cosmetic only** — they reflect the in-game rank (Leader, Superior, Officer, Veteran, Soldier) and have no functional impact on permissions. All access control is determined by the user's role in `user_roles`.
 
 ## Notes
 

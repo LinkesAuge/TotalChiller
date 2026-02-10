@@ -108,14 +108,6 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Cards: dark gradient with gold-tinted border, hover lifts with gold border.
 - Tables: dark gradient header with gold divider, alternating row backgrounds, gold hover tint.
 
-## UI Skeleton Preview
-
-- HTML prototype pages in `Documentation/ui_skeleton/`
-- Shared styles in `Documentation/ui_skeleton/styles.css`
-- Auth screens: `auth-login.html`, `auth-register.html`, `auth-forgot.html`
-- Component preview: `Documentation/ui_skeleton/components.html`
-- Additional pages: `charts.html`, `events.html`, `messaging.html`
-
 ## Next.js App Scaffold
 
 - `app/layout.tsx` with collapsible sidebar layout via `SidebarProvider` context.
@@ -249,16 +241,6 @@ app/admin/
 ## Runbook
 
 - `Documentation/runbook.md` includes setup, usage, and troubleshooting.
-
-## Implementation Checklist
-
-- Define permission matrix and RLS policies.
-- Implement Supabase Auth and protected routes.
-- Build Pattern 1 CSV parser and preview table.
-- Implement validation/correction/scoring rules and admin UI.
-- Build chest database with edit + batch operations + audit logging.
-- Add dashboard widgets and basic charts.
-- Add i18n for UI strings (de/en).
 
 ## Charts & Stats
 

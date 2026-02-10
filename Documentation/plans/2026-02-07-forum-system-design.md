@@ -1,23 +1,23 @@
 # Forum System Design — Reddit-style Discussion Board
 
 **Date**: 2026-02-07  
-**Branch**: `feat/forum-system`
+**Status**: Implemented
 
 ## Overview
 
-A Reddit-like discussion forum for The Chillers clan, enabling members to create posts, vote, comment, and engage in categorized discussions. Designed for clan coordination, strategy sharing, and community building.
+A Reddit-like discussion forum for [THC] Chiller & Killer, enabling members to create posts, vote, comment, and engage in categorized discussions. Designed for clan coordination, strategy sharing, and community building.
 
 ## Architecture
 
 ### Database Schema
 
-| Table | Purpose |
-|-------|---------|
-| `forum_categories` | Fixed categories (General, Strategy, War, Off-Topic, Help, Suggestions) |
-| `forum_posts` | User-created discussion threads |
-| `forum_votes` | Upvote/downvote on posts (one per user per post) |
-| `forum_comments` | Threaded comments with nesting |
-| `forum_comment_votes` | Upvote/downvote on comments |
+| Table                 | Purpose                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| `forum_categories`    | Fixed categories (General, Strategy, War, Off-Topic, Help, Suggestions) |
+| `forum_posts`         | User-created discussion threads                                         |
+| `forum_votes`         | Upvote/downvote on posts (one per user per post)                        |
+| `forum_comments`      | Threaded comments with nesting                                          |
+| `forum_comment_votes` | Upvote/downvote on comments                                             |
 
 ### Key Design Decisions
 

@@ -55,6 +55,16 @@ Open: `http://localhost:3000`
 - Forgot password: `/auth/forgot`
 - Update password: `/auth/update`
 
+### New User Onboarding Flow
+
+1. **Register** at `/auth/register` (email, username, password).
+2. **Confirm email** — a bilingual (DE/EN) confirmation email is sent. The link redirects to the login page after verification.
+3. **Log in** at `/auth/login` — the login page detects first-time users (no game accounts) and automatically redirects them to `/profile`.
+4. **Create game account** — in the profile page, the user adds their Total Battle player name.
+5. **Clan assignment** — an admin assigns the user to a clan (typically within 24–48 hours).
+
+Email templates are documented in `Documentation/supabase-email-templates.md` and must be configured in the Supabase Dashboard under **Authentication → Email Templates**.
+
 ## 5) Routing Behavior
 
 - Unauthenticated `/` redirects to `/home`

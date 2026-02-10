@@ -34,6 +34,12 @@ This file is a compact context transfer for a new chat.
   - Status indicators: dark Sanctum-styled badges (gold, amber, red, green).
   - CSS variable `--color-edge` changed from blue to gold-tinted `rgba(201, 163, 74, 0.15)`.
 - **Auth** (login/register/forgot/update) wired to Supabase Auth.
+- **New User Onboarding Flow** (Feb 2026)
+  - After registration, a success panel shows 4 numbered steps: confirm email → log in → create game account → wait for clan assignment.
+  - Confirmation email redirects to `/auth/login` (user must authenticate before accessing the platform).
+  - Login page detects first-time users (no game accounts in DB) and automatically redirects to `/profile`.
+  - Bilingual (DE/EN) Supabase email templates for all auth emails: Confirm Signup, Reset Password, Change Email, Invite User, Magic Link. Themed to match the platform (dark/gold). Templates documented in `Documentation/supabase-email-templates.md`.
+  - Files: `app/auth/register/page.tsx`, `app/auth/login/page.tsx`, `Documentation/supabase-email-templates.md`
 - **Profile + Settings**
   - `/profile` shows user info, game accounts (with approval status), and clan memberships.
   - Users can request new game accounts from the profile page (pending admin approval).

@@ -24,7 +24,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 ### Architecture
 
 - **Frontend**: Next.js App Router, server components by default, client components for interactive tables, editors, and charts.
-- **Auth**: Supabase Auth with email verification and password reset.
+- **Auth**: Supabase Auth with email verification and password reset. New user onboarding: confirm email → log in → auto-redirect to profile → create game account → admin assigns clan. First-login detection in login page redirects users without game accounts to `/profile`. Bilingual (DE/EN) email templates configured in Supabase Dashboard (see `Documentation/supabase-email-templates.md`).
 - **Backend**: Supabase Postgres with RLS for clan-scoped data and permissions (via game accounts).
 - **Validation/Correction/Scoring**: Zod schemas for import validation; validation and correction rules are **global** (not clan-specific) and applied during preview and re-scoring; scoring rules remain per-clan; correction rules support field‑specific and `all` matches with active/inactive status.
 
@@ -117,10 +117,14 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - `package.json` scripts for Next.js (`dev`, `build`, `start`, `lint`).
 - Route pages: `news`, `forum`, `charts`, `events`, `messages`, `admin`, `admin/data-import`, `admin/data-table`.
 - Supabase Auth wiring in `lib/supabase/` and `app/auth/login`.
-- Auth pages: `app/auth/register`, `app/auth/forgot`.
+- Auth pages: `app/auth/register`, `app/auth/login`, `app/auth/forgot`, `app/auth/update`.
+- Auth callback: `app/auth/callback/route.ts` — exchanges PKCE code for session, redirects to `next` query parameter.
+- Registration success panel shows 4-step onboarding guide (confirm email → log in → create game account → wait for clan assignment).
+- Login page first-login detection: queries `game_accounts` for the authenticated user; redirects to `/profile` if none exist, otherwise to `/`.
 - Proxy guard: `proxy.ts` redirects unauthenticated users to `/home` for page routes, enforces admin access for admin routes with `/not-authorized` fallback. API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns JSON error responses.
 - Added `app/auth/update` for reset flows and `app/components/auth-actions.tsx` for sign-out (restyled with Sanctum dropdown panel, icons, and dividers).
 - Protected example: `app/profile` (middleware enforces auth).
+- Bilingual email templates (DE/EN) for Supabase Dashboard: `Documentation/supabase-email-templates.md`.
 
 ## Data Model & Permissions
 

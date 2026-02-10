@@ -170,12 +170,19 @@ This section covers user registration, login, and profile management.
 
 - **Technology:** Supabase Auth will be used for handling authentication flows.
 - **Registration:**
-  - Users can register for a new account using an email address and password.
-  - Consider adding optional fields during registration (e.g., primary in-game name) or prompt for them after first login.
-  - Upon successful registration, the user is created in the database (Supabase) with the default role of "Guest".
-- Requires email verification step before the account is fully active (standard Supabase Auth feature).
+  - Users can register for a new account using an email address, username, and password.
+  - Upon successful registration, a success panel displays 4 clear onboarding steps.
+  - The user is created in the database (Supabase) with the default role of "Member" (via `handle_new_user` trigger).
+- **Email Verification:** A bilingual (DE/EN) confirmation email is sent. The link confirms the email and redirects to the login page. Email templates are themed to match the platform and must be configured in Supabase Dashboard (see `Documentation/supabase-email-templates.md`).
 - **Login:**
-  - Registered users can log in using their email and password.
+  - Registered users can log in using their email (or username) and password.
+  - **First-login redirect:** After login, the system checks whether the user has any game accounts. If none exist, the user is redirected to `/profile` to create one. Otherwise, the user is directed to the dashboard.
+- **Onboarding Flow (implemented):**
+  1. Register at `/auth/register`.
+  2. Confirm email via link in bilingual confirmation email.
+  3. Log in at `/auth/login` — first-time users are auto-redirected to `/profile`.
+  4. Create a game account in the profile (add Total Battle player name).
+  5. Wait for an admin to assign the user to a clan (typically 24–48 hours).
 - Session management handled by Supabase Auth.
 - Include a "Forgot Password" mechanism for password recovery (standard Supabase Auth feature).
 - **Profile Management (User Settings Page):**

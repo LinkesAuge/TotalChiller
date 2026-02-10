@@ -136,7 +136,10 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
       return;
     }
     updateFormState(setFormState, { emailStatus: "Updating email..." });
-    const { error } = await supabase.auth.updateUser({ email: formState.email });
+    const redirectTo = `${window.location.origin}/auth/callback?next=/settings`;
+    /* Set fallback cookie in case Supabase ignores the redirect URL */
+    document.cookie = "auth_redirect_next=/settings; path=/; max-age=600; SameSite=Lax";
+    const { error } = await supabase.auth.updateUser({ email: formState.email }, { emailRedirectTo: redirectTo });
     if (error) {
       updateFormState(setFormState, { emailStatus: error.message });
       return;
@@ -234,8 +237,8 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
   const updater = (next: Partial<SettingsFormState>) => updateFormState(setFormState, next);
 
   return (
-    <div className="content-inner">
-      <div className="grid">
+    <div className="content-inner settings-layout">
+      <div className="settings-grid">
         <section className="card">
           <div className="card-header">
             <div>

@@ -674,7 +674,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
 
 ## 2. Reset Password
 
-**Subject:** TotalChiller – Passwort zur&uuml;cksetzen / Reset Your Password
+**Subject:** TotalChiller – Passwort zurücksetzen / Reset Your Password
 
 **HTML Body:**
 
@@ -956,7 +956,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
 
 ## 3. Change Email Address
 
-**Subject:** TotalChiller – E-Mail-Adresse best&auml;tigen / Confirm Your New Email Address
+**Subject:** TotalChiller – E-Mail-Adresse bestätigen / Confirm Your New Email Address
 
 **HTML Body:**
 

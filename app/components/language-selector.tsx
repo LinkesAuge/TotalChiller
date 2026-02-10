@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { routing, LOCALE_COOKIE } from "../../i18n/routing";
 import type { Locale } from "../../i18n/routing";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import RadixSelect from "./ui/radix-select";
 
 interface LanguageSelectorProps {
   /** When true, only show the short locale code (collapsed sidebar). */
@@ -53,15 +54,6 @@ function LanguageSelector({ compact = false, hideLabel = false }: LanguageSelect
   const router = useRouter();
   const currentLocale = typeof document !== "undefined" ? readCurrentLocale() : routing.defaultLocale;
 
-  async function handleChange(event: React.ChangeEvent<HTMLSelectElement>): Promise<void> {
-    const nextLocale = event.target.value as Locale;
-    if (nextLocale === currentLocale) {
-      return;
-    }
-    await setLocale(nextLocale);
-    router.refresh();
-  }
-
   if (compact) {
     return (
       <button
@@ -79,6 +71,17 @@ function LanguageSelector({ compact = false, hideLabel = false }: LanguageSelect
     );
   }
 
+  const localeOptions = routing.locales.map((locale) => ({
+    value: locale,
+    label: LOCALE_LABELS[locale],
+  }));
+
+  async function handleRadixChange(nextLocale: string): Promise<void> {
+    if (nextLocale === currentLocale) return;
+    await setLocale(nextLocale as Locale);
+    router.refresh();
+  }
+
   return (
     <div className="language-selector">
       {!hideLabel && (
@@ -86,13 +89,14 @@ function LanguageSelector({ compact = false, hideLabel = false }: LanguageSelect
           {t("label")}
         </label>
       )}
-      <select id="language-select" value={currentLocale} onChange={handleChange} className="language-selector__select">
-        {routing.locales.map((locale) => (
-          <option key={locale} value={locale}>
-            {LOCALE_LABELS[locale]}
-          </option>
-        ))}
-      </select>
+      <RadixSelect
+        id="language-select"
+        ariaLabel={t("label")}
+        value={currentLocale}
+        onValueChange={handleRadixChange}
+        options={localeOptions}
+        triggerClassName="select-trigger"
+      />
     </div>
   );
 }

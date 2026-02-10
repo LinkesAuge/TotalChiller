@@ -29,7 +29,7 @@ interface RootLayoutProps {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.de"),
   title: {
     default: "TotalChiller - [THC] Chiller & Killer Community Hub",
     template: "%s | TotalChiller",
@@ -87,15 +87,15 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
                   "@type": "WebSite",
                   name: "TotalChiller",
                   alternateName: "[THC] Chiller & Killer Community Hub",
-                  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app",
+                  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.de",
                   description:
                     "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, track chest scores, manage data imports, and stay connected.",
                 },
                 {
                   "@type": "Organization",
                   name: "[THC] Chiller & Killer",
-                  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app",
-                  logo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app"}/assets/vip/icons_chest_1.png`,
+                  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.de",
+                  logo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.de"}/assets/vip/icons_chest_1.png`,
                   description:
                     "Competitive Total Battle clan focused on teamwork, data-driven strategy, and community building.",
                 },

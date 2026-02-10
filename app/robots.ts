@@ -3,8 +3,7 @@ import { headers } from "next/headers";
 
 /** Generates robots.txt with dynamic sitemap reference that adapts to the request host. */
 async function robots(): Promise<MetadataRoute.Robots> {
-  let baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app";
+  let baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.de";
 
   try {
     const headersList = await headers();

@@ -22,7 +22,7 @@ const PUBLIC_ROUTES: readonly PublicRoute[] = [
 
 /** Generates a dynamic sitemap that adapts to the current request host. */
 async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  let baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app";
+  let baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.de";
 
   try {
     const headersList = await headers();

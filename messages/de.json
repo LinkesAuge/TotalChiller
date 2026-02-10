@@ -1113,6 +1113,7 @@
     "loadingTitle": "Zugang wird geladen",
     "loadingMessage": "Clan-Mitgliedschaft wird überprüft…",
     "noAccessMessage": "Du hast noch keinen Zugang zu Clan-Bereichen. Erstelle zuerst einen Game-Account in deinem Profil. Nach Freischaltung und Clan-Zuweisung durch einen Admin erhältst du Zugang.",
+    "unassignedMessage": "Dein Game-Account befindet sich derzeit im Wartebereich. Ein Admin muss dich einem Clan zuweisen, bevor du auf Clan-Bereiche zugreifen kannst. Bitte habe Geduld oder kontaktiere einen Admin.",
     "goHome": "Zur Startseite",
     "goProfile": "Zum Profil"
   },

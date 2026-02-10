@@ -26,50 +26,51 @@ function isPublicPath(pathname: string): boolean {
   );
 }
 
+type AccessState = "loading" | "granted" | "unassigned" | "denied";
+
 /**
  * Hides clan-scoped content until a user belongs to a non-unassigned clan.
+ * Distinguishes between "no memberships" and "only in the unassigned holding clan"
+ * so the user gets a clear message about what needs to happen.
  */
 function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
   const pathname = usePathname();
   const supabase = createSupabaseBrowserClient();
   const t = useTranslations("clanAccessGate");
-  const [hasAccess, setHasAccess] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [accessState, setAccessState] = useState<AccessState>("loading");
 
   useEffect(() => {
     let isActive = true;
     async function loadAccess(): Promise<void> {
       if (isPublicPath(pathname)) {
-        if (isActive) {
-          setHasAccess(true);
-          setIsLoading(false);
-        }
+        if (isActive) setAccessState("granted");
         return;
       }
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
-        if (isActive) {
-          setHasAccess(false);
-          setIsLoading(false);
-        }
+        if (isActive) setAccessState("denied");
         return;
       }
+      const userId = userData.user.id;
       const { data, error } = await supabase
         .from("game_account_clan_memberships")
-        .select("id,clans(is_unassigned)")
+        .select("id,clans(is_unassigned),game_accounts!inner(user_id)")
         .eq("is_active", true)
-        .eq("clans.is_unassigned", false)
-        .limit(1);
-      if (!isActive) {
+        .eq("game_accounts.user_id", userId);
+      if (!isActive) return;
+      if (error || !data) {
+        setAccessState("denied");
         return;
       }
-      if (error) {
-        setHasAccess(false);
-        setIsLoading(false);
+      if (data.length === 0) {
+        setAccessState("denied");
         return;
       }
-      setHasAccess(Boolean(data && data.length > 0));
-      setIsLoading(false);
+      const hasRealClan = data.some((row) => {
+        const clan = row.clans as unknown as { is_unassigned: boolean } | null;
+        return clan?.is_unassigned === false;
+      });
+      setAccessState(hasRealClan ? "granted" : "unassigned");
     }
     void loadAccess();
     /* Sync locale from Supabase user_metadata on login */
@@ -97,7 +98,7 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
     return <>{children}</>;
   }
 
-  if (isLoading) {
+  if (accessState === "loading") {
     return (
       <div className="content-inner">
         <div className="grid">
@@ -114,7 +115,25 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
     );
   }
 
-  if (!hasAccess) {
+  if (accessState === "unassigned") {
+    return (
+      <div className="content-inner">
+        <div className="grid">
+          <div className="alert info col-span-full">{t("unassignedMessage")}</div>
+          <div className="col-span-full flex gap-3">
+            <a className="button primary" href="/profile">
+              {t("goProfile")}
+            </a>
+            <a className="button" href="/home">
+              {t("goHome")}
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (accessState === "denied") {
     return (
       <div className="content-inner">
         <div className="grid">

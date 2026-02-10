@@ -1113,6 +1113,7 @@
     "loadingTitle": "Loading access",
     "loadingMessage": "Checking your clan membership…",
     "noAccessMessage": "You do not have access to clan areas yet. Please create a game account in your profile first. Once an admin activates and assigns you to a clan, you will get access.",
+    "unassignedMessage": "Your game account is currently in the holding area. An admin needs to assign you to a clan before you can access clan areas. Please be patient or contact an admin.",
     "goHome": "Go to Home",
     "goProfile": "Go to Profile"
   },

@@ -3,9 +3,11 @@ import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
 
+const isTurnstileEnabled = Boolean(process.env.TURNSTILE_SECRET_KEY);
+
 const ForgotPasswordSchema = z.object({
   email: z.string().email(),
-  turnstileToken: z.string().min(1, "CAPTCHA token is required"),
+  turnstileToken: isTurnstileEnabled ? z.string().min(1, "CAPTCHA token is required") : z.string().default(""),
   redirectTo: z.string().url(),
 });
 

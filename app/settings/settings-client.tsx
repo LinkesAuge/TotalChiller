@@ -425,7 +425,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
           <div className="list">
             <div className="list-item">
               <span>{t("languageLabel")}</span>
-              <LanguageSelector />
+              <LanguageSelector hideLabel />
             </div>
           </div>
         </section>

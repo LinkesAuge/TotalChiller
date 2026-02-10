@@ -9,6 +9,8 @@ import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 interface LanguageSelectorProps {
   /** When true, only show the short locale code (collapsed sidebar). */
   readonly compact?: boolean;
+  /** When true, hides the label above the select (useful when an external label exists). */
+  readonly hideLabel?: boolean;
 }
 
 const LOCALE_FLAGS: Record<Locale, string> = {
@@ -46,7 +48,7 @@ async function setLocale(locale: Locale): Promise<void> {
  * Language selector dropdown for switching between DE and EN.
  * Sets the NEXT_LOCALE cookie and syncs to Supabase user_metadata if authenticated.
  */
-function LanguageSelector({ compact = false }: LanguageSelectorProps): JSX.Element {
+function LanguageSelector({ compact = false, hideLabel = false }: LanguageSelectorProps): JSX.Element {
   const t = useTranslations("languageSelector");
   const router = useRouter();
   const currentLocale = typeof document !== "undefined" ? readCurrentLocale() : routing.defaultLocale;
@@ -79,9 +81,11 @@ function LanguageSelector({ compact = false }: LanguageSelectorProps): JSX.Eleme
 
   return (
     <div className="language-selector">
-      <label htmlFor="language-select" className="sidebar-label text-[0.7rem] mb-0.5">
-        {t("label")}
-      </label>
+      {!hideLabel && (
+        <label htmlFor="language-select" className="sidebar-label text-[0.7rem] mb-0.5">
+          {t("label")}
+        </label>
+      )}
       <select id="language-select" value={currentLocale} onChange={handleChange} className="language-selector__select">
         {routing.locales.map((locale) => (
           <option key={locale} value={locale}>

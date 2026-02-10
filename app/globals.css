@@ -444,6 +444,12 @@ body {
   border-color: var(--color-gold);
   outline: none;
 }
+/* Constrain language selector inside list-item (settings page) */
+.list-item .language-selector {
+  width: auto;
+  flex-shrink: 0;
+  min-width: 130px;
+}
 
 /* Language toggle (sidebar collapsed) */
 .sidebar-lang-compact {

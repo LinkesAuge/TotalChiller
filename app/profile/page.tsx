@@ -23,16 +23,6 @@ interface UserProfileView {
   readonly displayName: string;
 }
 
-interface MembershipView {
-  readonly clan_id: string;
-  readonly is_active: boolean;
-  readonly game_accounts: { readonly game_username: string } | null;
-}
-
-type MembershipQueryView = Omit<MembershipView, "game_accounts"> & {
-  readonly game_accounts: { readonly game_username: string } | readonly { readonly game_username: string }[] | null;
-};
-
 import { ROLE_LABELS as PERM_ROLE_LABELS, toRole } from "@/lib/permissions";
 
 function formatRole(role: string): string {
@@ -66,18 +56,12 @@ async function ProfileContent(): Promise<JSX.Element> {
   const userEmail = data.user?.email ?? "Unknown";
   const userId = data.user?.id ?? "Unknown";
   /* Fetch profile + independent data in parallel */
-  const [{ data: profileData }, membershipResult, gameAccountResult, userRoleResult, t] = await Promise.all([
+  const [{ data: profileData }, gameAccountResult, userRoleResult, t] = await Promise.all([
     supabase
       .from("profiles")
       .select("user_db,username,display_name,default_game_account_id")
       .eq("id", userId)
       .maybeSingle(),
-    supabase
-      .from("game_account_clan_memberships")
-      .select("clan_id,is_active,game_accounts(game_username)")
-      .eq("game_accounts.user_id", userId)
-      .eq("is_active", true)
-      .order("clan_id"),
     supabase
       .from("game_accounts")
       .select("id,game_username,approval_status,created_at")
@@ -114,17 +98,24 @@ async function ProfileContent(): Promise<JSX.Element> {
       ensuredProfile?.username ?? (userEmail && userEmail !== "Unknown" ? userEmail.split("@")[0] : "Unknown"),
     displayName: ensuredProfile?.display_name ?? ensuredProfile?.username ?? "Unknown",
   };
-  const memberships: readonly MembershipView[] = ((membershipResult.data ?? []) as readonly MembershipQueryView[]).map(
-    (membership) => ({
-      ...membership,
-      game_accounts: Array.isArray(membership.game_accounts)
-        ? (membership.game_accounts[0] ?? null)
-        : membership.game_accounts,
-    }),
-  );
   const gameAccounts = (gameAccountResult.data ?? []) as readonly GameAccountView[];
   const userRole = userRoleResult.data?.role ?? "member";
-  const clanIds = memberships.map((membership) => membership.clan_id);
+  /* Fetch memberships using actual game account IDs (avoids broken foreign-table filter) */
+  const accountIds = gameAccounts.map((account) => account.id);
+  const { data: membershipData } = accountIds.length
+    ? await supabase
+        .from("game_account_clan_memberships")
+        .select("clan_id,is_active,game_account_id")
+        .in("game_account_id", accountIds)
+        .eq("is_active", true)
+        .order("clan_id")
+    : { data: [] };
+  const memberships = (membershipData ?? []) as readonly {
+    readonly clan_id: string;
+    readonly is_active: boolean;
+    readonly game_account_id: string;
+  }[];
+  const clanIds = [...new Set(memberships.map((membership) => membership.clan_id))];
   const { data: clanData } = clanIds.length
     ? await supabase.from("clans").select("id,name").in("id", clanIds)
     : { data: [] as ClanView[] };
@@ -132,7 +123,12 @@ async function ProfileContent(): Promise<JSX.Element> {
   (clanData ?? []).forEach((clan) => {
     clansById[clan.id] = clan;
   });
-  const primaryMembership: MembershipView | null = memberships[0] ?? null;
+  /* Resolve primary clan: prefer the default game account's clan, fall back to first membership */
+  const defaultAccountId = ensuredProfile?.default_game_account_id as string | null;
+  const defaultMembership = defaultAccountId
+    ? memberships.find((membership) => membership.game_account_id === defaultAccountId)
+    : undefined;
+  const primaryMembership = defaultMembership ?? memberships[0] ?? null;
   const primaryClan = primaryMembership ? clansById[primaryMembership.clan_id] : null;
   const roleLabel = formatRole(userRole);
   const clanLabel = primaryClan?.name ?? t("noClanAssigned");
@@ -152,8 +148,8 @@ async function ProfileContent(): Promise<JSX.Element> {
         }
       />
       <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_captain.png" />
-      <div className="content-inner">
-        <div className="grid">
+      <div className="content-inner settings-layout">
+        <div className="settings-grid">
           <section className="card">
             <div className="card-header">
               <div>
@@ -174,10 +170,6 @@ async function ProfileContent(): Promise<JSX.Element> {
               <div className="list-item">
                 <span>{t("email")}</span>
                 <strong>{userView.email}</strong>
-              </div>
-              <div className="list-item">
-                <span>{t("userId")}</span>
-                <strong>{userView.id}</strong>
               </div>
               <div className="list-item">
                 <span>{t("primaryClan")}</span>
@@ -214,21 +206,19 @@ async function ProfileContent(): Promise<JSX.Element> {
                   <span className="badge">{t("joinAClan")}</span>
                 </div>
               ) : (
-                memberships.map((membership, index) => (
-                  <div
-                    className="list-item"
-                    key={`${membership.clan_id}-${membership.game_accounts?.game_username ?? `account-${index}`}`}
-                  >
-                    <div>
-                      <div>{clansById[membership.clan_id]?.name ?? membership.clan_id}</div>
-                      <div className="text-muted">{membership.clan_id}</div>
-                      {membership.game_accounts ? (
-                        <div className="text-muted">{membership.game_accounts.game_username ?? t("gameAccount")}</div>
-                      ) : null}
+                memberships.map((membership) => {
+                  const clanName = clansById[membership.clan_id]?.name ?? membership.clan_id;
+                  const account = gameAccounts.find((a) => a.id === membership.game_account_id);
+                  return (
+                    <div className="list-item" key={`${membership.clan_id}-${membership.game_account_id}`}>
+                      <div>
+                        <div>{clanName}</div>
+                        {account ? <div className="text-muted">{account.game_username}</div> : null}
+                      </div>
+                      <span className="badge">{roleLabel}</span>
                     </div>
-                    <span className="badge">{roleLabel}</span>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </section>

@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import PageTopBar from "./components/page-top-bar";
+
+export const metadata: Metadata = {
+  title: "Page Not Found",
+  description: "The requested page does not exist.",
+};
 
 /**
  * Custom 404 page — shown when a route does not exist.

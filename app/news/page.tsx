@@ -4,6 +4,7 @@ import NewsClient from "./news-client";
 export const metadata: Metadata = {
   title: "Announcements",
   description: "Clan announcements, updates, and important notices from [THC] Chiller & Killer.",
+  alternates: { canonical: "/news" },
 };
 
 /**

@@ -60,6 +60,33 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
         <link rel="preload" href="/assets/vip/back_left.png" as="image" />
         <link rel="preload" href="/assets/ui/components_shield_4.png" as="image" />
         <link rel="preload" href="/assets/vip/components_decor_7.png" as="image" />
+        {/* JSON-LD structured data — WebSite + Organization */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  name: "TotalChiller",
+                  alternateName: "[THC] Chiller & Killer Community Hub",
+                  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app",
+                  description:
+                    "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, track chest scores, manage data imports, and stay connected.",
+                },
+                {
+                  "@type": "Organization",
+                  name: "[THC] Chiller & Killer",
+                  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app",
+                  logo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app"}/assets/vip/icons_chest_1.png`,
+                  description:
+                    "Competitive Total Battle clan focused on teamwork, data-driven strategy, and community building.",
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body suppressHydrationWarning>
         <NextIntlClientProvider messages={messages} locale={locale}>

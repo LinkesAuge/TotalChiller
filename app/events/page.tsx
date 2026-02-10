@@ -4,6 +4,7 @@ import EventsClient from "./events-client";
 export const metadata: Metadata = {
   title: "Events",
   description: "Upcoming events, war schedules, and clan calendar for [THC] Chiller & Killer.",
+  alternates: { canonical: "/events" },
 };
 
 /**

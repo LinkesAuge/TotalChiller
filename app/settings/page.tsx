@@ -12,6 +12,7 @@ import SettingsClient from "./settings-client";
 export const metadata: Metadata = {
   title: "Settings",
   description: "Manage your account settings, notifications, and preferences.",
+  alternates: { canonical: "/settings" },
 };
 
 export const dynamic = "force-dynamic";

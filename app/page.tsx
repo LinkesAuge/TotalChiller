@@ -12,6 +12,7 @@ import DashboardClient from "./dashboard-client";
 export const metadata: Metadata = {
   title: "Dashboard",
   description: "Your clan hub — announcements, events, stats, and progress.",
+  alternates: { canonical: "/" },
 };
 
 export const dynamic = "force-dynamic";

@@ -7,6 +7,7 @@ import createSupabaseServerClient from "../../lib/supabase/server-client";
 export const metadata: Metadata = {
   title: "Profile",
   description: "Your member profile, clan memberships, and game account management.",
+  alternates: { canonical: "/profile" },
 };
 import DisplayNameEditor from "./display-name-editor";
 import GameAccountManager from "./game-account-manager";

@@ -380,7 +380,7 @@ function NewsClient(): JSX.Element {
       <div className="content-inner">
         {/* Create button */}
         {!isFormOpen && canManage && (
-          <div style={{ marginBottom: 16 }}>
+          <div className="mb-4">
             <button className="button primary" type="button" onClick={handleOpenCreate}>
               {t("createPost")}
             </button>
@@ -390,14 +390,14 @@ function NewsClient(): JSX.Element {
         <div className="grid">
           {/* ═══ Create / Edit Form ═══ */}
           {isFormOpen && canManage && (
-            <section className="card" style={{ gridColumn: "1 / -1" }}>
+            <section className="card col-span-full">
               <div className="card-header">
                 <div>
                   <div className="card-title">{editingId ? t("editPost") : t("createPost")}</div>
                   <div className="card-subtitle">{t("visibleToClan")}</div>
                 </div>
               </div>
-              <form onSubmit={handleSubmit} style={{ padding: "0 16px 16px" }}>
+              <form onSubmit={handleSubmit} className="pt-0 px-4 pb-4">
                 {/* Title */}
                 <div className="form-group">
                   <label htmlFor="newsTitle">{t("titleLabel")}</label>
@@ -416,16 +416,8 @@ function NewsClient(): JSX.Element {
                     {/* No banner option */}
                     <button
                       type="button"
-                      className={`news-banner-option${bannerUrl === "" ? " selected" : ""}`}
+                      className={`news-banner-option flex items-center justify-center text-xs text-text-muted min-h-12${bannerUrl === "" ? " selected" : ""}`}
                       onClick={() => setBannerUrl("")}
-                      style={{
-                        minHeight: 48,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "0.75rem",
-                        color: "var(--color-text-muted)",
-                      }}
                     >
                       {t("noBanner")}
                     </button>
@@ -443,27 +435,11 @@ function NewsClient(): JSX.Element {
                     {/* Custom upload */}
                     <button
                       type="button"
-                      className={`news-banner-option news-banner-upload${bannerUrl && !BANNER_TEMPLATES.some((t) => t.src === bannerUrl) && bannerUrl !== "" ? " selected" : ""}`}
+                      className={`news-banner-option news-banner-upload flex flex-col items-center justify-center gap-1${bannerUrl && !BANNER_TEMPLATES.some((t) => t.src === bannerUrl) && bannerUrl !== "" ? " selected" : ""}`}
                       onClick={() => bannerFileRef.current?.click()}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 4,
-                      }}
                     >
                       {bannerUrl && !BANNER_TEMPLATES.some((tmpl) => tmpl.src === bannerUrl) && bannerUrl !== "" ? (
-                        <img
-                          src={bannerUrl}
-                          alt="Custom"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            borderRadius: "var(--radius-sm)",
-                          }}
-                        />
+                        <img src={bannerUrl} alt="Custom" className="w-full h-full object-cover rounded-sm" />
                       ) : (
                         <>
                           <svg
@@ -476,7 +452,7 @@ function NewsClient(): JSX.Element {
                           >
                             <path d="M12 5v14M5 12h14" />
                           </svg>
-                          <span style={{ fontSize: "0.65rem" }}>{t("customBanner")}</span>
+                          <span className="text-[0.65rem]">{t("customBanner")}</span>
                         </>
                       )}
                     </button>
@@ -484,12 +460,12 @@ function NewsClient(): JSX.Element {
                       ref={bannerFileRef}
                       type="file"
                       accept="image/*"
-                      style={{ display: "none" }}
+                      className="hidden"
                       onChange={handleBannerUpload}
                     />
                   </div>
                   {isBannerUploading && (
-                    <p style={{ fontSize: "0.75rem", color: "var(--color-gold)", marginTop: 4 }}>
+                    <p className="mt-1" style={{ fontSize: "0.75rem", color: "var(--color-gold)" }}>
                       {t("uploadingImage")}
                     </p>
                   )}
@@ -515,7 +491,7 @@ function NewsClient(): JSX.Element {
                     </button>
                   </div>
                   {isPreviewMode ? (
-                    <div className="forum-editor-preview" style={{ minHeight: 250, padding: 16 }}>
+                    <div className="forum-editor-preview p-4" style={{ minHeight: 250 }}>
                       {content.trim() ? (
                         <ForumMarkdown content={content} />
                       ) : (
@@ -538,7 +514,8 @@ function NewsClient(): JSX.Element {
                         onChange={(e) => setContent(e.target.value)}
                         placeholder={t("contentPlaceholder")}
                         rows={14}
-                        style={{ minHeight: 250, fontFamily: "var(--font-body)", fontSize: "0.88rem", lineHeight: 1.6 }}
+                        className="text-[0.88rem] leading-relaxed"
+                        style={{ minHeight: 250, fontFamily: "var(--font-body)" }}
                         onPaste={(e) =>
                           handleImagePaste(
                             e,
@@ -562,19 +539,15 @@ function NewsClient(): JSX.Element {
                           e.stopPropagation();
                         }}
                       />
-                      <p style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginTop: 4 }}>
-                        {t("markdownHint")}
-                      </p>
+                      <p className="mt-1 text-[0.72rem] text-text-muted">{t("markdownHint")}</p>
                     </>
                   )}
-                  {isImageUploading && (
-                    <p style={{ fontSize: "0.78rem", color: "var(--color-gold)" }}>{t("uploadingImage")}</p>
-                  )}
+                  {isImageUploading && <p className="text-[0.78rem] text-gold">{t("uploadingImage")}</p>}
                 </div>
 
                 {/* Status, Tags, Pin */}
                 <div className="form-grid">
-                  <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div className="form-group mb-0">
                     <label htmlFor="newsStatus">{t("status")}</label>
                     <RadixSelect
                       id="newsStatus"
@@ -588,7 +561,7 @@ function NewsClient(): JSX.Element {
                       ]}
                     />
                   </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div className="form-group mb-0">
                     <label htmlFor="newsTags">{t("tags")}</label>
                     <input
                       id="newsTags"
@@ -598,8 +571,8 @@ function NewsClient(): JSX.Element {
                     />
                   </div>
                 </div>
-                <div className="list inline" style={{ marginTop: 12 }}>
-                  <label className="text-muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <div className="list inline mt-3">
+                  <label className="text-muted inline-flex items-center gap-1.5">
                     <input
                       type="checkbox"
                       checked={isPinned}
@@ -609,7 +582,7 @@ function NewsClient(): JSX.Element {
                     {t("pinLabel")}
                   </label>
                 </div>
-                <div className="list inline" style={{ marginTop: 16 }}>
+                <div className="list inline mt-4">
                   <button className="button primary" type="submit" disabled={isSaving}>
                     {isSaving ? t("saving") : editingId ? t("save") : t("createPost")}
                   </button>
@@ -622,7 +595,7 @@ function NewsClient(): JSX.Element {
           )}
 
           {/* ═══ Pagination ═══ */}
-          <div className="pagination-bar" style={{ gridColumn: "1 / -1" }}>
+          <div className="pagination-bar col-span-full">
             <div className="pagination-page-size">
               <label htmlFor="newsPageSize" className="text-muted">
                 {t("pageSize")}
@@ -696,13 +669,9 @@ function NewsClient(): JSX.Element {
           </div>
 
           {/* Loading / Empty */}
-          {isLoading && (
-            <div className="alert info loading" style={{ gridColumn: "1 / -1" }}>
-              {t("loadingNews")}
-            </div>
-          )}
+          {isLoading && <div className="alert info loading col-span-full">{t("loadingNews")}</div>}
           {!isLoading && articles.length === 0 && (
-            <section className="card" style={{ gridColumn: "1 / -1" }}>
+            <section className="card col-span-full">
               <div className="card-header">
                 <div>
                   <div className="card-title">{t("noNews")}</div>
@@ -716,7 +685,7 @@ function NewsClient(): JSX.Element {
             articles.map((article) => {
               const isExpanded = expandedArticleId === article.id;
               return (
-                <article key={article.id} className="news-card" style={{ gridColumn: "1 / -1" }}>
+                <article key={article.id} className="news-card col-span-full">
                   {/* Banner header */}
                   <div
                     className="news-card-banner"
@@ -832,19 +801,19 @@ function NewsClient(): JSX.Element {
             })}
 
           {/* ═══ Filters ═══ */}
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card col-span-full">
             <div className="card-header">
               <div>
                 <div className="card-title">{t("filters")}</div>
               </div>
               {hasActiveFilters && (
-                <button className="button" type="button" onClick={handleClearFilters} style={{ fontSize: "0.8rem" }}>
+                <button className="button text-[0.8rem]" type="button" onClick={handleClearFilters}>
                   {t("clearFilters")}
                 </button>
               )}
             </div>
-            <div className="form-grid" style={{ gap: "12px 16px", padding: "0 16px 16px" }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
+            <div className="form-grid pt-0 px-4 pb-4" style={{ gap: "12px 16px" }}>
+              <div className="form-group mb-0">
                 <label htmlFor="newsSearch">{t("search")}</label>
                 <SearchInput
                   id="newsSearch"
@@ -858,7 +827,7 @@ function NewsClient(): JSX.Element {
                 />
               </div>
               {availableTags.length > 0 && (
-                <div className="form-group" style={{ marginBottom: 0 }}>
+                <div className="form-group mb-0">
                   <label htmlFor="newsTagFilter">{t("filterByTag")}</label>
                   <RadixSelect
                     id="newsTagFilter"
@@ -875,9 +844,9 @@ function NewsClient(): JSX.Element {
                   />
                 </div>
               )}
-              <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="form-group mb-0">
                 <label>{t("filterByDate")}</label>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div className="flex gap-2 items-center">
                   <DatePicker
                     value={dateFrom}
                     onChange={(v) => {

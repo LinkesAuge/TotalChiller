@@ -23,19 +23,13 @@ export default function GlobalError({
       <PageTopBar title="Fehler / Error" />
       <div className="content-inner">
         <div className="grid">
-          <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
-            Etwas ist schiefgelaufen. / Something went wrong.
-          </div>
+          <div className="alert warn col-span-full">Etwas ist schiefgelaufen. / Something went wrong.</div>
           <section className="card">
-            <div className="card-body" style={{ lineHeight: 1.7, fontSize: "0.85rem" }}>
-              <p style={{ margin: 0 }}>{error.message || "Ein unerwarteter Fehler ist aufgetreten."}</p>
-              {error.digest ? (
-                <p className="text-muted" style={{ fontSize: "0.75rem", marginTop: 8 }}>
-                  Fehler-ID: {error.digest}
-                </p>
-              ) : null}
+            <div className="card-body leading-relaxed text-sm">
+              <p className="m-0">{error.message || "Ein unerwarteter Fehler ist aufgetreten."}</p>
+              {error.digest ? <p className="text-muted text-xs mt-2">Fehler-ID: {error.digest}</p> : null}
             </div>
-            <div className="list" style={{ marginTop: 16 }}>
+            <div className="list mt-4">
               <button className="button primary" type="button" onClick={reset}>
                 Erneut versuchen / Try again
               </button>

@@ -44,8 +44,8 @@ function UpdatePasswordPage(): JSX.Element {
   }
 
   return (
-    <div style={{ display: "flex", justifyContent: "center", paddingTop: 40 }}>
-      <section className="card" style={{ maxWidth: 440, width: "100%" }}>
+    <div className="flex justify-center pt-10">
+      <section className="card max-w-[440px] w-full">
         <div className="tooltip-head">
           <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
           <div className="tooltip-head-inner">
@@ -77,10 +77,10 @@ function UpdatePasswordPage(): JSX.Element {
                 required
               />
             </div>
-            <button className="button primary" type="submit" style={{ width: "100%", marginTop: 8 }}>
+            <button className="button primary mt-2 w-full" type="submit">
               {t("submit")}
             </button>
-            {formState.status ? <p className="text-muted" style={{ marginTop: 8 }}>{formState.status}</p> : null}
+            {formState.status ? <p className="text-muted mt-2">{formState.status}</p> : null}
           </form>
         </div>
       </section>

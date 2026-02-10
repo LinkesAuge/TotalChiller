@@ -76,14 +76,7 @@ interface IndexedRow {
   readonly index: number;
 }
 
-const REQUIRED_HEADERS: readonly string[] = [
-  "DATE",
-  "PLAYER",
-  "SOURCE",
-  "CHEST",
-  "SCORE",
-  "CLAN",
-];
+const REQUIRED_HEADERS: readonly string[] = ["DATE", "PLAYER", "SOURCE", "CHEST", "SCORE", "CLAN"];
 
 const DATE_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}$/;
 const COMMIT_STATUS_TIMEOUT_MS: number = 5000;
@@ -117,10 +110,10 @@ function parseCsvLine(line: string): string[] {
   let inQuotes = false;
   for (let index = 0; index < line.length; index += 1) {
     const char = line[index];
-    if (char === "\"") {
+    if (char === '"') {
       const nextChar = line[index + 1];
-      if (inQuotes && nextChar === "\"") {
-        current += "\"";
+      if (inQuotes && nextChar === '"') {
+        current += '"';
         index += 1;
         continue;
       }
@@ -221,11 +214,7 @@ function getRowValidationErrors(nextRows: readonly CsvRow[]): ParseError[] {
   return errors;
 }
 
-function compareImportValues(
-  left: string | number,
-  right: string | number,
-  direction: "asc" | "desc",
-): number {
+function compareImportValues(left: string | number, right: string | number, direction: "asc" | "desc"): number {
   if (left === right) {
     return 0;
   }
@@ -312,10 +301,7 @@ function DataImportClient(): JSX.Element {
   const [commitWarningInvalidRows, setCommitWarningInvalidRows] = useState<readonly number[]>([]);
   const supabase = createSupabaseBrowserClient();
 
-  const validationEvaluator = useMemo(
-    () => createValidationEvaluator(validationRules),
-    [validationRules],
-  );
+  const validationEvaluator = useMemo(() => createValidationEvaluator(validationRules), [validationRules]);
   const correctionApplicator = useMemo(() => createCorrectionApplicator(correctionRules), [correctionRules]);
   const playerSuggestions = useMemo(() => {
     const values = new Set<string>();
@@ -344,13 +330,16 @@ function DataImportClient(): JSX.Element {
     });
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [validationRules]);
-  const suggestionsForField = useMemo<Record<string, readonly string[]>>(() => ({
-    player: playerSuggestions,
-    source: sourceSuggestions,
-    chest: chestSuggestions,
-    clan: availableClans,
-    all: [],
-  }), [availableClans, chestSuggestions, playerSuggestions, sourceSuggestions]);
+  const suggestionsForField = useMemo<Record<string, readonly string[]>>(
+    () => ({
+      player: playerSuggestions,
+      source: sourceSuggestions,
+      chest: chestSuggestions,
+      clan: availableClans,
+      all: [],
+    }),
+    [availableClans, chestSuggestions, playerSuggestions, sourceSuggestions],
+  );
 
   const applyCorrectionsToRows = useCallback(
     (inputRows: readonly CsvRow[]): { rows: CsvRow[]; correctionsByRow: CorrectionMap } => {
@@ -485,9 +474,7 @@ function DataImportClient(): JSX.Element {
     setIsAddCorrectionRuleOpen(true);
   }
 
-  function updateCorrectionRuleField(
-    nextField: "player" | "source" | "chest" | "clan" | "all",
-  ): void {
+  function updateCorrectionRuleField(nextField: "player" | "source" | "chest" | "clan" | "all"): void {
     setCorrectionRuleField(nextField);
     if (nextField === "all") {
       return;
@@ -803,7 +790,6 @@ function DataImportClient(): JSX.Element {
     };
   }, [commitStatus, isCommitting]);
 
-
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0];
     if (!file) {
@@ -991,11 +977,7 @@ function DataImportClient(): JSX.Element {
       return;
     }
     const nextValue =
-      batchEditField === "date"
-        ? batchEditDate
-        : batchEditField === "clan"
-          ? batchEditClan
-          : batchEditValue;
+      batchEditField === "date" ? batchEditDate : batchEditField === "clan" ? batchEditClan : batchEditValue;
     const updatedRows = rows.map((row, index) => {
       if (!selectedRowSet.has(index)) {
         return row;
@@ -1180,7 +1162,9 @@ function DataImportClient(): JSX.Element {
               <div className="card-title">{t("parsingFeedback")}</div>
               <div className="card-subtitle">{t("importSummary")}</div>
             </div>
-            <span className="badge">{t("imported")}: {correctionResults.rows.length}</span>
+            <span className="badge">
+              {t("imported")}: {correctionResults.rows.length}
+            </span>
           </div>
           <div className="list">
             <div className="list-item">
@@ -1204,184 +1188,184 @@ function DataImportClient(): JSX.Element {
               </span>
             </div>
           </div>
-      </section>
-      {isBatchOpsOpen ? (
-        <section className="card batch-ops">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("searchFilters")}</div>
-              <div className="card-subtitle">{t("applyFilters")}</div>
-            </div>
-          </div>
-          <div className="card-section">
-            <div className="batch-ops-rows">
-              <div className="list inline admin-members-filters filter-bar batch-ops-row">
-                <SearchInput
-                  id="importFilterPlayer"
-                  label={t("player")}
-                  value={filterPlayer}
-                  onChange={(value) => {
-                    setFilterPlayer(value);
-                    setPage(1);
-                  }}
-                  placeholder={t("searchPlayer")}
-                />
-                <SearchInput
-                  id="importFilterSource"
-                  label={t("source")}
-                  value={filterSource}
-                  onChange={(value) => {
-                    setFilterSource(value);
-                    setPage(1);
-                  }}
-                  placeholder={t("searchSource")}
-                />
-                <SearchInput
-                  id="importFilterChest"
-                  label={t("chest")}
-                  value={filterChest}
-                  onChange={(value) => {
-                    setFilterChest(value);
-                    setPage(1);
-                  }}
-                  placeholder={t("searchChest")}
-                />
-                <SearchInput
-                  id="importFilterClan"
-                  label={t("clan")}
-                  value={filterClan}
-                  onChange={(value) => {
-                    setFilterClan(value);
-                    setPage(1);
-                  }}
-                  placeholder={t("searchClan")}
-                />
-              </div>
-              <div className="list inline admin-members-filters filter-bar batch-ops-row">
-                <label htmlFor="importDateFrom" className="text-muted">
-                  {t("dateFrom")}
-                </label>
-                <input
-                  id="importDateFrom"
-                  type="date"
-                  value={filterDateFrom}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                    setFilterDateFrom(event.target.value);
-                    setPage(1);
-                  }}
-                />
-                <label htmlFor="importDateTo" className="text-muted">
-                  {t("dateTo")}
-                </label>
-                <input
-                  id="importDateTo"
-                  type="date"
-                  value={filterDateTo}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                    setFilterDateTo(event.target.value);
-                    setPage(1);
-                  }}
-                />
-                <label htmlFor="importScoreMin" className="text-muted">
-                  {t("scoreMin")}
-                </label>
-                <input
-                  id="importScoreMin"
-                  type="number"
-                  value={filterScoreMin}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                    setFilterScoreMin(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="0"
-                />
-              <label htmlFor="importScoreMax" className="text-muted">
-                {t("scoreMax")}
-              </label>
-              <input
-                id="importScoreMax"
-                type="number"
-                value={filterScoreMax}
-                onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                  setFilterScoreMax(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="9999"
-              />
-            </div>
-            <div className="list inline admin-members-filters filter-bar batch-ops-row">
-              <label htmlFor="importRowStatus" className="text-muted">
-                {t("rowStatus")}
-              </label>
-              <RadixSelect
-                id="importRowStatus"
-                ariaLabel={t("rowStatus")}
-                value={filterRowStatus}
-                onValueChange={(value) => {
-                  setFilterRowStatus(value as "all" | "valid" | "invalid");
-                  setPage(1);
-                }}
-                options={[
-                  { value: "all", label: t("all") },
-                  { value: "valid", label: t("validOnly") },
-                  { value: "invalid", label: t("invalidOnly") },
-                ]}
-                disabled={!isValidationEnabled}
-              />
-              {!isValidationEnabled ? <span className="text-muted">{t("validationOff")}</span> : null}
-              <label htmlFor="importCorrectionStatus" className="text-muted">
-                {t("correction")}
-              </label>
-              <RadixSelect
-                id="importCorrectionStatus"
-                ariaLabel={t("correction")}
-                value={filterCorrectionStatus}
-                onValueChange={(value) => {
-                  setFilterCorrectionStatus(value as "all" | "corrected" | "uncorrected");
-                  setPage(1);
-                }}
-                options={[
-                  { value: "all", label: t("all") },
-                  { value: "corrected", label: t("correctedOnly") },
-                  { value: "uncorrected", label: t("notCorrected") },
-                ]}
-                disabled={!isAutoCorrectEnabled}
-              />
-              {!isAutoCorrectEnabled ? <span className="text-muted">{t("autoCorrectOff")}</span> : null}
-              <label htmlFor="importSortKey" className="text-muted">
-                {t("sortBy")}
-              </label>
-              <RadixSelect
-                id="importSortKey"
-                ariaLabel={t("sortBy")}
-                value={importSortKey}
-                onValueChange={(value) => {
-                  setImportSortKey(value as ImportSortKey);
-                  setImportSortDirection("asc");
-                  setPage(1);
-                }}
-                options={importSortOptions.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
-              />
-              <RadixSelect
-                ariaLabel={t("sortDirection")}
-                value={importSortDirection}
-                onValueChange={(value) => {
-                  setImportSortDirection(value as "asc" | "desc");
-                  setPage(1);
-                }}
-                options={[
-                  { value: "asc", label: t("asc") },
-                  { value: "desc", label: t("desc") },
-                ]}
-              />
-              <button className="button" type="button" onClick={resetImportFilters}>
-                {t("reset")}
-              </button>
-              </div>
-            </div>
-          </div>
         </section>
-      ) : null}
+        {isBatchOpsOpen ? (
+          <section className="card batch-ops">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("searchFilters")}</div>
+                <div className="card-subtitle">{t("applyFilters")}</div>
+              </div>
+            </div>
+            <div className="card-section">
+              <div className="batch-ops-rows">
+                <div className="list inline admin-members-filters filter-bar batch-ops-row">
+                  <SearchInput
+                    id="importFilterPlayer"
+                    label={t("player")}
+                    value={filterPlayer}
+                    onChange={(value) => {
+                      setFilterPlayer(value);
+                      setPage(1);
+                    }}
+                    placeholder={t("searchPlayer")}
+                  />
+                  <SearchInput
+                    id="importFilterSource"
+                    label={t("source")}
+                    value={filterSource}
+                    onChange={(value) => {
+                      setFilterSource(value);
+                      setPage(1);
+                    }}
+                    placeholder={t("searchSource")}
+                  />
+                  <SearchInput
+                    id="importFilterChest"
+                    label={t("chest")}
+                    value={filterChest}
+                    onChange={(value) => {
+                      setFilterChest(value);
+                      setPage(1);
+                    }}
+                    placeholder={t("searchChest")}
+                  />
+                  <SearchInput
+                    id="importFilterClan"
+                    label={t("clan")}
+                    value={filterClan}
+                    onChange={(value) => {
+                      setFilterClan(value);
+                      setPage(1);
+                    }}
+                    placeholder={t("searchClan")}
+                  />
+                </div>
+                <div className="list inline admin-members-filters filter-bar batch-ops-row">
+                  <label htmlFor="importDateFrom" className="text-muted">
+                    {t("dateFrom")}
+                  </label>
+                  <input
+                    id="importDateFrom"
+                    type="date"
+                    value={filterDateFrom}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      setFilterDateFrom(event.target.value);
+                      setPage(1);
+                    }}
+                  />
+                  <label htmlFor="importDateTo" className="text-muted">
+                    {t("dateTo")}
+                  </label>
+                  <input
+                    id="importDateTo"
+                    type="date"
+                    value={filterDateTo}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      setFilterDateTo(event.target.value);
+                      setPage(1);
+                    }}
+                  />
+                  <label htmlFor="importScoreMin" className="text-muted">
+                    {t("scoreMin")}
+                  </label>
+                  <input
+                    id="importScoreMin"
+                    type="number"
+                    value={filterScoreMin}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      setFilterScoreMin(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="0"
+                  />
+                  <label htmlFor="importScoreMax" className="text-muted">
+                    {t("scoreMax")}
+                  </label>
+                  <input
+                    id="importScoreMax"
+                    type="number"
+                    value={filterScoreMax}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      setFilterScoreMax(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="9999"
+                  />
+                </div>
+                <div className="list inline admin-members-filters filter-bar batch-ops-row">
+                  <label htmlFor="importRowStatus" className="text-muted">
+                    {t("rowStatus")}
+                  </label>
+                  <RadixSelect
+                    id="importRowStatus"
+                    ariaLabel={t("rowStatus")}
+                    value={filterRowStatus}
+                    onValueChange={(value) => {
+                      setFilterRowStatus(value as "all" | "valid" | "invalid");
+                      setPage(1);
+                    }}
+                    options={[
+                      { value: "all", label: t("all") },
+                      { value: "valid", label: t("validOnly") },
+                      { value: "invalid", label: t("invalidOnly") },
+                    ]}
+                    disabled={!isValidationEnabled}
+                  />
+                  {!isValidationEnabled ? <span className="text-muted">{t("validationOff")}</span> : null}
+                  <label htmlFor="importCorrectionStatus" className="text-muted">
+                    {t("correction")}
+                  </label>
+                  <RadixSelect
+                    id="importCorrectionStatus"
+                    ariaLabel={t("correction")}
+                    value={filterCorrectionStatus}
+                    onValueChange={(value) => {
+                      setFilterCorrectionStatus(value as "all" | "corrected" | "uncorrected");
+                      setPage(1);
+                    }}
+                    options={[
+                      { value: "all", label: t("all") },
+                      { value: "corrected", label: t("correctedOnly") },
+                      { value: "uncorrected", label: t("notCorrected") },
+                    ]}
+                    disabled={!isAutoCorrectEnabled}
+                  />
+                  {!isAutoCorrectEnabled ? <span className="text-muted">{t("autoCorrectOff")}</span> : null}
+                  <label htmlFor="importSortKey" className="text-muted">
+                    {t("sortBy")}
+                  </label>
+                  <RadixSelect
+                    id="importSortKey"
+                    ariaLabel={t("sortBy")}
+                    value={importSortKey}
+                    onValueChange={(value) => {
+                      setImportSortKey(value as ImportSortKey);
+                      setImportSortDirection("asc");
+                      setPage(1);
+                    }}
+                    options={importSortOptions.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
+                  />
+                  <RadixSelect
+                    ariaLabel={t("sortDirection")}
+                    value={importSortDirection}
+                    onValueChange={(value) => {
+                      setImportSortDirection(value as "asc" | "desc");
+                      setPage(1);
+                    }}
+                    options={[
+                      { value: "asc", label: t("asc") },
+                      { value: "desc", label: t("desc") },
+                    ]}
+                  />
+                  <button className="button" type="button" onClick={resetImportFilters}>
+                    {t("reset")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
         <div className="table-toolbar">
           <button className="button" type="button" onClick={() => setIsBatchOpsOpen((current) => !current)}>
             {isBatchOpsOpen ? t("hideSearchFilters") : t("showSearchFilters")}
@@ -1405,16 +1389,22 @@ function DataImportClient(): JSX.Element {
           >
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              <path
+                d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
+              <path
+                d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
             </svg>
           </IconButton>
-          <div className="list inline toggle-group" style={{ marginLeft: "auto", alignItems: "center" }}>
-            <label
-              className="text-muted"
-              htmlFor="autoCorrectToggle"
-              style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
-            >
+          <div className="list inline toggle-group ml-auto" style={{ alignItems: "center" }}>
+            <label className="text-muted inline-flex items-center gap-2" htmlFor="autoCorrectToggle">
               <input
                 id="autoCorrectToggle"
                 type="checkbox"
@@ -1423,11 +1413,7 @@ function DataImportClient(): JSX.Element {
               />
               {t("autoCorrect")}
             </label>
-            <label
-              className="text-muted"
-              htmlFor="validationToggle"
-              style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
-            >
+            <label className="text-muted inline-flex items-center gap-2" htmlFor="validationToggle">
               <input
                 id="validationToggle"
                 type="checkbox"
@@ -1438,7 +1424,7 @@ function DataImportClient(): JSX.Element {
             </label>
           </div>
         </div>
-        <div className="pagination-bar table-pagination" style={{ gridColumn: "1 / -1" }}>
+        <div className="pagination-bar table-pagination col-span-full">
           <div className="pagination-page-size">
             <label htmlFor="importPageSize" className="text-muted">
               {t("pageSize")}
@@ -1486,7 +1472,13 @@ function DataImportClient(): JSX.Element {
               disabled={page === 1}
             >
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M10 3L6 8L10 13"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </IconButton>
             <IconButton
@@ -1495,159 +1487,182 @@ function DataImportClient(): JSX.Element {
               disabled={page >= totalPages}
             >
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M6 3L10 8L6 13"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </IconButton>
           </div>
         </div>
         <TableScroll>
-        <section className="table data-import">
-          <header>
-            <span>{renderImportSortButton(t("tableHeaderIndex"), "index")}</span>
-            <span>
-              <input
-                type="checkbox"
-                ref={selectAllRef}
-                checked={areAllRowsSelected}
-                onChange={toggleSelectAllRows}
-                aria-label={t("selectAllRows")}
-              />
-            </span>
-            <span>{renderImportSortButton(t("tableHeaderDate"), "date")}</span>
-            <span>{renderImportSortButton(t("tableHeaderPlayer"), "player")}</span>
-            <span>{renderImportSortButton(t("tableHeaderSource"), "source")}</span>
-            <span>{renderImportSortButton(t("tableHeaderChest"), "chest")}</span>
-            <span>{renderImportSortButton(t("tableHeaderScore"), "score")}</span>
-            <span>{renderImportSortButton(t("tableHeaderClan"), "clan")}</span>
-            <span>{t("tableHeaderActions")}</span>
-          </header>
-          {correctionResults.rows.length === 0 ? (
-            <div className="row">
-              <span>{t("noDataLoaded")}</span>
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          ) : filteredCount === 0 ? (
-            <div className="row">
-              <span>{t("noRowsMatchFilters")}</span>
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          ) : (
-            pagedRows.map((item) => {
-              const row = item.row;
-              const rowIndex = item.index;
-              const validation = rowValidationResults[rowIndex];
-              const rowStatus = validation?.rowStatus ?? "neutral";
-              const fieldStatus = validation?.fieldStatus ?? { player: "neutral", source: "neutral", chest: "neutral", clan: "neutral" };
-              const correctionsForRow = correctionResults.correctionsByRow[rowIndex];
-              const playerClassName = [
-                fieldStatus.player === "invalid" ? "validation-cell-invalid" : "",
-                correctionsForRow?.player ? "correction-cell-corrected" : "",
-              ]
-                .filter(Boolean)
-                .join(" ");
-              const sourceClassName = [
-                fieldStatus.source === "invalid" ? "validation-cell-invalid" : "",
-                correctionsForRow?.source ? "correction-cell-corrected" : "",
-              ]
-                .filter(Boolean)
-                .join(" ");
-              const chestClassName = [
-                fieldStatus.chest === "invalid" ? "validation-cell-invalid" : "",
-                correctionsForRow?.chest ? "correction-cell-corrected" : "",
-              ]
-                .filter(Boolean)
-                .join(" ");
-              const clanClassName = [
-                fieldStatus.clan === "invalid" ? "select-trigger validation-cell-invalid" : "select-trigger",
-                correctionsForRow?.clan ? "correction-cell-corrected" : "",
-              ]
-                .filter(Boolean)
-                .join(" ");
-              return (
-              <div
-                className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
-                key={`${row.date}-${row.player}-${row.chest}-${rowIndex}`}
-              >
-                <span className="text-muted">{rowIndex + 1}</span>
+          <section className="table data-import">
+            <header>
+              <span>{renderImportSortButton(t("tableHeaderIndex"), "index")}</span>
+              <span>
                 <input
                   type="checkbox"
-                  checked={selectedRows.includes(rowIndex)}
-                  onChange={() => toggleSelectRow(rowIndex)}
+                  ref={selectAllRef}
+                  checked={areAllRowsSelected}
+                  onChange={toggleSelectAllRows}
+                  aria-label={t("selectAllRows")}
                 />
-                <DatePicker value={row.date} onChange={(value) => updateRowValue(rowIndex, "date", value)} />
-                <ComboboxInput
-                  value={row.player}
-                  className={playerClassName}
-                  onChange={(value) => updateRowValue(rowIndex, "player", value)}
-                  options={playerSuggestions}
-                />
-                <ComboboxInput
-                  value={row.source}
-                  className={sourceClassName}
-                  onChange={(value) => updateRowValue(rowIndex, "source", value)}
-                  options={sourceSuggestions}
-                />
-                <ComboboxInput
-                  value={row.chest}
-                  className={chestClassName}
-                  onChange={(value) => updateRowValue(rowIndex, "chest", value)}
-                  options={chestSuggestions}
-                />
-                <input
-                  value={String(row.score)}
-                  onChange={(event) => updateRowValue(rowIndex, "score", event.target.value)}
-                />
-                <RadixSelect
-                  ariaLabel="Clan"
-                  value={row.clan}
-                  onValueChange={(value) => updateRowValue(rowIndex, "clan", value)}
-                  triggerClassName={clanClassName}
-                  options={[
-                    ...(!availableClans.includes(row.clan) ? [{ value: row.clan, label: row.clan }] : []),
-                    ...availableClans.map((clan) => ({ value: clan, label: clan })),
-                  ]}
-                />
-                <div className="list inline action-icons">
-                  <IconButton ariaLabel={t("addCorrectionRule")} onClick={() => openCorrectionRuleModal(rowIndex)}>
-                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path
-                        d="M3.5 10.5L8 6L12.5 10.5L7.5 15H3.5V10.5Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path d="M7.5 15H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </IconButton>
-                  <IconButton ariaLabel={t("addValidationRule")} onClick={() => openValidationRuleModal(rowIndex)}>
-                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M3.5 5.5L5 7L7.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M8.5 5.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      <path d="M3.5 10.5L5 12L7.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M8.5 10.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </IconButton>
-                </div>
+              </span>
+              <span>{renderImportSortButton(t("tableHeaderDate"), "date")}</span>
+              <span>{renderImportSortButton(t("tableHeaderPlayer"), "player")}</span>
+              <span>{renderImportSortButton(t("tableHeaderSource"), "source")}</span>
+              <span>{renderImportSortButton(t("tableHeaderChest"), "chest")}</span>
+              <span>{renderImportSortButton(t("tableHeaderScore"), "score")}</span>
+              <span>{renderImportSortButton(t("tableHeaderClan"), "clan")}</span>
+              <span>{t("tableHeaderActions")}</span>
+            </header>
+            {correctionResults.rows.length === 0 ? (
+              <div className="row">
+                <span>{t("noDataLoaded")}</span>
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
               </div>
-              );
-            })
-          )}
-        </section>
+            ) : filteredCount === 0 ? (
+              <div className="row">
+                <span>{t("noRowsMatchFilters")}</span>
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+            ) : (
+              pagedRows.map((item) => {
+                const row = item.row;
+                const rowIndex = item.index;
+                const validation = rowValidationResults[rowIndex];
+                const rowStatus = validation?.rowStatus ?? "neutral";
+                const fieldStatus = validation?.fieldStatus ?? {
+                  player: "neutral",
+                  source: "neutral",
+                  chest: "neutral",
+                  clan: "neutral",
+                };
+                const correctionsForRow = correctionResults.correctionsByRow[rowIndex];
+                const playerClassName = [
+                  fieldStatus.player === "invalid" ? "validation-cell-invalid" : "",
+                  correctionsForRow?.player ? "correction-cell-corrected" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                const sourceClassName = [
+                  fieldStatus.source === "invalid" ? "validation-cell-invalid" : "",
+                  correctionsForRow?.source ? "correction-cell-corrected" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                const chestClassName = [
+                  fieldStatus.chest === "invalid" ? "validation-cell-invalid" : "",
+                  correctionsForRow?.chest ? "correction-cell-corrected" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                const clanClassName = [
+                  fieldStatus.clan === "invalid" ? "select-trigger validation-cell-invalid" : "select-trigger",
+                  correctionsForRow?.clan ? "correction-cell-corrected" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
+                  <div
+                    className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
+                    key={`${row.date}-${row.player}-${row.chest}-${rowIndex}`}
+                  >
+                    <span className="text-muted">{rowIndex + 1}</span>
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(rowIndex)}
+                      onChange={() => toggleSelectRow(rowIndex)}
+                    />
+                    <DatePicker value={row.date} onChange={(value) => updateRowValue(rowIndex, "date", value)} />
+                    <ComboboxInput
+                      value={row.player}
+                      className={playerClassName}
+                      onChange={(value) => updateRowValue(rowIndex, "player", value)}
+                      options={playerSuggestions}
+                    />
+                    <ComboboxInput
+                      value={row.source}
+                      className={sourceClassName}
+                      onChange={(value) => updateRowValue(rowIndex, "source", value)}
+                      options={sourceSuggestions}
+                    />
+                    <ComboboxInput
+                      value={row.chest}
+                      className={chestClassName}
+                      onChange={(value) => updateRowValue(rowIndex, "chest", value)}
+                      options={chestSuggestions}
+                    />
+                    <input
+                      value={String(row.score)}
+                      onChange={(event) => updateRowValue(rowIndex, "score", event.target.value)}
+                    />
+                    <RadixSelect
+                      ariaLabel="Clan"
+                      value={row.clan}
+                      onValueChange={(value) => updateRowValue(rowIndex, "clan", value)}
+                      triggerClassName={clanClassName}
+                      options={[
+                        ...(!availableClans.includes(row.clan) ? [{ value: row.clan, label: row.clan }] : []),
+                        ...availableClans.map((clan) => ({ value: clan, label: clan })),
+                      ]}
+                    />
+                    <div className="list inline action-icons">
+                      <IconButton ariaLabel={t("addCorrectionRule")} onClick={() => openCorrectionRuleModal(rowIndex)}>
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M3.5 10.5L8 6L12.5 10.5L7.5 15H3.5V10.5Z"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path d="M7.5 15H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </IconButton>
+                      <IconButton ariaLabel={t("addValidationRule")} onClick={() => openValidationRuleModal(rowIndex)}>
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M3.5 5.5L5 7L7.5 4.5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path d="M8.5 5.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path
+                            d="M3.5 10.5L5 12L7.5 9.5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path d="M8.5 10.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </IconButton>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </section>
         </TableScroll>
       </div>
       {isAddCorrectionRuleOpen ? (
@@ -1873,8 +1888,8 @@ function DataImportClient(): JSX.Element {
                         batchEditField === "score"
                           ? Number(nextValue || row.score)
                           : batchEditField === "date" || batchEditField === "clan"
-                            ? (nextValue || row[batchEditField])
-                            : (nextValue || row[batchEditField]),
+                            ? nextValue || row[batchEditField]
+                            : nextValue || row[batchEditField],
                     };
                     const { rows: correctedRows, correctionsByRow } = applyCorrectionsToRows([previewRow]);
                     const correctedPreview = correctedRows[0] ?? previewRow;
@@ -1962,9 +1977,7 @@ function DataImportClient(): JSX.Element {
                 <div className="card-subtitle">{t("chooseProceed")}</div>
               </div>
             </div>
-            <div className="alert warn">
-              {t("rowHasErrors", { count: invalidRowCount })}
-            </div>
+            <div className="alert warn">{t("rowHasErrors", { count: invalidRowCount })}</div>
             <div className="list">
               <div className="list-item">
                 <span>{t("rowsValidated")}</span>

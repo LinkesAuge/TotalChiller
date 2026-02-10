@@ -410,7 +410,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   return (
     <div className="grid">
       {/* Compose toggle */}
-      <div style={{ gridColumn: "1 / -1", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+      <div className="col-span-full flex gap-3 flex-wrap">
         <button
           className="button"
           type="button"
@@ -427,7 +427,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
 
       {/* Compose form */}
       {isComposeOpen ? (
-        <section className="card" style={{ gridColumn: "1 / -1" }}>
+        <section className="card col-span-full">
           <div className="card-header">
             <div>
               <div className="card-title">{t("newMessage")}</div>
@@ -445,7 +445,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
             {isContentMgr ? (
               <div className="form-group">
                 <label id="recipientTypeLabel">{t("recipientType")}</label>
-                <div className="tabs" role="group" aria-labelledby="recipientTypeLabel" style={{ fontSize: "0.85rem" }}>
+                <div className="tabs text-sm" role="group" aria-labelledby="recipientTypeLabel">
                   {composeModeOptions.map((option) => (
                     <button
                       key={option.value}
@@ -471,19 +471,13 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                 <label htmlFor="recipientSearch">{t("to")}</label>
                 {/* Selected recipient chips */}
                 {composeRecipients.length > 0 ? (
-                  <div
-                    className="recipient-chips"
-                    style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.5rem" }}
-                  >
+                  <div className="recipient-chips flex flex-wrap gap-1.5 mb-2">
                     {composeRecipients.map((recipient) => (
-                      <span
-                        key={recipient.id}
-                        className="badge"
-                        style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
-                      >
+                      <span key={recipient.id} className="badge inline-flex items-center gap-1">
                         {recipient.label}
                         <button
                           type="button"
+                          className="p-0"
                           onClick={() => removeRecipient(recipient.id)}
                           aria-label={t("removeRecipient")}
                           style={{
@@ -491,7 +485,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                             border: "none",
                             cursor: "pointer",
                             color: "inherit",
-                            padding: 0,
                             fontSize: "1rem",
                             lineHeight: 1,
                           }}
@@ -503,7 +496,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                   </div>
                 ) : null}
                 {/* Search input with dropdown */}
-                <div ref={searchWrapperRef} style={{ position: "relative" }}>
+                <div ref={searchWrapperRef} className="relative">
                   <input
                     id="recipientSearch"
                     value={recipientSearch}
@@ -517,23 +510,14 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                     autoComplete="off"
                   />
                   {isSearching ? (
-                    <div
-                      className="combobox-dropdown"
-                      style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10 }}
-                    >
-                      <div className="combobox-option" style={{ padding: "0.5rem", opacity: 0.6 }}>
-                        {t("loadingMessages")}
-                      </div>
+                    <div className="combobox-dropdown absolute left-0 right-0 z-10" style={{ top: "100%" }}>
+                      <div className="combobox-option p-2 opacity-60">{t("loadingMessages")}</div>
                     </div>
                   ) : isSearchDropdownOpen && recipientResults.length > 0 ? (
                     <div
-                      className="combobox-dropdown"
+                      className="combobox-dropdown absolute left-0 right-0 z-10"
                       style={{
-                        position: "absolute",
                         top: "100%",
-                        left: 0,
-                        right: 0,
-                        zIndex: 10,
                         maxHeight: "240px",
                         overflowY: "auto",
                       }}
@@ -542,13 +526,8 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                         <button
                           key={result.id}
                           type="button"
-                          className="combobox-option"
+                          className="combobox-option py-2 px-3 text-left cursor-pointer block w-full"
                           style={{
-                            display: "block",
-                            width: "100%",
-                            textAlign: "left",
-                            padding: "0.5rem 0.75rem",
-                            cursor: "pointer",
                             border: "none",
                             background: "none",
                           }}
@@ -560,13 +539,13 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                           <div>
                             <strong>{result.label}</strong>
                             {result.username ? (
-                              <span className="text-muted" style={{ marginLeft: "0.5rem", fontSize: "0.85em" }}>
+                              <span className="text-muted ml-2" style={{ fontSize: "0.85em" }}>
                                 @{result.username}
                               </span>
                             ) : null}
                           </div>
                           {result.gameAccounts.length > 0 ? (
-                            <div className="text-muted" style={{ fontSize: "0.8em" }}>
+                            <div className="text-muted text-[0.8em]">
                               {t("gameAccount")}: {result.gameAccounts.join(", ")}
                             </div>
                           ) : null}
@@ -574,13 +553,8 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                       ))}
                     </div>
                   ) : isSearchDropdownOpen && recipientSearch.trim().length >= 2 ? (
-                    <div
-                      className="combobox-dropdown"
-                      style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10 }}
-                    >
-                      <div className="combobox-option" style={{ padding: "0.5rem", opacity: 0.6 }}>
-                        {t("noResults")}
-                      </div>
+                    <div className="combobox-dropdown absolute left-0 right-0 z-10" style={{ top: "100%" }}>
+                      <div className="combobox-option p-2 opacity-60">{t("noResults")}</div>
                     </div>
                   ) : null}
                 </div>
@@ -658,7 +632,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
               onChange={setSearch}
               placeholder={t("searchPlaceholder")}
             />
-            <div className="tabs" style={{ fontSize: "0.8rem" }}>
+            <div className="tabs text-[0.8rem]">
               {(["all", "private", "system", "broadcast"] as const).map((tab) => (
                 <button
                   key={tab}

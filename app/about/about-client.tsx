@@ -29,7 +29,7 @@ function AboutClient(): JSX.Element {
         {error && <ErrorBanner message={error} />}
         <div className="grid">
           {/* ═══ Mission ═══ */}
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card col-span-full">
             <div className="card-header">
               <EditableText
                 as="h3"
@@ -134,7 +134,7 @@ function AboutClient(): JSX.Element {
           </section>
 
           {/* ═══ Technology ═══ */}
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card col-span-full">
             <div className="card-header">
               <EditableText
                 as="h3"
@@ -163,7 +163,7 @@ function AboutClient(): JSX.Element {
           </section>
 
           {/* ═══ CTA ═══ */}
-          <section className="card" style={{ gridColumn: "1 / -1", textAlign: "center" }}>
+          <section className="card col-span-full text-center">
             <div className="card-body">
               <EditableText
                 as="div"
@@ -176,7 +176,7 @@ function AboutClient(): JSX.Element {
                 userId={userId}
                 onSave={(de, en) => saveField("cta", "text", de, en)}
               />
-              <div className="list inline" style={{ justifyContent: "center", marginTop: 16 }}>
+              <div className="list inline mt-4" style={{ justifyContent: "center" }}>
                 <Link className="button primary" href="/auth/register">
                   {t("applyForMembership")}
                 </Link>

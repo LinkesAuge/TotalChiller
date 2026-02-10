@@ -29,7 +29,7 @@ function ContactClient(): JSX.Element {
         {error && <ErrorBanner message={error} />}
         <div className="grid">
           {/* ═══ Contact Methods ═══ */}
-          <section className="card" style={{ gridColumn: "span 2" }}>
+          <section className="card col-span-2">
             <div className="card-header">
               <EditableText
                 as="h3"
@@ -98,7 +98,7 @@ function ContactClient(): JSX.Element {
                 userId={userId}
                 onSave={(de, en) => saveField("join", "text", de, en)}
               />
-              <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
+              <div className="flex gap-3 mt-4">
                 <Link className="button primary" href="/auth/register">
                   {t("applyForMembership")}
                 </Link>
@@ -110,7 +110,7 @@ function ContactClient(): JSX.Element {
           </section>
 
           {/* ═══ Response Times ═══ */}
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card col-span-full">
             <div className="card-header">
               <EditableText
                 as="h3"
@@ -143,7 +143,7 @@ function ContactClient(): JSX.Element {
           </section>
 
           {/* ═══ FAQ ═══ */}
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card col-span-full">
             <div className="card-header">
               <EditableText
                 as="h3"

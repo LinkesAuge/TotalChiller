@@ -129,20 +129,18 @@ function ChartsClient(): JSX.Element {
       <div className="content-inner">
         <div className="grid">
           {/* ── Filters ── */}
-          <section className="panel" style={{ gridColumn: "1 / -1" }}>
-            <div className="card-title" style={{ marginBottom: 12 }}>
-              {t("filters")}
-            </div>
+          <section className="panel col-span-full">
+            <div className="card-title mb-3">{t("filters")}</div>
             <div className="filter-bar list inline" style={{ gap: 16, alignItems: "flex-end" }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="form-group mb-0">
                 <label htmlFor="chart-date-from">{t("from")}</label>
                 <DatePicker value={dateFrom} onChange={setDateFrom} />
               </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="form-group mb-0">
                 <label htmlFor="chart-date-to">{t("to")}</label>
                 <DatePicker value={dateTo} onChange={setDateTo} />
               </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="form-group mb-0">
                 <label htmlFor="chart-player">{t("player")}</label>
                 <input
                   id="chart-player"
@@ -150,10 +148,10 @@ function ChartsClient(): JSX.Element {
                   placeholder={t("playerPlaceholder")}
                   value={playerFilter}
                   onChange={(e) => setPlayerFilter(e.target.value)}
-                  style={{ padding: "8px 12px", fontSize: "0.85rem", minWidth: 160 }}
+                  className="text-sm"
                 />
               </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="form-group mb-0">
                 <label htmlFor="chart-source">{t("source")}</label>
                 <input
                   id="chart-source"
@@ -161,7 +159,7 @@ function ChartsClient(): JSX.Element {
                   placeholder={t("sourcePlaceholder")}
                   value={sourceFilter}
                   onChange={(e) => setSourceFilter(e.target.value)}
-                  style={{ padding: "8px 12px", fontSize: "0.85rem", minWidth: 160 }}
+                  className="text-sm"
                 />
               </div>
               {hasFilters && (
@@ -173,27 +171,19 @@ function ChartsClient(): JSX.Element {
           </section>
 
           {/* ── Error ── */}
-          {errorMessage && (
-            <div className="alert error" style={{ gridColumn: "1 / -1" }}>
-              {errorMessage}
-            </div>
-          )}
+          {errorMessage && <div className="alert error col-span-full">{errorMessage}</div>}
 
           {/* ── Loading ── */}
-          {isLoading && (
-            <div className="alert info loading" style={{ gridColumn: "1 / -1" }}>
-              {t("loadingCharts")}
-            </div>
-          )}
+          {isLoading && <div className="alert info loading col-span-full">{t("loadingCharts")}</div>}
 
           {/* ── Summary Panel ── */}
-          <section className="panel" style={{ gridColumn: "span 1" }}>
+          <section className="panel col-span-1">
             <div className="card-title">{t("summary")}</div>
             <SummaryPanel summary={chartData.summary} />
           </section>
 
           {/* ── Personal Score ── */}
-          <section className="card" style={{ gridColumn: "span 1" }}>
+          <section className="card col-span-1">
             <div className="card-header">
               <div>
                 <div className="card-title">{t("personalScore")}</div>
@@ -231,7 +221,7 @@ function ChartsClient(): JSX.Element {
           </section>
 
           {/* ── Chest Type Distribution ── */}
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card col-span-full">
             <div className="card-header">
               <div>
                 <div className="card-title">{t("chestTypes")}</div>

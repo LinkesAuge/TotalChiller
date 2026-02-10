@@ -34,7 +34,7 @@ export default function PageTopBar({ breadcrumb, title, actions }: PageTopBarPro
           {breadcrumb ? <div className="top-bar-breadcrumb">{breadcrumb}</div> : null}
           <h1 className="top-bar-title">{title}</h1>
         </div>
-        {actions ? <div style={{ display: "flex", alignItems: "center", gap: 12 }}>{actions}</div> : null}
+        {actions ? <div className="flex items-center gap-3">{actions}</div> : null}
       </div>
     </div>
   );

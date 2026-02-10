@@ -3,12 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import {
-  buildMarkdownComponents,
-  extractYouTubeId,
-  isImageUrl,
-  isVideoUrl,
-} from "../components/markdown-renderers";
+import { buildMarkdownComponents, extractYouTubeId, isImageUrl, isVideoUrl } from "../components/markdown-renderers";
 
 /* ─── Custom renderers for react-markdown (forum-specific) ─── */
 
@@ -57,7 +52,7 @@ const previewComponents: Components = {
   },
   code: ({ children }) => <code className="forum-md-code-inline">{children}</code>,
   pre: ({ children }) => <>{children}</>,
-  blockquote: ({ children }) => <span style={{ fontStyle: "italic", color: "var(--color-text-muted)" }}>{children}</span>,
+  blockquote: ({ children }) => <span className="italic text-text-muted">{children}</span>,
   table: () => <span className="forum-md-media-placeholder">[Table]</span>,
 };
 
@@ -93,12 +88,12 @@ export function extractThumbnail(content: string | null | undefined): PostThumbn
   /* Collect all URLs from markdown links + bare URLs */
   const urls: string[] = [];
   let linkMatch: RegExpExecArray | null;
-  // eslint-disable-next-line no-cond-assign
+   
   while ((linkMatch = MD_LINK_RE.exec(content)) !== null) {
     urls.push(linkMatch[2]);
   }
   let bareMatch: RegExpExecArray | null;
-  // eslint-disable-next-line no-cond-assign
+   
   while ((bareMatch = BARE_URL_RE.exec(content)) !== null) {
     urls.push(bareMatch[1]);
   }

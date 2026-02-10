@@ -106,13 +106,7 @@ export default function RuleImportModal({
         <div className="form-grid">
           <div className="form-group">
             <label>{tAdmin("common.file")}</label>
-            <input
-              id={fileInputId}
-              type="file"
-              accept=".csv,.txt"
-              onChange={onFileChange}
-              style={{ display: "none" }}
-            />
+            <input id={fileInputId} type="file" accept=".csv,.txt" onChange={onFileChange} className="hidden" />
             <div className="list inline" style={{ alignItems: "center" }}>
               <label className="button" htmlFor={fileInputId}>
                 {tAdmin("common.chooseFile")}
@@ -229,7 +223,7 @@ export default function RuleImportModal({
         </div>
 
         {/* ── Actions ── */}
-        <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap", marginTop: "16px" }}>
+        <div className="list inline mt-4" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
           <button
             className="button danger"
             type="button"

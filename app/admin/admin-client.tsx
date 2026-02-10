@@ -35,12 +35,12 @@ const ForumTab = dynamic(() => import("./tabs/forum-tab"), {
 
 function TabSkeleton(): ReactElement {
   return (
-    <section className="card" style={{ gridColumn: "1 / -1" }}>
+    <section className="card col-span-full">
       <div className="card-header">
         <div className="skeleton" style={{ width: "40%", height: 20 }} />
       </div>
-      <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
-        <div className="skeleton" style={{ width: "100%", height: 16 }} />
+      <div className="flex flex-col gap-3 p-4">
+        <div className="skeleton w-full" style={{ height: 16 }} />
         <div className="skeleton" style={{ width: "80%", height: 16 }} />
         <div className="skeleton" style={{ width: "60%", height: 16 }} />
       </div>
@@ -71,7 +71,7 @@ function AdminInner(): ReactElement {
   return (
     <div className="grid">
       {/* ── Tab bar ── */}
-      <section className="card" style={{ gridColumn: "1 / -1" }}>
+      <section className="card col-span-full">
         <div className="card-header">
           <div>
             <div className="card-title">{tAdmin("sections.title")}</div>

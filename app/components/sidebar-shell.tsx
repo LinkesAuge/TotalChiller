@@ -213,12 +213,11 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
 
         {/* Header — clan identity with logo */}
         <div
-          className={`sidebar-header${isOpen ? "" : " collapsed"}`}
+          className={`sidebar-header${isOpen ? " pt-4 px-3 pb-3" : " collapsed"}`}
           style={{
             flexDirection: "column",
             alignItems: "center",
             gap: isOpen ? 8 : 4,
-            padding: isOpen ? "16px 12px 12px" : undefined,
           }}
         >
           <picture>
@@ -283,7 +282,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
 
         {/* Bottom: user card + clan selector */}
         <div className="sidebar-bottom">
-          <div className="sidebar-bottom-divider" style={{ width: isOpen ? "85%" : "60%", margin: "0 auto" }} />
+          <div className="sidebar-bottom-divider mx-auto" style={{ width: isOpen ? "85%" : "60%" }} />
 
           {/* Clan selector */}
           {userData.clanOptions.length > 0 && isOpen ? (
@@ -303,7 +302,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           ) : null}
 
           {/* Language selector */}
-          <div style={{ padding: isOpen ? "0 6px" : "0", display: "flex", justifyContent: "center" }}>
+          <div className={`flex justify-center ${isOpen ? "px-1.5" : "p-0"}`}>
             <LanguageSelector compact={!isOpen} />
           </div>
 
@@ -315,7 +314,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
                 {userData.isOnline && <span className="online-dot" />}
               </div>
               {isOpen && (
-                <div style={{ overflow: "hidden", flex: 1, minWidth: 0 }}>
+                <div className="overflow-hidden flex-1 min-w-0">
                   <div className="sidebar-user-name">
                     {userData.displayLabel}
                     {isAdmin && (

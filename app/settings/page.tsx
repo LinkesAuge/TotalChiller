@@ -423,11 +423,7 @@ function SettingsPage(): JSX.Element {
                 </label>
               </div>
             </div>
-            {notifStatus ? (
-              <p className="text-muted" style={{ padding: "0 18px 12px" }}>
-                {notifStatus}
-              </p>
-            ) : null}
+            {notifStatus ? <p className="text-muted pt-0 px-[18px] pb-3">{notifStatus}</p> : null}
           </section>
           <section className="card">
             <div className="card-header">

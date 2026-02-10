@@ -208,7 +208,7 @@ function DashboardPage(): JSX.Element {
       <div className="content-inner">
         <div className="grid">
           {/* ── Announcements (real data) ── */}
-          <section className="card" style={{ gridColumn: "span 2" }}>
+          <section className="card col-span-2">
             <div className="tooltip-head">
               <img
                 src="/assets/vip/back_tooltip_2.png"
@@ -227,27 +227,15 @@ function DashboardPage(): JSX.Element {
                   loading="lazy"
                 />
                 <h3 className="card-title">{t("announcementsTitle")}</h3>
-                <Link
-                  href="/news"
-                  style={{
-                    marginLeft: "auto",
-                    fontSize: "0.65rem",
-                    color: "var(--color-gold)",
-                    textDecoration: "none",
-                  }}
-                >
+                <Link href="/news" className="ml-auto text-[0.65rem] text-gold no-underline">
                   {t("viewAll")} →
                 </Link>
               </div>
             </div>
             <div className="card-body">
-              {isLoadingAnnouncements && (
-                <div style={{ padding: "16px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Loading…</div>
-              )}
+              {isLoadingAnnouncements && <div className="py-4 text-sm text-text-muted">Loading…</div>}
               {!isLoadingAnnouncements && announcements.length === 0 && (
-                <div style={{ padding: "16px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-                  {t("noAnnouncements")}
-                </div>
+                <div className="py-4 text-sm text-text-muted">{t("noAnnouncements")}</div>
               )}
               {!isLoadingAnnouncements &&
                 announcements.map((article, i) => {
@@ -256,14 +244,7 @@ function DashboardPage(): JSX.Element {
                   return (
                     <div key={article.id}>
                       {i > 0 && <div className="gold-divider" />}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 10,
-                          padding: "10px 0",
-                        }}
-                      >
+                      <div className="flex items-start gap-2.5 py-2.5">
                         <img
                           src={
                             article.is_pinned
@@ -273,18 +254,12 @@ function DashboardPage(): JSX.Element {
                           alt={article.is_pinned ? t("pinnedLabel") : ""}
                           width={14}
                           height={14}
-                          style={{ marginTop: 2 }}
+                          className="mt-0.5"
                           loading="lazy"
                         />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "0.88rem" }}>{article.title}</div>
-                          <div
-                            style={{
-                              fontSize: "0.68rem",
-                              color: "var(--color-text-muted)",
-                              marginTop: 3,
-                            }}
-                          >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[0.88rem]">{article.title}</div>
+                          <div className="text-[0.68rem] text-text-muted mt-0.5">
                             {formatRelativeTime(article.created_at)}
                             {article.type === "announcement" ? " • " + article.type : ""}
                             {article.author_name && ` • ${article.author_name}`}
@@ -292,10 +267,8 @@ function DashboardPage(): JSX.Element {
                         </div>
                         {firstTag && (
                           <span
-                            className="badge"
+                            className="badge py-0.5 px-2 shrink-0"
                             style={{
-                              padding: "2px 8px",
-                              flexShrink: 0,
                               background: `linear-gradient(180deg, ${tagColor}, ${tagColor}cc)`,
                               borderColor: tagColor,
                               color: "#fff",
@@ -313,7 +286,7 @@ function DashboardPage(): JSX.Element {
           </section>
 
           {/* ── Stats (placeholder — retained from original design) ── */}
-          <section className="card" style={{ gridColumn: "span 2" }}>
+          <section className="card col-span-2">
             <div className="tooltip-head">
               <img
                 src="/assets/vip/back_tooltip_2.png"
@@ -327,10 +300,10 @@ function DashboardPage(): JSX.Element {
                 <img src="/assets/vip/batler_icons_stat_armor.png" alt="Stats" width={18} height={18} loading="lazy" />
                 <h3 className="card-title">Quick Stats</h3>
                 <span
+                  className="ml-auto"
                   style={{
                     fontSize: "0.6rem",
                     color: "var(--color-text-muted)",
-                    marginLeft: "auto",
                   }}
                 >
                   Last 7 days
@@ -375,11 +348,7 @@ function DashboardPage(): JSX.Element {
                     width={20}
                     height={20}
                     loading="lazy"
-                    style={{
-                      margin: "0 auto 4px",
-                      display: "block",
-                      objectFit: "contain",
-                    }}
+                    className="my-0 mx-auto mb-1 block object-contain"
                   />
                   <div className="stat-value">{stat.v}</div>
                   <div className="stat-label">{stat.l}</div>
@@ -396,70 +365,35 @@ function DashboardPage(): JSX.Element {
               width={708}
               height={123}
               loading="lazy"
-              style={{
-                width: "100%",
-                height: 56,
-                objectFit: "cover",
-                opacity: 0.7,
-              }}
+              className="w-full h-14 object-cover opacity-70"
             />
-            <div style={{ padding: "10px 16px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <h3 className="card-title" style={{ margin: 0 }}>
-                  {t("eventsTitle")}
-                </h3>
-                <Link
-                  href="/events"
-                  style={{ fontSize: "0.65rem", color: "var(--color-gold)", textDecoration: "none" }}
-                >
+            <div className="py-2.5 px-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="card-title m-0">{t("eventsTitle")}</h3>
+                <Link href="/events" className="text-[0.65rem] text-gold no-underline">
                   {t("viewAll")} →
                 </Link>
               </div>
-              {isLoadingEvents && (
-                <div style={{ padding: "8px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Loading…</div>
-              )}
+              {isLoadingEvents && <div className="py-2 text-sm text-text-muted">Loading…</div>}
               {!isLoadingEvents && events.length === 0 && (
-                <div style={{ padding: "8px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-                  {t("noEventsScheduled")}
-                </div>
+                <div className="py-2 text-sm text-text-muted">{t("noEventsScheduled")}</div>
               )}
               {!isLoadingEvents &&
                 events.map((event, i) => {
                   const color = EVENT_COLORS[i % EVENT_COLORS.length];
                   return (
-                    <div
-                      key={event.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "6px 0",
-                        fontSize: "0.85rem",
-                      }}
-                    >
+                    <div key={event.id} className="flex items-center gap-2 py-1.5 text-sm">
                       <div
                         style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
                           background: color,
                           flexShrink: 0,
                         }}
+                        className="w-1.5 h-1.5 rounded-full"
                       />
-                      <span
-                        style={{
-                          flex: 1,
-                          minWidth: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
+                      <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                         {event.title}
                         {event.author_name && (
-                          <span style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", marginLeft: 4 }}>
-                            {event.author_name}
-                          </span>
+                          <span className="text-[0.7rem] text-text-muted ml-1">{event.author_name}</span>
                         )}
                       </span>
                       <span
@@ -484,14 +418,7 @@ function DashboardPage(): JSX.Element {
             <div className="card-header">
               <h3 className="card-title">Clan Progress</h3>
             </div>
-            <div
-              style={{
-                padding: "14px 16px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-              }}
-            >
+            <div className="flex flex-col gap-3.5 p-3.5 px-4">
               {[
                 {
                   label: "Weekly Chest Target",
@@ -510,17 +437,11 @@ function DashboardPage(): JSX.Element {
                 },
               ].map((bar, i) => (
                 <div key={i}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "0.82rem",
-                      color: "var(--color-text-2)",
-                      marginBottom: 5,
-                    }}
-                  >
+                  <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
                     <span>{bar.label}</span>
-                    <span style={{ color: bar.color, fontWeight: 700 }}>{bar.value}%</span>
+                    <span className="font-bold" style={{ color: bar.color }}>
+                      {bar.value}%
+                    </span>
                   </div>
                   <div className="game-progress">
                     <img

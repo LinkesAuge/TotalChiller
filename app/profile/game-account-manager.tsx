@@ -129,7 +129,8 @@ function GameAccountManager({ userId, initialAccounts, initialDefaultId }: GameA
         <div>
           <div className="card-title">{t("title")}</div>
           <div className="card-subtitle">
-            {t("approvedCount", { count: approvedCount })}{pendingCount > 0 ? `, ${t("pendingCount", { count: pendingCount })}` : ""}
+            {t("approvedCount", { count: approvedCount })}
+            {pendingCount > 0 ? `, ${t("pendingCount", { count: pendingCount })}` : ""}
           </div>
         </div>
         <button
@@ -144,7 +145,7 @@ function GameAccountManager({ userId, initialAccounts, initialDefaultId }: GameA
         </button>
       </div>
       {isFormOpen ? (
-        <form onSubmit={handleSubmitRequest} style={{ marginBottom: "1rem" }}>
+        <form onSubmit={handleSubmitRequest} className="mb-4">
           <div className="form-group">
             <label htmlFor="newGameUsername">{t("gameUsernameLabel")}</label>
             <input
@@ -157,9 +158,7 @@ function GameAccountManager({ userId, initialAccounts, initialDefaultId }: GameA
               disabled={isSubmitting}
               required
             />
-            <span className="text-muted" style={{ fontSize: "0.85em" }}>
-              {t("gameUsernameHint")}
-            </span>
+            <span className="text-muted text-[0.85em]">{t("gameUsernameHint")}</span>
           </div>
           <div className="list inline">
             <button className="button primary" type="submit" disabled={isSubmitting}>
@@ -183,36 +182,30 @@ function GameAccountManager({ userId, initialAccounts, initialDefaultId }: GameA
             const isApproved = account.approval_status === "approved";
             return (
               <div className="list-item" key={account.id}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
                     <strong>{account.game_username}</strong>
-                    {isDefault ? (
-                      <span className="badge success" style={{ fontSize: "0.75em" }}>
-                        {t("defaultAccount")}
-                      </span>
-                    ) : null}
+                    {isDefault ? <span className="badge success text-[0.75em]">{t("defaultAccount")}</span> : null}
                   </div>
-                  <div className="text-muted" style={{ fontSize: "0.85em" }}>
+                  <div className="text-muted text-[0.85em]">
                     {t("requested")} {new Date(account.created_at).toLocaleDateString(locale)}
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <div className="flex items-center gap-2">
                   {isApproved ? (
                     isDefault ? (
                       <button
-                        className="button"
+                        className="button py-1 px-2 text-[0.8em]"
                         type="button"
                         onClick={() => handleSetDefault(null)}
-                        style={{ fontSize: "0.8em", padding: "0.25rem 0.5rem" }}
                       >
                         {t("removeDefault")}
                       </button>
                     ) : (
                       <button
-                        className="button"
+                        className="button py-1 px-2 text-[0.8em]"
                         type="button"
                         onClick={() => handleSetDefault(account.id)}
-                        style={{ fontSize: "0.8em", padding: "0.25rem 0.5rem" }}
                       >
                         {t("setAsDefault")}
                       </button>

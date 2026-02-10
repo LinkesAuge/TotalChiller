@@ -719,7 +719,7 @@ export default function UsersTab(): ReactElement {
   const hasEdits = Object.keys(userEdits).length > 0 || Object.keys(gameAccountEdits).length > 0;
 
   return (
-    <section className="card" style={{ gridColumn: "1 / -1" }}>
+    <section className="card col-span-full">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("users.title")}</div>
@@ -852,7 +852,7 @@ export default function UsersTab(): ReactElement {
                     }}
                   >
                     <span className="text-muted">{index + 1}</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div className="flex items-center gap-2">
                       <span className="row-caret" aria-hidden="true">
                         <svg width="14" height="10" viewBox="0 0 12 8" fill="none">
                           <path
@@ -866,11 +866,10 @@ export default function UsersTab(): ReactElement {
                       </span>
                       {isEditing ? (
                         <input
-                          className={`editable-field ${isUserFieldChanged(user, "username") ? "is-edited" : ""}`.trim()}
+                          className={`editable-field flex-1 ${isUserFieldChanged(user, "username") ? "is-edited" : ""}`.trim()}
                           value={edits.username ?? ""}
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => updateUserEdit(user.id, "username", e.target.value)}
-                          style={{ flex: 1 }}
                         />
                       ) : (
                         <button
@@ -914,7 +913,7 @@ export default function UsersTab(): ReactElement {
                         triggerClassName={`select-trigger${isUserFieldChanged(user, "role") ? " is-edited" : ""}`}
                       />
                     </div>
-                    <div className="text-muted" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <div className="text-muted flex items-center gap-1.5">
                       <span className="badge" aria-label={`${accounts.length} game accounts`}>
                         {accounts.length}
                       </span>
@@ -1021,7 +1020,7 @@ export default function UsersTab(): ReactElement {
                   </div>
                   {isExpanded ? (
                     <div className="row subrow">
-                      <div style={{ gridColumn: "1 / -1" }}>
+                      <div className="col-span-full">
                         {accounts.length === 0 ? (
                           <div className="text-muted">{tAdmin("clans.noAccountsYet")}</div>
                         ) : (
@@ -1051,8 +1050,7 @@ export default function UsersTab(): ReactElement {
                                         {account.game_username}
                                         {account.approval_status && account.approval_status !== "approved" ? (
                                           <span
-                                            className={`badge ${account.approval_status === "pending" ? "warning" : "danger"}`}
-                                            style={{ marginLeft: "0.5rem", fontSize: "0.75em" }}
+                                            className={`badge ${account.approval_status === "pending" ? "warning" : "danger"} ml-2 text-[0.75em]`}
                                           >
                                             {account.approval_status}
                                           </span>
@@ -1157,8 +1155,7 @@ export default function UsersTab(): ReactElement {
                                       )}
                                       {account.approval_status && account.approval_status !== "approved" ? (
                                         <span
-                                          className={`badge ${account.approval_status === "pending" ? "warning" : "danger"}`}
-                                          style={{ marginLeft: "0.5rem", fontSize: "0.75em" }}
+                                          className={`badge ${account.approval_status === "pending" ? "warning" : "danger"} ml-2 text-[0.75em]`}
                                         >
                                           {account.approval_status}
                                         </span>
@@ -1287,7 +1284,7 @@ export default function UsersTab(): ReactElement {
                   ) : null}
                   {userErrors[user.id] ? (
                     <div className="row subrow">
-                      <div style={{ gridColumn: "1 / -1" }}>
+                      <div className="col-span-full">
                         <div className="alert warn">{userErrors[user.id]}</div>
                       </div>
                     </div>

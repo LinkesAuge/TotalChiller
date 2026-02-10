@@ -138,7 +138,7 @@ export default function LogsTab(): ReactElement {
   }, [pagination]);
 
   return (
-    <section className="card" style={{ gridColumn: "1 / -1" }}>
+    <section className="card col-span-full">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("logs.title")}</div>

@@ -10,14 +10,14 @@ export default function NotFound(): JSX.Element {
       <PageTopBar title="404 — Seite nicht gefunden" />
       <div className="content-inner">
         <div className="grid">
-          <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
+          <div className="alert warn col-span-full">
             Die angeforderte Seite existiert nicht. / The requested page does not exist.
           </div>
           <section className="card">
-            <div className="card-body" style={{ lineHeight: 1.7, fontSize: "0.85rem" }}>
-              <p style={{ margin: 0 }}>Bitte überprüfe die URL oder navigiere zurück zur Startseite.</p>
+            <div className="card-body leading-relaxed text-sm">
+              <p className="m-0">Bitte überprüfe die URL oder navigiere zurück zur Startseite.</p>
             </div>
-            <div className="list" style={{ marginTop: 16 }}>
+            <div className="list mt-4">
               <Link className="button primary" href="/home">
                 Zur Startseite / Go home
               </Link>

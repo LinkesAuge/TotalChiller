@@ -666,8 +666,8 @@ function ForumClient(): JSX.Element {
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <div className="forum-empty">
-            <p style={{ marginBottom: 8 }}>{t("emptyTitle")}</p>
-            <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
+            <p className="mb-2">{t("emptyTitle")}</p>
+            <p className="text-text-muted text-sm">
               The forum database tables have not been created yet. Please run the migration in{" "}
               <code>Documentation/migrations/forum_tables.sql</code> against your Supabase instance.
             </p>
@@ -685,20 +685,17 @@ function ForumClient(): JSX.Element {
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <button
-            className="button"
+            className="button mb-4"
             onClick={() => {
               resetForm();
               setViewMode("list");
             }}
-            style={{ marginBottom: 16 }}
           >
             ← {t("backToForum")}
           </button>
           <section className="forum-form">
-            <h3 className="card-title" style={{ marginBottom: 12 }}>
-              {editingPostId ? t("editPost") : t("createPost")}
-            </h3>
-            <div className="form-group" style={{ marginBottom: 10 }}>
+            <h3 className="card-title mb-3">{editingPostId ? t("editPost") : t("createPost")}</h3>
+            <div className="form-group mb-2.5">
               <label className="form-label" htmlFor="post-title">
                 {t("postTitle")}
               </label>
@@ -711,7 +708,7 @@ function ForumClient(): JSX.Element {
                 maxLength={200}
               />
             </div>
-            <div className="form-group" style={{ marginBottom: 10 }}>
+            <div className="form-group mb-2.5">
               <label className="form-label" htmlFor="post-category">
                 {t("category")}
               </label>
@@ -719,16 +716,8 @@ function ForumClient(): JSX.Element {
                 id="post-category"
                 value={formCategoryId}
                 onChange={(e) => setFormCategoryId(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "8px 10px",
-                  background: "var(--color-bg)",
-                  color: "var(--color-text)",
-                  border: "1px solid var(--color-edge)",
-                  borderRadius: "var(--radius-sm)",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "0.84rem",
-                }}
+                className="py-2 px-2.5 w-full bg-bg text-text border border-edge rounded-sm"
+                style={{ fontFamily: "var(--font-body)", fontSize: "0.84rem" }}
               >
                 <option value="">{t("selectCategory")}</option>
                 {categories.map((cat) => (
@@ -739,17 +728,8 @@ function ForumClient(): JSX.Element {
               </select>
             </div>
             {canManage && (
-              <div className="form-group" style={{ marginBottom: 10 }}>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                    fontSize: "0.84rem",
-                    color: "var(--color-text)",
-                  }}
-                >
+              <div className="form-group mb-2.5">
+                <label className="flex items-center gap-2 cursor-pointer text-[0.84rem] text-text">
                   <input
                     type="checkbox"
                     checked={formPinned}
@@ -760,7 +740,7 @@ function ForumClient(): JSX.Element {
                 </label>
               </div>
             )}
-            <div className="form-group" style={{ marginBottom: 10 }}>
+            <div className="form-group mb-2.5">
               <label className="form-label" htmlFor="post-content">
                 {t("postContent")}
               </label>
@@ -860,16 +840,13 @@ function ForumClient(): JSX.Element {
         <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
-          <button className="button" onClick={() => setViewMode("list")} style={{ marginBottom: 16 }}>
+          <button className="button mb-4" onClick={() => setViewMode("list")}>
             ← {t("backToForum")}
           </button>
           <section className="forum-detail-card" ref={detailRef}>
             <div className="forum-detail-header">
               {/* Vote column */}
-              <div
-                className="forum-vote-col"
-                style={{ padding: "0 6px 0 0", background: "transparent", minWidth: "auto" }}
-              >
+              <div className="forum-vote-col pr-1.5" style={{ background: "transparent", minWidth: "auto" }}>
                 <button
                   className={`forum-vote-btn${selectedPost.userVote === 1 ? " upvoted" : ""}`}
                   onClick={() => handleVotePost(selectedPost.id, 1)}
@@ -888,7 +865,7 @@ function ForumClient(): JSX.Element {
                   <DownArrow />
                 </button>
               </div>
-              <div style={{ flex: 1 }}>
+              <div className="flex-1">
                 <div className="forum-post-meta">
                   {selectedPost.categoryName && <span className="forum-cat-badge">{selectedPost.categoryName}</span>}
                   <span>
@@ -908,10 +885,8 @@ function ForumClient(): JSX.Element {
             )}
             <div className="forum-detail-actions">
               <span
+                className="flex items-center gap-1"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
                   fontSize: "0.78rem",
                   color: "var(--color-text-muted)",
                 }}
@@ -947,14 +922,14 @@ function ForumClient(): JSX.Element {
 
           {/* Delete confirmation */}
           {deletingPostId && (
-            <div className="card" style={{ marginTop: 12, borderColor: "var(--color-accent-red)" }}>
+            <div className="card mt-3" style={{ borderColor: "var(--color-accent-red)" }}>
               <div className="card-header">
                 <h4 className="card-title">{t("deleteConfirmTitle")}</h4>
               </div>
-              <p style={{ padding: "0 16px 8px", fontSize: "0.84rem", color: "var(--color-text-2)" }}>
+              <p className="pt-0 px-4 pb-2" style={{ fontSize: "0.84rem", color: "var(--color-text-2)" }}>
                 {t("deleteConfirmText")}
               </p>
-              <div style={{ display: "flex", gap: 8, padding: "0 16px 16px" }}>
+              <div className="flex gap-2 pt-0 px-4 pb-4">
                 <button className="button danger" onClick={handleConfirmDelete}>
                   {t("deleteConfirmButton")}
                 </button>
@@ -967,13 +942,13 @@ function ForumClient(): JSX.Element {
 
           {/* Comments Section */}
           <section className="forum-comments-section">
-            <h3 className="card-title" style={{ marginBottom: 12 }}>
+            <h3 className="card-title mb-3">
               {t("comments")} ({selectedPost.comment_count})
             </h3>
 
             {/* Add comment form */}
             {!selectedPost.is_locked && (
-              <div className="forum-form" style={{ marginBottom: 16 }}>
+              <div className="forum-form mb-4">
                 <textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
@@ -989,9 +964,7 @@ function ForumClient(): JSX.Element {
             )}
 
             {/* Comment list */}
-            {comments.length === 0 && (
-              <p style={{ color: "var(--color-text-muted)", fontSize: "0.84rem" }}>{t("noComments")}</p>
-            )}
+            {comments.length === 0 && <p className="text-text-muted text-[0.84rem]">{t("noComments")}</p>}
             {comments.map((comment) => (
               <div key={comment.id}>
                 {renderComment(comment, false)}
@@ -1002,31 +975,30 @@ function ForumClient(): JSX.Element {
                 ))}
                 {/* Reply form */}
                 {replyingTo === comment.id && !selectedPost.is_locked && (
-                  <div className="forum-reply" style={{ paddingTop: 8, paddingBottom: 8 }}>
-                    <div className="forum-form" style={{ padding: 10 }}>
+                  <div className="forum-reply pt-2 pb-2">
+                    <div className="forum-form p-2.5">
                       <textarea
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
                         placeholder={t("replyPlaceholder")}
                         rows={2}
-                        style={{ minHeight: 48 }}
+                        className="min-h-12"
                       />
                       <div className="forum-form-row">
                         <button
-                          className="button primary"
+                          className="button primary py-1 px-3"
                           onClick={handleSubmitReply}
                           disabled={!replyText.trim()}
-                          style={{ fontSize: "0.75rem", padding: "4px 12px" }}
+                          style={{ fontSize: "0.75rem" }}
                         >
                           {t("submitReply")}
                         </button>
                         <button
-                          className="button"
+                          className="button py-1 px-3 text-xs"
                           onClick={() => {
                             setReplyingTo("");
                             setReplyText("");
                           }}
-                          style={{ fontSize: "0.75rem", padding: "4px 12px" }}
                         >
                           {t("cancel")}
                         </button>
@@ -1133,24 +1105,16 @@ function ForumClient(): JSX.Element {
           </div>
           <input
             type="text"
-            className="form-input"
+            className="form-input py-1.5 px-2.5 bg-surface text-text border border-edge rounded-sm"
             placeholder={t("search")}
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
-            style={{
-              maxWidth: 260,
-              padding: "6px 10px",
-              fontSize: "0.78rem",
-              background: "var(--color-surface)",
-              border: "1px solid var(--color-edge)",
-              borderRadius: "var(--radius-sm)",
-              color: "var(--color-text)",
-            }}
+            style={{ maxWidth: 260, fontSize: "0.78rem" }}
           />
-          <div style={{ marginLeft: "auto" }}>
+          <div className="ml-auto">
             <button className="button primary" onClick={handleOpenCreate}>
               {t("newPost")}
             </button>
@@ -1158,7 +1122,7 @@ function ForumClient(): JSX.Element {
         </div>
 
         {/* Category pills */}
-        <div className="forum-categories" style={{ marginBottom: 16 }}>
+        <div className="forum-categories mb-4">
           <button
             className={`forum-cat-pill${!selectedCategory ? " active" : ""}`}
             onClick={() => {
@@ -1197,7 +1161,7 @@ function ForumClient(): JSX.Element {
             <p>{searchTerm ? t("noResults") : t("noPosts")}</p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {posts.map((post) => (
               <div
                 key={post.id}
@@ -1270,16 +1234,16 @@ function ForumClient(): JSX.Element {
 
         {/* Pagination */}
         {totalCount > PAGE_SIZE && (
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, marginTop: 16 }}>
+          <div className="flex justify-center items-center gap-2.5 mt-4">
             <button
-              className="button"
+              className="button py-1.5 px-3"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              style={{ fontSize: "0.78rem", padding: "5px 12px" }}
+              style={{ fontSize: "0.78rem" }}
             >
               ←
             </button>
-            <span style={{ fontSize: "0.78rem", color: "var(--color-text-2)" }}>
+            <span className="text-[0.78rem] text-text-2">
               {t("showing", {
                 from: (page - 1) * PAGE_SIZE + 1,
                 to: Math.min(page * PAGE_SIZE, totalCount),
@@ -1287,10 +1251,10 @@ function ForumClient(): JSX.Element {
               })}
             </span>
             <button
-              className="button"
+              className="button py-1.5 px-3"
               disabled={page * PAGE_SIZE >= totalCount}
               onClick={() => setPage((p) => p + 1)}
-              style={{ fontSize: "0.78rem", padding: "5px 12px" }}
+              style={{ fontSize: "0.78rem" }}
             >
               →
             </button>

@@ -102,7 +102,7 @@ function HomeClient(): JSX.Element {
 
         <div className="grid">
           {/* ═══ Über uns (with background image) ═══ */}
-          <section className="card home-about-card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card home-about-card col-span-full">
             <div className="home-about-bg" />
             <div className="tooltip-head">
               <img
@@ -205,7 +205,7 @@ function HomeClient(): JSX.Element {
                   onSave={(de, en) => saveField("aboutUs", "disclaimer", de, en)}
                 />
               </div>
-              <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+              <div className="flex justify-center mt-4">
                 <a className="button primary" href="/about">
                   {t("learnMoreAbout")}
                 </a>
@@ -300,7 +300,7 @@ function HomeClient(): JSX.Element {
           </section>
 
           {/* ═══ How It Works ═══ */}
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card col-span-full">
             <div className="card-header">
               <EditableText
                 as="h3"
@@ -342,7 +342,7 @@ function HomeClient(): JSX.Element {
           </section>
 
           {/* ═══ Contact ═══ */}
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card col-span-full">
             <div className="card-header">
               <EditableText
                 as="h3"

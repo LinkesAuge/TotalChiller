@@ -11,14 +11,14 @@ export default function ForumTab(): ReactElement {
   const tAdmin = useTranslations("admin");
 
   return (
-    <section className="card" style={{ gridColumn: "1 / -1" }}>
+    <section className="card col-span-full">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("forum.title")}</div>
           <div className="card-subtitle">{tAdmin("forum.subtitle")}</div>
         </div>
       </div>
-      <div style={{ padding: "0 16px 16px" }}>
+      <div className="pt-0 px-4 pb-4">
         <ForumCategoryAdmin />
       </div>
     </section>

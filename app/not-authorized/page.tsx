@@ -19,9 +19,7 @@ async function NotAuthorizedPage(): Promise<JSX.Element> {
       <PageTopBar title={t("title")} actions={<AuthActions />} />
       <div className="content-inner">
         <div className="grid">
-          <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
-            {t("message")}
-          </div>
+          <div className="alert warn col-span-full">{t("message")}</div>
           <section className="card">
             <div className="list">
               <Link className="button primary" href="/home">

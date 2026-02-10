@@ -41,7 +41,7 @@ function PrivacyClient(): JSX.Element {
       <div className="content-inner">
         {error && <ErrorBanner message={error} />}
         <div className="grid">
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <section className="card col-span-full">
             <div className="card-header">
               <EditableText
                 as="h3"

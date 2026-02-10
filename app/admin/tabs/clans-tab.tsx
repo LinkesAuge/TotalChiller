@@ -679,7 +679,7 @@ export default function ClansTab(): ReactElement {
   /* status → toast is handled by AdminProvider */
 
   return (
-    <section className="card" style={{ gridColumn: "1 / -1" }}>
+    <section className="card col-span-full">
       <div className="card-header">
         <div>
           <div className="card-title">{tAdmin("clans.title")}</div>
@@ -1201,7 +1201,7 @@ export default function ClansTab(): ReactElement {
               </div>
             </div>
             <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center" }}>
-              <div className="form-group" style={{ minWidth: 240 }}>
+              <div className="form-group min-w-60">
                 <SearchInput
                   id="assignSearch"
                   label={tAdmin("common.search")}

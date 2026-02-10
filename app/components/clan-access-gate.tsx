@@ -101,7 +101,7 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
     return (
       <div className="content-inner">
         <div className="grid">
-          <div className="card" style={{ gridColumn: "1 / -1" }}>
+          <div className="card col-span-full">
             <div className="card-header">
               <h3 className="card-title">{t("loadingTitle")}</h3>
             </div>
@@ -118,10 +118,8 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
     return (
       <div className="content-inner">
         <div className="grid">
-          <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
-            {t("noAccessMessage")}
-          </div>
-          <div style={{ gridColumn: "1 / -1" }}>
+          <div className="alert warn col-span-full">{t("noAccessMessage")}</div>
+          <div className="col-span-full">
             <a className="button primary" href="/home">
               {t("goHome")}
             </a>

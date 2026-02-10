@@ -5,12 +5,12 @@ export default function Loading(): JSX.Element {
   return (
     <div className="content-inner">
       <div className="grid">
-        <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="col-span-full flex flex-col gap-4">
           {/* Skeleton top bar */}
-          <div className="skeleton" style={{ height: 56, borderRadius: 8 }} />
+          <div className="skeleton h-14 rounded-lg" />
           {/* Skeleton content cards */}
-          <div className="skeleton" style={{ height: 200, borderRadius: 8 }} />
-          <div className="skeleton" style={{ height: 120, borderRadius: 8 }} />
+          <div className="skeleton h-[200px] rounded-lg" />
+          <div className="skeleton h-[120px] rounded-lg" />
         </div>
       </div>
     </div>

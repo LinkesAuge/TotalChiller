@@ -113,7 +113,7 @@ function isNavItemActive(pathname: string, activeTab: string | null, item: NavIt
 /** Renders an SVG icon for a nav item, or a VIP image icon. */
 function NavItemIcon({ item }: { readonly item: NavItem }): JSX.Element {
   if (item.vipIcon) {
-    return <img src={item.vipIcon} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} />;
+    return <img src={item.vipIcon} alt="" className="w-4 h-4 object-contain" />;
   }
   const iconPath = ICONS[item.iconKey] ?? ICONS.dashboard;
   return (
@@ -184,10 +184,9 @@ function SidebarNav(): JSX.Element {
         <div className="nav-group">
           {isOpen && <div className="nav-group-title">{t("main")}</div>}
           <Link
-            className={pathname === "/home" ? "active" : ""}
+            className={`${pathname === "/home" ? "active" : ""}${!isOpen ? " justify-center py-2" : ""}`.trim()}
             href="/home"
             data-tip={!isOpen ? t("home") : undefined}
-            style={!isOpen ? { justifyContent: "center", padding: "8px 0" } : undefined}
           >
             <div className="nav-icon-glow" />
             <span className="nav-icon" style={{ color: pathname === "/home" ? "var(--color-gold-2)" : undefined }}>
@@ -226,9 +225,8 @@ function SidebarNav(): JSX.Element {
                     <div key={item.href}>
                       <Link
                         href={item.href}
-                        className={`${isActive ? "active" : ""}${!isOpen ? " collapsed" : ""}`}
+                        className={`${isActive ? "active" : ""}${!isOpen ? " collapsed justify-center py-2" : ""}`}
                         data-tip={!isOpen ? label : undefined}
-                        style={!isOpen ? { justifyContent: "center", padding: "8px 0" } : undefined}
                       >
                         {/* Arrow active background */}
                         {isActive && isOpen && (

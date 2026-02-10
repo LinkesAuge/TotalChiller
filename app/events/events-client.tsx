@@ -887,10 +887,9 @@ function EventsClient(): JSX.Element {
     const sourceEvent = events.find((item) => item.id === entry.id);
     return (
       <section
-        className="card"
+        className="card col-span-full"
         key={entry.displayKey}
         style={{
-          gridColumn: "1 / -1",
           opacity: isPast ? 0.6 : 1,
         }}
       >
@@ -903,9 +902,9 @@ function EventsClient(): JSX.Element {
               {entry.author_name && <> &bull; {t("createdBy", { name: entry.author_name })}</>}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+          <div className="flex gap-1.5 items-center shrink-0">
             {entry.recurrence_type && entry.recurrence_type !== "none" && (
-              <span className="badge" style={{ fontSize: "0.65rem" }}>
+              <span className="badge text-[0.65rem]">
                 {entry.recurrence_type === "daily"
                   ? t("recurrenceDailyLabel")
                   : entry.recurrence_type === "weekly"
@@ -920,12 +919,12 @@ function EventsClient(): JSX.Element {
         </div>
         <p>{entry.description}</p>
         {entry.location && (
-          <div className="list inline" style={{ marginTop: 12 }}>
+          <div className="list inline mt-3">
             <span className="badge">{entry.location}</span>
           </div>
         )}
         {canManage && (
-          <div className="list inline" style={{ marginTop: 12, flexWrap: "wrap" }}>
+          <div className="list inline mt-3 flex-wrap">
             <button className="button" type="button" onClick={() => handleEditEventById(entry.id)}>
               {t("editEvent")}
             </button>
@@ -934,11 +933,10 @@ function EventsClient(): JSX.Element {
             </button>
             {sourceEvent && (
               <button
-                className="button"
+                className="button ml-auto"
                 type="button"
                 onClick={() => handleSaveEventAsTemplate(sourceEvent)}
                 disabled={isSavingTemplate}
-                style={{ marginLeft: "auto" }}
               >
                 {t("saveAsTemplate")}
               </button>
@@ -961,15 +959,11 @@ function EventsClient(): JSX.Element {
       <div className="content-inner">
         <div className="grid">
           {/* ── Loading ── */}
-          {isLoading && (
-            <div className="alert info loading" style={{ gridColumn: "1 / -1" }}>
-              {t("loadingEvents")}
-            </div>
-          )}
+          {isLoading && <div className="alert info loading col-span-full">{t("loadingEvents")}</div>}
 
           {/* ── Empty state ── */}
           {!isLoading && events.length === 0 && (
-            <section className="card" style={{ gridColumn: "1 / -1" }}>
+            <section className="card col-span-full">
               <div className="card-header">
                 <div>
                   <div className="card-title">{t("noEvents")}</div>
@@ -981,7 +975,7 @@ function EventsClient(): JSX.Element {
 
           {/* ── Side-by-side: Calendar + Upcoming events ── */}
           {!isLoading && (
-            <div className="events-two-col" style={{ gridColumn: "1 / -1" }}>
+            <div className="events-two-col col-span-full">
               {/* Calendar */}
               <section className="card event-calendar-card">
                 <div className="tooltip-head">
@@ -1082,16 +1076,10 @@ function EventsClient(): JSX.Element {
 
                       {/* Selected day detail (shown below calendar on compact layouts) */}
                       <aside ref={dayPanelRef} className="calendar-day-panel calendar-day-panel--inline">
-                        <div className="card-title" style={{ marginBottom: 6 }}>
-                          {t("selectedDay")}
-                        </div>
-                        <div className="card-subtitle" style={{ marginTop: 0 }}>
-                          {selectedDateLabel}
-                        </div>
+                        <div className="card-title mb-1.5">{t("selectedDay")}</div>
+                        <div className="card-subtitle mt-0">{selectedDateLabel}</div>
                         {selectedDayEvents.length === 0 ? (
-                          <div className="text-muted" style={{ marginTop: 12, fontSize: "0.85rem" }}>
-                            {t("noEventsOnDay")}
-                          </div>
+                          <div className="text-muted mt-3 text-sm">{t("noEventsOnDay")}</div>
                         ) : (
                           <div className="calendar-day-events">
                             {selectedDayEvents.map((entry) => (
@@ -1108,7 +1096,7 @@ function EventsClient(): JSX.Element {
                                 )}
                                 {entry.location && <div className="calendar-day-event-location">{entry.location}</div>}
                                 {entry.author_name && (
-                                  <div style={{ fontSize: "0.7rem", color: "var(--color-text-2)", marginTop: 2 }}>
+                                  <div className="text-[0.7rem] text-text-2 mt-0.5">
                                     {t("createdBy", { name: entry.author_name })}
                                   </div>
                                 )}
@@ -1133,22 +1121,20 @@ function EventsClient(): JSX.Element {
 
               {/* Upcoming events sidebar */}
               <section className="events-upcoming-sidebar">
-                <div className="card-title" style={{ marginBottom: 10 }}>
+                <div className="card-title mb-2.5">
                   {t("upcoming")} ({upcomingEvents.length})
                 </div>
                 {upcomingEvents.length === 0 ? (
-                  <div className="text-muted" style={{ fontSize: "0.85rem" }}>
-                    {t("noEvents")}
-                  </div>
+                  <div className="text-muted text-sm">{t("noEvents")}</div>
                 ) : (
                   <div className="events-upcoming-list">
                     {upcomingEvents.slice(0, upcomingLimit).map((entry) => (
                       <div key={`upcoming-${entry.displayKey}`} className="events-upcoming-row">
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                            <span style={{ fontWeight: 600, fontSize: "0.84rem" }}>{entry.title}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-[0.84rem]">{entry.title}</span>
                             {entry.recurrence_type !== "none" && (
-                              <span className="badge" style={{ fontSize: "0.58rem" }}>
+                              <span className="badge text-[0.58rem]">
                                 {entry.recurrence_type === "daily"
                                   ? t("recurrenceDailyLabel")
                                   : entry.recurrence_type === "weekly"
@@ -1159,24 +1145,23 @@ function EventsClient(): JSX.Element {
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-2)", marginTop: 2 }}>
+                          <div className="mt-0.5 text-[0.72rem] text-text-2">
                             {formatLocalDateTime(entry.starts_at, locale)} (
                             {formatDuration(entry.starts_at, entry.ends_at)})
                             {entry.location && <> &bull; {entry.location}</>}
                             {entry.organizer && <> &bull; {entry.organizer}</>}
                           </div>
                           {entry.author_name && (
-                            <div style={{ fontSize: "0.66rem", color: "var(--color-text-2)", marginTop: 1 }}>
+                            <div className="mt-0.5 text-[0.66rem] text-text-2">
                               {t("createdBy", { name: entry.author_name })}
                             </div>
                           )}
                         </div>
                         {canManage && (
                           <button
-                            className="button"
+                            className="button py-0.5 px-2"
                             type="button"
                             onClick={() => handleEditEventById(entry.id)}
-                            style={{ padding: "3px 8px", fontSize: "0.68rem", flexShrink: 0 }}
                           >
                             {t("editEvent")}
                           </button>
@@ -1185,10 +1170,9 @@ function EventsClient(): JSX.Element {
                     ))}
                     {upcomingEvents.length > upcomingLimit && (
                       <button
-                        className="button"
+                        className="button mt-1 self-center"
                         type="button"
                         onClick={() => setUpcomingLimit((prev) => prev + UPCOMING_PAGE_SIZE)}
-                        style={{ alignSelf: "center", fontSize: "0.78rem", marginTop: 4 }}
                       >
                         {t("show")} ({upcomingEvents.length - upcomingLimit} {t("more")})
                       </button>
@@ -1201,17 +1185,16 @@ function EventsClient(): JSX.Element {
 
           {/* ── Action buttons row (below calendar/upcoming) ── */}
           {canManage && (
-            <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div className="col-span-full flex items-center gap-2.5 flex-wrap">
               {!isFormOpen && (
                 <button className="button primary" type="button" onClick={handleOpenCreate}>
                   {t("createEvent")}
                 </button>
               )}
               <button
-                className="button"
+                className="button text-[0.82rem]"
                 type="button"
                 onClick={() => setIsTemplatesOpen((prev) => !prev)}
-                style={{ fontSize: "0.82rem" }}
               >
                 {t("manageTemplates")} {isTemplatesOpen ? "▲" : "▼"}
               </button>
@@ -1219,7 +1202,7 @@ function EventsClient(): JSX.Element {
           )}
 
           {isFormOpen && canManage && (
-            <section ref={eventFormRef} className="card" style={{ gridColumn: "1 / -1" }}>
+            <section ref={eventFormRef} className="card col-span-full">
               <div className="card-header">
                 <div>
                   <div className="card-title">{editingId ? t("editEvent") : t("createEvent")}</div>
@@ -1273,22 +1256,13 @@ function EventsClient(): JSX.Element {
                   <DatePicker value={startsAt} onChange={setStartsAt} enableTime />
                 </div>
                 {/* Duration or open-ended */}
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontSize: "0.82rem",
-                    cursor: "pointer",
-                    marginBottom: 8,
-                  }}
-                >
+                <label className="flex items-center gap-2 mb-2 text-[0.82rem] cursor-pointer">
                   <input type="checkbox" checked={isOpenEnded} onChange={(e) => setIsOpenEnded(e.target.checked)} />
                   {t("openEnded")}
                 </label>
                 {!isOpenEnded && (
                   <div className="form-grid">
-                    <div className="form-group" style={{ marginBottom: 0 }}>
+                    <div className="form-group mb-0">
                       <label htmlFor="eventDurationH">{t("durationH")}</label>
                       <input
                         id="eventDurationH"
@@ -1299,7 +1273,7 @@ function EventsClient(): JSX.Element {
                         onChange={(e) => setDurationH(e.target.value)}
                       />
                     </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
+                    <div className="form-group mb-0">
                       <label htmlFor="eventDurationM">{t("durationM")}</label>
                       <input
                         id="eventDurationM"
@@ -1331,7 +1305,7 @@ function EventsClient(): JSX.Element {
                 </div>
                 {/* Recurrence */}
                 <div className="form-grid">
-                  <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div className="form-group mb-0">
                     <label htmlFor="eventRecurrence">{t("recurrence")}</label>
                     <RadixSelect
                       id="eventRecurrence"
@@ -1348,7 +1322,7 @@ function EventsClient(): JSX.Element {
                     />
                   </div>
                   {recurrenceType !== "none" && !recurrenceOngoing && (
-                    <div className="form-group" style={{ marginBottom: 0 }}>
+                    <div className="form-group mb-0">
                       <label htmlFor="eventRecurrenceEnd">{t("recurrenceEndDate")}</label>
                       <input
                         id="eventRecurrenceEnd"
@@ -1360,16 +1334,7 @@ function EventsClient(): JSX.Element {
                   )}
                 </div>
                 {recurrenceType !== "none" && (
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      fontSize: "0.82rem",
-                      marginTop: 8,
-                      cursor: "pointer",
-                    }}
-                  >
+                  <label className="flex items-center gap-2 text-[0.82rem] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={recurrenceOngoing}
@@ -1381,7 +1346,7 @@ function EventsClient(): JSX.Element {
                     {t("recurrenceOngoing")}
                   </label>
                 )}
-                <div className="list inline" style={{ marginTop: 16, flexWrap: "wrap" }}>
+                <div className="list inline mt-4 flex-wrap">
                   <button className="button primary" type="submit" disabled={isSaving}>
                     {isSaving ? t("saving") : editingId ? t("save") : t("createEvent")}
                   </button>
@@ -1389,23 +1354,21 @@ function EventsClient(): JSX.Element {
                     {t("cancel")}
                   </button>
                   <button
-                    className="button"
+                    className="button text-[0.78rem]"
                     type="button"
                     onClick={handleSaveFormAsTemplate}
                     disabled={isSavingTemplate}
-                    style={{ fontSize: "0.78rem" }}
                   >
                     {isSavingTemplate ? t("saving") : t("saveAsTemplate")}
                   </button>
                   {editingId && (
                     <button
-                      className="button danger"
+                      className="button danger ml-auto"
                       type="button"
                       onClick={() => {
                         requestDeleteEvent(editingId);
                         resetForm();
                       }}
-                      style={{ marginLeft: "auto" }}
                     >
                       {t("deleteEvent")}
                     </button>
@@ -1417,15 +1380,15 @@ function EventsClient(): JSX.Element {
 
           {/* ── Manage Templates panel (collapsible) ── */}
           {canManage && isTemplatesOpen && (
-            <div className="card" style={{ gridColumn: "1 / -1" }}>
+            <div className="card col-span-full">
               <div className="card-header">
                 <div>
                   <div className="card-title">{t("manageTemplates")}</div>
                 </div>
               </div>
-              <div style={{ padding: "4px 18px 14px" }}>
+              <div className="pt-1 px-[18px] pb-3.5">
                 {templates.length === 0 && (
-                  <div className="text-muted" style={{ padding: "12px 0", fontSize: "0.85rem" }}>
+                  <div className="text-muted py-3" style={{ fontSize: "0.85rem" }}>
                     {t("noEvents")}
                   </div>
                 )}
@@ -1435,9 +1398,9 @@ function EventsClient(): JSX.Element {
                     <div key={tpl.id} style={{ borderBottom: "1px solid rgba(45, 80, 115, 0.15)" }}>
                       {isEditing ? (
                         /* ── Inline edit form (mirrors event form) ── */
-                        <div style={{ padding: "10px 0", display: "flex", flexDirection: "column", gap: 8 }}>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label htmlFor={`tplTitle-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                        <div className="flex flex-col gap-2 py-2.5">
+                          <div className="form-group mb-0">
+                            <label htmlFor={`tplTitle-${tpl.id}`} className="text-[0.72rem]">
                               {t("eventTitle")}
                             </label>
                             <input
@@ -1447,8 +1410,8 @@ function EventsClient(): JSX.Element {
                               placeholder={t("eventTitlePlaceholder")}
                             />
                           </div>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label htmlFor={`tplDesc-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                          <div className="form-group mb-0">
+                            <label htmlFor={`tplDesc-${tpl.id}`} className="text-[0.72rem]">
                               {t("description")}
                             </label>
                             <textarea
@@ -1459,8 +1422,8 @@ function EventsClient(): JSX.Element {
                               rows={2}
                             />
                           </div>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label htmlFor={`tplLocation-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                          <div className="form-group mb-0">
+                            <label htmlFor={`tplLocation-${tpl.id}`} className="text-[0.72rem]">
                               {t("locationOptional")}
                             </label>
                             <input
@@ -1472,10 +1435,8 @@ function EventsClient(): JSX.Element {
                           </div>
                           {/* Duration / Open-ended */}
                           <label
+                            className="flex items-center gap-2"
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
                               fontSize: "0.82rem",
                               cursor: "pointer",
                             }}
@@ -1489,8 +1450,8 @@ function EventsClient(): JSX.Element {
                           </label>
                           {!editTplOpenEnded && (
                             <div className="form-grid" style={{ gap: 8 }}>
-                              <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label htmlFor={`tplDurationH-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                              <div className="form-group mb-0">
+                                <label htmlFor={`tplDurationH-${tpl.id}`} className="text-[0.72rem]">
                                   {t("durationH")}
                                 </label>
                                 <input
@@ -1502,8 +1463,8 @@ function EventsClient(): JSX.Element {
                                   onChange={(e) => setEditTplDurationH(e.target.value)}
                                 />
                               </div>
-                              <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label htmlFor={`tplDurationM-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                              <div className="form-group mb-0">
+                                <label htmlFor={`tplDurationM-${tpl.id}`} className="text-[0.72rem]">
                                   {t("durationM")}
                                 </label>
                                 <input
@@ -1519,8 +1480,8 @@ function EventsClient(): JSX.Element {
                             </div>
                           )}
                           {/* Organizer */}
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label htmlFor={`tplOrganizer-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                          <div className="form-group mb-0">
+                            <label htmlFor={`tplOrganizer-${tpl.id}`} className="text-[0.72rem]">
                               {t("organizer")}
                             </label>
                             <input
@@ -1533,8 +1494,8 @@ function EventsClient(): JSX.Element {
                           </div>
                           {/* Recurrence */}
                           <div className="form-grid" style={{ gap: 8 }}>
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                              <label style={{ fontSize: "0.72rem" }}>{t("recurrence")}</label>
+                            <div className="form-group mb-0">
+                              <label className="text-[0.72rem]">{t("recurrence")}</label>
                               <RadixSelect
                                 id={`tplRecurrence-${tpl.id}`}
                                 ariaLabel={t("recurrence")}
@@ -1550,7 +1511,7 @@ function EventsClient(): JSX.Element {
                               />
                             </div>
                             {editTplRecurrence !== "none" && !editTplRecurrenceOngoing && (
-                              <div className="form-group" style={{ marginBottom: 0 }}>
+                              <div className="form-group mb-0">
                                 <label style={{ fontSize: "0.72rem" }}>{t("recurrenceEndDate")}</label>
                                 <input
                                   type="date"
@@ -1562,10 +1523,8 @@ function EventsClient(): JSX.Element {
                           </div>
                           {editTplRecurrence !== "none" && (
                             <label
+                              className="flex items-center gap-2"
                               style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
                                 fontSize: "0.82rem",
                                 cursor: "pointer",
                               }}
@@ -1582,32 +1541,29 @@ function EventsClient(): JSX.Element {
                             </label>
                           )}
                           {/* Actions */}
-                          <div className="list inline" style={{ marginTop: 4, flexWrap: "wrap" }}>
+                          <div className="list inline mt-1 flex-wrap">
                             <button
-                              className="button primary"
+                              className="button primary py-1.5 px-3 text-[0.78rem]"
                               type="button"
                               onClick={handleSaveEditedTemplate}
                               disabled={isSavingTemplate}
-                              style={{ padding: "5px 12px", fontSize: "0.78rem" }}
                             >
                               {isSavingTemplate ? t("saving") : t("saveTemplate")}
                             </button>
                             <button
-                              className="button"
+                              className="button py-1.5 px-3 text-[0.78rem]"
                               type="button"
                               onClick={handleCancelEditTemplate}
-                              style={{ padding: "5px 12px", fontSize: "0.78rem" }}
                             >
                               {t("cancel")}
                             </button>
                             <button
-                              className="button danger"
+                              className="button danger py-1.5 px-3 ml-auto"
                               type="button"
                               onClick={() => {
                                 handleCancelEditTemplate();
                                 requestDeleteTemplate(tpl.id, tpl.title);
                               }}
-                              style={{ padding: "5px 12px", fontSize: "0.78rem", marginLeft: "auto" }}
                             >
                               {t("deleteTemplate")}
                             </button>
@@ -1615,17 +1571,10 @@ function EventsClient(): JSX.Element {
                         </div>
                       ) : (
                         /* ── Read-only row ── */
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            padding: "8px 0",
-                          }}
-                        >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: "0.88rem", fontWeight: 600 }}>{tpl.title}</div>
-                            <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginTop: 2 }}>
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[0.88rem] font-semibold">{tpl.title}</div>
+                            <div className="mt-0.5 text-[0.72rem] text-text-muted">
                               {tpl.description && tpl.description.length > 80
                                 ? tpl.description.slice(0, 80) + "…"
                                 : tpl.description}
@@ -1646,10 +1595,10 @@ function EventsClient(): JSX.Element {
                             </div>
                           </div>
                           <button
-                            className="button"
+                            className="button py-1 px-2.5 shrink-0"
                             type="button"
                             onClick={() => handleStartEditTemplate(tpl)}
-                            style={{ padding: "4px 10px", fontSize: "0.75rem", flexShrink: 0 }}
+                            style={{ fontSize: "0.75rem" }}
                           >
                             {t("editEvent")}
                           </button>
@@ -1665,16 +1614,11 @@ function EventsClient(): JSX.Element {
           {/* ── Past events (collapsible) ── */}
           {!isLoading && pastEvents.length > 0 && (
             <>
-              <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 12 }}>
+              <div className="col-span-full flex items-center gap-3">
                 <span className="card-title" style={{ color: "var(--color-text-2)" }}>
                   {t("past")} ({pastEvents.length})
                 </span>
-                <button
-                  className="button"
-                  type="button"
-                  onClick={() => setIsPastExpanded((prev) => !prev)}
-                  style={{ padding: "6px 12px", fontSize: "0.8rem" }}
-                >
+                <button className="button py-1.5 px-3" type="button" onClick={() => setIsPastExpanded((prev) => !prev)}>
                   {isPastExpanded ? t("hide") : t("show")}
                 </button>
               </div>

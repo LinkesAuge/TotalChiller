@@ -110,10 +110,7 @@ function CmsMarkdownToolbar({
     onChange(newText);
     requestAnimationFrame(() => {
       textarea.focus();
-      textarea.setSelectionRange(
-        start + prefix.length,
-        start + prefix.length + insertion.length,
-      );
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + insertion.length);
     });
   }
 
@@ -143,9 +140,7 @@ function CmsMarkdownToolbar({
         setIsUploading(false);
         return;
       }
-      const { data: urlData } = supabase.storage
-        .from(storageBucket)
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from(storageBucket).getPublicUrl(filePath);
       const altText = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
       insertAtCursor(`\n![${altText}](${urlData.publicUrl})\n`);
     } catch {
@@ -199,19 +194,24 @@ function CmsMarkdownToolbar({
           accept={ACCEPTED_IMAGE_TYPES.join(",")}
           multiple
           onChange={handleFileInputChange}
-          style={{ display: "none" }}
+          className="hidden"
           aria-hidden="true"
         />
       </div>
       {uploadError && (
         <div className="forum-upload-error">
           {uploadError}
-          <button type="button" onClick={() => setUploadError("")} className="forum-upload-error-close" aria-label="Fehler schließen">✕</button>
+          <button
+            type="button"
+            onClick={() => setUploadError("")}
+            className="forum-upload-error-close"
+            aria-label="Fehler schließen"
+          >
+            ✕
+          </button>
         </div>
       )}
-      {isUploading && (
-        <div className="forum-upload-status">Bild wird hochgeladen...</div>
-      )}
+      {isUploading && <div className="forum-upload-status">Bild wird hochgeladen...</div>}
     </div>
   );
 }

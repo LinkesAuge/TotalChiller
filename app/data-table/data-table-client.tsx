@@ -126,7 +126,9 @@ function DataTableClient(): JSX.Element {
   const [filterCorrectionStatus, setFilterCorrectionStatus] = useState<"all" | "corrected" | "uncorrected">("all");
   const [isAddCorrectionRuleOpen, setIsAddCorrectionRuleOpen] = useState<boolean>(false);
   const [correctionRuleRowId, setCorrectionRuleRowId] = useState<string | null>(null);
-  const [correctionRuleField, setCorrectionRuleField] = useState<"player" | "source" | "chest" | "clan" | "all">("player");
+  const [correctionRuleField, setCorrectionRuleField] = useState<"player" | "source" | "chest" | "clan" | "all">(
+    "player",
+  );
   const [correctionRuleMatch, setCorrectionRuleMatch] = useState<string>("");
   const [correctionRuleReplacement, setCorrectionRuleReplacement] = useState<string>("");
   const [correctionRuleStatus, setCorrectionRuleStatus] = useState<string>("active");
@@ -156,10 +158,7 @@ function DataTableClient(): JSX.Element {
       return acc;
     }, {});
   }, [availableClans]);
-  const validationEvaluator = useMemo(
-    () => createValidationEvaluator(validationRules),
-    [validationRules],
-  );
+  const validationEvaluator = useMemo(() => createValidationEvaluator(validationRules), [validationRules]);
   const correctionApplicator = useMemo(() => createCorrectionApplicator(correctionRules), [correctionRules]);
   const clanIdByName = useMemo(() => {
     return availableClans.reduce<Record<string, string>>((acc, clan) => {
@@ -174,7 +173,12 @@ function DataTableClient(): JSX.Element {
         values.add(rule.match_value.trim());
       }
     });
-    return [{ value: "", label: t("all") }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
+    return [
+      { value: "", label: t("all") },
+      ...Array.from(values)
+        .sort()
+        .map((value) => ({ value, label: value })),
+    ];
   }, [validationRules, t]);
   const sourceFilterOptions = useMemo(() => {
     const values = new Set<string>();
@@ -183,7 +187,12 @@ function DataTableClient(): JSX.Element {
         values.add(rule.match_value.trim());
       }
     });
-    return [{ value: "", label: t("all") }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
+    return [
+      { value: "", label: t("all") },
+      ...Array.from(values)
+        .sort()
+        .map((value) => ({ value, label: value })),
+    ];
   }, [validationRules, t]);
   const chestFilterOptions = useMemo(() => {
     const values = new Set<string>();
@@ -192,7 +201,12 @@ function DataTableClient(): JSX.Element {
         values.add(rule.match_value.trim());
       }
     });
-    return [{ value: "", label: t("all") }, ...Array.from(values).sort().map((value) => ({ value, label: value }))];
+    return [
+      { value: "", label: t("all") },
+      ...Array.from(values)
+        .sort()
+        .map((value) => ({ value, label: value })),
+    ];
   }, [validationRules, t]);
   const playerSuggestions = useMemo(() => {
     const values = new Set<string>();
@@ -221,13 +235,16 @@ function DataTableClient(): JSX.Element {
     });
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [validationRules]);
-  const suggestionsForField = useMemo<Record<string, readonly string[]>>(() => ({
-    player: playerSuggestions,
-    source: sourceSuggestions,
-    chest: chestSuggestions,
-    clan: availableClans.map((clan) => clan.name),
-    all: [],
-  }), [availableClans, chestSuggestions, playerSuggestions, sourceSuggestions]);
+  const suggestionsForField = useMemo<Record<string, readonly string[]>>(
+    () => ({
+      player: playerSuggestions,
+      source: sourceSuggestions,
+      chest: chestSuggestions,
+      clan: availableClans.map((clan) => clan.name),
+      all: [],
+    }),
+    [availableClans, chestSuggestions, playerSuggestions, sourceSuggestions],
+  );
   const rowValidationResults = useMemo(() => {
     return rows.reduce<Record<string, ReturnType<typeof validationEvaluator>>>((acc, row) => {
       const clanId = getRowValue(row, "clan_id");
@@ -248,7 +265,8 @@ function DataTableClient(): JSX.Element {
       const chestResult = correctionApplicator.applyToField({ field: "chest", value: row.chest });
       const clanName = clanNameById[row.clan_id] ?? row.clan_name ?? "";
       const clanResult = correctionApplicator.applyToField({ field: "clan", value: clanName });
-      acc[row.id] = playerResult.wasCorrected || sourceResult.wasCorrected || chestResult.wasCorrected || clanResult.wasCorrected;
+      acc[row.id] =
+        playerResult.wasCorrected || sourceResult.wasCorrected || chestResult.wasCorrected || clanResult.wasCorrected;
       return acc;
     }, {});
   }, [clanNameById, correctionApplicator, rows]);
@@ -433,9 +451,7 @@ function DataTableClient(): JSX.Element {
   }, [areSomeRowsSelected]);
 
   function toggleSelect(id: string): void {
-    setSelectedIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-    );
+    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   }
 
   function toggleSelectAllRows(): void {
@@ -674,7 +690,10 @@ function DataTableClient(): JSX.Element {
     };
   }
 
-  function applyCorrectionsToValues(values: RowValues, row: ChestEntryRow): { values: RowValues; correctionCount: number } {
+  function applyCorrectionsToValues(
+    values: RowValues,
+    row: ChestEntryRow,
+  ): { values: RowValues; correctionCount: number } {
     let correctionCount = 0;
     const nextValues: RowValues = { ...values };
     const playerCorrection = correctionApplicator.applyToField({ field: "player", value: values.player });
@@ -704,7 +723,10 @@ function DataTableClient(): JSX.Element {
     return { values: nextValues, correctionCount };
   }
 
-  function buildRowDiff(row: ChestEntryRow, values: RowValues): Record<string, { from: string | number; to: string | number }> {
+  function buildRowDiff(
+    row: ChestEntryRow,
+    values: RowValues,
+  ): Record<string, { from: string | number; to: string | number }> {
     const diff: Record<string, { from: string | number; to: string | number }> = {};
     if (values.collected_date && values.collected_date !== row.collected_date) {
       diff.collected_date = { from: row.collected_date, to: values.collected_date };
@@ -777,9 +799,7 @@ function DataTableClient(): JSX.Element {
         },
       ]);
     }
-    setStatus(
-      correctionCount > 0 ? t("rowUpdatedWithCorrections", { count: correctionCount }) : t("rowUpdated"),
-    );
+    setStatus(correctionCount > 0 ? t("rowUpdatedWithCorrections", { count: correctionCount }) : t("rowUpdated"));
     setEditMap((current) => {
       const updated = { ...current };
       delete updated[row.id];
@@ -1287,11 +1307,7 @@ function DataTableClient(): JSX.Element {
           <button className="button" type="button" onClick={openBatchEdit}>
             {t("batchEdit")}
           </button>
-          <IconButton
-            ariaLabel={t("saveAll")}
-            onClick={handleSaveAllRows}
-            disabled={Object.keys(editMap).length === 0}
-          >
+          <IconButton ariaLabel={t("saveAll")} onClick={handleSaveAllRows} disabled={Object.keys(editMap).length === 0}>
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
                 d="M4 8.5L7 11.5L12 5"
@@ -1305,13 +1321,23 @@ function DataTableClient(): JSX.Element {
           <IconButton ariaLabel={t("batchDelete")} onClick={handleBatchDelete} variant="danger">
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              <path
+                d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
+              <path
+                d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
             </svg>
           </IconButton>
         </div>
       </div>
-      <div className="pagination-bar table-pagination" style={{ gridColumn: "1 / -1" }}>
+      <div className="pagination-bar table-pagination col-span-full">
         <div className="pagination-page-size">
           <label htmlFor="pageSize" className="text-muted">
             {t("pageSize")}
@@ -1333,8 +1359,8 @@ function DataTableClient(): JSX.Element {
           />
         </div>
         <span className="text-muted">
-          {t("showing")} {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–
-          {Math.min(page * pageSize, totalCount)} {t("of")} {totalCount}
+          {t("showing")} {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)}{" "}
+          {t("of")} {totalCount}
           {clientFilteredRows.length < rows.length ? ` • ${clientFilteredRows.length} ${t("visibleAfterFilter")}` : ""}
           {selectedIds.length > 0 ? ` • ${selectedIds.length} ${t("selected")}` : ""}
         </span>
@@ -1360,7 +1386,13 @@ function DataTableClient(): JSX.Element {
             disabled={page === 1}
           >
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M10 3L6 8L10 13"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </IconButton>
           <IconButton
@@ -1369,156 +1401,205 @@ function DataTableClient(): JSX.Element {
             disabled={page >= totalPages}
           >
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M6 3L10 8L6 13"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </IconButton>
         </div>
       </div>
       <TableScroll>
         <section className="table data-table">
-        <header>
-          <span>{t("tableHeaderIndex")}</span>
-          <span>
-            <input
-              type="checkbox"
-              ref={selectAllRef}
-              checked={areAllRowsSelected}
-              onChange={toggleSelectAllRows}
-              aria-label={t("selectAllRowsOnPage")}
-            />
-          </span>
-          <span>{renderSortButton(t("tableHeaderDate"), "collected_date")}</span>
-          <span>{renderSortButton(t("tableHeaderPlayer"), "player")}</span>
-          <span>{renderSortButton(t("tableHeaderSource"), "source")}</span>
-          <span>{renderSortButton(t("tableHeaderChest"), "chest")}</span>
-          <span>{renderSortButton(t("tableHeaderScore"), "score")}</span>
-          <span>{renderSortButton(t("tableHeaderClan"), "clan")}</span>
-          <span>{t("tableHeaderActions")}</span>
-        </header>
-        {clientFilteredRows.length === 0 ? (
-          <div className="row">
-            <span>{t("noRowsFound")}</span>
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-        ) : (
-          sortRows(clientFilteredRows).map((row, index) => {
-            const validation = rowValidationResults[row.id];
-            const rowStatus = validation?.rowStatus ?? "neutral";
-            const fieldStatus = validation?.fieldStatus ?? { player: "neutral", source: "neutral", chest: "neutral", clan: "neutral" };
-            const rowNumber = (page - 1) * pageSize + index + 1;
-            return (
-            <div
-              className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
-              key={row.id}
-            >
-              <span className="text-muted">{rowNumber}</span>
-              <span>
-                <input
-                  type="checkbox"
-                  checked={selectedSet.has(row.id)}
-                  onChange={() => toggleSelect(row.id)}
-                />
-              </span>
-              <span>
-                <DatePicker
-                  value={getRowValue(row, "collected_date")}
-                  onChange={(value) => updateEditValue(row.id, "collected_date", value)}
-                />
-              </span>
-              <ComboboxInput
-                value={getRowValue(row, "player")}
-                className={fieldStatus.player === "invalid" ? "validation-cell-invalid" : ""}
-                onChange={(value) => updateEditValue(row.id, "player", value)}
-                options={playerSuggestions}
-              />
-              <ComboboxInput
-                value={getRowValue(row, "source")}
-                className={fieldStatus.source === "invalid" ? "validation-cell-invalid" : ""}
-                onChange={(value) => updateEditValue(row.id, "source", value)}
-                options={sourceSuggestions}
-              />
-              <ComboboxInput
-                value={getRowValue(row, "chest")}
-                className={fieldStatus.chest === "invalid" ? "validation-cell-invalid" : ""}
-                onChange={(value) => updateEditValue(row.id, "chest", value)}
-                options={chestSuggestions}
-              />
+          <header>
+            <span>{t("tableHeaderIndex")}</span>
+            <span>
               <input
-                value={getRowValue(row, "score")}
-                onChange={(event) => updateEditValue(row.id, "score", event.target.value)}
+                type="checkbox"
+                ref={selectAllRef}
+                checked={areAllRowsSelected}
+                onChange={toggleSelectAllRows}
+                aria-label={t("selectAllRowsOnPage")}
               />
-              <RadixSelect
-                ariaLabel="Clan"
-                value={getRowValue(row, "clan_id")}
-                onValueChange={(value) => updateEditValue(row.id, "clan_id", value)}
-                triggerClassName={fieldStatus.clan === "invalid" ? "select-trigger validation-cell-invalid" : undefined}
-                options={availableClans.map((clan) => ({ value: clan.id, label: clan.name }))}
-              />
-              <div className="list inline action-icons">
-                {(() => {
-                  const hasRowEdits = Boolean(editMap[row.id]);
-                  return (
-                    <>
-                      <IconButton ariaLabel={t("saveChanges")} onClick={() => handleSaveRow(row)} disabled={!hasRowEdits}>
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M4 8.5L7 11.5L12 5"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </IconButton>
-                      <IconButton ariaLabel={t("cancelChanges")} onClick={() => clearRowEdits(row.id)} disabled={!hasRowEdits}>
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                      </IconButton>
-                      <IconButton ariaLabel={t("deleteRow")} onClick={() => handleDeleteRow(row)} variant="danger">
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        </svg>
-                      </IconButton>
-                      <IconButton ariaLabel={t("addCorrectionRule")} onClick={() => openCorrectionRuleModal(row)}>
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M3.5 10.5L8 6L12.5 10.5L7.5 15H3.5V10.5Z"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path d="M7.5 15H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                      </IconButton>
-                      <IconButton ariaLabel={t("addValidationRule")} onClick={() => openValidationRuleModal(row)}>
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M3.5 5.5L5 7L7.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M8.5 5.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          <path d="M3.5 10.5L5 12L7.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M8.5 10.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                      </IconButton>
-                    </>
-                  );
-                })()}
-                {rowErrors[row.id] ? <span className="text-muted">{rowErrors[row.id]}</span> : null}
-              </div>
+            </span>
+            <span>{renderSortButton(t("tableHeaderDate"), "collected_date")}</span>
+            <span>{renderSortButton(t("tableHeaderPlayer"), "player")}</span>
+            <span>{renderSortButton(t("tableHeaderSource"), "source")}</span>
+            <span>{renderSortButton(t("tableHeaderChest"), "chest")}</span>
+            <span>{renderSortButton(t("tableHeaderScore"), "score")}</span>
+            <span>{renderSortButton(t("tableHeaderClan"), "clan")}</span>
+            <span>{t("tableHeaderActions")}</span>
+          </header>
+          {clientFilteredRows.length === 0 ? (
+            <div className="row">
+              <span>{t("noRowsFound")}</span>
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
             </div>
-            );
-          })
-        )}
+          ) : (
+            sortRows(clientFilteredRows).map((row, index) => {
+              const validation = rowValidationResults[row.id];
+              const rowStatus = validation?.rowStatus ?? "neutral";
+              const fieldStatus = validation?.fieldStatus ?? {
+                player: "neutral",
+                source: "neutral",
+                chest: "neutral",
+                clan: "neutral",
+              };
+              const rowNumber = (page - 1) * pageSize + index + 1;
+              return (
+                <div
+                  className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
+                  key={row.id}
+                >
+                  <span className="text-muted">{rowNumber}</span>
+                  <span>
+                    <input type="checkbox" checked={selectedSet.has(row.id)} onChange={() => toggleSelect(row.id)} />
+                  </span>
+                  <span>
+                    <DatePicker
+                      value={getRowValue(row, "collected_date")}
+                      onChange={(value) => updateEditValue(row.id, "collected_date", value)}
+                    />
+                  </span>
+                  <ComboboxInput
+                    value={getRowValue(row, "player")}
+                    className={fieldStatus.player === "invalid" ? "validation-cell-invalid" : ""}
+                    onChange={(value) => updateEditValue(row.id, "player", value)}
+                    options={playerSuggestions}
+                  />
+                  <ComboboxInput
+                    value={getRowValue(row, "source")}
+                    className={fieldStatus.source === "invalid" ? "validation-cell-invalid" : ""}
+                    onChange={(value) => updateEditValue(row.id, "source", value)}
+                    options={sourceSuggestions}
+                  />
+                  <ComboboxInput
+                    value={getRowValue(row, "chest")}
+                    className={fieldStatus.chest === "invalid" ? "validation-cell-invalid" : ""}
+                    onChange={(value) => updateEditValue(row.id, "chest", value)}
+                    options={chestSuggestions}
+                  />
+                  <input
+                    value={getRowValue(row, "score")}
+                    onChange={(event) => updateEditValue(row.id, "score", event.target.value)}
+                  />
+                  <RadixSelect
+                    ariaLabel="Clan"
+                    value={getRowValue(row, "clan_id")}
+                    onValueChange={(value) => updateEditValue(row.id, "clan_id", value)}
+                    triggerClassName={
+                      fieldStatus.clan === "invalid" ? "select-trigger validation-cell-invalid" : undefined
+                    }
+                    options={availableClans.map((clan) => ({ value: clan.id, label: clan.name }))}
+                  />
+                  <div className="list inline action-icons">
+                    {(() => {
+                      const hasRowEdits = Boolean(editMap[row.id]);
+                      return (
+                        <>
+                          <IconButton
+                            ariaLabel={t("saveChanges")}
+                            onClick={() => handleSaveRow(row)}
+                            disabled={!hasRowEdits}
+                          >
+                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path
+                                d="M4 8.5L7 11.5L12 5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </IconButton>
+                          <IconButton
+                            ariaLabel={t("cancelChanges")}
+                            onClick={() => clearRowEdits(row.id)}
+                            disabled={!hasRowEdits}
+                          >
+                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path
+                                d="M4.5 4.5L11.5 11.5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                              />
+                              <path
+                                d="M11.5 4.5L4.5 11.5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </IconButton>
+                          <IconButton ariaLabel={t("deleteRow")} onClick={() => handleDeleteRow(row)} variant="danger">
+                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                              <path
+                                d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                                stroke="currentColor"
+                                strokeWidth="1.4"
+                                strokeLinecap="round"
+                              />
+                              <path
+                                d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                                stroke="currentColor"
+                                strokeWidth="1.4"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </IconButton>
+                          <IconButton ariaLabel={t("addCorrectionRule")} onClick={() => openCorrectionRuleModal(row)}>
+                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path
+                                d="M3.5 10.5L8 6L12.5 10.5L7.5 15H3.5V10.5Z"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path d="M7.5 15H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          </IconButton>
+                          <IconButton ariaLabel={t("addValidationRule")} onClick={() => openValidationRuleModal(row)}>
+                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                              <path
+                                d="M3.5 5.5L5 7L7.5 4.5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path d="M8.5 5.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              <path
+                                d="M3.5 10.5L5 12L7.5 9.5"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path d="M8.5 10.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          </IconButton>
+                        </>
+                      );
+                    })()}
+                    {rowErrors[row.id] ? <span className="text-muted">{rowErrors[row.id]}</span> : null}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </section>
       </TableScroll>
       {isBatchEditOpen ? (
@@ -1684,9 +1765,7 @@ function DataTableClient(): JSX.Element {
                 <div className="card-subtitle">{t("cannotBeUndone")}</div>
               </div>
             </div>
-            <div className="alert danger">
-              {t("deletingRowsWarning")}
-            </div>
+            <div className="alert danger">{t("deletingRowsWarning")}</div>
             <div className="form-group">
               <label htmlFor="batchDeleteInput">{t("confirmationPhrase")}</label>
               <input

@@ -455,7 +455,7 @@ function EditableList({
                       type="file"
                       accept="image/svg+xml"
                       onChange={handleSvgUpload}
-                      style={{ display: "none" }}
+                      className="hidden"
                       aria-hidden="true"
                     />
                     {editModal.iconType === "custom" && editModal.icon && (

@@ -30,7 +30,7 @@ test.describe("Accessibility: Protected pages", () => {
       await loginAs(page, "member");
       await page.goto(path);
       await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(2000);
+      await expect(page.locator(".content-inner, .card, main").first()).toBeVisible({ timeout: 10000 });
 
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
 

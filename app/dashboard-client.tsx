@@ -221,7 +221,7 @@ function DashboardClient(): JSX.Element {
             </div>
           </div>
           <div className="card-body">
-            {isLoadingAnnouncements && <div className="py-4 text-sm text-text-muted">Loading…</div>}
+            {isLoadingAnnouncements && <div className="py-4 text-sm text-text-muted">{t("loading")}</div>}
             {!isLoadingAnnouncements && announcements.length === 0 && (
               <div className="py-4 text-sm text-text-muted">{t("noAnnouncements")}</div>
             )}
@@ -286,7 +286,8 @@ function DashboardClient(): JSX.Element {
             />
             <div className="tooltip-head-inner">
               <img src="/assets/vip/batler_icons_stat_armor.png" alt="Stats" width={18} height={18} loading="lazy" />
-              <h3 className="card-title">Quick Stats</h3>
+              <h3 className="card-title">{t("quickStatsTitle")}</h3>
+              <span className="coming-soon-badge ml-2">{t("comingSoon")}</span>
               <span
                 className="ml-auto"
                 style={{
@@ -294,7 +295,7 @@ function DashboardClient(): JSX.Element {
                   color: "var(--color-text-muted)",
                 }}
               >
-                Last 7 days
+                {t("quickStatsPeriod")}
               </span>
             </div>
           </div>
@@ -302,28 +303,28 @@ function DashboardClient(): JSX.Element {
             {[
               {
                 v: "—",
-                l: "Personal Score",
+                l: t("personalScore"),
                 ico: "/assets/vip/batler_icons_stat_damage.png",
                 trend: "—",
                 up: true,
               },
               {
                 v: "—",
-                l: "Clan Score",
+                l: t("clanScore"),
                 ico: "/assets/vip/batler_icons_stat_armor.png",
                 trend: "—",
                 up: true,
               },
               {
                 v: "—",
-                l: "Chests",
+                l: t("chests"),
                 ico: "/assets/vip/icons_chest_2.png",
                 trend: "—",
                 up: true,
               },
               {
                 v: "—",
-                l: "Readiness",
+                l: t("readiness"),
                 ico: "/assets/vip/batler_icons_stat_heal.png",
                 trend: "—",
                 up: false,
@@ -362,7 +363,7 @@ function DashboardClient(): JSX.Element {
                 {t("viewAll")} →
               </Link>
             </div>
-            {isLoadingEvents && <div className="py-2 text-sm text-text-muted">Loading…</div>}
+            {isLoadingEvents && <div className="py-2 text-sm text-text-muted">{t("loading")}</div>}
             {!isLoadingEvents && events.length === 0 && (
               <div className="py-2 text-sm text-text-muted">{t("noEventsScheduled")}</div>
             )}
@@ -403,23 +404,24 @@ function DashboardClient(): JSX.Element {
 
         {/* ── Clan Progress (placeholder — retained) ── */}
         <section className="card">
-          <div className="card-header">
-            <h3 className="card-title">Clan Progress</h3>
+          <div className="card-header" style={{ alignItems: "center" }}>
+            <h3 className="card-title">{t("clanProgressTitle")}</h3>
+            <span className="coming-soon-badge">{t("comingSoon")}</span>
           </div>
           <div className="flex flex-col gap-3.5 p-3.5 px-4">
             {[
               {
-                label: "Weekly Chest Target",
+                label: t("weeklyChestTarget"),
                 value: 0,
                 color: "#c9a34a",
               },
               {
-                label: "Event Participation",
+                label: t("eventParticipation"),
                 value: 0,
                 color: "#4a9960",
               },
               {
-                label: "Member Activity",
+                label: t("memberActivity"),
                 value: 0,
                 color: "#4a6ea0",
               },

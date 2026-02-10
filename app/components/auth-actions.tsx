@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import NotificationBell from "./notification-bell";
@@ -28,7 +27,6 @@ const initialAuthState: AuthActionState = {
 function AuthActions(): JSX.Element | null {
   const [authState, setAuthState] = useState<AuthActionState>(initialAuthState);
   const supabase = createSupabaseBrowserClient();
-  const router = useRouter();
   const t = useTranslations("userMenu");
 
   useEffect(() => {
@@ -99,7 +97,12 @@ function AuthActions(): JSX.Element | null {
           <a className="user-menu__link" href="/profile">
             <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
               <circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M2.5 14C2.5 11 5 9 8 9C11 9 13.5 11 13.5 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path
+                d="M2.5 14C2.5 11 5 9 8 9C11 9 13.5 11 13.5 14"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
             </svg>
             {t("profile")}
           </a>
@@ -113,7 +116,12 @@ function AuthActions(): JSX.Element | null {
           <a className="user-menu__link" href="/settings">
             <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
               <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M8 1.5V3M8 13V14.5M1.5 8H3M13 8H14.5M3.05 3.05L4.1 4.1M11.9 11.9L12.95 12.95M12.95 3.05L11.9 4.1M4.1 11.9L3.05 12.95" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+              <path
+                d="M8 1.5V3M8 13V14.5M1.5 8H3M13 8H14.5M3.05 3.05L4.1 4.1M11.9 11.9L12.95 12.95M12.95 3.05L11.9 4.1M4.1 11.9L3.05 12.95"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+              />
             </svg>
             {t("settings")}
           </a>

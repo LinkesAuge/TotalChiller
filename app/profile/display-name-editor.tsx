@@ -10,7 +10,7 @@ interface DisplayNameEditorProps {
   readonly email: string;
 }
 
-function DisplayNameEditor({ userId, initialDisplayName, email }: DisplayNameEditorProps): JSX.Element {
+function DisplayNameEditor({ userId, initialDisplayName, email: _email }: DisplayNameEditorProps): JSX.Element {
   const t = useTranslations("displayNameEditor");
   const supabase = createSupabaseBrowserClient();
   const [displayName, setDisplayName] = useState<string>(initialDisplayName);

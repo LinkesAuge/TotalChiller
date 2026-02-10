@@ -45,7 +45,7 @@ test.describe("CMS Pages: Admin edit controls", () => {
       await loginAs(page, "admin");
       await page.goto(path);
       await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(2000);
+      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
       /* Admin should see editable pencil icons */
       const editBtns = page.locator(".editable-text-pencil, .pencil-icon, button[aria-label*='edit']");
@@ -57,7 +57,7 @@ test.describe("CMS Pages: Admin edit controls", () => {
     await loginAs(page, "member");
     await page.goto("/home");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const editBtns = page.locator(".editable-text-pencil, .pencil-icon, button[aria-label*='edit']");
     expect(await editBtns.count()).toBe(0);

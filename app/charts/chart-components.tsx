@@ -205,7 +205,7 @@ function ChestTypePie({ data, height = 220 }: ChestTypePieProps): JSX.Element {
           innerRadius={40}
           outerRadius={80}
           paddingAngle={2}
-          label={(props: any) => {
+          label={(props: { name?: string; percent?: number }) => {
             const chest = typeof props?.name === "string" ? props.name : "";
             const percent = typeof props?.percent === "number" ? props.percent : 0;
             const label = chest.length > 16 ? `${chest.slice(0, 14)}...` : chest;

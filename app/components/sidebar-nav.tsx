@@ -91,7 +91,13 @@ const NAV_SECTIONS: readonly NavSection[] = [
     adminOnly: true,
     items: ADMIN_SECTIONS.map((section) => {
       const meta = SIDEBAR_ADMIN_META[section.labelKey];
-      return { href: section.href, tab: section.tab, ...meta };
+      return {
+        href: section.href,
+        tab: section.tab,
+        labelKey: meta?.labelKey ?? section.labelKey,
+        iconKey: meta?.iconKey ?? "admin",
+        vipIcon: meta?.vipIcon,
+      };
     }),
   },
 ];
@@ -182,7 +188,7 @@ function SidebarNav(): JSX.Element {
     <nav className="nav">
       {!isAuthenticated ? (
         <div className="nav-group">
-          {isOpen && <div className="nav-group-title">{t("main")}</div>}
+          <div className={`nav-group-title${isOpen ? "" : " collapsed"}`}>{t("main")}</div>
           <Link
             className={`${pathname === "/home" ? "active" : ""}${!isOpen ? " justify-center py-2" : ""}`.trim()}
             href="/home"
@@ -203,7 +209,7 @@ function SidebarNav(): JSX.Element {
                 <path d={ICONS.home} />
               </svg>
             </span>
-            {isOpen && <span className="nav-label">{t("home")}</span>}
+            <span className={`nav-label${isOpen ? "" : " collapsed"}`}>{t("home")}</span>
           </Link>
         </div>
       ) : (
@@ -216,7 +222,7 @@ function SidebarNav(): JSX.Element {
             return (
               <div className="nav-group" key={section.title}>
                 {sectionIndex > 0 && <div className="nav-group-divider" />}
-                {isOpen && <div className="nav-group-title">{t(section.groupLabel)}</div>}
+                <div className={`nav-group-title${isOpen ? "" : " collapsed"}`}>{t(section.groupLabel)}</div>
                 {section.items.map((item) => {
                   const isActive = isNavItemActive(pathname, searchParams.get("tab"), item);
                   const label = t(item.labelKey);
@@ -245,7 +251,7 @@ function SidebarNav(): JSX.Element {
                           <NavItemIcon item={item} />
                         </span>
                         {/* Label */}
-                        {isOpen && <span className="nav-label">{label}</span>}
+                        <span className={`nav-label${isOpen ? "" : " collapsed"}`}>{label}</span>
                       </Link>
                       {/* Forum category sub-items */}
                       {item.iconKey === "forum" && isOnForum && isOpen && forumCategories.length > 0 && (

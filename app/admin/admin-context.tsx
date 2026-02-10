@@ -111,7 +111,7 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       if (clanRows.length > 0) {
         const stored = window.localStorage.getItem("tc.currentClanId") ?? "";
         const match = stored ? clanRows.find((c) => c.id === stored) : undefined;
-        setSelectedClanId(match?.id ?? clanRows[0].id);
+        setSelectedClanId(match?.id ?? clanRows[0]!.id);
       }
 
       // Default clan
@@ -134,7 +134,6 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       }
     }
     void init();
-     
   }, [supabase]);
 
   /* ── Sync active section from URL ── */

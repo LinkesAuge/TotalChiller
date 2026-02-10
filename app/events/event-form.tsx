@@ -83,7 +83,7 @@ export function EventForm({
   canManage,
   gameAccounts,
   templateOptions,
-  locale,
+  locale: _locale,
   t,
 }: EventFormProps): JSX.Element | null {
   if (!isFormOpen || !canManage) return null;

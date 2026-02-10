@@ -19,8 +19,7 @@ test.describe("Charts: Page loading", () => {
     await page.waitForLoadState("networkidle");
 
     /* Should have filter controls (date range, player, source) */
-    const body = await page.textContent("body");
-    expect(body?.toLowerCase()).toMatch(/filter|datum|date|player|spieler/i);
+    await expect(page.locator(".content-inner")).toContainText(/filter|datum|date|player|spieler/i, { timeout: 10000 });
   });
 
   test("no JS errors on charts page", async ({ page }) => {
@@ -30,7 +29,7 @@ test.describe("Charts: Page loading", () => {
     await loginAs(page, "member");
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     expect(errors).toEqual([]);
   });
@@ -61,7 +60,7 @@ test.describe("Charts: Visualization", () => {
     await loginAs(page, "member");
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Charts typically render as canvas or SVG */
     const chartElements = page.locator("canvas, svg.recharts-surface, .recharts-wrapper");

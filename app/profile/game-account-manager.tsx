@@ -25,7 +25,11 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 /**
  * Displays the user's game accounts with status, default selection, and a form to request new ones.
  */
-function GameAccountManager({ userId, initialAccounts, initialDefaultId }: GameAccountManagerProps): JSX.Element {
+function GameAccountManager({
+  userId: _userId,
+  initialAccounts,
+  initialDefaultId,
+}: GameAccountManagerProps): JSX.Element {
   const t = useTranslations("gameAccountManager");
   const locale = useLocale();
   const [accounts, setAccounts] = useState<readonly GameAccountView[]>(initialAccounts);
@@ -35,7 +39,7 @@ function GameAccountManager({ userId, initialAccounts, initialDefaultId }: GameA
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [defaultStatus, setDefaultStatus] = useState<string>("");
-  const supabase = createSupabaseBrowserClient();
+  const _supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
     setAccounts(initialAccounts);

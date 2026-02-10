@@ -172,8 +172,8 @@ function ForumCategoryAdmin(): JSX.Element {
   /* ─── Move (reorder) ─── */
   async function handleMoveUp(index: number): Promise<void> {
     if (index <= 0) return;
-    const current = categories[index];
-    const above = categories[index - 1];
+    const current = categories[index]!;
+    const above = categories[index - 1]!;
     /* Swap sort_order values; if they are identical, assign distinct values */
     const currentOrder = current.sort_order;
     const aboveOrder = above.sort_order;
@@ -197,8 +197,8 @@ function ForumCategoryAdmin(): JSX.Element {
 
   async function handleMoveDown(index: number): Promise<void> {
     if (index >= categories.length - 1) return;
-    const current = categories[index];
-    const below = categories[index + 1];
+    const current = categories[index]!;
+    const below = categories[index + 1]!;
     const currentOrder = current.sort_order;
     const belowOrder = below.sort_order;
     const newCurrentOrder = currentOrder === belowOrder ? belowOrder + 1 : belowOrder;

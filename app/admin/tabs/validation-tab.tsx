@@ -36,12 +36,12 @@ function parseValidationListText(text: string, expectedField: string): { entries
   const errors: string[] = [];
   const entries: RuleRow[] = [];
   const seenValues = new Set<string>();
-  const startIndex = lines.length > 0 && lines[0].toLowerCase().startsWith("value") ? 1 : 0;
+  const startIndex = lines.length > 0 && lines[0]!.toLowerCase().startsWith("value") ? 1 : 0;
   for (let i = startIndex; i < lines.length; i++) {
-    const parts = lines[i].split(/[;,]/).map((p) => p.trim());
+    const parts = lines[i]!.split(/[;,]/).map((p) => p.trim());
     if (parts.length < 1) continue;
-    const matchValue = parts[0];
-    const rawStatus = parts.length > 1 ? parts[1] : "active";
+    const matchValue = parts[0]!;
+    const rawStatus = parts.length > 1 ? (parts[1] ?? "active") : "active";
     const status = normalizeImportedStatus(rawStatus);
     if (!matchValue) {
       errors.push(`Line ${i + 1}: Missing value.`);
@@ -77,14 +77,14 @@ export default function ValidationTab(): ReactElement {
       tableName: "validation_rules",
       selectColumns: "id,field,match_value,status",
       fieldOptions: ruleFieldOptions,
-      defaultField: ruleFieldOptions[0],
+      defaultField: ruleFieldOptions[0]!,
       defaultSortKey: "match_value",
       statusOptions: ["all", "valid", "invalid"],
       parseFile: parseValidationListText,
       buildCsv: buildValidationCsv,
       normalizeValue: (v) => v.trim().toLowerCase(),
       existingValueKey: (rule) => rule.match_value ?? "",
-      importPayloadKey: (entry) => `${entry.match_value}-${entry.status}`,
+      importPayloadKey: (entry) => `${entry.match_value ?? ""}-${entry.status ?? ""}`,
       toInsertPayload: (entry) => ({
         field: entry.field?.trim(),
         match_value: entry.match_value?.trim(),
@@ -119,7 +119,7 @@ export default function ValidationTab(): ReactElement {
   const [editField, setEditField] = useState("");
   const [editMatch, setEditMatch] = useState("");
   const [editStatus, setEditStatus] = useState("");
-  const [importStatus, setImportStatus] = useState("");
+  const [importStatus, _setImportStatus] = useState("");
 
   const activeCounts = ruleList.fieldCounts[ruleList.activeField] ?? { total: 0, active: 0 };
 

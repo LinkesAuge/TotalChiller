@@ -17,7 +17,7 @@ test.describe("News: Page loading", () => {
     await loginAs(page, "member");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Either top-bar (has clan) or no-clan access message */
     const topBar = page.locator(".top-bar");
@@ -32,7 +32,7 @@ test.describe("News: Content manager features", () => {
     await loginAs(page, "editor");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Editor is a content manager but may lack clan membership */
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
@@ -45,7 +45,7 @@ test.describe("News: Content manager features", () => {
     await loginAs(page, "member");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Members are NOT content managers, so no create button */
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
@@ -56,7 +56,7 @@ test.describe("News: Content manager features", () => {
     await loginAs(page, "guest");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
     expect(await createBtn.count()).toBe(0);
@@ -72,7 +72,7 @@ test.describe("News: Article form", () => {
     const createBtn = page.locator("button.primary, button", { hasText: /erstellen|create/i });
     if ((await createBtn.count()) > 0) {
       await createBtn.first().click();
-      await page.waitForTimeout(500);
+      await expect(page.locator("form")).toBeVisible({ timeout: 5000 });
 
       /* Form should appear with title input and content area */
       const formInputs = page.locator("input, textarea, [contenteditable]");

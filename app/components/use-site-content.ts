@@ -135,7 +135,7 @@ export function useSiteContent(page: string): SiteContentHook {
         const map: ContentMap = {};
         for (const row of rows) {
           if (!map[row.section_key]) map[row.section_key] = {};
-          map[row.section_key][row.field_key] = { de: row.content_de, en: row.content_en };
+          map[row.section_key]![row.field_key] = { de: row.content_de, en: row.content_en };
         }
         setContent(map);
       }
@@ -146,7 +146,7 @@ export function useSiteContent(page: string): SiteContentHook {
         const listMap: ListMap = {};
         for (const item of items) {
           if (!listMap[item.section_key]) listMap[item.section_key] = [];
-          listMap[item.section_key].push(item);
+          listMap[item.section_key]!.push(item);
         }
         setLists(listMap);
       }

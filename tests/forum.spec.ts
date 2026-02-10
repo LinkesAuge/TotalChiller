@@ -18,8 +18,7 @@ test.describe("Forum: Page loading", () => {
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
 
-    const body = await page.textContent("body");
-    expect(body?.length).toBeGreaterThan(100);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -49,7 +48,7 @@ test.describe("Forum: Create post", () => {
     await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Forum may show "no clan" message if user has no clan membership */
     const createBtn = page.locator("button.primary", { hasText: /neuer beitrag|new post/i });
@@ -62,7 +61,7 @@ test.describe("Forum: Create post", () => {
     await loginAs(page, "guest");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const createBtn = page.locator("button.primary", { hasText: /neuer beitrag|new post/i });
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
@@ -81,7 +80,7 @@ test.describe("Forum: Moderation", () => {
     const createBtn = page.locator("button", { hasText: /erstellen|create|neuer|new post/i });
     if ((await createBtn.count()) > 0) {
       await createBtn.first().click();
-      await page.waitForTimeout(500);
+      await expect(page.locator("form")).toBeVisible({ timeout: 5000 });
 
       /* Should have pin checkbox for moderators */
       const pinCheckbox = page.locator('input[type="checkbox"]');

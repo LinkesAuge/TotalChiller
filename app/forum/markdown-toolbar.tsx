@@ -139,7 +139,9 @@ function MarkdownToolbar({ textareaRef, value, onChange, supabase, userId }: Mar
   async function processFiles(files: FileList | null): Promise<void> {
     if (!files || files.length === 0) return;
     for (let i = 0; i < files.length; i++) {
-      await uploadImage(files[i]);
+      const file = files[i];
+      if (!file) continue;
+      await uploadImage(file);
     }
   }
 
@@ -217,24 +219,24 @@ export function handleImagePaste(
   const items = e.clipboardData?.items;
   if (!items) return;
   for (let i = 0; i < items.length; i++) {
-    if (items[i].type.startsWith("image/")) {
-      e.preventDefault();
-      const file = items[i].getAsFile();
-      if (!file) return;
-      setUploading(true);
-      const filePath = generateStoragePath(userId, file.name || "pasted-image.png");
-      void supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(filePath, file, { cacheControl: "3600", upsert: false })
-        .then(({ error }) => {
-          setUploading(false);
-          if (error) return;
-          const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
-          const alt = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
-          insertFn(`\n![${alt}](${data.publicUrl})\n`);
-        });
-      return;
-    }
+    const item = items[i];
+    if (!item || !item.type.startsWith("image/")) continue;
+    e.preventDefault();
+    const file = item.getAsFile();
+    if (!file) return;
+    setUploading(true);
+    const filePath = generateStoragePath(userId, file.name || "pasted-image.png");
+    void supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(filePath, file, { cacheControl: "3600", upsert: false })
+      .then(({ error }) => {
+        setUploading(false);
+        if (error) return;
+        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
+        const alt = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
+        insertFn(`\n![${alt}](${data.publicUrl})\n`);
+      });
+    return;
   }
 }
 
@@ -254,7 +256,8 @@ export function handleImageDrop(
   if (!files || files.length === 0) return;
   let hasImage = false;
   for (let i = 0; i < files.length; i++) {
-    if (ACCEPTED_IMAGE_TYPES.includes(files[i].type)) {
+    const f = files[i];
+    if (f && ACCEPTED_IMAGE_TYPES.includes(f.type)) {
       hasImage = true;
       break;
     }
@@ -264,9 +267,9 @@ export function handleImageDrop(
   e.stopPropagation();
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE_BYTES) continue;
+    if (!file || !ACCEPTED_IMAGE_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE_BYTES) continue;
     setUploading(true);
-    const filePath = generateStoragePath(userId, file.name);
+    const filePath = generateStoragePath(userId, file.name ?? "image");
     void supabase.storage
       .from(STORAGE_BUCKET)
       .upload(filePath, file, { cacheControl: "3600", upsert: false })
@@ -274,7 +277,7 @@ export function handleImageDrop(
         setUploading(false);
         if (error) return;
         const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
-        const alt = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
+        const alt = (file.name ?? "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
         insertFn(`\n![${alt}](${data.publicUrl})\n`);
       });
   }

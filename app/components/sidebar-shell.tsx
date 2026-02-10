@@ -65,7 +65,7 @@ const RANK_LABELS: Record<string, Record<string, string>> = {
  * Returns the localised label for a rank string.
  */
 function formatRank(rank: string, locale: string = "de"): string {
-  return RANK_LABELS[locale]?.[rank] ?? RANK_LABELS.en[rank] ?? rank.charAt(0).toUpperCase() + rank.slice(1);
+  return RANK_LABELS[locale]?.[rank] ?? RANK_LABELS.en?.[rank] ?? rank.charAt(0).toUpperCase() + rank.slice(1);
 }
 
 /**
@@ -80,7 +80,7 @@ function resolveHighestRank(options: readonly ClanOption[]): string {
       bestIndex = index;
     }
   }
-  return bestIndex < RANK_ORDER.length ? RANK_ORDER[bestIndex] : "";
+  return bestIndex < RANK_ORDER.length ? (RANK_ORDER[bestIndex] ?? "") : "";
 }
 
 /**
@@ -153,9 +153,11 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
       selectedKey = storedKey;
     } else if (options.length > 0) {
       const first = options[0];
-      selectedKey = `${first.clanId}:${first.gameAccountId}`;
-      window.localStorage.setItem(CLAN_STORAGE_KEY, first.clanId);
-      window.localStorage.setItem(GAME_ACCOUNT_STORAGE_KEY, first.gameAccountId);
+      if (first) {
+        selectedKey = `${first.clanId}:${first.gameAccountId}`;
+        window.localStorage.setItem(CLAN_STORAGE_KEY, first.clanId);
+        window.localStorage.setItem(GAME_ACCOUNT_STORAGE_KEY, first.gameAccountId);
+      }
     }
 
     const name = profile?.display_name || profile?.username || profile?.user_db || data.user?.email || "";
@@ -225,22 +227,20 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
             <img
               src="/assets/ui/chillerkiller_logo.png"
               alt="Chillers & Killers logo"
-              width={960}
-              height={967}
+              width={480}
+              height={484}
               style={{ objectFit: "contain", width: isOpen ? 160 : 36, height: isOpen ? 160 : 36, flexShrink: 0 }}
               loading="eager"
             />
           </picture>
-          {isOpen && (
-            <div style={{ overflow: "hidden", textAlign: "center" }}>
-              <div className="sidebar-title" style={{ fontSize: "1.3rem" }}>
-                {t("title")}
-              </div>
-              <div className="sidebar-subtitle" style={{ fontSize: "0.8rem" }}>
-                {t("subtitle")}
-              </div>
+          <div className={`sidebar-header-text${isOpen ? "" : " collapsed"}`}>
+            <div className="sidebar-title" style={{ fontSize: "1.3rem" }}>
+              {t("title")}
             </div>
-          )}
+            <div className="sidebar-subtitle" style={{ fontSize: "0.8rem" }}>
+              {t("subtitle")}
+            </div>
+          </div>
         </div>
 
         {/* Collapse toggle — at the top, right below the header */}
@@ -261,7 +261,9 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           >
             {isOpen ? <path d="M15 18l-6-6 6-6" /> : <path d="M9 18l6-6-6-6" />}
           </svg>
-          {isOpen && <span style={{ fontSize: "0.7rem" }}>{t("collapse")}</span>}
+          <span className={`sidebar-toggle-label${isOpen ? "" : " collapsed"}`} style={{ fontSize: "0.7rem" }}>
+            {t("collapse")}
+          </span>
         </button>
 
         {/* Gold scepter divider */}
@@ -285,19 +287,21 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           <div className="sidebar-bottom-divider mx-auto" style={{ width: isOpen ? "85%" : "60%" }} />
 
           {/* Clan selector */}
-          {userData.clanOptions.length > 0 && isOpen ? (
-            <div className="sidebar-clan-select">
-              <select value={userData.selectedKey} onChange={handleClanChange} aria-label={t("selectClan")}>
-                {userData.clanOptions.map((option) => (
-                  <option
-                    key={`${option.clanId}:${option.gameAccountId}`}
-                    value={`${option.clanId}:${option.gameAccountId}`}
-                  >
-                    {option.clanName} — {option.gameLabel}
-                    {option.rank ? ` (${formatRank(option.rank, locale)})` : ""}
-                  </option>
-                ))}
-              </select>
+          {userData.clanOptions.length > 0 ? (
+            <div className={`sidebar-clan-fade${isOpen ? "" : " collapsed"}`}>
+              <div className="sidebar-clan-select">
+                <select value={userData.selectedKey} onChange={handleClanChange} aria-label={t("selectClan")}>
+                  {userData.clanOptions.map((option) => (
+                    <option
+                      key={`${option.clanId}:${option.gameAccountId}`}
+                      value={`${option.clanId}:${option.gameAccountId}`}
+                    >
+                      {option.clanName} — {option.gameLabel}
+                      {option.rank ? ` (${formatRank(option.rank, locale)})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           ) : null}
 
@@ -313,26 +317,24 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
                 <div className="sidebar-avatar">{userData.initials}</div>
                 {userData.isOnline && <span className="online-dot" />}
               </div>
-              {isOpen && (
-                <div className="overflow-hidden flex-1 min-w-0">
-                  <div className="sidebar-user-name">
-                    {userData.displayLabel}
-                    {isAdmin && (
-                      <Image
-                        src="/assets/vip/button_vip_crown_22x33.png"
-                        alt="Admin"
-                        width={10}
-                        height={15}
-                        style={{ width: 10, height: "auto" }}
-                      />
-                    )}
-                  </div>
-                  <div className="sidebar-user-status">
-                    <span className="sidebar-online-indicator" />
-                    {t("online")} &bull; {statusLine}
-                  </div>
+              <div className={`sidebar-user-info${isOpen ? "" : " collapsed"}`}>
+                <div className="sidebar-user-name">
+                  {userData.displayLabel}
+                  {isAdmin && (
+                    <Image
+                      src="/assets/vip/button_vip_crown_22x33.png"
+                      alt="Admin"
+                      width={10}
+                      height={15}
+                      style={{ width: 10, height: "auto" }}
+                    />
+                  )}
                 </div>
-              )}
+                <div className="sidebar-user-status">
+                  <span className="sidebar-online-indicator" />
+                  {t("online")} &bull; {statusLine}
+                </div>
+              </div>
             </div>
           ) : null}
         </div>

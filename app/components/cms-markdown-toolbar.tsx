@@ -9,7 +9,8 @@
  * - Fixed upload error handling (isUploading always resets)
  */
 
-import { useRef, useState, type RefObject, type ChangeEvent } from "react";
+import { useRef, useState, useMemo, type RefObject, type ChangeEvent } from "react";
+import { useTranslations } from "next-intl";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /* ─── Toolbar actions ─── */
@@ -23,18 +24,21 @@ interface ToolbarAction {
   readonly block?: boolean;
 }
 
-const TOOLBAR_ACTIONS: ToolbarAction[] = [
-  { label: "Bold", icon: "B", prefix: "**", suffix: "**", placeholder: "bold text" },
-  { label: "Italic", icon: "I", prefix: "_", suffix: "_", placeholder: "italic text" },
-  { label: "Heading", icon: "H", prefix: "## ", suffix: "", placeholder: "Heading", block: true },
-  { label: "Link", icon: "🔗", prefix: "[", suffix: "](https://)", placeholder: "link text" },
-  { label: "Image URL", icon: "🖼️", prefix: "![", suffix: "](https://image-url)", placeholder: "alt text" },
-  { label: "List", icon: "•", prefix: "- ", suffix: "", placeholder: "list item", block: true },
-  { label: "Numbered List", icon: "1.", prefix: "1. ", suffix: "", placeholder: "list item", block: true },
-  { label: "Quote", icon: "❝", prefix: "> ", suffix: "", placeholder: "quote", block: true },
-  { label: "Code", icon: "</>", prefix: "`", suffix: "`", placeholder: "code" },
-  { label: "Divider", icon: "—", prefix: "\n---\n", suffix: "", placeholder: "", block: true },
-];
+/** Builds the toolbar actions array using translated labels. */
+function buildToolbarActions(t: ReturnType<typeof useTranslations>): ToolbarAction[] {
+  return [
+    { label: t("bold"), icon: "B", prefix: "**", suffix: "**", placeholder: "bold text" },
+    { label: t("italic"), icon: "I", prefix: "_", suffix: "_", placeholder: "italic text" },
+    { label: t("heading"), icon: "H", prefix: "## ", suffix: "", placeholder: "Heading", block: true },
+    { label: t("link"), icon: "🔗", prefix: "[", suffix: "](https://)", placeholder: "link text" },
+    { label: t("imageUrl"), icon: "🖼️", prefix: "![", suffix: "](https://image-url)", placeholder: "alt text" },
+    { label: t("list"), icon: "•", prefix: "- ", suffix: "", placeholder: "list item", block: true },
+    { label: t("numberedList"), icon: "1.", prefix: "1. ", suffix: "", placeholder: "list item", block: true },
+    { label: t("quote"), icon: "❝", prefix: "> ", suffix: "", placeholder: "quote", block: true },
+    { label: t("code"), icon: "</>", prefix: "`", suffix: "`", placeholder: "code" },
+    { label: t("divider"), icon: "—", prefix: "\n---\n", suffix: "", placeholder: "", block: true },
+  ];
+}
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 const MAX_FILE_SIZE_MB = 5;
@@ -73,6 +77,8 @@ function CmsMarkdownToolbar({
   userId,
   storageBucket = "forum-images",
 }: CmsMarkdownToolbarProps): JSX.Element {
+  const t = useTranslations("cmsToolbar");
+  const toolbarActions = useMemo(() => buildToolbarActions(t), [t]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -117,15 +123,15 @@ function CmsMarkdownToolbar({
   /** Upload a single image file to Supabase Storage and insert its markdown. */
   async function uploadImage(file: File): Promise<void> {
     if (!supabase || !userId) {
-      setUploadError("Anmeldung erforderlich um Bilder hochzuladen.");
+      setUploadError(t("loginRequiredToUpload"));
       return;
     }
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      setUploadError(`Nicht unterstützter Dateityp: ${file.type}`);
+      setUploadError(t("unsupportedFileType", { type: file.type }));
       return;
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setUploadError(`Datei zu groß (max ${MAX_FILE_SIZE_MB} MB).`);
+      setUploadError(t("fileTooLargeMb", { max: MAX_FILE_SIZE_MB }));
       return;
     }
     setUploadError("");
@@ -136,7 +142,7 @@ function CmsMarkdownToolbar({
         .from(storageBucket)
         .upload(filePath, file, { cacheControl: "3600", upsert: false });
       if (uploadErr) {
-        setUploadError(`Upload fehlgeschlagen: ${uploadErr.message}`);
+        setUploadError(t("uploadFailed", { message: uploadErr.message }));
         setIsUploading(false);
         return;
       }
@@ -144,7 +150,7 @@ function CmsMarkdownToolbar({
       const altText = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
       insertAtCursor(`\n![${altText}](${urlData.publicUrl})\n`);
     } catch {
-      setUploadError("Upload unerwartet fehlgeschlagen.");
+      setUploadError(t("uploadUnexpectedError"));
     } finally {
       setIsUploading(false);
     }
@@ -154,7 +160,9 @@ function CmsMarkdownToolbar({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     for (let i = 0; i < files.length; i++) {
-      void uploadImage(files[i]);
+      const file = files[i];
+      if (!file) continue;
+      void uploadImage(file);
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -164,7 +172,7 @@ function CmsMarkdownToolbar({
   return (
     <div>
       <div className="forum-md-toolbar">
-        {TOOLBAR_ACTIONS.map((action) => (
+        {toolbarActions.map((action) => (
           <button
             key={action.label}
             type="button"
@@ -181,8 +189,8 @@ function CmsMarkdownToolbar({
         <button
           type="button"
           className="forum-md-toolbar-btn forum-md-toolbar-upload"
-          title={canUpload ? `Bild hochladen (max ${MAX_FILE_SIZE_MB} MB)` : "Anmeldung erforderlich"}
-          aria-label="Bild hochladen"
+          title={canUpload ? t("uploadImageTooltip", { max: MAX_FILE_SIZE_MB }) : t("loginRequired")}
+          aria-label={t("uploadImage")}
           onClick={() => fileInputRef.current?.click()}
           disabled={!canUpload || isUploading}
         >
@@ -205,13 +213,13 @@ function CmsMarkdownToolbar({
             type="button"
             onClick={() => setUploadError("")}
             className="forum-upload-error-close"
-            aria-label="Fehler schließen"
+            aria-label={t("closeError")}
           >
             ✕
           </button>
         </div>
       )}
-      {isUploading && <div className="forum-upload-status">Bild wird hochgeladen...</div>}
+      {isUploading && <div className="forum-upload-status">{t("uploadingImage")}</div>}
     </div>
   );
 }

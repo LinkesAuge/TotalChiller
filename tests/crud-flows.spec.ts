@@ -20,7 +20,7 @@ test.describe("News: CRUD flow", () => {
     await loginAs(page, "editor");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Check for no-clan message — if present, skip gracefully */
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
@@ -32,13 +32,11 @@ test.describe("News: CRUD flow", () => {
     const createBtn = page.locator("button", { hasText: /create post|erstellen/i });
     await expect(createBtn.first()).toBeVisible({ timeout: 5000 });
     await createBtn.first().click();
-    await page.waitForTimeout(500);
 
     await page.locator("#newsTitle").fill(articleTitle);
     await page.locator("#newsContent").fill("This is test article content for E2E testing.");
 
     await page.locator('form button[type="submit"]').click();
-    await page.waitForTimeout(2000);
 
     /* Verify the article appears in the list */
     await expect(page.locator(`text=${articleTitle}`)).toBeVisible({ timeout: 10000 });
@@ -48,7 +46,7 @@ test.describe("News: CRUD flow", () => {
     await loginAs(page, "editor");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
     if ((await noClanMsg.count()) > 0) {
@@ -65,12 +63,10 @@ test.describe("News: CRUD flow", () => {
 
     const editBtn = articleCard.locator("button", { hasText: /edit post|bearbeiten/i });
     await editBtn.first().click();
-    await page.waitForTimeout(500);
 
     await page.locator("#newsTitle").clear();
     await page.locator("#newsTitle").fill(editedTitle);
     await page.locator('form button[type="submit"]').click();
-    await page.waitForTimeout(2000);
 
     await expect(page.locator(`text=${editedTitle}`)).toBeVisible({ timeout: 10000 });
   });
@@ -79,7 +75,7 @@ test.describe("News: CRUD flow", () => {
     await loginAs(page, "editor");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
     if ((await noClanMsg.count()) > 0) {
@@ -95,7 +91,6 @@ test.describe("News: CRUD flow", () => {
 
     const deleteBtn = articleCard.locator("button", { hasText: /delete post|löschen/i });
     await deleteBtn.first().click();
-    await page.waitForTimeout(2000);
 
     /* Verify deleted */
     await expect(page.locator(`text=${editedTitle}`)).toHaveCount(0, { timeout: 10000 });
@@ -114,7 +109,7 @@ test.describe("Events: CRUD flow", () => {
     await loginAs(page, "editor");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
     if ((await noClanMsg.count()) > 0) {
@@ -125,14 +120,12 @@ test.describe("Events: CRUD flow", () => {
     const createBtn = page.locator("button", { hasText: /create event|erstellen|hinzufügen/i });
     await expect(createBtn.first()).toBeVisible({ timeout: 5000 });
     await createBtn.first().click();
-    await page.waitForTimeout(500);
 
     await page.locator("#eventTitle").fill(eventTitle);
     await page.locator("#eventDescription").fill("E2E test event description.");
     await page.locator("#eventLocation").fill("Test Location");
 
     await page.locator('form button[type="submit"]').click();
-    await page.waitForTimeout(2000);
 
     /* Verify the event appears */
     await expect(page.locator(`text=${eventTitle}`)).toBeVisible({ timeout: 10000 });
@@ -142,7 +135,7 @@ test.describe("Events: CRUD flow", () => {
     await loginAs(page, "editor");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
     if ((await noClanMsg.count()) > 0) {
@@ -157,12 +150,10 @@ test.describe("Events: CRUD flow", () => {
       return;
     }
     await editBtn.first().click();
-    await page.waitForTimeout(500);
 
     await page.locator("#eventTitle").clear();
     await page.locator("#eventTitle").fill(editedEventTitle);
     await page.locator('form button[type="submit"]').click();
-    await page.waitForTimeout(2000);
 
     await expect(page.locator(`text=${editedEventTitle}`)).toBeVisible({ timeout: 10000 });
   });
@@ -171,7 +162,7 @@ test.describe("Events: CRUD flow", () => {
     await loginAs(page, "editor");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
     if ((await noClanMsg.count()) > 0) {
@@ -185,14 +176,12 @@ test.describe("Events: CRUD flow", () => {
       return;
     }
     await deleteBtn.first().click();
-    await page.waitForTimeout(500);
 
     /* Confirm deletion in modal if present */
     const confirmBtn = page.locator("button.danger, button", { hasText: /delete|löschen|bestätigen|confirm/i });
     if ((await confirmBtn.count()) > 1) {
       await confirmBtn.last().click();
     }
-    await page.waitForTimeout(2000);
 
     await expect(page.locator(`text=${editedEventTitle}`)).toHaveCount(0, { timeout: 10000 });
   });
@@ -209,7 +198,7 @@ test.describe("Forum: Post and comment CRUD", () => {
     await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
     if ((await noClanMsg.count()) > 0) {
@@ -220,7 +209,6 @@ test.describe("Forum: Post and comment CRUD", () => {
     const newPostBtn = page.locator("button", { hasText: /new post|neuer beitrag/i });
     await expect(newPostBtn.first()).toBeVisible({ timeout: 5000 });
     await newPostBtn.first().click();
-    await page.waitForTimeout(500);
 
     await page.locator("#post-title").fill(postTitle);
     await page.locator("#post-content").fill("E2E test forum post content.");
@@ -235,7 +223,6 @@ test.describe("Forum: Post and comment CRUD", () => {
     }
 
     await page.locator("button", { hasText: /publish|veröffentlichen|submit/i }).click();
-    await page.waitForTimeout(2000);
 
     /* Verify the post appears */
     await expect(page.locator(`text=${postTitle}`)).toBeVisible({ timeout: 10000 });
@@ -245,7 +232,7 @@ test.describe("Forum: Post and comment CRUD", () => {
     await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Click our post to view detail */
     const postLink = page.locator(`text=${postTitle}`);
@@ -254,7 +241,7 @@ test.describe("Forum: Post and comment CRUD", () => {
       return;
     }
     await postLink.first().click();
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState("networkidle");
 
     /* Add a comment */
     const commentTextarea = page.locator(".forum-comments-section textarea, textarea");
@@ -265,7 +252,6 @@ test.describe("Forum: Post and comment CRUD", () => {
     await commentTextarea.last().fill("E2E test comment content.");
     const submitCommentBtn = page.locator("button", { hasText: /comment|kommentar/i });
     await submitCommentBtn.last().click();
-    await page.waitForTimeout(2000);
 
     await expect(page.locator("text=E2E test comment content.")).toBeVisible({ timeout: 10000 });
   });
@@ -274,7 +260,7 @@ test.describe("Forum: Post and comment CRUD", () => {
     await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Click our post */
     const postLink = page.locator(`text=${postTitle}`);
@@ -283,13 +269,12 @@ test.describe("Forum: Post and comment CRUD", () => {
       return;
     }
     await postLink.first().click();
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState("networkidle");
 
     /* Vote up */
     const upvoteBtn = page.locator('button[aria-label="upvote"], .forum-vote-btn').first();
     if ((await upvoteBtn.count()) > 0) {
       await upvoteBtn.click();
-      await page.waitForTimeout(1000);
       /* The button or its parent should reflect the vote */
     }
   });
@@ -302,7 +287,7 @@ test.describe("Messages: Send flow", () => {
     await loginAs(page, "member");
     await page.goto("/messages");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const composeBtn = page.locator("button", { hasText: /new message|neue nachricht|compose|verfassen/i });
     if ((await composeBtn.count()) === 0) {
@@ -310,15 +295,20 @@ test.describe("Messages: Send flow", () => {
       return;
     }
     await composeBtn.first().click();
-    await page.waitForTimeout(500);
 
     /* Search and select a recipient */
-    const recipientInput = page.locator("form input").first();
+    const recipientInput = page
+      .locator("#composeRecipient, form input[placeholder*='recipient'], form input[placeholder*='empfänger']")
+      .first();
     await recipientInput.fill("test-admin");
-    await page.waitForTimeout(1500);
 
-    /* Try selecting from autocomplete dropdown */
-    const option = page.locator(".combobox-option, [role='option'], li").first();
+    /* Wait for autocomplete dropdown to appear */
+    const option = page.locator(".combobox-option, [role='option']").first();
+    await expect(option)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => {
+        /* Autocomplete may not appear — continue anyway */
+      });
     if ((await option.count()) > 0) {
       await option.click();
     }
@@ -327,12 +317,14 @@ test.describe("Messages: Send flow", () => {
     await page.locator("#composeContent").fill("This is an automated E2E test message.");
 
     await page.locator("button", { hasText: /send|senden/i }).click();
-    await page.waitForTimeout(2000);
 
     /* Verify success — compose form should close or show the sent message */
     const composeForm = page.locator("#composeContent");
-    const success = (await composeForm.count()) === 0 || page.url().includes("/messages");
-    expect(success).toBe(true);
+    await expect(async () => {
+      const formGone = (await composeForm.count()) === 0;
+      const onMessages = page.url().includes("/messages");
+      expect(formGone || onMessages).toBe(true);
+    }).toPass({ timeout: 10000 });
   });
 });
 
@@ -390,12 +382,13 @@ test.describe("Error paths", () => {
     await page.locator("#identifier").fill("not-a-real-user@example.com");
     await page.locator("#password").fill("wrong-password");
     await page.locator('button[type="submit"]').click();
-    await page.waitForTimeout(3000);
 
     /* Should show an error message or stay on the login page */
-    const errorMsg = page.locator(".alert, [role='alert'], .error, .text-red");
-    const stillOnLogin = page.url().includes("/auth/login");
-    expect((await errorMsg.count()) > 0 || stillOnLogin).toBe(true);
+    await expect(async () => {
+      const errorMsg = page.locator(".alert, [role='alert'], .error, .text-red, .text-muted");
+      const stillOnLogin = page.url().includes("/auth/login");
+      expect((await errorMsg.count()) > 0 || stillOnLogin).toBe(true);
+    }).toPass({ timeout: 10000 });
   });
 
   test("POST /api/messages with invalid body returns 400", async ({ request }) => {

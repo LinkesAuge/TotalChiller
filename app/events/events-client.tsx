@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import { useUserRole } from "@/lib/hooks/use-user-role";
@@ -34,8 +34,16 @@ function EventsClient(): JSX.Element {
 
   /* ── Permission & data ── */
   const { isContentManager: canManage } = useUserRole(supabase);
-  const { events, setEvents, isLoading, templates, setTemplates, gameAccounts, reloadEvents, reloadTemplates } =
-    useEventsData(supabase, clanContext?.clanId, pushToast);
+  const {
+    events,
+    setEvents,
+    isLoading,
+    templates,
+    setTemplates: _setTemplates,
+    gameAccounts,
+    reloadEvents,
+    reloadTemplates,
+  } = useEventsData(supabase, clanContext?.clanId, pushToast);
 
   const [isPastExpanded, setIsPastExpanded] = useState<boolean>(false);
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {

@@ -74,17 +74,14 @@ export default function ComboboxInput({
       }
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setHighlightIndex((current) =>
-          current < filteredOptions.length - 1 ? current + 1 : 0,
-        );
+        setHighlightIndex((current) => (current < filteredOptions.length - 1 ? current + 1 : 0));
       } else if (event.key === "ArrowUp") {
         event.preventDefault();
-        setHighlightIndex((current) =>
-          current > 0 ? current - 1 : filteredOptions.length - 1,
-        );
+        setHighlightIndex((current) => (current > 0 ? current - 1 : filteredOptions.length - 1));
       } else if (event.key === "Enter" && highlightIndex >= 0 && highlightIndex < filteredOptions.length) {
         event.preventDefault();
-        selectOption(filteredOptions[highlightIndex]);
+        const option = filteredOptions[highlightIndex];
+        if (option !== undefined) selectOption(option);
       } else if (event.key === "Escape") {
         setIsOpen(false);
         setHighlightIndex(-1);
@@ -103,7 +100,7 @@ export default function ComboboxInput({
   const showDropdown = isOpen && filteredOptions.length > 0;
 
   return (
-    <div ref={wrapperRef} className="combobox-wrapper" onBlur={handleBlur}>
+    <div ref={wrapperRef} className="combobox-wrapper" onBlur={handleBlur} role="group">
       <input
         ref={inputRef}
         id={id}
@@ -128,12 +125,7 @@ export default function ComboboxInput({
         autoComplete="off"
       />
       {showDropdown ? (
-        <ul
-          ref={listRef}
-          id={id ? `${id}-listbox` : undefined}
-          className="combobox-dropdown"
-          role="listbox"
-        >
+        <ul ref={listRef} id={id ? `${id}-listbox` : undefined} className="combobox-dropdown" role="listbox">
           {filteredOptions.map((option, index) => (
             <li
               key={option}

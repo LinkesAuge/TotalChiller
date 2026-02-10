@@ -29,7 +29,7 @@ export function EventCalendar({
   selectedDateKey,
   selectedDateLabel,
   selectedDayEvents,
-  todayKey,
+  todayKey: _todayKey,
   totalEventsCount,
   onMonthShift,
   onDateSelect,

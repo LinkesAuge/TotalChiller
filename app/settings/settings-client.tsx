@@ -371,6 +371,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
                   type="checkbox"
                   checked={notifPrefs.messages_enabled}
                   onChange={() => handleToggleNotification("messages_enabled")}
+                  aria-label={t("notifMessages")}
                 />
                 <span className="toggle-slider" />
               </label>
@@ -382,6 +383,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
                   type="checkbox"
                   checked={notifPrefs.news_enabled}
                   onChange={() => handleToggleNotification("news_enabled")}
+                  aria-label={t("notifNews")}
                 />
                 <span className="toggle-slider" />
               </label>
@@ -393,6 +395,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
                   type="checkbox"
                   checked={notifPrefs.events_enabled}
                   onChange={() => handleToggleNotification("events_enabled")}
+                  aria-label={t("notifEvents")}
                 />
                 <span className="toggle-slider" />
               </label>
@@ -404,6 +407,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
                   type="checkbox"
                   checked={notifPrefs.system_enabled}
                   onChange={() => handleToggleNotification("system_enabled")}
+                  aria-label={t("notifSystem")}
                 />
                 <span className="toggle-slider" />
               </label>

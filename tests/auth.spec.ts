@@ -32,9 +32,7 @@ test.describe("Auth: Login page", () => {
     await page.locator('button[type="submit"]').click();
 
     /* Wait for error/status message to appear */
-    await page.waitForTimeout(3000);
-    const statusMsg = page.locator(".text-muted");
-    expect(await statusMsg.count()).toBeGreaterThan(0);
+    await expect(page.locator(".text-muted")).toBeVisible({ timeout: 10000 });
   });
 
   test("has link to forgot password page", async ({ page }) => {
@@ -79,7 +77,6 @@ test.describe("Auth: Register page", () => {
     await page.locator('button[type="submit"]').click();
 
     /* Browser validation should prevent submission or show error */
-    await page.waitForTimeout(1000);
     /* Still on register page */
     expect(page.url()).toContain("/auth/register");
   });
@@ -113,9 +110,7 @@ test.describe("Auth: Forgot password page", () => {
     await page.locator('button[type="submit"]').click();
 
     /* Should show a confirmation message (password reset email sent or similar) */
-    await page.waitForTimeout(3000);
-    const statusMsg = page.locator("text=/sent|check|email|link|reset/i");
-    expect(await statusMsg.count()).toBeGreaterThan(0);
+    await expect(page.locator("text=/sent|check|email|link|reset/i")).toBeVisible({ timeout: 10000 });
   });
 
   test("has link back to login", async ({ page }) => {

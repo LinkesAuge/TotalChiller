@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 /**
  * Shared CMS sub-components used across all CMS pages.
  * - LoadingSkeleton: Animated skeleton loading state
@@ -38,18 +40,14 @@ interface ErrorBannerProps {
 }
 
 export function ErrorBanner({ message, onRetry }: ErrorBannerProps): JSX.Element {
+  const t = useTranslations("common");
   return (
     <div className="cms-error-banner" role="alert">
       <span className="cms-error-banner-icon">⚠</span>
       <span className="cms-error-banner-text">{message}</span>
       {onRetry && (
-        <button
-          className="cms-error-banner-retry"
-          type="button"
-          onClick={onRetry}
-          aria-label="Erneut versuchen"
-        >
-          Erneut versuchen
+        <button className="cms-error-banner-retry" type="button" onClick={onRetry} aria-label={t("retry")}>
+          {t("retry")}
         </button>
       )}
     </div>

@@ -13,6 +13,7 @@ Documentation/auth.txt
 
 # Tool artifacts
 .playwright-cli/
+tests/.auth/
 output/
 squirrel.toml
 test-results/

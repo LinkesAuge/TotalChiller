@@ -29,8 +29,8 @@ async function DashboardContent(): Promise<JSX.Element> {
     <>
       <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
       <SectionHero
-        title="Community Hub"
-        subtitle="Coordinated. Competitive. Welcoming."
+        title={t("heroTitle")}
+        subtitle={t("heroSubtitle")}
         bannerSrc="/assets/banners/banner_gold_dragon.png"
       />
       <DashboardClient />

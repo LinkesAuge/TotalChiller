@@ -169,11 +169,11 @@ export function formatLabel(value: string): string {
 }
 
 export function formatRank(rank: string, locale: string): string {
-  return RANK_LABELS[locale]?.[rank] ?? RANK_LABELS.en[rank] ?? formatLabel(rank);
+  return RANK_LABELS[locale]?.[rank] ?? (RANK_LABELS.en ?? {})[rank] ?? formatLabel(rank);
 }
 
 export function formatRole(role: string, locale: string): string {
-  return ROLE_LABELS[locale]?.[role] ?? ROLE_LABELS.en[role] ?? formatLabel(role);
+  return ROLE_LABELS[locale]?.[role] ?? (ROLE_LABELS.en ?? {})[role] ?? formatLabel(role);
 }
 
 export function buildFallbackUserDb(email: string, userId: string): string {

@@ -82,20 +82,20 @@ export function extractThumbnail(content: string | null | undefined): PostThumbn
   /* 1. Markdown image syntax: ![alt](url) */
   const imgMatch = content.match(MD_IMAGE_RE);
   if (imgMatch) {
-    return { type: "image", thumbnailUrl: imgMatch[1], sourceUrl: imgMatch[1] };
+    return { type: "image", thumbnailUrl: imgMatch[1] ?? "", sourceUrl: imgMatch[1] ?? "" };
   }
 
   /* Collect all URLs from markdown links + bare URLs */
   const urls: string[] = [];
   let linkMatch: RegExpExecArray | null;
-   
+
   while ((linkMatch = MD_LINK_RE.exec(content)) !== null) {
-    urls.push(linkMatch[2]);
+    urls.push(linkMatch[2] ?? "");
   }
   let bareMatch: RegExpExecArray | null;
-   
+
   while ((bareMatch = BARE_URL_RE.exec(content)) !== null) {
-    urls.push(bareMatch[1]);
+    urls.push(bareMatch[1] ?? "");
   }
 
   /* 2. YouTube */

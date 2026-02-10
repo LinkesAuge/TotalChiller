@@ -182,17 +182,27 @@ function EditableText({
           /* Simple dual-input for single-line fields */
           <div className="editable-text-fields">
             <div className="editable-text-field-group">
-              <label className="editable-text-label">DE</label>
+              <label className="editable-text-label" htmlFor="editable-text-de">
+                DE
+              </label>
               <input
                 ref={inputRef}
+                id="editable-text-de"
                 className="editable-text-input"
                 value={editDe}
                 onChange={(e) => setEditDe(e.target.value)}
               />
             </div>
             <div className="editable-text-field-group">
-              <label className="editable-text-label">EN</label>
-              <input className="editable-text-input" value={editEn} onChange={(e) => setEditEn(e.target.value)} />
+              <label className="editable-text-label" htmlFor="editable-text-en">
+                EN
+              </label>
+              <input
+                id="editable-text-en"
+                className="editable-text-input"
+                value={editEn}
+                onChange={(e) => setEditEn(e.target.value)}
+              />
             </div>
           </div>
         )}

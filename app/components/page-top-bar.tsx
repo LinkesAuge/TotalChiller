@@ -22,7 +22,7 @@ export default function PageTopBar({ breadcrumb, title, actions }: PageTopBarPro
     <div className="top-bar">
       <Image
         src="/assets/vip/header_3.png"
-        alt=""
+        alt="Decorative page header"
         role="presentation"
         className="top-bar-bg"
         width={1200}

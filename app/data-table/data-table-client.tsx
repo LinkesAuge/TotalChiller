@@ -978,20 +978,19 @@ function DataTableClient(): JSX.Element {
     }
     setStatus(t("savingAllChanges"));
     for (const rowId of editIds) {
-      const row = rows.find((item) => item.id === rowId);
-      if (!row) {
-        continue;
-      }
+      const foundRow = rows.find((item) => item.id === rowId);
+      if (!foundRow) continue;
       const edits = editMap[rowId];
-      const baseValues = buildRowValues(row, edits);
-      const { values: correctedValues } = applyCorrectionsToValues(baseValues, row);
+      if (!edits) continue;
+      const baseValues = buildRowValues(foundRow, edits);
+      const { values: correctedValues } = applyCorrectionsToValues(baseValues, foundRow);
       const errorMessage = validateRow(correctedValues);
       if (errorMessage) {
         nextErrors[rowId] = errorMessage;
         hasValidationError = true;
         continue;
       }
-      await handleSaveRow(row);
+      await handleSaveRow(foundRow);
     }
     if (hasValidationError) {
       setRowErrors((current) => ({ ...current, ...nextErrors }));

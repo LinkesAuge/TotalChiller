@@ -151,17 +151,17 @@ function parseCsvText(csvText: string): ParseResult {
   if (lines.length === 0) {
     return { rows: [], errors: [], headerErrors: ["CSV file is empty."] };
   }
-  const headerValues = parseCsvLine(lines[0]).map(normalizeHeader);
+  const headerValues = parseCsvLine(lines[0] ?? "").map(normalizeHeader);
   const headerErrors: string[] = [];
   REQUIRED_HEADERS.forEach((header, index) => {
-    if (headerValues[index] !== header) {
+    if ((headerValues[index] ?? "") !== header) {
       headerErrors.push(`Expected ${header} at position ${index + 1}.`);
     }
   });
   const rows: CsvRow[] = [];
   const errors: ParseError[] = [];
   for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
-    const values = parseCsvLine(lines[lineIndex]);
+    const values = parseCsvLine(lines[lineIndex] ?? "");
     if (values.length < REQUIRED_HEADERS.length) {
       errors.push({
         line: lineIndex + 1,
@@ -169,7 +169,7 @@ function parseCsvText(csvText: string): ParseResult {
       });
       continue;
     }
-    const scoreValue = parseScoreValue(values[4]);
+    const scoreValue = parseScoreValue(values[4] ?? "");
     if (scoreValue === null) {
       errors.push({
         line: lineIndex + 1,
@@ -178,12 +178,12 @@ function parseCsvText(csvText: string): ParseResult {
       continue;
     }
     const rowCandidate: CsvRow = {
-      date: values[0],
-      player: values[1],
-      source: values[2],
-      chest: values[3],
+      date: values[0] ?? "",
+      player: values[1] ?? "",
+      source: values[2] ?? "",
+      chest: values[3] ?? "",
       score: scoreValue,
-      clan: values[5],
+      clan: values[5] ?? "",
     };
     const validation = rowSchema.safeParse(rowCandidate);
     if (!validation.success) {
@@ -249,14 +249,14 @@ function DataImportClient(): JSX.Element {
   const [headerErrors, setHeaderErrors] = useState<readonly string[]>([]);
   const [validationRules, setValidationRules] = useState<readonly ValidationRuleRow[]>([]);
   const [correctionRules, setCorrectionRules] = useState<readonly CorrectionRuleRow[]>([]);
-  const [validationMessages, setValidationMessages] = useState<readonly string[]>([]);
-  const [validationErrors, setValidationErrors] = useState<readonly string[]>([]);
+  const [_validationMessages, setValidationMessages] = useState<readonly string[]>([]);
+  const [_validationErrors, setValidationErrors] = useState<readonly string[]>([]);
   const [availableClans, setAvailableClans] = useState<readonly string[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [commitStatus, setCommitStatus] = useState<string>("");
   const [isCommitting, setIsCommitting] = useState<boolean>(false);
-  const [clanIdByName, setClanIdByName] = useState<Map<string, string>>(new Map());
+  const [_clanIdByName, setClanIdByName] = useState<Map<string, string>>(new Map());
   const [manualEdits, setManualEdits] = useState<Record<number, RowEdits>>({});
   const [selectedRows, setSelectedRows] = useState<readonly number[]>([]);
   const [page, setPage] = useState<number>(1);
@@ -428,7 +428,7 @@ function DataImportClient(): JSX.Element {
     setCorrectionRules(correctionData ?? []);
   }
 
-  function applyManualEdits(baseRows: readonly CsvRow[], edits: Record<number, RowEdits>): CsvRow[] {
+  function _applyManualEdits(baseRows: readonly CsvRow[], edits: Record<number, RowEdits>): CsvRow[] {
     return baseRows.map((row, index) => {
       const rowEdits = edits[index];
       if (!rowEdits) {

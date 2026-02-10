@@ -12,8 +12,7 @@ test.describe("Dashboard: Page loading", () => {
     await page.waitForLoadState("networkidle");
 
     /* Should be on dashboard or redirected to home */
-    const body = await page.textContent("body");
-    expect(body?.length).toBeGreaterThan(50);
+    await expect(page.locator(".content-inner, .card").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("dashboard shows announcements or news preview", async ({ page }) => {
@@ -21,9 +20,8 @@ test.describe("Dashboard: Page loading", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    /* Dashboard content */
-    const body = await page.textContent("body");
-    expect(body?.length).toBeGreaterThan(100);
+    /* Dashboard should render cards */
+    await expect(page.locator(".card").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("no JS errors on dashboard", async ({ page }) => {
@@ -33,7 +31,7 @@ test.describe("Dashboard: Page loading", () => {
     await loginAs(page, "member");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     expect(errors).toEqual([]);
   });

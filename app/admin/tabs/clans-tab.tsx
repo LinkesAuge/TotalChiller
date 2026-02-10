@@ -13,7 +13,6 @@ import DangerConfirmModal from "../components/danger-confirm-modal";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
 import { useSortable, compareValues } from "../hooks/use-sortable";
 import type {
-  ClanRow,
   MembershipRow,
   MembershipQueryRow,
   MembershipEditState,
@@ -56,7 +55,7 @@ export default function ClansTab(): ReactElement {
     defaultClanId,
     setDefaultClanId,
     clanNameById,
-    currentUserId,
+    currentUserId: _currentUserId,
     setStatus,
     loadClans,
   } = useAdminContext();
@@ -74,7 +73,7 @@ export default function ClansTab(): ReactElement {
   const [membershipEdits, setMembershipEdits] = useState<Record<string, MembershipEditState>>({});
   const [membershipErrors, setMembershipErrors] = useState<Record<string, string>>({});
   const [profilesById, setProfilesById] = useState<Record<string, ProfileRow>>({});
-  const [userRolesById, setUserRolesById] = useState<Record<string, string>>({});
+  const [_userRolesById, setUserRolesById] = useState<Record<string, string>>({});
   const [memberSearch, setMemberSearch] = useState("");
   const [memberRankFilter, setMemberRankFilter] = useState("all");
   const [memberStatusFilter, setMemberStatusFilter] = useState("all");

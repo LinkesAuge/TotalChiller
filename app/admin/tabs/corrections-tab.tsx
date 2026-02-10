@@ -34,17 +34,17 @@ function parseCorrectionListText(text: string, expectedField: string): { entries
   const entries: RuleRow[] = [];
   const seenValues = new Set<string>();
   const startIndex =
-    lines.length > 0 && (lines[0].toLowerCase().startsWith("match") || lines[0].toLowerCase().startsWith("value"))
+    lines.length > 0 && (lines[0]!.toLowerCase().startsWith("match") || lines[0]!.toLowerCase().startsWith("value"))
       ? 1
       : 0;
   for (let i = startIndex; i < lines.length; i++) {
-    const parts = lines[i].split(/[;,]/).map((p) => p.trim());
+    const parts = lines[i]!.split(/[;,]/).map((p) => p.trim());
     if (parts.length < 2) {
       errors.push(`Line ${i + 1}: Match and replacement values are required.`);
       continue;
     }
-    const matchValue = parts[0];
-    const replacementValue = parts[1];
+    const matchValue = parts[0]!;
+    const replacementValue = parts[1]!;
     if (!matchValue || !replacementValue) {
       errors.push(`Line ${i + 1}: Match and replacement values are required.`);
       continue;
@@ -115,14 +115,14 @@ export default function CorrectionsTab(): ReactElement {
       tableName: "correction_rules",
       selectColumns: "id,field,match_value,replacement_value,status",
       fieldOptions: correctionFieldOptions,
-      defaultField: correctionFieldOptions[0],
+      defaultField: correctionFieldOptions[0]!,
       defaultSortKey: "match_value",
       statusOptions: ["all", "active", "inactive"],
       parseFile: parseCorrectionListText,
       buildCsv: buildCorrectionCsv,
       normalizeValue: (v) => v.trim().toLowerCase(),
       existingValueKey: (rule) => rule.match_value ?? "",
-      importPayloadKey: (entry) => `${entry.field}-${entry.match_value}`,
+      importPayloadKey: (entry) => `${entry.field ?? ""}-${entry.match_value ?? ""}`,
       toInsertPayload: (entry) => ({
         field: entry.field?.trim(),
         match_value: entry.match_value?.trim(),
@@ -293,7 +293,6 @@ export default function CorrectionsTab(): ReactElement {
     return [newRow, ...base];
   }, [editingId, ruleList.pagedRules, editField, editMatch, editReplacement, editStatus]);
 
-  const isEmpty = rowsToRender.length === 0 && (ruleList.filteredRules.length === 0 || editingId !== NEW_CORRECTION_ID);
   const isNoMatch = ruleList.filteredRules.length === 0 && editingId !== NEW_CORRECTION_ID && ruleList.rules.length > 0;
 
   return (

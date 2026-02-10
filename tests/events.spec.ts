@@ -19,8 +19,7 @@ test.describe("Events: Page loading", () => {
     await page.waitForLoadState("networkidle");
 
     /* Should have some content visible */
-    const body = await page.textContent("body");
-    expect(body?.length).toBeGreaterThan(100);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -41,7 +40,7 @@ test.describe("Events: Content manager features", () => {
     await loginAs(page, "editor");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Editor is a content manager but may lack clan membership */
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
@@ -54,7 +53,7 @@ test.describe("Events: Content manager features", () => {
     await loginAs(page, "member");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
     expect(await createBtn.count()).toBe(0);
@@ -70,7 +69,7 @@ test.describe("Events: Event form", () => {
     const createBtn = page.locator("button.primary, button", { hasText: /erstellen|create|hinzufügen|add/i });
     if ((await createBtn.count()) > 0) {
       await createBtn.first().click();
-      await page.waitForTimeout(500);
+      await expect(page.locator("form")).toBeVisible({ timeout: 5000 });
 
       /* Form should have date/time inputs or text inputs */
       const inputs = page.locator("input, textarea, select");

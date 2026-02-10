@@ -224,13 +224,15 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       const sorted = [...partnerMessages].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
+      const lastMsg = sorted[0];
+      if (!lastMsg) continue;
       const unreadCount = sorted.filter((message) => message.recipient_id === userId && !message.is_read).length;
       summaries.push({
         partnerId,
         partnerLabel: getPartnerLabel(partnerId),
-        lastMessage: sorted[0],
+        lastMessage: lastMsg,
         unreadCount,
-        messageType: sorted[0].message_type,
+        messageType: lastMsg.message_type,
       });
     }
     summaries.sort(
@@ -345,7 +347,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       const result = await response.json();
       if (recipientIds.length === 1) {
         setComposeStatus(t("messageSent"));
-        setSelectedPartnerId(recipientIds[0]);
+        setSelectedPartnerId(recipientIds[0] ?? "");
       } else {
         setComposeStatus(t("messagesSent", { count: result.count ?? recipientIds.length }));
       }

@@ -18,8 +18,7 @@ test.describe("Messages: Page loading", () => {
     await page.goto("/messages");
     await page.waitForLoadState("networkidle");
 
-    const body = await page.textContent("body");
-    expect(body?.length).toBeGreaterThan(100);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -42,17 +41,14 @@ test.describe("Messages: Broadcast (content managers)", () => {
     await page.waitForLoadState("networkidle");
 
     /* Content managers should see clan/global broadcast options */
-    await page.waitForTimeout(2000);
-    const body = await page.textContent("body");
-    /* Should have some messaging UI visible */
-    expect(body?.length).toBeGreaterThan(50);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
   });
 
   test("member does NOT see broadcast options", async ({ page }) => {
     await loginAs(page, "member");
     await page.goto("/messages");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Member shouldn't see clan broadcast selector */
     const broadcastSelect = page.locator("select", { hasText: /broadcast|rundnachricht|clan/i });

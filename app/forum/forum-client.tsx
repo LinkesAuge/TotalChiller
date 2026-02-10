@@ -219,7 +219,7 @@ function ForumClient(): JSX.Element {
       }
       for (const c of enriched) {
         if (c.parent_comment_id && byId[c.parent_comment_id]) {
-          byId[c.parent_comment_id].replies!.push(c);
+          byId[c.parent_comment_id]!.replies!.push(c);
         } else {
           topLevel.push(c);
         }

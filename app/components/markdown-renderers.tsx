@@ -16,7 +16,7 @@ const VIDEO_EXTENSIONS = /\.(mp4|webm|ogg)(\?.*)?$/i;
 /** Extract YouTube video ID from a URL, or null. */
 export function extractYouTubeId(url: string): string | null {
   const match = url.match(YOUTUBE_REGEX);
-  return match ? match[1] : null;
+  return match ? (match[1] ?? null) : null;
 }
 
 /** Check if a URL is a direct image link. */
@@ -58,10 +58,7 @@ const DEFAULT_FEATURES: Required<MarkdownFeatures> = {
  * Build react-markdown component overrides based on feature flags and a CSS prefix.
  * The prefix is used for CSS class names (e.g. "forum-md" or "cms-md").
  */
-export function buildMarkdownComponents(
-  prefix: string,
-  features: MarkdownFeatures = {},
-): Components {
+export function buildMarkdownComponents(prefix: string, features: MarkdownFeatures = {}): Components {
   const f = { ...DEFAULT_FEATURES, ...features };
 
   return {
@@ -70,13 +67,7 @@ export function buildMarkdownComponents(
       if (!src) return null;
       return (
         <span className={`${prefix}-media`}>
-          <img
-            src={src}
-            alt={alt ?? ""}
-            loading="lazy"
-            className={`${prefix}-image`}
-            {...rest}
-          />
+          <img src={src} alt={alt ?? ""} loading="lazy" className={`${prefix}-image`} {...rest} />
         </span>
       );
     },
@@ -139,7 +130,11 @@ export function buildMarkdownComponents(
       ? ({ className, children, ...rest }) => {
           const isInline = !className;
           if (isInline) {
-            return <code className={`${prefix}-code-inline`} {...rest}>{children}</code>;
+            return (
+              <code className={`${prefix}-code-inline`} {...rest}>
+                {children}
+              </code>
+            );
           }
           return (
             <code className={`${prefix}-code-block ${className ?? ""}`} {...rest}>
@@ -147,20 +142,30 @@ export function buildMarkdownComponents(
             </code>
           );
         }
-      : ({ children, ...rest }) => <code className={`${prefix}-code-inline`} {...rest}>{children}</code>,
+      : ({ children, ...rest }) => (
+          <code className={`${prefix}-code-inline`} {...rest}>
+            {children}
+          </code>
+        ),
 
     pre: ({ children, ...rest }) => (
-      <pre className={`${prefix}-pre`} {...rest}>{children}</pre>
+      <pre className={`${prefix}-pre`} {...rest}>
+        {children}
+      </pre>
     ),
 
     blockquote: ({ children, ...rest }) => (
-      <blockquote className={`${prefix}-blockquote`} {...rest}>{children}</blockquote>
+      <blockquote className={`${prefix}-blockquote`} {...rest}>
+        {children}
+      </blockquote>
     ),
 
     table: f.tables
       ? ({ children, ...rest }) => (
           <div className={`${prefix}-table-wrap`}>
-            <table className={`${prefix}-table`} {...rest}>{children}</table>
+            <table className={`${prefix}-table`} {...rest}>
+              {children}
+            </table>
           </div>
         )
       : () => null,

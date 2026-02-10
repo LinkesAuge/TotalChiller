@@ -235,6 +235,7 @@ function NotificationBell(): JSX.Element {
                     type="checkbox"
                     checked={prefs.messages_enabled}
                     onChange={() => handleTogglePref("messages_enabled")}
+                    aria-label={t("messages")}
                   />
                   <span className="toggle-slider" />
                 </label>
@@ -246,6 +247,7 @@ function NotificationBell(): JSX.Element {
                     type="checkbox"
                     checked={prefs.news_enabled}
                     onChange={() => handleTogglePref("news_enabled")}
+                    aria-label={t("news")}
                   />
                   <span className="toggle-slider" />
                 </label>
@@ -257,6 +259,7 @@ function NotificationBell(): JSX.Element {
                     type="checkbox"
                     checked={prefs.events_enabled}
                     onChange={() => handleTogglePref("events_enabled")}
+                    aria-label={t("events")}
                   />
                   <span className="toggle-slider" />
                 </label>
@@ -268,6 +271,7 @@ function NotificationBell(): JSX.Element {
                     type="checkbox"
                     checked={prefs.system_enabled}
                     onChange={() => handleTogglePref("system_enabled")}
+                    aria-label={t("system")}
                   />
                   <span className="toggle-slider" />
                 </label>

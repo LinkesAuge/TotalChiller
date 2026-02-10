@@ -39,7 +39,7 @@ export default function ForumPostForm({
   formPinned,
   editingPostId,
   isPreviewMode,
-  isImageUploading,
+  isImageUploading: _isImageUploading,
   categories,
   canManage,
   t,

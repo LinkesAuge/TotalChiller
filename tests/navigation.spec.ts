@@ -65,7 +65,7 @@ test.describe("Navigation: Authenticated sidebar", () => {
     await page.waitForLoadState("networkidle");
 
     /* Wait for sidebar to fully load */
-    await page.waitForTimeout(2000);
+    await expect(page.locator(".sidebar, aside")).toBeVisible({ timeout: 10000 });
     const adminLink = page.locator('nav a[href="/admin"], aside a[href="/admin"]');
     expect(await adminLink.count()).toBe(0);
   });
@@ -77,8 +77,9 @@ test.describe("Navigation: Not-authorized page", () => {
     await page.waitForLoadState("networkidle");
 
     /* Should have some error/not authorized text */
-    const body = await page.textContent("body");
-    expect(body?.toLowerCase()).toMatch(/not authorized|access denied|no permission|zugriff/i);
+    await expect(page.locator("main, .content")).toContainText(/not authorized|access denied|no permission|zugriff/i, {
+      timeout: 10000,
+    });
 
     /* Should have a link/button to go home */
     const homeLink = page.locator('a[href*="/home"], a[href="/"]');

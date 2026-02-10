@@ -38,8 +38,15 @@ function getMembershipLabel(membership: MembershipRow): string {
  * Users tab — manage users, game accounts, and inline editing.
  */
 export default function UsersTab(): ReactElement {
-  const { supabase, clans, unassignedClanId, clanNameById, currentUserId, setStatus, setPendingApprovals } =
-    useAdminContext();
+  const {
+    supabase,
+    clans,
+    unassignedClanId,
+    clanNameById,
+    currentUserId,
+    setStatus: _setStatus,
+    setPendingApprovals,
+  } = useAdminContext();
   const { pushToast } = useToast();
   const tAdmin = useTranslations("admin");
   const locale = useLocale();
@@ -465,7 +472,7 @@ export default function UsersTab(): ReactElement {
     loadUsers,
   ]);
 
-  const handleDeleteGameAccount = useCallback(
+  const _handleDeleteGameAccount = useCallback(
     async (account: GameAccountRow) => {
       const ok = window.confirm(`Delete game account ${account.game_username}? This cannot be undone.`);
       if (!ok) return;
@@ -904,7 +911,13 @@ export default function UsersTab(): ReactElement {
                         {edits.display_name || "-"}
                       </button>
                     )}
-                    <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
                       <RadixSelect
                         ariaLabel={tAdmin("common.role")}
                         value={edits.role ?? getUserRole(user.id)}
@@ -1040,7 +1053,7 @@ export default function UsersTab(): ReactElement {
                                 const isAccountEditing = activeGameAccountId === account.id;
                                 const displayUsername =
                                   isAccountEditing && gameAccountEdits[account.id]
-                                    ? (gameAccountEdits[account.id].game_username ?? account.game_username)
+                                    ? (gameAccountEdits[account.id]!.game_username ?? account.game_username)
                                     : account.game_username;
                                 if (!membership) {
                                   return (

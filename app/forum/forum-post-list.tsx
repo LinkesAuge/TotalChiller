@@ -135,7 +135,12 @@ export default function ForumPostList({
                 }
               }}
             >
-              <div className="forum-vote-col" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="forum-vote-col"
+                role="presentation"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
                 <button
                   className={`forum-vote-btn${post.userVote === 1 ? " upvoted" : ""}`}
                   onClick={(e) => {

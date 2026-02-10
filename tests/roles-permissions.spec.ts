@@ -17,69 +17,21 @@
  * They do NOT test RLS policies (that requires direct database assertions).
  */
 import { test, expect, type Page } from "@playwright/test";
+import { loginAs as sharedLoginAs, TEST_USERS, type TestRole } from "./helpers/auth";
 
-const BASE = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
-const TEST_PASSWORD = "TestPassword123!";
-
-interface TestUser {
-  email: string;
-  role: string;
-}
-
-const USERS: Record<string, TestUser> = {
-  owner: { email: "test-owner@example.com", role: "owner" },
-  admin: { email: "test-admin@example.com", role: "admin" },
-  moderator: { email: "test-mod@example.com", role: "moderator" },
-  editor: { email: "test-editor@example.com", role: "editor" },
-  member: { email: "test-member@example.com", role: "member" },
-  guest: { email: "test-guest@example.com", role: "guest" },
-};
-
-/* ── Helper: login as a specific user ── */
-
-async function loginAs(page: Page, user: TestUser): Promise<void> {
-  await page.goto(`${BASE}/auth/login`);
-  await page.waitForLoadState("networkidle");
-
-  const identifierInput = page.locator("#identifier");
-  const passwordInput = page.locator("#password");
-
-  if ((await identifierInput.count()) === 0) {
-    /* Already logged in — go to home and check */
-    return;
-  }
-
-  await identifierInput.fill(user.email);
-  await passwordInput.fill(TEST_PASSWORD);
-  await page.locator('button[type="submit"]').click();
-  /* Wait for redirect away from login page */
-  await page.waitForURL((url) => !url.pathname.includes("/auth/login"), { timeout: 15000 });
-  await page.waitForLoadState("networkidle");
-}
-
-async function logout(page: Page): Promise<void> {
-  /* Navigate to home to trigger auth state clear */
-  await page.goto(`${BASE}/auth/login`);
-  await page.waitForLoadState("networkidle");
+/* Re-export shared loginAs with the same call signature used in this file */
+async function loginAs(page: Page, role: TestRole): Promise<void> {
+  await sharedLoginAs(page, role);
 }
 
 /* ── Helper: check if admin panel is accessible ── */
 
 async function canAccessAdminPanel(page: Page): Promise<boolean> {
-  await page.goto(`${BASE}/admin`);
+  await page.goto("/admin");
   await page.waitForLoadState("networkidle");
   /* If redirected to /not-authorized or /home, access denied */
   const url = page.url();
   return url.includes("/admin") && !url.includes("/not-authorized") && !url.includes("/home");
-}
-
-/* ── Helper: check if a navigation link exists ── */
-
-async function hasNavLink(page: Page, href: string): Promise<boolean> {
-  await page.goto(`${BASE}/news`);
-  await page.waitForLoadState("networkidle");
-  const link = page.locator(`a[href*="${href}"]`);
-  return (await link.count()) > 0;
 }
 
 /* ================================================================== */
@@ -88,20 +40,20 @@ async function hasNavLink(page: Page, href: string): Promise<boolean> {
 
 test.describe("Role-based access: Admin panel", () => {
   test("owner can access /admin", async ({ page }) => {
-    await loginAs(page, USERS.owner);
+    await loginAs(page, "owner");
     const hasAccess = await canAccessAdminPanel(page);
     expect(hasAccess).toBe(true);
   });
 
   test("admin can access /admin", async ({ page }) => {
-    await loginAs(page, USERS.admin);
+    await loginAs(page, "admin");
     const hasAccess = await canAccessAdminPanel(page);
     expect(hasAccess).toBe(true);
   });
 
   test("moderator is redirected from /admin", async ({ page }) => {
-    await loginAs(page, USERS.moderator);
-    await page.goto(`${BASE}/admin`);
+    await loginAs(page, "moderator");
+    await page.goto("/admin");
     await page.waitForLoadState("networkidle");
     /* Proxy should redirect non-admin roles */
     const url = page.url();
@@ -109,24 +61,24 @@ test.describe("Role-based access: Admin panel", () => {
   });
 
   test("editor is redirected from /admin", async ({ page }) => {
-    await loginAs(page, USERS.editor);
-    await page.goto(`${BASE}/admin`);
+    await loginAs(page, "editor");
+    await page.goto("/admin");
     await page.waitForLoadState("networkidle");
     const url = page.url();
     expect(url).not.toContain("/admin");
   });
 
   test("member is redirected from /admin", async ({ page }) => {
-    await loginAs(page, USERS.member);
-    await page.goto(`${BASE}/admin`);
+    await loginAs(page, "member");
+    await page.goto("/admin");
     await page.waitForLoadState("networkidle");
     const url = page.url();
     expect(url).not.toContain("/admin");
   });
 
   test("guest is redirected from /admin", async ({ page }) => {
-    await loginAs(page, USERS.guest);
-    await page.goto(`${BASE}/admin`);
+    await loginAs(page, "guest");
+    await page.goto("/admin");
     await page.waitForLoadState("networkidle");
     const url = page.url();
     expect(url).not.toContain("/admin");
@@ -135,30 +87,31 @@ test.describe("Role-based access: Admin panel", () => {
 
 test.describe("Role-based access: Content management buttons", () => {
   test("owner sees create article button or no-clan message on /news", async ({ page }) => {
-    await loginAs(page, USERS.owner);
-    await page.goto(`${BASE}/news`);
+    await loginAs(page, "owner");
+    await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    /* Wait for page content to render */
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
     expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
   });
 
   test("moderator sees create article button or no-clan message on /news", async ({ page }) => {
-    await loginAs(page, USERS.moderator);
-    await page.goto(`${BASE}/news`);
+    await loginAs(page, "moderator");
+    await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
     expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
   });
 
   test("guest does NOT see create article button on /news", async ({ page }) => {
-    await loginAs(page, USERS.guest);
-    await page.goto(`${BASE}/news`);
+    await loginAs(page, "guest");
+    await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
     expect(await createBtn.count()).toBe(0);
   });
@@ -166,20 +119,20 @@ test.describe("Role-based access: Content management buttons", () => {
 
 test.describe("Role-based access: Event management", () => {
   test("editor sees create event button or no-clan message on /events", async ({ page }) => {
-    await loginAs(page, USERS.editor);
-    await page.goto(`${BASE}/events`);
+    await loginAs(page, "editor");
+    await page.goto("/events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
     const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
     expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
   });
 
   test("member does NOT see create event button on /events", async ({ page }) => {
-    await loginAs(page, USERS.member);
-    await page.goto(`${BASE}/events`);
+    await loginAs(page, "member");
+    await page.goto("/events");
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
     expect(await createBtn.count()).toBe(0);
   });
@@ -187,15 +140,15 @@ test.describe("Role-based access: Event management", () => {
 
 test.describe("Role-based access: Profile page", () => {
   test("guest can access /profile", async ({ page }) => {
-    await loginAs(page, USERS.guest);
-    await page.goto(`${BASE}/profile`);
+    await loginAs(page, "guest");
+    await page.goto("/profile");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/profile");
   });
 
   test("member can access /profile", async ({ page }) => {
-    await loginAs(page, USERS.member);
-    await page.goto(`${BASE}/profile`);
+    await loginAs(page, "member");
+    await page.goto("/profile");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/profile");
   });
@@ -203,8 +156,8 @@ test.describe("Role-based access: Profile page", () => {
 
 test.describe("Role-based access: Broadcast messages", () => {
   test("moderator sees broadcast option in messages", async ({ page }) => {
-    await loginAs(page, USERS.moderator);
-    await page.goto(`${BASE}/messages`);
+    await loginAs(page, "moderator");
+    await page.goto("/messages");
     await page.waitForLoadState("networkidle");
     /* Check for clan broadcast selector or broadcast UI */
     const broadcastUI = page.locator("text=/broadcast|rundnachricht/i");
@@ -217,7 +170,7 @@ test.describe("Role-based access: Broadcast messages", () => {
 
 test.describe("Role-based access: Unauthenticated users", () => {
   test("unauthenticated user is redirected to /home from /news", async ({ page }) => {
-    await page.goto(`${BASE}/news`);
+    await page.goto("/news");
     await page.waitForLoadState("networkidle");
     const url = page.url();
     /* Should redirect to /home since user is not logged in */
@@ -225,13 +178,13 @@ test.describe("Role-based access: Unauthenticated users", () => {
   });
 
   test("unauthenticated user can access /home", async ({ page }) => {
-    await page.goto(`${BASE}/home`);
+    await page.goto("/home");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/home");
   });
 
   test("unauthenticated user can access /about", async ({ page }) => {
-    await page.goto(`${BASE}/about`);
+    await page.goto("/about");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/about");
   });

@@ -8,8 +8,6 @@ import { loginAs } from "./helpers/auth";
 test.describe("Profile: Page loading", () => {
   test("profile page loads for authenticated member", async ({ page }) => {
     await loginAs(page, "member");
-    /* Wait a moment for auth session to fully establish */
-    await page.waitForTimeout(1000);
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/profile");
@@ -17,7 +15,6 @@ test.describe("Profile: Page loading", () => {
 
   test("profile page shows user info", async ({ page }) => {
     await loginAs(page, "member");
-    await page.waitForTimeout(1000);
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
 
@@ -28,7 +25,6 @@ test.describe("Profile: Page loading", () => {
 
   test("profile shows role badge", async ({ page }) => {
     await loginAs(page, "member");
-    await page.waitForTimeout(1000);
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
 
@@ -40,20 +36,17 @@ test.describe("Profile: Page loading", () => {
 test.describe("Profile: Game accounts section", () => {
   test("profile displays game accounts area", async ({ page }) => {
     await loginAs(page, "member");
-    await page.waitForTimeout(1000);
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
 
     /* Should have some section for game accounts or memberships */
-    const body = await page.textContent("body");
-    expect(body?.toLowerCase()).toMatch(/game|account|konto|spiel|clan/i);
+    await expect(page.locator(".content-inner")).toContainText(/game|account|konto|spiel|clan/i, { timeout: 10000 });
   });
 });
 
 test.describe("Settings: Page loading", () => {
   test("settings page loads for authenticated member", async ({ page }) => {
     await loginAs(page, "member");
-    await page.waitForTimeout(1000);
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/settings");
@@ -72,7 +65,6 @@ test.describe("Settings: Page loading", () => {
 test.describe("Settings: Sections", () => {
   test("has email section", async ({ page }) => {
     await loginAs(page, "member");
-    await page.waitForTimeout(1000);
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -82,7 +74,6 @@ test.describe("Settings: Sections", () => {
 
   test("has password section", async ({ page }) => {
     await loginAs(page, "member");
-    await page.waitForTimeout(1000);
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -92,17 +83,14 @@ test.describe("Settings: Sections", () => {
 
   test("has display name field", async ({ page }) => {
     await loginAs(page, "member");
-    await page.waitForTimeout(1000);
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
-    const body = await page.textContent("body");
-    expect(body?.toLowerCase()).toMatch(/display|anzeigename|nickname/i);
+    await expect(page.locator(".content-inner")).toContainText(/display|anzeigename|nickname/i, { timeout: 10000 });
   });
 
   test("has notification toggles", async ({ page }) => {
     await loginAs(page, "member");
-    await page.waitForTimeout(1000);
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -113,12 +101,10 @@ test.describe("Settings: Sections", () => {
 
   test("has language selector", async ({ page }) => {
     await loginAs(page, "member");
-    await page.waitForTimeout(1000);
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
-    const body = await page.textContent("body");
-    expect(body?.toLowerCase()).toMatch(/language|sprache/i);
+    await expect(page.locator(".content-inner")).toContainText(/language|sprache/i, { timeout: 10000 });
   });
 });
 

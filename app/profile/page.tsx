@@ -33,7 +33,7 @@ type MembershipQueryView = Omit<MembershipView, "game_accounts"> & {
   readonly game_accounts: { readonly game_username: string } | readonly { readonly game_username: string }[] | null;
 };
 
-import { ROLE_LABELS as PERM_ROLE_LABELS, toRole, isAdmin as isAdminRole } from "@/lib/permissions";
+import { ROLE_LABELS as PERM_ROLE_LABELS, toRole } from "@/lib/permissions";
 
 function formatRole(role: string): string {
   return PERM_ROLE_LABELS[toRole(role)] ?? role.charAt(0).toUpperCase() + role.slice(1);
@@ -129,7 +129,7 @@ async function ProfileContent(): Promise<JSX.Element> {
     clansById[clan.id] = clan;
   });
   const t = await getTranslations("profile");
-  const locale = await getLocale();
+  const _locale = await getLocale();
   const primaryMembership: MembershipView | null = memberships[0] ?? null;
   const primaryClan = primaryMembership ? clansById[primaryMembership.clan_id] : null;
   const roleLabel = formatRole(userRole);

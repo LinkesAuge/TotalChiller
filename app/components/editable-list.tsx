@@ -137,6 +137,7 @@ function EditableList({
     /* Compute new order */
     const reordered = [...items];
     const [moved] = reordered.splice(dragIdx, 1);
+    if (!moved) return;
     reordered.splice(dropIdx, 0, moved);
 
     const reorderPayload = reordered.map((item, i) => ({ id: item.id, sort_order: i }));
@@ -278,19 +279,34 @@ function EditableList({
 
       {/* List items */}
       {items.map((item, idx) => (
+        /* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- draggable uses native HTML5 drag API; keyboard reorder would need ARIA live region */
         <div
           key={item.id}
+          role={canEdit ? "button" : undefined}
+          tabIndex={canEdit ? 0 : undefined}
           className={`editable-list-item${dragIdx === idx ? " dragging" : ""}${dropIdx === idx ? " drop-target" : ""}`}
           draggable={canEdit}
           onDragStart={() => handleDragStart(idx)}
           onDragOver={(e) => handleDragOver(e, idx)}
           onDragEnd={handleDragEnd}
+          onKeyDown={
+            canEdit
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") e.preventDefault();
+                }
+              : undefined
+          }
         >
           {/* Drag handle */}
           {canEdit && (
-            <span className="editable-list-drag-handle" aria-label={t("dragToSort")}>
+            <button
+              type="button"
+              className="editable-list-drag-handle"
+              aria-label={t("dragToSort")}
+              onPointerDown={(e) => e.preventDefault()}
+            >
               ⠿
-            </span>
+            </button>
           )}
 
           {/* Icon */}
@@ -357,13 +373,33 @@ function EditableList({
 
       {/* Edit modal */}
       {editModal && (
-        <div className="editable-list-modal-backdrop" onClick={() => setEditModal(null)}>
-          <div className="editable-list-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="editable-list-modal-backdrop"
+          role="button"
+          tabIndex={0}
+          onClick={() => setEditModal(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setEditModal(null);
+            }
+          }}
+        >
+          <div
+            className="editable-list-modal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <h3 className="editable-list-modal-title">{t("editItem")}</h3>
 
             <div className="editable-list-modal-field">
-              <label className="editable-list-modal-label">Text (DE)</label>
+              <label className="editable-list-modal-label" htmlFor="edit-modal-text-de">
+                Text (DE)
+              </label>
               <textarea
+                id="edit-modal-text-de"
                 className="editable-text-textarea"
                 value={editModal.textDe}
                 onChange={(e) => setEditModal({ ...editModal, textDe: e.target.value })}
@@ -372,8 +408,11 @@ function EditableList({
             </div>
 
             <div className="editable-list-modal-field">
-              <label className="editable-list-modal-label">Text (EN)</label>
+              <label className="editable-list-modal-label" htmlFor="edit-modal-text-en">
+                Text (EN)
+              </label>
               <textarea
+                id="edit-modal-text-en"
                 className="editable-text-textarea"
                 value={editModal.textEn}
                 onChange={(e) => setEditModal({ ...editModal, textEn: e.target.value })}
@@ -384,16 +423,22 @@ function EditableList({
             {showBadges && (
               <div className="editable-list-modal-row">
                 <div className="editable-list-modal-field">
-                  <label className="editable-list-modal-label">Badge (DE)</label>
+                  <label className="editable-list-modal-label" htmlFor="edit-modal-badge-de">
+                    Badge (DE)
+                  </label>
                   <input
+                    id="edit-modal-badge-de"
                     className="editable-text-input"
                     value={editModal.badgeDe}
                     onChange={(e) => setEditModal({ ...editModal, badgeDe: e.target.value })}
                   />
                 </div>
                 <div className="editable-list-modal-field">
-                  <label className="editable-list-modal-label">Badge (EN)</label>
+                  <label className="editable-list-modal-label" htmlFor="edit-modal-badge-en">
+                    Badge (EN)
+                  </label>
                   <input
+                    id="edit-modal-badge-en"
                     className="editable-text-input"
                     value={editModal.badgeEn}
                     onChange={(e) => setEditModal({ ...editModal, badgeEn: e.target.value })}
@@ -403,8 +448,11 @@ function EditableList({
             )}
 
             <div className="editable-list-modal-field">
-              <label className="editable-list-modal-label">Link URL (optional)</label>
+              <label className="editable-list-modal-label" htmlFor="edit-modal-link-url">
+                Link URL (optional)
+              </label>
               <input
+                id="edit-modal-link-url"
                 className="editable-text-input"
                 value={editModal.linkUrl}
                 onChange={(e) => setEditModal({ ...editModal, linkUrl: e.target.value })}
@@ -414,8 +462,10 @@ function EditableList({
 
             {showIcons && (
               <div className="editable-list-modal-field">
-                <label className="editable-list-modal-label">Icon</label>
-                <div className="editable-list-icon-picker">
+                <span id="edit-modal-icon-label" className="editable-list-modal-label">
+                  Icon
+                </span>
+                <div className="editable-list-icon-picker" role="group" aria-labelledby="edit-modal-icon-label">
                   <button
                     type="button"
                     className={`editable-list-icon-option${editModal.icon === "" ? " active" : ""}`}

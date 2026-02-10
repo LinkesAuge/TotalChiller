@@ -15,21 +15,30 @@ export default defineConfig({
     video: "on-first-retry",
   },
   projects: [
+    /* Setup project: authenticates test users and saves storage state */
+    {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+    },
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
     },
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
+      dependencies: ["setup"],
     },
     {
       name: "webkit",
       use: { ...devices["Desktop Safari"] },
+      dependencies: ["setup"],
     },
     {
       name: "mobile-chrome",
       use: { ...devices["Pixel 5"] },
+      dependencies: ["setup"],
     },
   ],
   /* Auto-start dev server in CI */

@@ -161,11 +161,38 @@ body {
   position: relative;
   z-index: 1;
   padding: 14px 14px 10px;
+  transition:
+    padding 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    gap 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-header.collapsed {
   padding: 14px 8px 10px;
   justify-content: center;
+}
+
+/* Logo smooth resize on collapse/expand */
+.sidebar-header img {
+  transition:
+    width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Title/subtitle fade on collapse */
+.sidebar-header-text {
+  overflow: hidden;
+  text-align: center;
+  opacity: 1;
+  max-height: 120px;
+  transition:
+    opacity 0.18s ease,
+    max-height 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-header-text.collapsed {
+  opacity: 0;
+  max-height: 0;
+  pointer-events: none;
 }
 
 .sidebar-logo {
@@ -252,17 +279,69 @@ body {
   color: var(--color-gold-2);
 }
 
+/* Toggle label smooth fade */
+.sidebar-toggle-label {
+  opacity: 1;
+  overflow: hidden;
+  max-width: 100px;
+  transition:
+    opacity 0.15s ease,
+    max-width 0.2s ease;
+  white-space: nowrap;
+}
+
+.sidebar-toggle-label.collapsed {
+  opacity: 0;
+  max-width: 0;
+}
+
+/* Clan selector smooth fade */
+.sidebar-clan-fade {
+  overflow: hidden;
+  opacity: 1;
+  max-height: 60px;
+  transition:
+    opacity 0.18s ease,
+    max-height 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-clan-fade.collapsed {
+  opacity: 0;
+  max-height: 0;
+  pointer-events: none;
+}
+
 .sidebar-user {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px 6px;
   border-radius: 6px;
+  transition: gap 0.22s ease;
   overflow: hidden;
 }
 
 .sidebar-user.collapsed {
   justify-content: center;
+  gap: 0;
+}
+
+/* User info text smooth fade on collapse */
+.sidebar-user-info {
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  opacity: 1;
+  max-width: 200px;
+  transition:
+    opacity 0.18s ease,
+    max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-user-info.collapsed {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
 }
 
 .sidebar-avatar-wrap {
@@ -422,6 +501,21 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   padding: 8px 12px 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  max-height: 30px;
+  transition:
+    opacity 0.15s ease,
+    max-height 0.2s ease,
+    padding 0.2s ease;
+}
+
+.nav-group-title.collapsed {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .nav a {
@@ -532,6 +626,17 @@ body {
   text-overflow: ellipsis;
   position: relative;
   z-index: 1;
+  white-space: nowrap;
+  opacity: 1;
+  max-width: 180px;
+  transition:
+    opacity 0.15s ease,
+    max-width 0.2s ease;
+}
+
+.nav-label.collapsed {
+  opacity: 0;
+  max-width: 0;
 }
 
 /* ─── Nav sub-items (e.g. forum categories) ─── */
@@ -1060,6 +1165,23 @@ body {
   gap: 16px;
 }
 
+/* "Coming soon" badge for placeholder cards */
+.coming-soon-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-gold-2);
+  background: rgba(201, 163, 74, 0.12);
+  border: 1px solid rgba(201, 163, 74, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .card-body {
   padding: 12px 18px;
   font-size: 0.97rem;
@@ -1261,6 +1383,20 @@ body {
   100% {
     background-position: -200% 0;
   }
+}
+
+/* ─── Image fade-in on load (CSS-only) ─── */
+@keyframes img-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+img[loading="lazy"] {
+  animation: img-fade-in 0.35s ease-in both;
 }
 
 /* Error Banner */

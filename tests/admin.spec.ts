@@ -41,8 +41,8 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin");
     await page.waitForLoadState("networkidle");
 
-    /* Should have tab buttons for different sections */
-    const tabs = page.locator("button, [role=tab]");
+    /* Should have tab buttons in the admin tabs container */
+    const tabs = page.locator(".admin-tabs-container button, .admin-tabs-container [role=tab]");
     expect(await tabs.count()).toBeGreaterThan(3);
   });
 
@@ -52,7 +52,7 @@ test.describe("Admin: Tab navigation", () => {
     await page.waitForLoadState("networkidle");
 
     /* Wait for the lazy-loaded tab content to appear */
-    await expect(page.locator("body")).toContainText(/user|benutzer|email/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/user|benutzer|email/i, { timeout: 15000 });
   });
 
   test("can switch to approvals tab", async ({ page }) => {
@@ -60,7 +60,7 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=approvals");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("body")).toContainText(/approval|genehmigung|pending/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/approval|genehmigung|pending/i, { timeout: 15000 });
   });
 
   test("can switch to validation tab", async ({ page }) => {
@@ -68,7 +68,9 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=validation");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("body")).toContainText(/validation|validierung|rule|regel/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/validation|validierung|rule|regel/i, {
+      timeout: 15000,
+    });
   });
 
   test("can switch to corrections tab", async ({ page }) => {
@@ -76,7 +78,7 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=corrections");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("body")).toContainText(/correction|korrektur/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/correction|korrektur/i, { timeout: 15000 });
   });
 
   test("can switch to logs tab", async ({ page }) => {
@@ -84,7 +86,7 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=logs");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("body")).toContainText(/log|protokoll|audit/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/log|protokoll|audit/i, { timeout: 15000 });
   });
 
   test("can switch to forum tab", async ({ page }) => {
@@ -92,7 +94,7 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=forum");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("body")).toContainText(/forum|kategor/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/forum|kategor/i, { timeout: 15000 });
   });
 });
 

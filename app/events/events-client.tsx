@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import type { PostgrestError } from "@supabase/supabase-js";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import { classifySupabaseError, getErrorMessageKey } from "@/lib/supabase/error-utils";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
@@ -177,6 +179,17 @@ function EventsClient(): JSX.Element {
     return options;
   }, [templates, t]);
 
+  /* ── Error helper ── */
+
+  /** Map a Supabase error to a user-friendly toast, using a context-specific fallback key. */
+  const showError = useCallback(
+    (error: PostgrestError, fallbackKey: string) => {
+      const kind = classifySupabaseError(error);
+      pushToast(kind === "unknown" ? t(fallbackKey) : t(getErrorMessageKey(kind)));
+    },
+    [pushToast, t],
+  );
+
   /* ── Event handlers ── */
 
   function applyTemplate(templateValue: string): void {
@@ -310,7 +323,7 @@ function EventsClient(): JSX.Element {
       : await supabase.from("events").insert(payload).select("id").single();
     if (error) {
       setIsSaving(false);
-      pushToast(`Failed to save event: ${error.message}`);
+      showError(error, "saveFailed");
       return;
     }
     setIsSaving(false);
@@ -341,7 +354,7 @@ function EventsClient(): JSX.Element {
     const { error } = await supabase.from("events").delete().eq("id", deleteEventId);
     setDeleteEventId("");
     if (error) {
-      pushToast(`Failed to delete event: ${error.message}`);
+      showError(error, "deleteFailed");
       return;
     }
     setEvents((current) => current.filter((item) => item.id !== deleteEventId));
@@ -372,7 +385,7 @@ function EventsClient(): JSX.Element {
     });
     setIsSavingTemplate(false);
     if (error) {
-      pushToast(`Failed to save template: ${error.message}`);
+      showError(error, "templateSaveFailed");
       return;
     }
     pushToast(t("templateSaved"));
@@ -399,7 +412,7 @@ function EventsClient(): JSX.Element {
     });
     setIsSavingTemplate(false);
     if (error) {
-      pushToast(`Failed to save template: ${error.message}`);
+      showError(error, "templateSaveFailed");
       return;
     }
     pushToast(t("templateSaved"));
@@ -452,7 +465,7 @@ function EventsClient(): JSX.Element {
       .eq("id", editingTemplateId);
     setIsSavingTemplate(false);
     if (error) {
-      pushToast(`Failed to update template: ${error.message}`);
+      showError(error, "templateUpdateFailed");
       return;
     }
     pushToast(t("templateSaved"));
@@ -475,7 +488,7 @@ function EventsClient(): JSX.Element {
     setDeleteTemplateInput("");
     setIsDeleteTemplateStep2(false);
     if (error) {
-      pushToast(`Failed to delete template: ${error.message}`);
+      showError(error, "templateDeleteFailed");
       return;
     }
     pushToast(t("templateDeleted"));

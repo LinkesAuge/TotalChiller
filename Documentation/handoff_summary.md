@@ -235,6 +235,8 @@ This file is a compact context transfer for a new chat.
 
 ## Notable Bug Fixes & Changes (Feb 2026)
 
+- **Events RLS fix**: Old events RLS policies used `is_clan_admin()` (owner/admin only). Updated to `has_permission('event:create')` etc., enabling moderators and editors to create/edit/delete events. Applied via the `roles_permissions_cleanup.sql` migration.
+- **Supabase error handling**: New `lib/supabase/error-utils.ts` classifies Supabase errors (RLS/permission, auth, network, unknown) and maps them to user-friendly i18n messages. Events page now shows "You don't have permission" instead of raw "row-level security policy" errors.
 - **Clan Management**: Fixed init effect re-running, game account deletion refreshing membership list, race condition guards for concurrent fetches.
 - **Proxy API route**: All `/api/` paths bypass the proxy auth redirect — each route handles its own auth (401/403 JSON).
 - **Password update page**: Redirects to dashboard after 2 seconds on success.

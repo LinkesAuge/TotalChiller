@@ -518,7 +518,16 @@
     "dangerZone": "Achtung",
     "cannotBeUndone": "Diese Aktion kann nicht rückgängig gemacht werden.",
     "continueAction": "Weiter",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "permissionDenied": "Du hast keine Berechtigung dafür. Wende dich an einen Clan-Admin, wenn du denkst, dass das ein Fehler ist.",
+    "saveFailed": "Event konnte nicht gespeichert werden.",
+    "deleteFailed": "Event konnte nicht gelöscht werden.",
+    "templateSaveFailed": "Vorlage konnte nicht gespeichert werden.",
+    "templateUpdateFailed": "Vorlage konnte nicht aktualisiert werden.",
+    "templateDeleteFailed": "Vorlage konnte nicht gelöscht werden.",
+    "sessionExpired": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
+    "networkError": "Verbindungsfehler — überprüfe deine Internetverbindung und versuche es erneut.",
+    "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut."
   },
   "charts": {
     "breadcrumb": "TotalChiller \u2022 Analysen",

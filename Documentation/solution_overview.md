@@ -116,7 +116,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - `app/components/sidebar-nav.tsx` for navigation links with icons.
 - `package.json` scripts for Next.js (`dev`, `build`, `start`, `lint`).
 - Route pages: `news`, `forum`, `charts`, `events`, `messages`, `admin`, `admin/data-import`, `admin/data-table`.
-- Supabase Auth wiring in `lib/supabase/` and `app/auth/login`.
+- Supabase Auth wiring in `lib/supabase/` and `app/auth/login`. Error classification utility in `lib/supabase/error-utils.ts` (maps RLS/auth/network errors to i18n keys).
 - Auth pages: `app/auth/register`, `app/auth/login`, `app/auth/forgot`, `app/auth/update`.
 - Auth callback: `app/auth/callback/route.ts` — exchanges PKCE code for session, redirects to `next` query parameter.
 - Registration success panel shows 4-step onboarding guide (confirm email → log in → create game account → wait for clan assignment).

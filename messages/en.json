@@ -518,7 +518,16 @@
     "dangerZone": "Danger Zone",
     "cannotBeUndone": "This action cannot be undone.",
     "continueAction": "Continue",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "permissionDenied": "You don't have permission to do this. Contact a clan admin if you think this is wrong.",
+    "saveFailed": "Failed to save event.",
+    "deleteFailed": "Failed to delete event.",
+    "templateSaveFailed": "Failed to save template.",
+    "templateUpdateFailed": "Failed to update template.",
+    "templateDeleteFailed": "Failed to delete template.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "networkError": "Connection error — check your internet and try again.",
+    "unexpectedError": "An unexpected error occurred. Please try again."
   },
   "charts": {
     "breadcrumb": "TotalChiller \u2022 Analytics",

@@ -31,6 +31,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@marsidev/react-turnstile": "^1.4.2",
     "@radix-ui/react-select": "^2.2.6",
     "@sentry/nextjs": "^10.38.0",
     "@supabase/ssr": "^0.8.0",

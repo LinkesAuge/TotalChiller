@@ -1,25 +1,41 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../../lib/supabase/browser-client";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 /**
- * Renders the password reset request form.
+ * Renders the password reset request form with Cloudflare Turnstile CAPTCHA.
  */
 function ForgotPasswordPage(): JSX.Element {
   const [email, setEmail] = useState<string>("");
   const [status, setStatus] = useState<string>("");
-  const supabase = createSupabaseBrowserClient();
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const turnstileRef = useRef<TurnstileInstance>(null);
   const t = useTranslations("auth.forgot");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (!turnstileToken && TURNSTILE_SITE_KEY) {
+      setStatus("Please complete the CAPTCHA.");
+      return;
+    }
     setStatus(t("sending"));
     const redirectTo = `${window.location.origin}/auth/update`;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) {
-      setStatus(error.message);
+
+    const response = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, turnstileToken, redirectTo }),
+    });
+
+    const result = (await response.json()) as { ok?: boolean; error?: string };
+    if (!response.ok || result.error) {
+      setStatus(result.error ?? "Something went wrong.");
+      turnstileRef.current?.reset();
+      setTurnstileToken("");
       return;
     }
     setStatus(t("sent"));
@@ -64,7 +80,23 @@ function ForgotPasswordPage(): JSX.Element {
                 required
               />
             </div>
-            <button className="button primary mt-2 w-full" type="submit">
+            {TURNSTILE_SITE_KEY ? (
+              <div className="mt-2 mb-2">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={setTurnstileToken}
+                  onError={() => setTurnstileToken("")}
+                  onExpire={() => setTurnstileToken("")}
+                  options={{ theme: "dark", size: "flexible" }}
+                />
+              </div>
+            ) : null}
+            <button
+              className="button primary mt-2 w-full"
+              type="submit"
+              disabled={TURNSTILE_SITE_KEY ? !turnstileToken : false}
+            >
               {t("submit")}
             </button>
             {status ? <p className="text-muted mt-2">{status}</p> : null}

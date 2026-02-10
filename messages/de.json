@@ -620,7 +620,12 @@
     "globalBroadcast": "Globaler Broadcast",
     "recipients": "Empfänger",
     "messageSent": "Nachricht gesendet.",
-    "messagesSent": "Nachrichten an {count} Empfänger gesendet."
+    "messagesSent": "Nachrichten an {count} Empfänger gesendet.",
+    "broadcastRecipients": "Broadcast ({count} Empfänger)",
+    "sentToRecipients": "Gesendet an {count} Empfänger",
+    "broadcastSummary": "Broadcast-Nachricht",
+    "broadcastInfoBanner": "Dieser Broadcast wurde an {count} Empfänger gesendet.",
+    "multiRecipientInfoBanner": "Diese Nachricht wurde an {count} Empfänger gesendet."
   },
   "profile": {
     "breadcrumb": "TotalChiller \u2022 Konto",

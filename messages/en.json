@@ -620,7 +620,12 @@
     "globalBroadcast": "Global broadcast",
     "recipients": "Recipients",
     "messageSent": "Message sent.",
-    "messagesSent": "Messages sent to {count} recipients."
+    "messagesSent": "Messages sent to {count} recipients.",
+    "broadcastRecipients": "Broadcast ({count} recipients)",
+    "sentToRecipients": "Sent to {count} recipients",
+    "broadcastSummary": "Broadcast message",
+    "broadcastInfoBanner": "This broadcast was sent to {count} recipients.",
+    "multiRecipientInfoBanner": "This message was sent to {count} recipients."
   },
   "profile": {
     "breadcrumb": "TotalChiller \u2022 Account",

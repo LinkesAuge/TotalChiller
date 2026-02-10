@@ -16,6 +16,7 @@ const BROADCAST_SCHEMA = z.object({
  * Sends a broadcast message to all active members of a clan or globally.
  * Requires content-manager role (owner, admin, moderator, or editor).
  * Use clan_id: "all" to broadcast to all users globally.
+ * All rows share a broadcast_group_id so the sender sees one grouped entry.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = strictLimiter.check(request);
@@ -80,12 +81,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (recipientIds.length === 0) {
     return NextResponse.json({ error: "No recipients found." }, { status: 400 });
   }
+
+  /* All rows share a single broadcast_group_id for grouped display */
+  const broadcastGroupId = crypto.randomUUID();
+
   const messageRows = recipientIds.map((recipientId) => ({
     sender_id: senderId,
     recipient_id: recipientId,
     message_type: "broadcast",
     subject: body.subject?.trim() || null,
     content: body.content.trim(),
+    broadcast_group_id: broadcastGroupId,
+    recipient_count: recipientIds.length,
   }));
   const { error: insertError } = await serviceClient.from("messages").insert(messageRows);
   if (insertError) {

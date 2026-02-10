@@ -46,6 +46,8 @@ export interface MessageRow {
   readonly content: string;
   readonly is_read: boolean;
   readonly created_at: string;
+  readonly broadcast_group_id: string | null;
+  readonly recipient_count: number;
 }
 
 export interface RecipientResult {

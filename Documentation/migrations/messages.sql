@@ -80,3 +80,13 @@ begin
   return NEW;
 end;
 $$ language plpgsql;
+
+-- 10. Broadcast grouping: links all rows from a single broadcast or multi-recipient send
+alter table public.messages
+  add column if not exists broadcast_group_id uuid;
+alter table public.messages
+  add column if not exists recipient_count integer not null default 1;
+
+create index if not exists messages_broadcast_group_id_idx
+  on public.messages (broadcast_group_id)
+  where broadcast_group_id is not null;

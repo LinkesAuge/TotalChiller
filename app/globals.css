@@ -2854,6 +2854,48 @@ select:disabled,
   max-height: inherit;
 }
 
+.messages-view-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(201, 163, 74, 0.15);
+}
+
+.messages-view-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-2);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.messages-view-tab:hover {
+  color: var(--color-text);
+  background: rgba(201, 163, 74, 0.04);
+}
+
+.messages-view-tab.active {
+  color: var(--color-gold-2);
+  border-bottom-color: var(--color-gold);
+}
+
+.messages-broadcast-info {
+  padding: 10px 18px;
+  background: rgba(74, 105, 160, 0.1);
+  border-bottom: 1px solid rgba(74, 105, 160, 0.2);
+  color: var(--color-text-2);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
 .messages-filters {
   padding: 0 18px 12px;
   display: flex;

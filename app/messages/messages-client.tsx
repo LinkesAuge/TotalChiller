@@ -18,12 +18,16 @@ interface ProfileMap {
   };
 }
 
+type ViewMode = "inbox" | "sent";
+
 interface ConversationSummary {
   readonly partnerId: string;
   readonly partnerLabel: string;
   readonly lastMessage: MessageRow;
   readonly unreadCount: number;
   readonly messageType: string;
+  readonly isBroadcastGroup: boolean;
+  readonly recipientCount: number;
 }
 
 interface ClanOption {
@@ -59,6 +63,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [viewMode, setViewMode] = useState<ViewMode>("inbox");
   const [replyContent, setReplyContent] = useState<string>("");
   const [replyStatus, setReplyStatus] = useState<string>("");
 
@@ -206,40 +211,65 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
 
   const conversations = useMemo((): readonly ConversationSummary[] => {
     const grouped = new Map<string, MessageRow[]>();
-    for (const message of messages) {
-      let partnerId: string;
-      if (message.message_type === "system") {
-        partnerId = SYSTEM_PARTNER_ID;
-      } else if (message.sender_id === userId) {
-        partnerId = message.recipient_id;
-      } else {
-        partnerId = message.sender_id ?? SYSTEM_PARTNER_ID;
+    if (viewMode === "inbox") {
+      /* Inbox: only messages received by user, grouped by sender */
+      for (const message of messages) {
+        if (message.recipient_id !== userId) continue;
+        const partnerId =
+          message.message_type === "system" ? SYSTEM_PARTNER_ID : (message.sender_id ?? SYSTEM_PARTNER_ID);
+        const existing = grouped.get(partnerId) ?? [];
+        existing.push(message);
+        grouped.set(partnerId, existing);
       }
-      const existing = grouped.get(partnerId) ?? [];
-      existing.push(message);
-      grouped.set(partnerId, existing);
+    } else {
+      /* Sent: only messages sent by user, grouped by broadcast_group_id or recipient */
+      for (const message of messages) {
+        if (message.sender_id !== userId) continue;
+        const groupKey = message.broadcast_group_id ?? message.recipient_id;
+        const existing = grouped.get(groupKey) ?? [];
+        existing.push(message);
+        grouped.set(groupKey, existing);
+      }
     }
     const summaries: ConversationSummary[] = [];
-    for (const [partnerId, partnerMessages] of grouped.entries()) {
-      const sorted = [...partnerMessages].sort(
+    for (const [groupKey, groupMessages] of grouped.entries()) {
+      const sorted = [...groupMessages].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
       const lastMsg = sorted[0];
       if (!lastMsg) continue;
-      const unreadCount = sorted.filter((message) => message.recipient_id === userId && !message.is_read).length;
+      const isBroadcastGroup = viewMode === "sent" && lastMsg.broadcast_group_id !== null;
+      let partnerId: string;
+      let partnerLabel: string;
+      if (viewMode === "inbox") {
+        partnerId = groupKey;
+        partnerLabel = getPartnerLabel(groupKey);
+      } else if (isBroadcastGroup) {
+        partnerId = groupKey;
+        partnerLabel =
+          lastMsg.message_type === "broadcast"
+            ? t("broadcastRecipients", { count: lastMsg.recipient_count })
+            : t("sentToRecipients", { count: lastMsg.recipient_count });
+      } else {
+        partnerId = lastMsg.recipient_id;
+        partnerLabel = getPartnerLabel(lastMsg.recipient_id);
+      }
+      const unreadCount = viewMode === "inbox" ? sorted.filter((message) => !message.is_read).length : 0;
       summaries.push({
         partnerId,
-        partnerLabel: getPartnerLabel(partnerId),
+        partnerLabel,
         lastMessage: lastMsg,
         unreadCount,
         messageType: lastMsg.message_type,
+        isBroadcastGroup,
+        recipientCount: lastMsg.recipient_count,
       });
     }
     summaries.sort(
       (a, b) => new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime(),
     );
     return summaries;
-  }, [messages, profiles, userId]);
+  }, [messages, profiles, userId, viewMode]);
 
   const filteredConversations = useMemo((): readonly ConversationSummary[] => {
     if (!search.trim()) {
@@ -258,25 +288,58 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     if (!selectedPartnerId) {
       return [];
     }
+    if (viewMode === "inbox") {
+      /* Inbox: full conversation with partner (both directions) */
+      if (selectedPartnerId === SYSTEM_PARTNER_ID) {
+        return messages
+          .filter((message) => message.message_type === "system" && message.recipient_id === userId)
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      }
+      return messages
+        .filter(
+          (message) =>
+            (message.sender_id === selectedPartnerId && message.recipient_id === userId) ||
+            (message.sender_id === userId && message.recipient_id === selectedPartnerId),
+        )
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }
+    /* Sent view */
+    const conv = filteredConversations.find((c) => c.partnerId === selectedPartnerId);
+    if (conv?.isBroadcastGroup) {
+      /* Broadcast group: show single representative message */
+      return messages
+        .filter((message) => message.sender_id === userId && message.broadcast_group_id === selectedPartnerId)
+        .slice(0, 1);
+    }
+    /* 1:1 sent: full conversation with this recipient */
     return messages
-      .filter((message) => {
-        if (selectedPartnerId === SYSTEM_PARTNER_ID) {
-          return message.message_type === "system";
-        }
-        return (
-          (message.sender_id === selectedPartnerId && message.recipient_id === userId) ||
-          (message.sender_id === userId && message.recipient_id === selectedPartnerId)
-        );
-      })
+      .filter(
+        (message) =>
+          (message.sender_id === userId && message.recipient_id === selectedPartnerId) ||
+          (message.sender_id === selectedPartnerId && message.recipient_id === userId),
+      )
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  }, [messages, selectedPartnerId, userId]);
+  }, [messages, selectedPartnerId, userId, viewMode, filteredConversations]);
 
   /* ── Handlers ── */
+
+  function handleViewModeChange(mode: ViewMode): void {
+    setViewMode(mode);
+    setSelectedPartnerId("");
+    setReplyContent("");
+    setReplyStatus("");
+    /* System filter doesn't apply in sent view */
+    if (mode === "sent" && typeFilter === "system") {
+      setTypeFilter("all");
+    }
+  }
 
   async function handleSelectConversation(partnerId: string): Promise<void> {
     setSelectedPartnerId(partnerId);
     setReplyContent("");
     setReplyStatus("");
+    /* Only mark as read in inbox view (sent messages don't have unread state) */
+    if (viewMode !== "inbox") return;
     const unreadIds = messages
       .filter(
         (message) =>
@@ -347,9 +410,11 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       const result = await response.json();
       if (recipientIds.length === 1) {
         setComposeStatus(t("messageSent"));
+        setViewMode("sent");
         setSelectedPartnerId(recipientIds[0] ?? "");
       } else {
         setComposeStatus(t("messagesSent", { count: result.count ?? recipientIds.length }));
+        setViewMode("sent");
       }
     } else {
       /* Clan or global broadcast */
@@ -374,6 +439,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         return;
       }
       setComposeStatus(t("broadcastSent", { count: result.data?.recipients ?? 0 }));
+      setViewMode("sent");
     }
 
     resetCompose();
@@ -397,6 +463,12 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   }
 
   const selectedConversation = filteredConversations.find((conv) => conv.partnerId === selectedPartnerId);
+
+  /** Total unread count across all inbox messages (always computed, regardless of viewMode). */
+  const totalInboxUnread = useMemo(
+    () => messages.filter((m) => m.recipient_id === userId && !m.is_read).length,
+    [messages, userId],
+  );
 
   /* ── Compose mode options ── */
   const composeModeOptions = useMemo(() => {
@@ -618,13 +690,27 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       <div className="messages-layout">
         {/* Conversation list */}
         <section className="card messages-list-panel">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("inbox")}</div>
-              <div className="card-subtitle">
-                {conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)} {t("unread")}
-              </div>
-            </div>
+          {/* Inbox / Sent view tabs */}
+          <div className="messages-view-tabs">
+            <button
+              className={`messages-view-tab ${viewMode === "inbox" ? "active" : ""}`}
+              type="button"
+              onClick={() => handleViewModeChange("inbox")}
+            >
+              {t("inbox")}
+              {totalInboxUnread > 0 ? (
+                <span className="badge ml-1.5" style={{ fontSize: "0.7rem" }}>
+                  {totalInboxUnread}
+                </span>
+              ) : null}
+            </button>
+            <button
+              className={`messages-view-tab ${viewMode === "sent" ? "active" : ""}`}
+              type="button"
+              onClick={() => handleViewModeChange("sent")}
+            >
+              {t("sent")}
+            </button>
           </div>
           <div className="messages-filters">
             <SearchInput
@@ -635,7 +721,10 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
               placeholder={t("searchPlaceholder")}
             />
             <div className="tabs text-[0.8rem]">
-              {(["all", "private", "system", "broadcast"] as const).map((tab) => (
+              {(viewMode === "inbox"
+                ? (["all", "private", "system", "broadcast"] as const)
+                : (["all", "private", "broadcast"] as const)
+              ).map((tab) => (
                 <button
                   key={tab}
                   className={`tab ${typeFilter === tab ? "active" : ""}`}
@@ -710,9 +799,21 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
               <div className="card-header">
                 <div>
                   <div className="card-title">{selectedConversation?.partnerLabel ?? t("conversation")}</div>
-                  <div className="card-subtitle">{t("messagesCount", { count: selectedThread.length })}</div>
+                  <div className="card-subtitle">
+                    {selectedConversation?.isBroadcastGroup
+                      ? t("broadcastSummary")
+                      : t("messagesCount", { count: selectedThread.length })}
+                  </div>
                 </div>
               </div>
+              {/* Broadcast info banner */}
+              {selectedConversation?.isBroadcastGroup ? (
+                <div className="messages-broadcast-info">
+                  {selectedConversation.messageType === "broadcast"
+                    ? t("broadcastInfoBanner", { count: selectedConversation.recipientCount })
+                    : t("multiRecipientInfoBanner", { count: selectedConversation.recipientCount })}
+                </div>
+              ) : null}
               <div className="messages-thread-list">
                 {selectedThread.map((message) => {
                   const isSelf = message.sender_id === userId;
@@ -743,7 +844,8 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                   );
                 })}
               </div>
-              {selectedPartnerId !== SYSTEM_PARTNER_ID ? (
+              {/* Reply bar: hide for system messages and broadcast groups */}
+              {selectedPartnerId !== SYSTEM_PARTNER_ID && !selectedConversation?.isBroadcastGroup ? (
                 <form className="messages-reply-bar" onSubmit={handleSendReply}>
                   <input
                     className="messages-reply-input"

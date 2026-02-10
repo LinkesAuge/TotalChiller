@@ -11,9 +11,35 @@ const SEND_MESSAGE_SCHEMA = z.object({
   content: z.string().min(1).max(10_000),
 });
 
+const MESSAGE_SELECT_COLUMNS =
+  "id,sender_id,recipient_id,message_type,subject,content,is_read,created_at,broadcast_group_id,recipient_count";
+
+const INCOMING_LIMIT = 200;
+const OUTGOING_LIMIT = 2000;
+
+/**
+ * Deduplicates outgoing messages by broadcast_group_id.
+ * Messages without a broadcast_group_id are kept as-is.
+ * For messages sharing a broadcast_group_id, only the first (most recent) is kept.
+ */
+function deduplicateOutgoing<T extends { broadcast_group_id: string | null }>(rows: readonly T[]): T[] {
+  const seenGroups = new Set<string>();
+  const result: T[] = [];
+  for (const row of rows) {
+    if (row.broadcast_group_id) {
+      if (seenGroups.has(row.broadcast_group_id)) continue;
+      seenGroups.add(row.broadcast_group_id);
+    }
+    result.push(row);
+  }
+  return result;
+}
+
 /**
  * GET /api/messages
  * Returns the inbox for the authenticated user.
+ * Fetches incoming (recipient) and outgoing (sender) messages separately.
+ * Outgoing broadcast/multi-recipient messages are deduplicated by broadcast_group_id.
  * Supports ?type=all|private|broadcast|system filtering.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -27,23 +53,49 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const userId = authData.user.id;
   const typeFilter = request.nextUrl.searchParams.get("type") ?? "all";
   const serviceClient = createSupabaseServiceRoleClient();
-  let query = serviceClient
+
+  /* Incoming: messages where user is recipient */
+  let incomingQuery = serviceClient
     .from("messages")
-    .select("id,sender_id,recipient_id,message_type,subject,content,is_read,created_at")
-    .or(`recipient_id.eq.${userId},sender_id.eq.${userId}`)
+    .select(MESSAGE_SELECT_COLUMNS)
+    .eq("recipient_id", userId)
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(INCOMING_LIMIT);
   if (typeFilter !== "all") {
-    query = query.eq("message_type", typeFilter);
+    incomingQuery = incomingQuery.eq("message_type", typeFilter);
   }
-  const { data: messages, error: fetchError } = await query;
-  if (fetchError) {
-    return NextResponse.json({ error: fetchError.message }, { status: 500 });
+
+  /* Outgoing: messages where user is sender (higher limit for broadcast dedup) */
+  let outgoingQuery = serviceClient
+    .from("messages")
+    .select(MESSAGE_SELECT_COLUMNS)
+    .eq("sender_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(OUTGOING_LIMIT);
+  if (typeFilter !== "all") {
+    outgoingQuery = outgoingQuery.eq("message_type", typeFilter);
   }
-  const rows = messages ?? [];
+
+  const [incomingResult, outgoingResult] = await Promise.all([incomingQuery, outgoingQuery]);
+
+  if (incomingResult.error) {
+    return NextResponse.json({ error: incomingResult.error.message }, { status: 500 });
+  }
+  if (outgoingResult.error) {
+    return NextResponse.json({ error: outgoingResult.error.message }, { status: 500 });
+  }
+
+  const incomingRows = incomingResult.data ?? [];
+  const outgoingRows = outgoingResult.data ?? [];
+  const deduplicatedOutgoing = deduplicateOutgoing(outgoingRows);
+
+  /* Combine: no overlap since a row can't have sender_id = recipient_id = userId */
+  const allRows = [...incomingRows, ...deduplicatedOutgoing];
+
+  /* Fetch profiles for all referenced users */
   const userIds = Array.from(
     new Set(
-      rows
+      allRows
         .flatMap((message) => [message.sender_id as string | null, message.recipient_id as string])
         .filter((id): id is string => id !== null && id !== userId),
     ),
@@ -63,13 +115,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return acc;
     }, {});
   }
-  return NextResponse.json({ data: rows, profiles: profilesById });
+  return NextResponse.json({ data: allRows, profiles: profilesById });
 }
 
 /**
  * POST /api/messages
  * Send a private message to one or multiple users.
  * Accepts `recipient_id` (single) or `recipient_ids` (array) for multi-recipient.
+ * Multi-recipient messages share a broadcast_group_id for grouped display.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
@@ -121,6 +174,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: `Recipient(s) not found: ${invalidIds.join(", ")}` }, { status: 404 });
   }
 
+  /* Group multi-recipient sends so the sender's outbox isn't spammed */
+  const isMultiRecipient = recipientIds.length > 1;
+  const broadcastGroupId = isMultiRecipient ? crypto.randomUUID() : null;
+
   /* Build message rows */
   const messageRows = recipientIds.map((recipientId) => ({
     sender_id: senderId,
@@ -128,14 +185,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     message_type: "private" as const,
     subject: body.subject?.trim() || null,
     content: body.content.trim(),
+    broadcast_group_id: broadcastGroupId,
+    recipient_count: recipientIds.length,
   }));
 
   /* Insert messages and fetch sender profile in parallel */
   const [insertResult, senderProfile] = await Promise.all([
-    serviceClient
-      .from("messages")
-      .insert(messageRows)
-      .select("id,sender_id,recipient_id,message_type,subject,content,is_read,created_at"),
+    serviceClient.from("messages").insert(messageRows).select(MESSAGE_SELECT_COLUMNS),
     serviceClient.from("profiles").select("display_name,username,email").eq("id", senderId).maybeSingle(),
   ]);
   const { data: inserted, error: insertError } = insertResult;

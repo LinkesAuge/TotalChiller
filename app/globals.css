@@ -4924,8 +4924,46 @@ input[type="checkbox"]:disabled {
 }
 
 /* =============================
-   Home Page — About Us Card with BG Image
+   Home Page — Why Join Card
    ============================= */
+
+.home-whyjoin-card {
+  position: relative;
+  border: 1px solid rgba(201, 163, 74, 0.25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.home-whyjoin-bg {
+  position: absolute;
+  inset: 0;
+  background: url("/assets/backgrounds/why_join_bg.png") center center / cover no-repeat;
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-whyjoin-card > .tooltip-head,
+.home-whyjoin-card > .card-body {
+  position: relative;
+  z-index: 1;
+}
+
+.home-whyjoin-card .editable-list-item {
+  background: rgba(8, 16, 26, 0.55);
+  border: 1px solid rgba(201, 163, 74, 0.2);
+}
+
+.home-whyjoin-body {
+  padding: 28px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #e8e0d0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
 
 /* =============================
    Editable Text Component
@@ -5398,6 +5436,9 @@ input[type="checkbox"]:disabled {
 
 @media (max-width: 640px) {
   .home-about-body {
+    padding: 18px 16px 20px;
+  }
+  .home-whyjoin-body {
     padding: 18px 16px 20px;
   }
 }

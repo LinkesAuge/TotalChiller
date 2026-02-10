@@ -195,23 +195,32 @@ function HomeClient(): JSX.Element {
       </section>
 
       {/* ═══ Why Join ═══ */}
-      <section className="card">
-        <div className="card-header">
-          <EditableText
-            as="h3"
-            className="card-title"
-            value={c("whyJoin", "title", t("whyJoinTitle"))}
-            valueEn={cEn("whyJoin", "title")}
-            canEdit={canEdit}
-            locale={locale}
-            singleLine
-            onSave={(de, en) => saveField("whyJoin", "title", de, en)}
+      <section className="card home-whyjoin-card col-span-full">
+        <div className="home-whyjoin-bg" />
+        <div className="tooltip-head">
+          <img
+            src="/assets/vip/back_tooltip_2.png"
+            alt=""
+            className="tooltip-head-bg"
+            width={400}
+            height={44}
+            loading="lazy"
           />
-          <a className="button primary" href="/auth/register">
-            {t("applyNow")}
-          </a>
+          <div className="tooltip-head-inner">
+            <img src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} loading="lazy" />
+            <EditableText
+              as="h3"
+              className="card-title"
+              value={c("whyJoin", "title", t("whyJoinTitle"))}
+              valueEn={cEn("whyJoin", "title")}
+              canEdit={canEdit}
+              locale={locale}
+              singleLine
+              onSave={(de, en) => saveField("whyJoin", "title", de, en)}
+            />
+          </div>
         </div>
-        <div className="card-body">
+        <div className="card-body home-whyjoin-body">
           <EditableText
             as="div"
             value={c("whyJoin", "text", t("whyJoinText"))}
@@ -235,6 +244,11 @@ function HomeClient(): JSX.Element {
             supabase={supabase}
             userId={userId}
           />
+          <div className="flex justify-center mt-4">
+            <a className="button primary" href="/auth/register">
+              {t("applyNow")}
+            </a>
+          </div>
         </div>
       </section>
 

@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import createSupabaseServerClient from "../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
+import { standardLimiter } from "../../../lib/rate-limit";
 
-interface GameAccountRequestBody {
-  readonly game_username: string;
-}
+/* ─── Schemas ─── */
+
+const CREATE_GAME_ACCOUNT_SCHEMA = z.object({
+  game_username: z.string().trim().min(2).max(64),
+});
+
+const SET_DEFAULT_SCHEMA = z.object({
+  default_game_account_id: z.string().uuid().nullable(),
+});
 
 interface ExistingAccountRow {
   readonly id: string;
@@ -18,28 +26,25 @@ interface ExistingAccountRow {
  * Checks for duplicate game_username globally and per-user.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = authData.user.id;
-  let body: GameAccountRequestBody;
+  let rawBody: unknown;
   try {
-    body = (await request.json()) as GameAccountRequestBody;
+    rawBody = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-  const gameUsername = body.game_username?.trim();
-  if (!gameUsername) {
-    return NextResponse.json({ error: "Game username is required." }, { status: 400 });
+  const parsed = CREATE_GAME_ACCOUNT_SCHEMA.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-  if (gameUsername.length < 2 || gameUsername.length > 64) {
-    return NextResponse.json(
-      { error: "Game username must be between 2 and 64 characters." },
-      { status: 400 },
-    );
-  }
+  const gameUsername = parsed.data.game_username;
   const serviceClient = createSupabaseServiceRoleClient();
   const { data: existingAccounts, error: lookupError } = await serviceClient
     .from("game_accounts")
@@ -47,10 +52,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .ilike("game_username", gameUsername)
     .in("approval_status", ["pending", "approved"]);
   if (lookupError) {
-    return NextResponse.json(
-      { error: `Failed to check existing accounts: ${lookupError.message}` },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: `Failed to check existing accounts: ${lookupError.message}` }, { status: 500 });
   }
   const existing = (existingAccounts ?? []) as readonly ExistingAccountRow[];
   const ownExisting = existing.find((account) => account.user_id === userId);
@@ -63,10 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
   const otherExisting = existing.find((account) => account.user_id !== userId);
   if (otherExisting) {
-    return NextResponse.json(
-      { error: "This game username is already claimed by another user." },
-      { status: 409 },
-    );
+    return NextResponse.json({ error: "This game username is already claimed by another user." }, { status: 409 });
   }
   const { data: insertedAccount, error: insertError } = await supabase
     .from("game_accounts")
@@ -79,10 +78,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .single();
   if (insertError) {
     if (insertError.code === "23505") {
-      return NextResponse.json(
-        { error: "This game username is already taken." },
-        { status: 409 },
-      );
+      return NextResponse.json({ error: "This game username is already taken." }, { status: 409 });
     }
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
@@ -94,7 +90,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  * Returns the authenticated user's game accounts with their approval status,
  * plus the current default_game_account_id from the profile.
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user) {
@@ -107,11 +105,7 @@ export async function GET(): Promise<NextResponse> {
       .select("id,game_username,approval_status,created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("default_game_account_id")
-      .eq("id", userId)
-      .maybeSingle(),
+    supabase.from("profiles").select("default_game_account_id").eq("id", userId).maybeSingle(),
   ]);
   if (fetchError) {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
@@ -122,29 +116,31 @@ export async function GET(): Promise<NextResponse> {
   });
 }
 
-interface SetDefaultBody {
-  readonly default_game_account_id: string | null;
-}
-
 /**
  * PATCH /api/game-accounts
  * Sets or clears the user's default game account.
  * The account must belong to the user and be approved.
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = authData.user.id;
-  let body: SetDefaultBody;
+  let rawBody: unknown;
   try {
-    body = (await request.json()) as SetDefaultBody;
+    rawBody = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-  const newDefaultId = body.default_game_account_id ?? null;
+  const parsed = SET_DEFAULT_SCHEMA.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+  const newDefaultId = parsed.data.default_game_account_id;
 
   /* If setting (not clearing), validate ownership + approval */
   if (newDefaultId) {

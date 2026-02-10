@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import Image from "next/image";
 import * as Sentry from "@sentry/nextjs";
+import PageTopBar from "./components/page-top-bar";
 
 /**
  * Global error boundary — catches unhandled client errors and reports to Sentry.
@@ -20,22 +20,7 @@ export default function GlobalError({
 
   return (
     <>
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <h1 className="top-bar-title">Fehler / Error</h1>
-          </div>
-        </div>
-      </div>
+      <PageTopBar title="Fehler / Error" />
       <div className="content-inner">
         <div className="grid">
           <div className="alert warn" style={{ gridColumn: "1 / -1" }}>

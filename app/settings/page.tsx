@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import AuthActions from "../components/auth-actions";
+import PageTopBar from "../components/page-top-bar";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import LanguageSelector from "../components/language-selector";
 import SectionHero from "../components/section-hero";
@@ -21,12 +21,7 @@ interface SettingsFormState {
   readonly passwordStatus: string;
 }
 
-interface NotificationPrefs {
-  readonly messages_enabled: boolean;
-  readonly news_enabled: boolean;
-  readonly events_enabled: boolean;
-  readonly system_enabled: boolean;
-}
+import type { NotificationPrefs } from "@/lib/types/domain";
 
 const initialSettingsState: SettingsFormState = {
   email: "",
@@ -247,26 +242,7 @@ function SettingsPage(): JSX.Element {
 
   return (
     <>
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <AuthActions />
-          </div>
-        </div>
-      </div>
+      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
       <SectionHero
         title={t("title")}
         subtitle={t("accountDetails")}

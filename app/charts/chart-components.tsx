@@ -16,12 +16,7 @@ import {
   Legend,
 } from "recharts";
 import { useTranslations, useLocale } from "next-intl";
-import type {
-  ScoreOverTimePoint,
-  TopPlayerPoint,
-  ChestTypePoint,
-  ChartSummary,
-} from "./chart-types";
+import type { ScoreOverTimePoint, TopPlayerPoint, ChestTypePoint, ChartSummary } from "./chart-types";
 
 /* ── Theme constants ── */
 
@@ -104,13 +99,14 @@ function ScoreLineChart({ data, height = 220 }: ScoreLineChartProps): JSX.Elemen
         />
         <Tooltip
           contentStyle={TOOLTIP_STYLE}
-          labelFormatter={(label: string) => {
-            const parts = label.split("-");
+          labelFormatter={(label) => {
+            const str = String(label);
+            const parts = str.split("-");
             if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
-            return label;
+            return str;
           }}
-          formatter={(value: number, name: string) => [
-            formatNumber(value, locale),
+          formatter={(value, name) => [
+            formatNumber(Number(value), locale),
             name === "totalScore" ? t("score") : t("entries"),
           ]}
         />
@@ -147,11 +143,7 @@ function TopPlayersBar({ data, height = 220 }: TopPlayersBarProps): JSX.Element 
   const dynamicHeight = Math.max(height, data.length * 36 + 40);
   return (
     <ResponsiveContainer width="100%" height={dynamicHeight}>
-      <BarChart
-        data={[...data]}
-        layout="vertical"
-        margin={{ top: 4, right: 16, bottom: 4, left: 8 }}
-      >
+      <BarChart data={[...data]} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
         <CartesianGrid stroke={GRID_COLOR} strokeDasharray="3 3" horizontal={false} />
         <XAxis
           type="number"
@@ -168,8 +160,8 @@ function TopPlayersBar({ data, height = 220 }: TopPlayersBarProps): JSX.Element 
         />
         <Tooltip
           contentStyle={TOOLTIP_STYLE}
-          formatter={(value: number, name: string) => [
-            formatNumber(value, locale),
+          formatter={(value, name) => [
+            formatNumber(Number(value), locale),
             name === "totalScore" ? t("score") : t("entries"),
           ]}
         />
@@ -232,11 +224,9 @@ function ChestTypePie({ data, height = 220 }: ChestTypePieProps): JSX.Element {
         </Pie>
         <Tooltip
           contentStyle={TOOLTIP_STYLE}
-          formatter={(value: number, name: string) => [formatNumber(value, locale), name]}
+          formatter={(value, name) => [formatNumber(Number(value), locale), String(name)]}
         />
-        <Legend
-          wrapperStyle={{ fontSize: "0.75rem", color: TEXT_SECONDARY }}
-        />
+        <Legend wrapperStyle={{ fontSize: "0.75rem", color: TEXT_SECONDARY }} />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -256,11 +246,7 @@ function PersonalScoreChart({ data, height = 160 }: PersonalScoreChartProps): JS
   const t = useTranslations("charts");
   const locale = useLocale();
   if (data.length === 0) {
-    return (
-      <div className="chart-empty">
-        {t("noPersonalData")}
-      </div>
-    );
+    return <div className="chart-empty">{t("noPersonalData")}</div>;
   }
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -280,12 +266,13 @@ function PersonalScoreChart({ data, height = 160 }: PersonalScoreChartProps): JS
         />
         <Tooltip
           contentStyle={TOOLTIP_STYLE}
-          labelFormatter={(label: string) => {
-            const parts = label.split("-");
+          labelFormatter={(label) => {
+            const str = String(label);
+            const parts = str.split("-");
             if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
-            return label;
+            return str;
           }}
-          formatter={(value: number) => [formatNumber(value, locale), t("score")]}
+          formatter={(value) => [formatNumber(Number(value), locale), t("score")]}
         />
         <Line
           type="monotone"

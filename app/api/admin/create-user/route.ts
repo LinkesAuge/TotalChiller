@@ -3,6 +3,7 @@ import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
+import { requireAdmin } from "../../../../lib/api/require-admin";
 
 const CREATE_USER_SCHEMA = z.object({
   email: z.string().email(),
@@ -40,14 +41,8 @@ export async function POST(request: Request): Promise<Response> {
   }
   /* ── Auth guard: require authenticated admin ── */
   const authClient = await createSupabaseServerClient();
-  const { data: userData } = await authClient.auth.getUser();
-  if (!userData.user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
-  const { data: isAdmin, error: adminError } = await authClient.rpc("is_any_admin");
-  if (adminError || !isAdmin) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
+  const auth = await requireAdmin(authClient);
+  if (auth.error) return auth.error;
   const supabase = createSupabaseServiceRoleClient();
   const { email, username, displayName } = parsed.data;
   const normalizedEmail = email.toLowerCase();

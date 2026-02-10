@@ -4,22 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 
-interface NotificationRow {
-  readonly id: string;
-  readonly type: string;
-  readonly title: string;
-  readonly body: string | null;
-  readonly reference_id: string | null;
-  readonly is_read: boolean;
-  readonly created_at: string;
-}
-
-interface NotificationPrefs {
-  readonly messages_enabled: boolean;
-  readonly news_enabled: boolean;
-  readonly events_enabled: boolean;
-  readonly system_enabled: boolean;
-}
+import type { NotificationRow, NotificationPrefs } from "@/lib/types/domain";
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -178,18 +163,14 @@ function NotificationBell(): JSX.Element {
 
   async function handleMarkAllRead(): Promise<void> {
     await fetch("/api/notifications/mark-all-read", { method: "POST" });
-    setNotifications((current) =>
-      current.map((notification) => ({ ...notification, is_read: true })),
-    );
+    setNotifications((current) => current.map((notification) => ({ ...notification, is_read: true })));
   }
 
   async function handleClickNotification(notification: NotificationRow): Promise<void> {
     if (!notification.is_read) {
       await fetch(`/api/notifications/${notification.id}`, { method: "PATCH" });
       setNotifications((current) =>
-        current.map((item) =>
-          item.id === notification.id ? { ...item, is_read: true } : item,
-        ),
+        current.map((item) => (item.id === notification.id ? { ...item, is_read: true } : item)),
       );
     }
     setIsOpen(false);
@@ -224,11 +205,7 @@ function NotificationBell(): JSX.Element {
             <strong>{t("title")}</strong>
             <div className="notification-bell__header-actions">
               {unreadCount > 0 ? (
-                <button
-                  type="button"
-                  className="notification-bell__mark-read"
-                  onClick={handleMarkAllRead}
-                >
+                <button type="button" className="notification-bell__mark-read" onClick={handleMarkAllRead}>
                   {t("markAllRead")}
                 </button>
               ) : null}
@@ -240,7 +217,11 @@ function NotificationBell(): JSX.Element {
               >
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
                   <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
-                  <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" strokeWidth="1.2" />
+                  <path
+                    d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                  />
                 </svg>
               </button>
             </div>
@@ -250,28 +231,44 @@ function NotificationBell(): JSX.Element {
               <div className="notification-bell__setting-row">
                 <span>{t("messages")}</span>
                 <label className="toggle-switch toggle-switch--sm">
-                  <input type="checkbox" checked={prefs.messages_enabled} onChange={() => handleTogglePref("messages_enabled")} />
+                  <input
+                    type="checkbox"
+                    checked={prefs.messages_enabled}
+                    onChange={() => handleTogglePref("messages_enabled")}
+                  />
                   <span className="toggle-slider" />
                 </label>
               </div>
               <div className="notification-bell__setting-row">
                 <span>{t("news")}</span>
                 <label className="toggle-switch toggle-switch--sm">
-                  <input type="checkbox" checked={prefs.news_enabled} onChange={() => handleTogglePref("news_enabled")} />
+                  <input
+                    type="checkbox"
+                    checked={prefs.news_enabled}
+                    onChange={() => handleTogglePref("news_enabled")}
+                  />
                   <span className="toggle-slider" />
                 </label>
               </div>
               <div className="notification-bell__setting-row">
                 <span>{t("events")}</span>
                 <label className="toggle-switch toggle-switch--sm">
-                  <input type="checkbox" checked={prefs.events_enabled} onChange={() => handleTogglePref("events_enabled")} />
+                  <input
+                    type="checkbox"
+                    checked={prefs.events_enabled}
+                    onChange={() => handleTogglePref("events_enabled")}
+                  />
                   <span className="toggle-slider" />
                 </label>
               </div>
               <div className="notification-bell__setting-row">
                 <span>{t("system")}</span>
                 <label className="toggle-switch toggle-switch--sm">
-                  <input type="checkbox" checked={prefs.system_enabled} onChange={() => handleTogglePref("system_enabled")} />
+                  <input
+                    type="checkbox"
+                    checked={prefs.system_enabled}
+                    onChange={() => handleTogglePref("system_enabled")}
+                  />
                   <span className="toggle-slider" />
                 </label>
               </div>
@@ -291,9 +288,7 @@ function NotificationBell(): JSX.Element {
                   <span className="notification-bell__icon">{getTypeIcon(notification.type)}</span>
                   <div className="notification-bell__content">
                     <div className="notification-bell__title">{notification.title}</div>
-                    {notification.body ? (
-                      <div className="notification-bell__body">{notification.body}</div>
-                    ) : null}
+                    {notification.body ? <div className="notification-bell__body">{notification.body}</div> : null}
                   </div>
                   <span className="notification-bell__time">{formatTimeAgo(notification.created_at, t, locale)}</span>
                 </button>

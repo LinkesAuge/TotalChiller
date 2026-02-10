@@ -1,21 +1,15 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import useClanContext from "../components/use-clan-context";
 
 /* ─── Types ─── */
 
-interface ForumCategoryRow {
-  readonly id: string;
-  readonly clan_id: string;
-  readonly name: string;
-  readonly slug: string;
-  readonly description: string | null;
-  readonly icon: string | null;
-  readonly sort_order: number;
-}
+import type { ForumCategory } from "@/lib/types/domain";
+
+type ForumCategoryRow = Required<ForumCategory>;
 
 interface CategoryFormState {
   name: string;
@@ -65,12 +59,7 @@ function ForumCategoryAdmin(): JSX.Element {
   const [deleteConfirmInput, setDeleteConfirmInput] = useState<string>("");
 
   /* ─── Load categories ─── */
-  useEffect(() => {
-    if (!clanContext) return;
-    void loadCategories();
-  }, [clanContext]);
-
-  async function loadCategories(): Promise<void> {
+  const loadCategories = useCallback(async (): Promise<void> => {
     if (!clanContext) return;
     setIsLoading(true);
     const { data, error } = await supabase
@@ -88,14 +77,19 @@ function ForumCategoryAdmin(): JSX.Element {
     }
     setCategories((data ?? []) as ForumCategoryRow[]);
     setIsLoading(false);
-  }
+  }, [clanContext, supabase]);
+
+  useEffect(() => {
+    if (!clanContext) return;
+    void loadCategories();
+  }, [clanContext, loadCategories]);
 
   /* ─── Create ─── */
   async function handleCreate(e: FormEvent): Promise<void> {
     e.preventDefault();
     if (!clanContext || !createForm.name.trim()) return;
     const slug = createForm.slug.trim() || toSlug(createForm.name);
-    const sortOrder = parseInt(createForm.sort_order, 10) || (categories.length + 1);
+    const sortOrder = parseInt(createForm.sort_order, 10) || categories.length + 1;
 
     const response = await fetch("/api/admin/forum-categories", {
       method: "POST",
@@ -259,7 +253,20 @@ function ForumCategoryAdmin(): JSX.Element {
       {status && (
         <div className="alert info" style={{ marginBottom: 12 }}>
           {status}
-          <button type="button" onClick={() => setStatus("")} style={{ marginLeft: 8, background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: "0.8rem" }}>&#10005;</button>
+          <button
+            type="button"
+            onClick={() => setStatus("")}
+            style={{
+              marginLeft: 8,
+              background: "none",
+              border: "none",
+              color: "inherit",
+              cursor: "pointer",
+              fontSize: "0.8rem",
+            }}
+          >
+            &#10005;
+          </button>
         </div>
       )}
 
@@ -269,7 +276,9 @@ function ForumCategoryAdmin(): JSX.Element {
           <h4 style={{ margin: "0 0 10px", fontSize: "0.88rem" }}>{t("newCategory")}</h4>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div className="form-group">
-              <label className="form-label" htmlFor="cat-name">{t("name")} *</label>
+              <label className="form-label" htmlFor="cat-name">
+                {t("name")} *
+              </label>
               <input
                 id="cat-name"
                 type="text"
@@ -277,45 +286,83 @@ function ForumCategoryAdmin(): JSX.Element {
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value, slug: toSlug(e.target.value) })}
                 placeholder={t("namePlaceholder")}
                 required
-                style={{ width: "100%", padding: "6px 10px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)" }}
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  background: "var(--color-bg)",
+                  color: "var(--color-text)",
+                  border: "1px solid var(--color-edge)",
+                  borderRadius: "var(--radius-sm)",
+                }}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="cat-slug">{t("slug")}</label>
+              <label className="form-label" htmlFor="cat-slug">
+                {t("slug")}
+              </label>
               <input
                 id="cat-slug"
                 type="text"
                 value={createForm.slug}
                 onChange={(e) => setCreateForm({ ...createForm, slug: e.target.value })}
                 placeholder={t("slugPlaceholder")}
-                style={{ width: "100%", padding: "6px 10px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)" }}
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  background: "var(--color-bg)",
+                  color: "var(--color-text)",
+                  border: "1px solid var(--color-edge)",
+                  borderRadius: "var(--radius-sm)",
+                }}
               />
             </div>
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-              <label className="form-label" htmlFor="cat-desc">{t("description")}</label>
+              <label className="form-label" htmlFor="cat-desc">
+                {t("description")}
+              </label>
               <input
                 id="cat-desc"
                 type="text"
                 value={createForm.description}
                 onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                 placeholder={t("descriptionPlaceholder")}
-                style={{ width: "100%", padding: "6px 10px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)" }}
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  background: "var(--color-bg)",
+                  color: "var(--color-text)",
+                  border: "1px solid var(--color-edge)",
+                  borderRadius: "var(--radius-sm)",
+                }}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="cat-order">{t("sortOrder")}</label>
+              <label className="form-label" htmlFor="cat-order">
+                {t("sortOrder")}
+              </label>
               <input
                 id="cat-order"
                 type="number"
                 value={createForm.sort_order}
                 onChange={(e) => setCreateForm({ ...createForm, sort_order: e.target.value })}
-                style={{ width: 80, padding: "6px 10px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)" }}
+                style={{
+                  width: 80,
+                  padding: "6px 10px",
+                  background: "var(--color-bg)",
+                  color: "var(--color-text)",
+                  border: "1px solid var(--color-edge)",
+                  borderRadius: "var(--radius-sm)",
+                }}
               />
             </div>
           </div>
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-            <button className="button primary" type="submit" disabled={!createForm.name.trim()}>{t("createCategory")}</button>
-            <button className="button" type="button" onClick={() => setShowCreateForm(false)}>{t("cancel")}</button>
+            <button className="button primary" type="submit" disabled={!createForm.name.trim()}>
+              {t("createCategory")}
+            </button>
+            <button className="button" type="button" onClick={() => setShowCreateForm(false)}>
+              {t("cancel")}
+            </button>
           </div>
         </form>
       )}
@@ -339,7 +386,15 @@ function ForumCategoryAdmin(): JSX.Element {
                         type="text"
                         value={editForm.name}
                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        style={{ width: "100%", padding: "5px 8px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)", fontSize: "0.82rem" }}
+                        style={{
+                          width: "100%",
+                          padding: "5px 8px",
+                          background: "var(--color-bg)",
+                          color: "var(--color-text)",
+                          border: "1px solid var(--color-edge)",
+                          borderRadius: "var(--radius-sm)",
+                          fontSize: "0.82rem",
+                        }}
                       />
                     </div>
                     <div className="form-group">
@@ -348,12 +403,34 @@ function ForumCategoryAdmin(): JSX.Element {
                         type="text"
                         value={editForm.slug}
                         onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
-                        style={{ width: "100%", padding: "5px 8px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)", fontSize: "0.82rem" }}
+                        style={{
+                          width: "100%",
+                          padding: "5px 8px",
+                          background: "var(--color-bg)",
+                          color: "var(--color-text)",
+                          border: "1px solid var(--color-edge)",
+                          borderRadius: "var(--radius-sm)",
+                          fontSize: "0.82rem",
+                        }}
                       />
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button className="button primary" type="button" onClick={handleSaveEdit} style={{ fontSize: "0.75rem", padding: "5px 10px" }}>{t("save")}</button>
-                      <button className="button" type="button" onClick={() => setEditingId("")} style={{ fontSize: "0.75rem", padding: "5px 10px" }}>{t("cancel")}</button>
+                      <button
+                        className="button primary"
+                        type="button"
+                        onClick={handleSaveEdit}
+                        style={{ fontSize: "0.75rem", padding: "5px 10px" }}
+                      >
+                        {t("save")}
+                      </button>
+                      <button
+                        className="button"
+                        type="button"
+                        onClick={() => setEditingId("")}
+                        style={{ fontSize: "0.75rem", padding: "5px 10px" }}
+                      >
+                        {t("cancel")}
+                      </button>
                     </div>
                   </div>
                   <div style={{ marginTop: 6 }}>
@@ -362,7 +439,15 @@ function ForumCategoryAdmin(): JSX.Element {
                       value={editForm.description}
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                       placeholder={t("descriptionPlaceholder")}
-                      style={{ width: "100%", padding: "5px 8px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)", fontSize: "0.82rem" }}
+                      style={{
+                        width: "100%",
+                        padding: "5px 8px",
+                        background: "var(--color-bg)",
+                        color: "var(--color-text)",
+                        border: "1px solid var(--color-edge)",
+                        borderRadius: "var(--radius-sm)",
+                        fontSize: "0.82rem",
+                      }}
                     />
                   </div>
                 </div>
@@ -370,18 +455,44 @@ function ForumCategoryAdmin(): JSX.Element {
                 /* Delete confirmation */
                 <div className="card" style={{ padding: 12, borderColor: "var(--color-accent-red)" }}>
                   <p style={{ fontSize: "0.82rem", marginBottom: 8 }}>
-                    {t("confirmDeleteText")} <strong style={{ color: "var(--color-accent-red)" }}>DELETE {cat.name}</strong>
+                    {t("confirmDeleteText")}{" "}
+                    <strong style={{ color: "var(--color-accent-red)" }}>DELETE {cat.name}</strong>
                   </p>
                   <input
                     type="text"
                     value={deleteConfirmInput}
                     onChange={(e) => setDeleteConfirmInput(e.target.value)}
                     placeholder={`DELETE ${cat.name}`}
-                    style={{ width: "100%", padding: "5px 8px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)", fontSize: "0.82rem", marginBottom: 8 }}
+                    style={{
+                      width: "100%",
+                      padding: "5px 8px",
+                      background: "var(--color-bg)",
+                      color: "var(--color-text)",
+                      border: "1px solid var(--color-edge)",
+                      borderRadius: "var(--radius-sm)",
+                      fontSize: "0.82rem",
+                      marginBottom: 8,
+                    }}
                   />
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button className="button danger" type="button" onClick={handleConfirmDelete} disabled={deleteConfirmInput !== `DELETE ${cat.name}`}>{t("delete")}</button>
-                    <button className="button" type="button" onClick={() => { setDeletingId(""); setDeleteConfirmInput(""); }}>{t("cancel")}</button>
+                    <button
+                      className="button danger"
+                      type="button"
+                      onClick={handleConfirmDelete}
+                      disabled={deleteConfirmInput !== `DELETE ${cat.name}`}
+                    >
+                      {t("delete")}
+                    </button>
+                    <button
+                      className="button"
+                      type="button"
+                      onClick={() => {
+                        setDeletingId("");
+                        setDeleteConfirmInput("");
+                      }}
+                    >
+                      {t("cancel")}
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -424,17 +535,33 @@ function ForumCategoryAdmin(): JSX.Element {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: "0.84rem", color: "var(--color-text)" }}>
                       {cat.name}
-                      <span style={{ marginLeft: 8, fontSize: "0.7rem", color: "var(--color-text-muted)" }}>/{cat.slug}</span>
+                      <span style={{ marginLeft: 8, fontSize: "0.7rem", color: "var(--color-text-muted)" }}>
+                        /{cat.slug}
+                      </span>
                     </div>
                     {cat.description && (
-                      <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginTop: 1 }}>{cat.description}</div>
+                      <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginTop: 1 }}>
+                        {cat.description}
+                      </div>
                     )}
                   </div>
                   {/* Sort order */}
                   <span style={{ fontSize: "0.68rem", color: "var(--color-text-muted)" }}>#{cat.sort_order}</span>
                   {/* Actions */}
-                  <button className="forum-mod-btn" type="button" onClick={() => startEdit(cat)} aria-label={t("edit")}>&#9998;</button>
-                  <button className="forum-mod-btn danger" type="button" onClick={() => { setDeletingId(cat.id); setDeleteConfirmInput(""); }} aria-label={t("delete")}>&#128465;</button>
+                  <button className="forum-mod-btn" type="button" onClick={() => startEdit(cat)} aria-label={t("edit")}>
+                    &#9998;
+                  </button>
+                  <button
+                    className="forum-mod-btn danger"
+                    type="button"
+                    onClick={() => {
+                      setDeletingId(cat.id);
+                      setDeleteConfirmInput("");
+                    }}
+                    aria-label={t("delete")}
+                  >
+                    &#128465;
+                  </button>
                 </div>
               )}
             </div>

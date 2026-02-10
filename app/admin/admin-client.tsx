@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import AdminProvider, { useAdminContext } from "./admin-context";
 import type { AdminSection } from "./admin-types";
+import { ADMIN_SECTIONS } from "./admin-sections";
 
 /* ── Lazy-loaded tab components (code-split per tab) ── */
 
@@ -78,62 +79,22 @@ function AdminInner(): ReactElement {
           </div>
         </div>
         <div className="tabs">
-          <button
-            className={`tab ${activeSection === "clans" ? "active" : ""}`}
-            type="button"
-            onClick={() => updateActiveSection("clans")}
-          >
-            {tAdmin("tabs.clans")}
-          </button>
-          <button
-            className={`tab ${activeSection === "approvals" ? "active" : ""}`}
-            type="button"
-            onClick={() => updateActiveSection("approvals")}
-          >
-            {tAdmin("tabs.approvals")}
-            {pendingApprovals.length > 0 ? ` (${pendingApprovals.length})` : ""}
-          </button>
-          <button
-            className={`tab ${activeSection === "users" ? "active" : ""}`}
-            type="button"
-            onClick={() => updateActiveSection("users")}
-          >
-            {tAdmin("tabs.users")}
-          </button>
-          <button
-            className={`tab ${activeSection === "validation" ? "active" : ""}`}
-            type="button"
-            onClick={() => updateActiveSection("validation")}
-          >
-            {tAdmin("tabs.validation")}
-          </button>
-          <button
-            className={`tab ${activeSection === "corrections" ? "active" : ""}`}
-            type="button"
-            onClick={() => updateActiveSection("corrections")}
-          >
-            {tAdmin("tabs.corrections")}
-          </button>
-          <button
-            className={`tab ${activeSection === "logs" ? "active" : ""}`}
-            type="button"
-            onClick={() => updateActiveSection("logs")}
-          >
-            {tAdmin("tabs.logs")}
-          </button>
-          <button
-            className={`tab ${activeSection === "forum" ? "active" : ""}`}
-            type="button"
-            onClick={() => updateActiveSection("forum")}
-          >
-            {tAdmin("tabs.forum")}
-          </button>
-          <button className="tab" type="button" onClick={() => navigateAdmin("/admin/data-import")}>
-            {tAdmin("tabs.dataImport")}
-          </button>
-          <button className="tab" type="button" onClick={() => navigateAdmin("/admin/data-table")}>
-            {tAdmin("tabs.chestDb")}
-          </button>
+          {ADMIN_SECTIONS.map((section) => {
+            const isActive = section.tab ? activeSection === section.tab : false;
+            const badge =
+              section.tab === "approvals" && pendingApprovals.length > 0 ? ` (${pendingApprovals.length})` : "";
+            return (
+              <button
+                key={section.labelKey}
+                className={`tab ${isActive ? "active" : ""}`}
+                type="button"
+                onClick={() => (section.tab ? updateActiveSection(section.tab) : navigateAdmin(section.href))}
+              >
+                {tAdmin(`tabs.${section.labelKey}`)}
+                {badge}
+              </button>
+            );
+          })}
         </div>
       </section>
 

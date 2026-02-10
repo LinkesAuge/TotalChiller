@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import createSupabaseServerClient from "../../../lib/supabase/server-client";
+import { relaxedLimiter } from "../../../lib/rate-limit";
 import type {
   ScoreOverTimePoint,
   TopPlayerPoint,
@@ -36,6 +37,8 @@ interface GameAccountRow {
  * scoped by clan and optional filters.
  */
 export async function GET(request: Request): Promise<Response> {
+  const blocked = relaxedLimiter.check(request);
+  if (blocked) return blocked;
   const url = new URL(request.url);
   const clanId = url.searchParams.get("clanId") ?? "";
   const gameAccountId = url.searchParams.get("gameAccountId") ?? "";
@@ -51,9 +54,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   /* ── Fetch chest entries (RLS enforced) ── */
-  let query = supabase
-    .from("chest_entries")
-    .select("collected_date,player,source,chest,score,clan_id");
+  let query = supabase.from("chest_entries").select("collected_date,player,source,chest,score,clan_id");
 
   if (clanId) {
     query = query.eq("clan_id", clanId);
@@ -97,9 +98,7 @@ export async function GET(request: Request): Promise<Response> {
       .select("game_username")
       .eq("user_id", userData.user.id)
       .eq("approval_status", "approved");
-    personalUsernames = (allAccounts ?? []).map(
-      (a) => (a as GameAccountRow).game_username.toLowerCase()
-    );
+    personalUsernames = (allAccounts ?? []).map((a) => (a as GameAccountRow).game_username.toLowerCase());
   }
   const personalSet = new Set(personalUsernames);
 
@@ -113,9 +112,7 @@ export async function GET(request: Request): Promise<Response> {
   const chestTypes = aggregateChestTypes(entries);
 
   /* ── Aggregate: Personal score over time ── */
-  const personalEntries = entries.filter((r) =>
-    personalSet.has(r.player.toLowerCase())
-  );
+  const personalEntries = entries.filter((r) => personalSet.has(r.player.toLowerCase()));
   const personalScore = aggregateScoreOverTime(personalEntries);
 
   /* ── Summary ── */
@@ -134,9 +131,7 @@ export async function GET(request: Request): Promise<Response> {
 
 /* ── Aggregation helpers ── */
 
-function aggregateScoreOverTime(
-  entries: readonly ChestRow[]
-): ScoreOverTimePoint[] {
+function aggregateScoreOverTime(entries: readonly ChestRow[]): ScoreOverTimePoint[] {
   const map = new Map<string, { totalScore: number; entryCount: number }>();
   for (const row of entries) {
     const existing = map.get(row.collected_date);
@@ -152,9 +147,7 @@ function aggregateScoreOverTime(
     .map(([date, agg]) => ({ date, ...agg }));
 }
 
-function aggregateTopPlayers(
-  entries: readonly ChestRow[]
-): TopPlayerPoint[] {
+function aggregateTopPlayers(entries: readonly ChestRow[]): TopPlayerPoint[] {
   const map = new Map<string, { totalScore: number; entryCount: number }>();
   for (const row of entries) {
     const key = row.player;
@@ -172,9 +165,7 @@ function aggregateTopPlayers(
     .slice(0, TOP_PLAYERS_LIMIT);
 }
 
-function aggregateChestTypes(
-  entries: readonly ChestRow[]
-): ChestTypePoint[] {
+function aggregateChestTypes(entries: readonly ChestRow[]): ChestTypePoint[] {
   const map = new Map<string, { count: number; totalScore: number }>();
   for (const row of entries) {
     const existing = map.get(row.chest);

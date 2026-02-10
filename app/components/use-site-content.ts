@@ -13,6 +13,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocale } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useAuth } from "@/app/hooks/use-auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /* ─── Types ─── */
@@ -156,11 +157,12 @@ export function useSiteContent(page: string): SiteContentHook {
     setIsLoaded(true);
   }, [page]);
 
+  const { userId: authUserId } = useAuth();
   useEffect(() => {
     void loadData();
     void checkIsAdmin(supabase).then(setCanEdit);
-    void supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? undefined));
-  }, [supabase, loadData]);
+    setUserId(authUserId ?? undefined);
+  }, [supabase, loadData, authUserId]);
 
   /* ── Text content helpers ── */
 

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
@@ -12,6 +11,7 @@ export const metadata: Metadata = {
 import DisplayNameEditor from "./display-name-editor";
 import GameAccountManager from "./game-account-manager";
 import AuthActions from "../components/auth-actions";
+import PageTopBar from "../components/page-top-bar";
 import SectionHero from "../components/section-hero";
 
 interface UserProfileView {
@@ -136,29 +136,18 @@ async function ProfileContent(): Promise<JSX.Element> {
 
   return (
     <>
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <PageTopBar
+        breadcrumb={t("breadcrumb")}
+        title={t("title")}
+        actions={
+          <>
             <a className="button" href="/settings">
               {t("settingsButton")}
             </a>
             <AuthActions />
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
       <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_captain.png" />
       <div className="content-inner">
         <div className="grid">

@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import useClanContext from "../components/use-clan-context";
 import DatePicker from "../components/date-picker";
 import AuthActions from "../components/auth-actions";
+import PageTopBar from "../components/page-top-bar";
 import SectionHero from "../components/section-hero";
 import { ScoreLineChart, TopPlayersBar, ChestTypePie, PersonalScoreChart, SummaryPanel } from "./chart-components";
 import type { ChartsApiResponse, ChartSummary } from "./chart-types";
@@ -119,27 +119,7 @@ function ChartsClient(): JSX.Element {
 
   return (
     <>
-      {/* Top Bar */}
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <AuthActions />
-          </div>
-        </div>
-      </div>
+      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
       <SectionHero
         title={t("heroTitle")}
         subtitle={t("heroSubtitle")}

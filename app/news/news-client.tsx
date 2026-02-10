@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import Image from "next/image";
 import { z } from "zod";
 import { useTranslations, useLocale } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import { useAuth } from "@/app/hooks/use-auth";
 import { formatLocalDateTime } from "../../lib/date-format";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
+import PageTopBar from "../components/page-top-bar";
 import { useToast } from "../components/toast-provider";
 import RadixSelect from "../components/ui/radix-select";
 import IconButton from "../components/ui/icon-button";
@@ -93,13 +94,8 @@ function NewsClient(): JSX.Element {
 
   /* ── Permission state ── */
   const { isContentManager: canManage } = useUserRole(supabase);
-  const [currentUserId, setCurrentUserId] = useState<string>("");
-
-  useEffect(() => {
-    void supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setCurrentUserId(data.user.id);
-    });
-  }, [supabase]);
+  const { userId: authUserId } = useAuth();
+  const currentUserId = authUserId ?? "";
 
   /* ── Data state ── */
   const [articles, setArticles] = useState<readonly ArticleRow[]>([]);
@@ -378,27 +374,7 @@ function NewsClient(): JSX.Element {
   /* ── Render ── */
   return (
     <>
-      {/* Top Bar */}
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <AuthActions />
-          </div>
-        </div>
-      </div>
+      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
       <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_chest.png" />
 
       <div className="content-inner">

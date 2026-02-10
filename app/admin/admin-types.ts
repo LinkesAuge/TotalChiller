@@ -6,6 +6,13 @@
  */
 
 import { ROLES } from "@/lib/permissions";
+import type { GameAccountSummary, ProfileSummary, PendingApprovalRow } from "@/lib/types/domain";
+
+/* ── Re-exports from shared domain types ── */
+
+export type { PendingApprovalRow };
+export type GameAccountRow = GameAccountSummary;
+export type ProfileRow = ProfileSummary;
 
 /* ── Types ── */
 
@@ -14,13 +21,6 @@ export interface ClanRow {
   readonly name: string;
   readonly description: string | null;
   readonly is_unassigned?: boolean | null;
-}
-
-export interface GameAccountRow {
-  readonly id: string;
-  readonly user_id: string;
-  readonly game_username: string;
-  readonly approval_status?: string;
 }
 
 export interface MembershipRow {
@@ -53,26 +53,6 @@ export interface AssignableGameAccount {
   readonly clan_id: string | null;
   readonly user_email: string;
   readonly user_display: string;
-}
-
-export interface ProfileRow {
-  readonly id: string;
-  readonly email: string;
-  readonly display_name: string | null;
-  readonly username: string | null;
-}
-
-export interface PendingApprovalRow {
-  readonly id: string;
-  readonly user_id: string;
-  readonly game_username: string;
-  readonly approval_status: string;
-  readonly created_at: string;
-  readonly profiles: {
-    readonly email: string;
-    readonly username: string | null;
-    readonly display_name: string | null;
-  } | null;
 }
 
 export type MemberSortKey = "game" | "user" | "clan" | "rank" | "status";

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../lib/supabase/browser-client";
 import useClanContext from "./components/use-clan-context";
 import AuthActions from "./components/auth-actions";
+import PageTopBar from "./components/page-top-bar";
 import SectionHero from "./components/section-hero";
 
 /* ── Types ── */
@@ -197,27 +197,7 @@ function DashboardPage(): JSX.Element {
 
   return (
     <>
-      {/* Ornate top bar */}
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <AuthActions />
-          </div>
-        </div>
-      </div>
+      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
 
       <SectionHero
         title="Community Hub"

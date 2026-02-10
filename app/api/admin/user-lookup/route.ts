@@ -1,28 +1,42 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
+import { strictLimiter } from "../../../../lib/rate-limit";
 
-interface LookupPayload {
-  readonly email?: string;
-  readonly username?: string;
-  readonly identifier?: string;
-  readonly clanId: string;
-}
+/* ─── Schemas ─── */
+
+const LOOKUP_SCHEMA = z
+  .object({
+    email: z.string().trim().optional(),
+    username: z.string().trim().optional(),
+    identifier: z.string().trim().optional(),
+    clanId: z.string().min(1),
+  })
+  .refine((data) => !!(data.identifier?.trim() || data.username?.trim() || data.email?.trim()), {
+    message: "At least one lookup field (email, username, or identifier) is required.",
+  });
 
 /**
  * Resolves a profile ID by email for clan admins.
  */
 export async function POST(request: Request): Promise<Response> {
-  const body = (await request.json()) as LookupPayload;
-  if (!body?.clanId) {
-    return NextResponse.json({ error: "Missing clanId." }, { status: 400 });
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
-  const identifier = (body.identifier ?? "").trim();
-  const email = (body.email ?? "").trim();
-  const username = (body.username ?? "").trim();
+  const parsed = LOOKUP_SCHEMA.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+  const body = parsed.data;
+  const identifier = body.identifier ?? "";
+  const email = body.email ?? "";
+  const username = body.username ?? "";
   const lookupValue = identifier || username || email;
-  if (!lookupValue) {
-    return NextResponse.json({ error: "Missing identifier." }, { status: 400 });
-  }
   const supabase = await createSupabaseServerClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) {

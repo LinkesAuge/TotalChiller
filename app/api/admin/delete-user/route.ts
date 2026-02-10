@@ -3,6 +3,7 @@ import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
+import { requireAdmin } from "../../../../lib/api/require-admin";
 
 const DELETE_USER_SCHEMA = z.object({
   userId: z.string().uuid(),
@@ -19,14 +20,8 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });
   }
   const supabase = await createSupabaseServerClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
-  const { data: isAdmin, error: adminError } = await supabase.rpc("is_any_admin");
-  if (adminError || !isAdmin) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
+  const auth = await requireAdmin(supabase);
+  if (auth.error) return auth.error;
   const serviceClient = createSupabaseServiceRoleClient();
   const { error } = await serviceClient.auth.admin.deleteUser(parsed.data.userId);
   if (error) {

@@ -1,27 +1,21 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import { useAuth } from "@/app/hooks/use-auth";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
+import PageTopBar from "../components/page-top-bar";
 import SectionHero from "../components/section-hero";
 import ForumMarkdown, { extractThumbnail, type PostThumbnail } from "./forum-markdown";
 import MarkdownToolbar, { handleImagePaste, handleImageDrop } from "./markdown-toolbar";
 
 /* ─── Types ─── */
 
-interface ForumCategory {
-  readonly id: string;
-  readonly name: string;
-  readonly slug: string;
-  readonly description: string | null;
-  readonly icon: string | null;
-  readonly sort_order: number;
-}
+import type { ForumCategory } from "@/lib/types/domain";
 
 interface ForumPost {
   readonly id: string;
@@ -237,7 +231,6 @@ function ForumClient(): JSX.Element {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [currentUserId, setCurrentUserId] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -268,11 +261,8 @@ function ForumClient(): JSX.Element {
 
   /* ─── Auth + permissions ─── */
   const { isContentManager: canManage } = useUserRole(supabase);
-  useEffect(() => {
-    void supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setCurrentUserId(data.user.id);
-    });
-  }, [supabase]);
+  const { userId: authUserId } = useAuth();
+  const currentUserId = authUserId ?? "";
 
   /* ─── Load categories ─── */
   useEffect(() => {
@@ -657,25 +647,7 @@ function ForumClient(): JSX.Element {
   if (!clanContext) {
     return (
       <>
-        {/* ── Top Bar ── */}
-        <div className="top-bar">
-          <Image
-            src="/assets/vip/header_3.png"
-            alt=""
-            role="presentation"
-            className="top-bar-bg"
-            width={1200}
-            height={56}
-            priority
-          />
-          <div className="top-bar-inner">
-            <div>
-              <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-              <h1 className="top-bar-title">{t("title")}</h1>
-            </div>
-            <AuthActions />
-          </div>
-        </div>
+        <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <div className="forum-empty">
@@ -690,25 +662,7 @@ function ForumClient(): JSX.Element {
   if (!tablesReady) {
     return (
       <>
-        {/* ── Top Bar ── */}
-        <div className="top-bar">
-          <Image
-            src="/assets/vip/header_3.png"
-            alt=""
-            role="presentation"
-            className="top-bar-bg"
-            width={1200}
-            height={56}
-            priority
-          />
-          <div className="top-bar-inner">
-            <div>
-              <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-              <h1 className="top-bar-title">{t("title")}</h1>
-            </div>
-            <AuthActions />
-          </div>
-        </div>
+        <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <div className="forum-empty">
@@ -727,25 +681,7 @@ function ForumClient(): JSX.Element {
   if (viewMode === "create") {
     return (
       <>
-        {/* ── Top Bar ── */}
-        <div className="top-bar">
-          <Image
-            src="/assets/vip/header_3.png"
-            alt=""
-            role="presentation"
-            className="top-bar-bg"
-            width={1200}
-            height={56}
-            priority
-          />
-          <div className="top-bar-inner">
-            <div>
-              <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-              <h1 className="top-bar-title">{t("title")}</h1>
-            </div>
-            <AuthActions />
-          </div>
-        </div>
+        <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <button
@@ -921,25 +857,7 @@ function ForumClient(): JSX.Element {
     const canModerate = canManage || isAuthor;
     return (
       <>
-        {/* ── Top Bar ── */}
-        <div className="top-bar">
-          <Image
-            src="/assets/vip/header_3.png"
-            alt=""
-            role="presentation"
-            className="top-bar-bg"
-            width={1200}
-            height={56}
-            priority
-          />
-          <div className="top-bar-inner">
-            <div>
-              <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-              <h1 className="top-bar-title">{t("title")}</h1>
-            </div>
-            <AuthActions />
-          </div>
-        </div>
+        <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <button className="button" onClick={() => setViewMode("list")} style={{ marginBottom: 16 }}>
@@ -1176,25 +1094,7 @@ function ForumClient(): JSX.Element {
   /* ═══ RENDER: Post List ═══ */
   return (
     <>
-      {/* ── Top Bar ── */}
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <AuthActions />
-        </div>
-      </div>
+      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
       <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
       <div className="content-inner">
         {/* Toolbar: sort + search + create */}

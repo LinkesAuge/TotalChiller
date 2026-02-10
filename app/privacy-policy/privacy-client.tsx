@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
+import PageTopBar from "../components/page-top-bar";
 import { LoadingSkeleton, ErrorBanner } from "../components/cms-shared";
 
 function PrivacyClient(): JSX.Element {
@@ -13,23 +13,7 @@ function PrivacyClient(): JSX.Element {
   if (!isLoaded) {
     return (
       <>
-        <div className="top-bar">
-          <Image
-            src="/assets/vip/header_3.png"
-            alt=""
-            role="presentation"
-            className="top-bar-bg"
-            width={1200}
-            height={56}
-            priority
-          />
-          <div className="top-bar-inner">
-            <div>
-              <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-              <h1 className="top-bar-title">{t("title")}</h1>
-            </div>
-          </div>
-        </div>
+        <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} />
         <div className="content-inner">
           <LoadingSkeleton rows={4} />
         </div>
@@ -53,23 +37,7 @@ function PrivacyClient(): JSX.Element {
 
   return (
     <>
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-        </div>
-      </div>
+      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} />
       <div className="content-inner">
         {error && <ErrorBanner message={error} />}
         <div className="grid">

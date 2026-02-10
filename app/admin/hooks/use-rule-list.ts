@@ -68,8 +68,7 @@ export interface RuleListState<SortKey extends string> {
   readonly selectedIds: readonly string[];
   readonly selectedSet: ReadonlySet<string>;
   readonly areAllSelected: boolean;
-  readonly areSomeSelected: boolean;
-  /** Whether some (but not all) paged items are selected — useful for indeterminate checkbox state. */
+  /** Whether some (but not all) paged items are selected -- useful for indeterminate checkbox state. */
   readonly areSomeSelected: boolean;
   readonly toggleSelect: (id: string) => void;
   readonly toggleSelectAll: () => void;
@@ -393,7 +392,6 @@ export function useRuleList<SortKey extends string>(
     selectedIds,
     selectedSet,
     areAllSelected,
-    areSomeSelected,
     areSomeSelected,
     toggleSelect,
     toggleSelectAll,

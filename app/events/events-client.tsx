@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import Image from "next/image";
 import { z } from "zod";
 import { useTranslations, useLocale } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
@@ -9,6 +8,7 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import { formatLocalDateTime } from "../../lib/date-format";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
+import PageTopBar from "../components/page-top-bar";
 import DatePicker from "../components/date-picker";
 import { useToast } from "../components/toast-provider";
 import RadixSelect from "../components/ui/radix-select";
@@ -951,25 +951,7 @@ function EventsClient(): JSX.Element {
 
   return (
     <>
-      {/* ── Top Bar ── */}
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <AuthActions />
-        </div>
-      </div>
+      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
       <SectionHero
         title={t("heroTitle")}
         subtitle={t("heroSubtitle")}

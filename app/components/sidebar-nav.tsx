@@ -7,16 +7,15 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import { useAuth } from "@/app/hooks/use-auth";
+import { ADMIN_SECTIONS } from "@/app/admin/admin-sections";
 import { useSidebar } from "./sidebar-context";
 import useClanContext from "./use-clan-context";
 
 /** Lightweight forum category type for sidebar sub-items. */
-interface ForumCategorySub {
-  readonly id: string;
-  readonly name: string;
-  readonly slug: string;
-  readonly sort_order: number;
-}
+import type { ForumCategory } from "@/lib/types/domain";
+
+type ForumCategorySub = Pick<ForumCategory, "id" | "name" | "slug" | "sort_order">;
 
 /** SVG icon path data for each navigation item. */
 const ICONS: Record<string, string> = {
@@ -59,6 +58,19 @@ interface NavSection {
   readonly adminOnly?: boolean;
 }
 
+/** Maps ADMIN_SECTIONS labelKey to sidebar-specific display properties. */
+const SIDEBAR_ADMIN_META: Record<string, { labelKey: string; iconKey: string; vipIcon?: string }> = {
+  clans: { labelKey: "clanManagement", iconKey: "clanManagement" },
+  approvals: { labelKey: "approvals", iconKey: "approvals" },
+  users: { labelKey: "users", iconKey: "users" },
+  validation: { labelKey: "validation", iconKey: "validation" },
+  corrections: { labelKey: "corrections", iconKey: "corrections" },
+  logs: { labelKey: "auditLogs", iconKey: "auditLogs" },
+  forum: { labelKey: "forumAdmin", iconKey: "forum" },
+  dataImport: { labelKey: "dataImport", iconKey: "dataImport" },
+  chestDb: { labelKey: "chestDb", iconKey: "admin", vipIcon: "/assets/vip/icons_chest_1.png" },
+};
+
 const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Main",
@@ -77,17 +89,10 @@ const NAV_SECTIONS: readonly NavSection[] = [
     title: "Admin",
     groupLabel: "administration",
     adminOnly: true,
-    items: [
-      { href: "/admin?tab=clans", labelKey: "clanManagement", iconKey: "clanManagement", tab: "clans" },
-      { href: "/admin?tab=approvals", labelKey: "approvals", iconKey: "approvals", tab: "approvals" },
-      { href: "/admin?tab=users", labelKey: "users", iconKey: "users", tab: "users" },
-      { href: "/admin?tab=validation", labelKey: "validation", iconKey: "validation", tab: "validation" },
-      { href: "/admin?tab=corrections", labelKey: "corrections", iconKey: "corrections", tab: "corrections" },
-      { href: "/admin?tab=logs", labelKey: "auditLogs", iconKey: "auditLogs", tab: "logs" },
-      { href: "/admin?tab=forum", labelKey: "forumAdmin", iconKey: "forum", tab: "forum" },
-      { href: "/admin/data-import", labelKey: "dataImport", iconKey: "dataImport" },
-      { href: "/admin/data-table", labelKey: "chestDb", iconKey: "admin", vipIcon: "/assets/vip/icons_chest_1.png" },
-    ],
+    items: ADMIN_SECTIONS.map((section) => {
+      const meta = SIDEBAR_ADMIN_META[section.labelKey];
+      return { href: section.href, tab: section.tab, ...meta };
+    }),
   },
 ];
 
@@ -138,29 +143,9 @@ function SidebarNav(): JSX.Element {
   const { isOpen } = useSidebar();
   const t = useTranslations("nav");
   const clanContext = useClanContext();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const { isAuthenticated, isLoading } = useAuth();
   const { isAdmin } = useUserRole(supabase);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [forumCategories, setForumCategories] = useState<ForumCategorySub[]>([]);
-
-  useEffect(() => {
-    let isActive = true;
-    async function loadAuthStatus(): Promise<void> {
-      const { data } = await supabase.auth.getUser();
-      if (isActive) {
-        setIsAuthenticated(Boolean(data.user?.id));
-        setIsLoading(false);
-      }
-    }
-    void loadAuthStatus();
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      void loadAuthStatus();
-    });
-    return () => {
-      isActive = false;
-      authListener.subscription.unsubscribe();
-    };
-  }, [supabase]);
 
   /* Load forum categories when on the forum page */
   const isOnForum = pathname.startsWith("/forum");

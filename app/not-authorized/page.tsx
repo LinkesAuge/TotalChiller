@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import AuthActions from "../components/auth-actions";
+import PageTopBar from "../components/page-top-bar";
 
 export const metadata: Metadata = {
   title: "Not Authorized",
@@ -16,25 +16,7 @@ async function NotAuthorizedPage(): Promise<JSX.Element> {
   const t = await getTranslations("notAuthorized");
   return (
     <>
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <AuthActions />
-          </div>
-        </div>
-      </div>
+      <PageTopBar title={t("title")} actions={<AuthActions />} />
       <div className="content-inner">
         <div className="grid">
           <div className="alert warn" style={{ gridColumn: "1 / -1" }}>

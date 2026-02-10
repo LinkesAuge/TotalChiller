@@ -1,13 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+import { standardLimiter } from "../../../../lib/rate-limit";
 
-interface RecipientResult {
-  readonly id: string;
-  readonly label: string;
-  readonly username: string | null;
-  readonly gameAccounts: readonly string[];
-}
+import type { RecipientResult } from "@/lib/types/domain";
 
 /**
  * GET /api/messages/search-recipients?q=searchTerm
@@ -15,6 +11,8 @@ interface RecipientResult {
  * to find potential message recipients.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user) {
@@ -91,10 +89,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return {
       id,
       label:
-        (profile.display_name as string | null) ??
-        (profile.username as string | null) ??
-        (profile.email as string),
-      username: (profile.username as string | null),
+        (profile.display_name as string | null) ?? (profile.username as string | null) ?? (profile.email as string),
+      username: profile.username as string | null,
       gameAccounts: gameAccountsByUserId.get(id) ?? [],
     };
   });
@@ -104,11 +100,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   results.sort((a, b) => {
     const aExact =
       a.label.toLowerCase() === lowerQuery ||
-      (a.username?.toLowerCase() === lowerQuery) ||
+      a.username?.toLowerCase() === lowerQuery ||
       a.gameAccounts.some((ga) => ga.toLowerCase() === lowerQuery);
     const bExact =
       b.label.toLowerCase() === lowerQuery ||
-      (b.username?.toLowerCase() === lowerQuery) ||
+      b.username?.toLowerCase() === lowerQuery ||
       b.gameAccounts.some((ga) => ga.toLowerCase() === lowerQuery);
     if (aExact && !bExact) return -1;
     if (!aExact && bExact) return 1;

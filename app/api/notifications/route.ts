@@ -1,11 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import createSupabaseServerClient from "../../../lib/supabase/server-client";
+import { relaxedLimiter } from "../../../lib/rate-limit";
 
 /**
  * GET /api/notifications
  * Returns recent notifications for the authenticated user, filtered by user preferences.
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = relaxedLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user) {
@@ -42,6 +45,7 @@ export async function GET(): Promise<NextResponse> {
   const { data: notifications, error: fetchError } = await supabase
     .from("notifications")
     .select("id,type,title,body,reference_id,is_read,created_at")
+    .eq("user_id", userId)
     .in("type", enabledTypes)
     .order("created_at", { ascending: false })
     .limit(30);

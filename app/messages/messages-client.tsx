@@ -8,16 +8,7 @@ import { formatLocalDateTime } from "../../lib/date-format";
 import SearchInput from "../components/ui/search-input";
 import RadixSelect from "../components/ui/radix-select";
 
-interface MessageRow {
-  readonly id: string;
-  readonly sender_id: string | null;
-  readonly recipient_id: string;
-  readonly message_type: string;
-  readonly subject: string | null;
-  readonly content: string;
-  readonly is_read: boolean;
-  readonly created_at: string;
-}
+import type { MessageRow, RecipientResult } from "@/lib/types/domain";
 
 interface ProfileMap {
   readonly [userId: string]: {
@@ -40,12 +31,7 @@ interface ClanOption {
   readonly name: string;
 }
 
-interface RecipientSearchResult {
-  readonly id: string;
-  readonly label: string;
-  readonly username: string | null;
-  readonly gameAccounts: readonly string[];
-}
+type RecipientSearchResult = RecipientResult;
 
 interface SelectedRecipient {
   readonly id: string;

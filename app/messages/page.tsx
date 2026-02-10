@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import createSupabaseServerClient from "../../lib/supabase/server-client";
 import AuthActions from "../components/auth-actions";
+import PageTopBar from "../components/page-top-bar";
 import SectionHero from "../components/section-hero";
 import MessagesClient from "./messages-client";
 
@@ -25,26 +25,7 @@ async function MessagesContent(): Promise<JSX.Element> {
   const t = await getTranslations("messagesPage");
   return (
     <>
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <AuthActions />
-          </div>
-        </div>
-      </div>
+      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
       <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_captain.png" />
       <div className="content-inner">
         <MessagesClient userId={data.user.id} />

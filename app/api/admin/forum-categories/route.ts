@@ -1,26 +1,33 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+import { strictLimiter } from "../../../../lib/rate-limit";
+import { requireAdmin } from "../../../../lib/api/require-admin";
 
-/* ─── Helpers ─── */
+/* ─── Schemas ─── */
 
-async function requireAdmin(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>): Promise<
-  { userId: string; error?: undefined } | { error: NextResponse; userId?: undefined }
-> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-  const { data: isAdmin } = await supabase.rpc("is_any_admin");
-  if (!isAdmin) {
-    return { error: NextResponse.json({ error: "Forbidden: admin access required." }, { status: 403 }) };
-  }
-  return { userId: authData.user.id };
-}
+const CREATE_CATEGORY_SCHEMA = z.object({
+  clan_id: z.string().min(1),
+  name: z.string().trim().min(1),
+  slug: z.string().trim().optional(),
+  description: z.string().nullable().optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+const UPDATE_CATEGORY_SCHEMA = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1).optional(),
+  slug: z.string().trim().optional(),
+  description: z.string().nullable().optional(),
+  sort_order: z.number().int().min(0).optional(),
+});
 
 /* ─── GET ─── */
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const auth = await requireAdmin(supabase);
   if (auth.error) return auth.error;
@@ -45,38 +52,33 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 /* ─── POST (create) ─── */
 
-interface CreateBody {
-  readonly clan_id: string;
-  readonly name: string;
-  readonly slug: string;
-  readonly description: string | null;
-  readonly sort_order: number;
-}
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const auth = await requireAdmin(supabase);
   if (auth.error) return auth.error;
 
-  let body: CreateBody;
+  let rawBody: unknown;
   try {
-    body = (await request.json()) as CreateBody;
+    rawBody = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
-
-  if (!body.clan_id || !body.name?.trim()) {
-    return NextResponse.json({ error: "clan_id and name are required." }, { status: 400 });
+  const parsed = CREATE_CATEGORY_SCHEMA.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
+  const body = parsed.data;
 
   const serviceClient = createSupabaseServiceRoleClient();
   const { data, error } = await serviceClient
     .from("forum_categories")
     .insert({
       clan_id: body.clan_id,
-      name: body.name.trim(),
-      slug: body.slug?.trim() || body.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      description: body.description || null,
+      name: body.name,
+      slug: body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      description: body.description ?? null,
       sort_order: body.sort_order ?? 0,
     })
     .select()
@@ -90,33 +92,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 /* ─── PATCH (update) ─── */
 
-interface UpdateBody {
-  readonly id: string;
-  readonly name?: string;
-  readonly slug?: string;
-  readonly description?: string | null;
-  readonly sort_order?: number;
-}
-
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const auth = await requireAdmin(supabase);
   if (auth.error) return auth.error;
 
-  let body: UpdateBody;
+  let rawBody: unknown;
   try {
-    body = (await request.json()) as UpdateBody;
+    rawBody = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
-
-  if (!body.id) {
-    return NextResponse.json({ error: "id is required." }, { status: 400 });
+  const parsed = UPDATE_CATEGORY_SCHEMA.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
+  const body = parsed.data;
 
   const updates: Record<string, unknown> = {};
-  if (body.name !== undefined) updates.name = body.name.trim();
-  if (body.slug !== undefined) updates.slug = body.slug.trim();
+  if (body.name !== undefined) updates.name = body.name;
+  if (body.slug !== undefined) updates.slug = body.slug;
   if (body.description !== undefined) updates.description = body.description || null;
   if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
 
@@ -141,6 +138,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 /* ─── DELETE ─── */
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const auth = await requireAdmin(supabase);
   if (auth.error) return auth.error;
@@ -151,10 +150,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   }
 
   const serviceClient = createSupabaseServiceRoleClient();
-  const { error } = await serviceClient
-    .from("forum_categories")
-    .delete()
-    .eq("id", id);
+  const { error } = await serviceClient.from("forum_categories").delete().eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

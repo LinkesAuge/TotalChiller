@@ -8,11 +8,11 @@
  * No more inline EditableList, deriveItems, or normalizeContent.
  */
 
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
 import EditableList from "../components/editable-list";
+import PageTopBar from "../components/page-top-bar";
 import { LoadingSkeleton, ErrorBanner } from "../components/cms-shared";
 import PublicAuthActions from "../components/public-auth-actions";
 
@@ -42,25 +42,7 @@ function HomeClient(): JSX.Element {
   if (!isLoaded) {
     return (
       <>
-        <div className="top-bar">
-          <Image
-            src="/assets/vip/header_3.png"
-            alt=""
-            role="presentation"
-            className="top-bar-bg"
-            width={1200}
-            height={56}
-            priority
-          />
-          <div className="top-bar-inner">
-            <div>
-              <h1 className="top-bar-title">{t("title")}</h1>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <PublicAuthActions />
-            </div>
-          </div>
-        </div>
+        <PageTopBar title={t("title")} actions={<PublicAuthActions />} />
         <div className="content-inner">
           <LoadingSkeleton rows={4} />
         </div>
@@ -70,26 +52,7 @@ function HomeClient(): JSX.Element {
 
   return (
     <>
-      {/* ═══ Top Bar ═══ */}
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <h1 className="top-bar-title">{t("title")}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <PublicAuthActions />
-          </div>
-        </div>
-      </div>
+      <PageTopBar title={t("title")} actions={<PublicAuthActions />} />
 
       {/* ═══ Hero Banner ═══ */}
       <div className="hero-banner">

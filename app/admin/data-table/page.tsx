@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import DataTableClient from "../../data-table/data-table-client";
 import AuthActions from "../../components/auth-actions";
 import AdminSectionTabs from "../admin-section-tabs";
+import PageTopBar from "../../components/page-top-bar";
 import SectionHero from "../../components/section-hero";
 
 export const metadata: Metadata = {
@@ -18,26 +18,7 @@ async function AdminDataTablePage(): Promise<JSX.Element> {
   const t = await getTranslations("admin");
   return (
     <>
-      <div className="top-bar">
-        <Image
-          src="/assets/vip/header_3.png"
-          alt=""
-          role="presentation"
-          className="top-bar-bg"
-          width={1200}
-          height={56}
-          priority
-        />
-        <div className="top-bar-inner">
-          <div>
-            <div className="top-bar-breadcrumb">{t("dataTable.breadcrumb")}</div>
-            <h1 className="top-bar-title">{t("dataTable.title")}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <AuthActions />
-          </div>
-        </div>
-      </div>
+      <PageTopBar breadcrumb={t("dataTable.breadcrumb")} title={t("dataTable.title")} actions={<AuthActions />} />
       <SectionHero
         title={t("dataTable.heroTitle")}
         subtitle={t("dataTable.heroSubtitle")}

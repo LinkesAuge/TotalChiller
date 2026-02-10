@@ -1,38 +1,38 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+import { strictLimiter } from "../../../../lib/rate-limit";
+import { requireAdmin } from "../../../../lib/api/require-admin";
 
-interface ApprovalActionBody {
-  readonly game_account_id: string;
-  readonly action: "approve" | "reject";
-}
+/* ─── Schemas ─── */
+
+const APPROVAL_ACTION_SCHEMA = z.object({
+  game_account_id: z.string().uuid(),
+  action: z.enum(["approve", "reject"]),
+});
 
 /**
  * PATCH /api/admin/game-account-approvals
  * Allows admins to approve or reject a pending game account request.
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { data: isAdmin } = await supabase.rpc("is_any_admin");
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Forbidden: admin access required." }, { status: 403 });
-  }
-  let body: ApprovalActionBody;
+  const auth = await requireAdmin(supabase);
+  if (auth.error) return auth.error;
+  let rawBody: unknown;
   try {
-    body = (await request.json()) as ApprovalActionBody;
+    rawBody = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-  if (!body.game_account_id) {
-    return NextResponse.json({ error: "game_account_id is required." }, { status: 400 });
+  const parsed = APPROVAL_ACTION_SCHEMA.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-  if (body.action !== "approve" && body.action !== "reject") {
-    return NextResponse.json({ error: "action must be 'approve' or 'reject'." }, { status: 400 });
-  }
+  const body = parsed.data;
   const serviceClient = createSupabaseServiceRoleClient();
   const { data: account, error: lookupError } = await serviceClient
     .from("game_accounts")
@@ -88,39 +88,25 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     body: `Your request for "${gameUsername}" has been rejected.`,
     reference_id: body.game_account_id,
   });
-  const { error: deleteError } = await serviceClient
-    .from("game_accounts")
-    .delete()
-    .eq("id", body.game_account_id);
+  const { error: deleteError } = await serviceClient.from("game_accounts").delete().eq("id", body.game_account_id);
   if (deleteError) {
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
   return NextResponse.json({ data: { id: body.game_account_id, approval_status: "rejected", deleted: true } });
 }
 
-interface PendingAccountWithProfile {
-  readonly id: string;
-  readonly user_id: string;
-  readonly game_username: string;
-  readonly approval_status: string;
-  readonly created_at: string;
-  readonly profiles: { readonly email: string; readonly username: string | null; readonly display_name: string | null } | null;
-}
+import type { PendingApprovalRow as PendingAccountWithProfile } from "@/lib/types/domain";
 
 /**
  * GET /api/admin/game-account-approvals
  * Returns all pending game account requests for admin review.
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { data: isAdmin } = await supabase.rpc("is_any_admin");
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Forbidden: admin access required." }, { status: 403 });
-  }
+  const authGet = await requireAdmin(supabase);
+  if (authGet.error) return authGet.error;
   const serviceClient = createSupabaseServiceRoleClient();
   const { data: pendingAccounts, error: fetchError } = await serviceClient
     .from("game_accounts")

@@ -81,7 +81,7 @@ function RegisterPage(): JSX.Element {
       email: formState.email,
       password: formState.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/profile`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/auth/login`,
         data: {
           username: nextUsername,
           display_name: nextUsername,
@@ -118,6 +118,7 @@ function RegisterPage(): JSX.Element {
               <SuccessStep step={1} title={t("successStep1Title")} text={t("successStep1Text")} />
               <SuccessStep step={2} title={t("successStep2Title")} text={t("successStep2Text")} />
               <SuccessStep step={3} title={t("successStep3Title")} text={t("successStep3Text")} />
+              <SuccessStep step={4} title={t("successStep4Title")} text={t("successStep4Text")} />
             </div>
             <p className="mt-4 mb-0 text-[0.8rem] text-muted italic">{t("successNote")}</p>
             <div className="mt-4 text-center">

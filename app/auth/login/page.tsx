@@ -29,12 +29,23 @@ function LoginPage(): JSX.Element {
       }
       resolvedEmail = lookupEmail;
     }
-    const { error } = await supabase.auth.signInWithPassword({ email: resolvedEmail, password });
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
+      email: resolvedEmail,
+      password,
+    });
     if (error) {
       setStatus(error.message);
       return;
     }
     setStatus(t("signedIn"));
+    const userId = signInData.user?.id;
+    if (userId) {
+      const { data: accounts } = await supabase.from("game_accounts").select("id").eq("user_id", userId).limit(1);
+      if (!accounts || accounts.length === 0) {
+        window.location.href = "/profile";
+        return;
+      }
+    }
     window.location.href = "/";
   }
   return (

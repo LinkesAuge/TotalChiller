@@ -1076,6 +1076,7 @@ body {
   border: 1px solid transparent;
   color: var(--color-text-2);
   text-decoration: none;
+  font-family: var(--font-heading);
   font-size: 0.78rem;
   font-weight: 600;
   background: transparent;

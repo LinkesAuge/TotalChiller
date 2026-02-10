@@ -2,21 +2,39 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseUrl, getSupabaseAnonKey } from "../../../lib/supabase/config";
 
+const AUTH_CODE_REDIRECT_COOKIE = "auth_redirect_next";
+
+/**
+ * Resolves the post-callback destination from the `next` query parameter,
+ * falling back to the `auth_redirect_next` cookie (set by forgot-password),
+ * and finally to `/`.
+ */
+function resolveNextPath(request: NextRequest): string {
+  const queryNext = new URL(request.url).searchParams.get("next");
+  if (queryNext) return queryNext;
+  const cookieNext = request.cookies.get(AUTH_CODE_REDIRECT_COOKIE)?.value;
+  if (cookieNext) return cookieNext;
+  return "/";
+}
+
 /**
  * GET /auth/callback
  *
  * Handles the Supabase PKCE auth callback after email verification.
  * Exchanges the temporary code for a session, then redirects
- * to the path specified by the `next` query parameter.
+ * to the path specified by the `next` query parameter or the
+ * `auth_redirect_next` cookie.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const next = resolveNextPath(request);
 
   if (code) {
     const redirectUrl = `${origin}${next}`;
     const response = NextResponse.redirect(redirectUrl);
+    /* Clean up the redirect cookie */
+    response.cookies.set(AUTH_CODE_REDIRECT_COOKIE, "", { maxAge: 0, path: "/" });
     const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
       cookies: {
         get(name: string): string | undefined {

@@ -67,5 +67,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true });
+  /*
+   * Store the intended post-callback destination in a cookie.
+   * If Supabase ignores the redirectTo (e.g. URL not in the allowlist)
+   * and falls back to the site root, the middleware will read this cookie
+   * and redirect to /auth/callback with the correct `next` parameter.
+   */
+  const nextPath = new URL(redirectTo).searchParams.get("next") ?? "/auth/update";
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set("auth_redirect_next", nextPath, {
+    path: "/",
+    maxAge: 600,
+    httpOnly: true,
+    sameSite: "lax",
+  });
+  return response;
 }

@@ -113,7 +113,9 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
                       <span>&bull;</span>
                       <a href="/privacy-policy">{t("footer", "privacy")}</a>
                     </div>
-                    <div className="app-footer-sub">{t("footer", "builtWith")}</div>
+                    <div className="app-footer-sub">
+                      © {new Date().getFullYear()} [THC] Chiller &amp; Killer &bull; {t("footer", "builtWith")}
+                    </div>
                   </footer>
                 </SidebarShell>
               </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
@@ -7,8 +8,13 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import { formatLocalDateTime } from "../../lib/date-format";
 import SearchInput from "../components/ui/search-input";
 import RadixSelect from "../components/ui/radix-select";
+import MarkdownToolbar, { handleImagePaste, handleImageDrop } from "../forum/markdown-toolbar";
 
 import type { MessageRow, RecipientResult } from "@/lib/types/domain";
+
+const ForumMarkdown = dynamic(() => import("../forum/forum-markdown"), {
+  loading: () => <div className="skeleton h-16 rounded" />,
+});
 
 interface ProfileMap {
   readonly [userId: string]: {
@@ -45,11 +51,13 @@ interface SelectedRecipient {
 type ComposeMode = "direct" | "clan" | "global";
 
 const SYSTEM_PARTNER_ID = "__system__";
+const MESSAGE_IMAGE_BUCKET = "message-images";
+const REPLY_SUBJECT_PREFIX = "Re: ";
 
 /**
- * Full messaging UI with conversation list, thread view, and compose.
- * Supports recipient search by username/game account, multi-recipient,
- * and clan/global broadcasts for privileged roles.
+ * Email-style messaging UI with conversation list, thread view, and compose.
+ * Supports markdown formatting, image uploads, recipient search,
+ * multi-recipient sends, and clan/global broadcasts for privileged roles.
  */
 function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   const supabase = createSupabaseBrowserClient();
@@ -64,8 +72,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>("inbox");
-  const [replyContent, setReplyContent] = useState<string>("");
-  const [replyStatus, setReplyStatus] = useState<string>("");
 
   /* Compose state */
   const [isComposeOpen, setIsComposeOpen] = useState<boolean>(false);
@@ -75,6 +81,18 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   const [composeSubject, setComposeSubject] = useState<string>("");
   const [composeContent, setComposeContent] = useState<string>("");
   const [composeStatus, setComposeStatus] = useState<string>("");
+  const [isComposePreview, setIsComposePreview] = useState<boolean>(false);
+  const [isComposeUploading, setIsComposeUploading] = useState<boolean>(false);
+  const composeTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  /* Reply state */
+  const [isReplyOpen, setIsReplyOpen] = useState<boolean>(false);
+  const [replySubject, setReplySubject] = useState<string>("");
+  const [replyContent, setReplyContent] = useState<string>("");
+  const [replyStatus, setReplyStatus] = useState<string>("");
+  const [isReplyPreview, setIsReplyPreview] = useState<boolean>(false);
+  const [isReplyUploading, setIsReplyUploading] = useState<boolean>(false);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   /* Recipient search state */
   const [recipientSearch, setRecipientSearch] = useState<string>("");
@@ -138,7 +156,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         if (response.ok) {
           const result = await response.json();
           const results = (result.data ?? []) as RecipientSearchResult[];
-          /* Exclude already selected recipients */
           const selectedIds = new Set(composeRecipients.map((r) => r.id));
           setRecipientResults(results.filter((r) => !selectedIds.has(r.id)));
           setIsSearchDropdownOpen(true);
@@ -154,7 +171,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     };
   }, [recipientSearch, composeRecipients]);
 
-  /* Close search dropdown on outside click */
   useEffect(() => {
     function handleClickOutside(event: MouseEvent): void {
       if (searchWrapperRef.current && !searchWrapperRef.current.contains(event.target as Node)) {
@@ -168,13 +184,9 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   /* ── Helpers ── */
 
   function getPartnerLabel(partnerId: string): string {
-    if (partnerId === SYSTEM_PARTNER_ID) {
-      return t("systemPartner");
-    }
+    if (partnerId === SYSTEM_PARTNER_ID) return t("systemPartner");
     const profile = profiles[partnerId];
-    if (!profile) {
-      return t("unknownPartner");
-    }
+    if (!profile) return t("unknownPartner");
     return profile.display_name ?? profile.username ?? profile.email;
   }
 
@@ -183,7 +195,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       if (isContentMgr) {
         setComposeRecipients((prev) => [...prev, recipient]);
       } else {
-        /* Non-privileged users can only select one recipient */
         setComposeRecipients([recipient]);
       }
     }
@@ -205,6 +216,27 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     setRecipientSearch("");
     setRecipientResults([]);
     setIsSearchDropdownOpen(false);
+    setIsComposePreview(false);
+  }
+
+  function insertAtComposeCursor(markdown: string): void {
+    const textarea = composeTextareaRef.current;
+    if (!textarea) {
+      setComposeContent((prev) => prev + markdown);
+      return;
+    }
+    const start = textarea.selectionStart;
+    setComposeContent((prev) => prev.substring(0, start) + markdown + prev.substring(start));
+  }
+
+  function insertAtReplyCursor(markdown: string): void {
+    const textarea = replyTextareaRef.current;
+    if (!textarea) {
+      setReplyContent((prev) => prev + markdown);
+      return;
+    }
+    const start = textarea.selectionStart;
+    setReplyContent((prev) => prev.substring(0, start) + markdown + prev.substring(start));
   }
 
   /* ── Conversations ── */
@@ -212,7 +244,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   const conversations = useMemo((): readonly ConversationSummary[] => {
     const grouped = new Map<string, MessageRow[]>();
     if (viewMode === "inbox") {
-      /* Inbox: only messages received by user, grouped by sender */
       for (const message of messages) {
         if (message.recipient_id !== userId) continue;
         const partnerId =
@@ -222,7 +253,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         grouped.set(partnerId, existing);
       }
     } else {
-      /* Sent: only messages sent by user, grouped by broadcast_group_id or recipient */
       for (const message of messages) {
         if (message.sender_id !== userId) continue;
         const groupKey = message.broadcast_group_id ?? message.recipient_id;
@@ -272,9 +302,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   }, [messages, profiles, userId, viewMode]);
 
   const filteredConversations = useMemo((): readonly ConversationSummary[] => {
-    if (!search.trim()) {
-      return conversations;
-    }
+    if (!search.trim()) return conversations;
     const normalizedSearch = search.trim().toLowerCase();
     return conversations.filter(
       (conv) =>
@@ -285,11 +313,8 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   }, [conversations, search]);
 
   const selectedThread = useMemo((): readonly MessageRow[] => {
-    if (!selectedPartnerId) {
-      return [];
-    }
+    if (!selectedPartnerId) return [];
     if (viewMode === "inbox") {
-      /* Inbox: full conversation with partner (both directions) */
       if (selectedPartnerId === SYSTEM_PARTNER_ID) {
         return messages
           .filter((message) => message.message_type === "system" && message.recipient_id === userId)
@@ -303,15 +328,12 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         )
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     }
-    /* Sent view */
     const conv = filteredConversations.find((c) => c.partnerId === selectedPartnerId);
     if (conv?.isBroadcastGroup) {
-      /* Broadcast group: show single representative message */
       return messages
         .filter((message) => message.sender_id === userId && message.broadcast_group_id === selectedPartnerId)
         .slice(0, 1);
     }
-    /* 1:1 sent: full conversation with this recipient */
     return messages
       .filter(
         (message) =>
@@ -327,8 +349,9 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     setViewMode(mode);
     setSelectedPartnerId("");
     setReplyContent("");
+    setReplySubject("");
     setReplyStatus("");
-    /* System filter doesn't apply in sent view */
+    setIsReplyOpen(false);
     if (mode === "sent" && typeFilter === "system") {
       setTypeFilter("all");
     }
@@ -337,8 +360,10 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   async function handleSelectConversation(partnerId: string): Promise<void> {
     setSelectedPartnerId(partnerId);
     setReplyContent("");
+    setReplySubject("");
     setReplyStatus("");
-    /* Only mark as read in inbox view (sent messages don't have unread state) */
+    setIsReplyOpen(false);
+    setIsReplyPreview(false);
     if (viewMode !== "inbox") return;
     const unreadIds = messages
       .filter(
@@ -358,16 +383,35 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     }
   }
 
+  function openReplyToMessage(message: MessageRow): void {
+    const originalSubject = message.subject ?? "";
+    const prefilled = originalSubject.startsWith(REPLY_SUBJECT_PREFIX)
+      ? originalSubject
+      : originalSubject
+        ? `${REPLY_SUBJECT_PREFIX}${originalSubject}`
+        : "";
+    setReplySubject(prefilled);
+    const quoted = message.content
+      .split("\n")
+      .map((line) => `> ${line}`)
+      .join("\n");
+    setReplyContent(`\n\n${quoted}\n`);
+    setIsReplyOpen(true);
+    setIsReplyPreview(false);
+  }
+
   async function handleSendReply(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (!replyContent.trim() || !selectedPartnerId || selectedPartnerId === SYSTEM_PARTNER_ID) {
-      return;
-    }
+    if (!replyContent.trim() || !selectedPartnerId || selectedPartnerId === SYSTEM_PARTNER_ID) return;
     setReplyStatus(t("sending"));
     const response = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipient_id: selectedPartnerId, content: replyContent.trim() }),
+      body: JSON.stringify({
+        recipient_id: selectedPartnerId,
+        subject: replySubject.trim() || null,
+        content: replyContent.trim(),
+      }),
     });
     if (!response.ok) {
       const result = await response.json();
@@ -375,7 +419,10 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       return;
     }
     setReplyContent("");
+    setReplySubject("");
     setReplyStatus("");
+    setIsReplyOpen(false);
+    setIsReplyPreview(false);
     await loadMessages();
   }
 
@@ -385,7 +432,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       setComposeStatus(t("recipientRequired"));
       return;
     }
-
     if (composeMode === "direct") {
       if (composeRecipients.length === 0) {
         setComposeStatus(t("recipientRequired"));
@@ -417,7 +463,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         setViewMode("sent");
       }
     } else {
-      /* Clan or global broadcast */
       const clanId = composeMode === "global" ? "all" : composeClanId;
       if (composeMode === "clan" && !clanId) {
         setComposeStatus(t("clanAndMessageRequired"));
@@ -441,7 +486,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       setComposeStatus(t("broadcastSent", { count: result.data?.recipients ?? 0 }));
       setViewMode("sent");
     }
-
     resetCompose();
     setIsComposeOpen(false);
     await loadMessages();
@@ -453,24 +497,18 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   }
 
   function getMessageTypeLabel(messageType: string): string {
-    if (messageType === "broadcast") {
-      return t("broadcast");
-    }
-    if (messageType === "system") {
-      return t("systemPartner");
-    }
+    if (messageType === "broadcast") return t("broadcast");
+    if (messageType === "system") return t("systemPartner");
     return "";
   }
 
   const selectedConversation = filteredConversations.find((conv) => conv.partnerId === selectedPartnerId);
 
-  /** Total unread count across all inbox messages (always computed, regardless of viewMode). */
   const totalInboxUnread = useMemo(
     () => messages.filter((m) => m.recipient_id === userId && !m.is_read).length,
     [messages, userId],
   );
 
-  /* ── Compose mode options ── */
   const composeModeOptions = useMemo(() => {
     const options = [{ value: "direct", label: t("directMessage") }];
     if (isContentMgr) {
@@ -478,6 +516,9 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     }
     return options;
   }, [isContentMgr, t]);
+
+  const canReply =
+    selectedPartnerId !== SYSTEM_PARTNER_ID && !selectedConversation?.isBroadcastGroup && selectedPartnerId !== "";
 
   /* ── Render ── */
 
@@ -489,9 +530,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
           className="button"
           type="button"
           onClick={() => {
-            if (isComposeOpen) {
-              resetCompose();
-            }
+            if (isComposeOpen) resetCompose();
             setIsComposeOpen(!isComposeOpen);
           }}
         >
@@ -499,7 +538,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         </button>
       </div>
 
-      {/* Compose form */}
+      {/* ── Compose form ── */}
       {isComposeOpen ? (
         <section className="card col-span-full">
           <div className="card-header">
@@ -515,7 +554,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
             </div>
           </div>
           <form onSubmit={handleCompose}>
-            {/* Mode selector (only for content managers) */}
+            {/* Mode selector (content managers only) */}
             {isContentMgr ? (
               <div className="form-group">
                 <label id="recipientTypeLabel">{t("recipientType")}</label>
@@ -543,7 +582,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
             {composeMode === "direct" ? (
               <div className="form-group">
                 <label htmlFor="recipientSearch">{t("to")}</label>
-                {/* Selected recipient chips */}
                 {composeRecipients.length > 0 ? (
                   <div className="recipient-chips flex flex-wrap gap-1.5 mb-2">
                     {composeRecipients.map((recipient) => (
@@ -569,16 +607,13 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                     ))}
                   </div>
                 ) : null}
-                {/* Search input with dropdown */}
                 <div ref={searchWrapperRef} className="relative">
                   <input
                     id="recipientSearch"
                     value={recipientSearch}
                     onChange={(event) => setRecipientSearch(event.target.value)}
                     onFocus={() => {
-                      if (recipientResults.length > 0) {
-                        setIsSearchDropdownOpen(true);
-                      }
+                      if (recipientResults.length > 0) setIsSearchDropdownOpen(true);
                     }}
                     placeholder={t("searchRecipient")}
                     autoComplete="off"
@@ -590,21 +625,14 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                   ) : isSearchDropdownOpen && recipientResults.length > 0 ? (
                     <div
                       className="combobox-dropdown absolute left-0 right-0 z-10"
-                      style={{
-                        top: "100%",
-                        maxHeight: "240px",
-                        overflowY: "auto",
-                      }}
+                      style={{ top: "100%", maxHeight: "240px", overflowY: "auto" }}
                     >
                       {recipientResults.map((result) => (
                         <button
                           key={result.id}
                           type="button"
                           className="combobox-option py-2 px-3 text-left cursor-pointer block w-full"
-                          style={{
-                            border: "none",
-                            background: "none",
-                          }}
+                          style={{ border: "none", background: "none" }}
                           onMouseDown={(event) => {
                             event.preventDefault();
                             addRecipient({ id: result.id, label: result.label });
@@ -654,7 +682,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
 
             {/* Subject */}
             <div className="form-group">
-              <label htmlFor="composeSubject">{t("subjectOptional")}</label>
+              <label htmlFor="composeSubject">{t("subject")}</label>
               <input
                 id="composeSubject"
                 value={composeSubject}
@@ -663,17 +691,82 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
               />
             </div>
 
-            {/* Message content */}
+            {/* Message content with Write/Preview tabs + toolbar */}
             <div className="form-group">
               <label htmlFor="composeContent">{t("message")}</label>
-              <textarea
-                id="composeContent"
-                value={composeContent}
-                onChange={(event) => setComposeContent(event.target.value)}
-                placeholder={composeMode === "direct" ? t("messagePlaceholder") : t("broadcastPlaceholder")}
-                rows={4}
-                required
-              />
+              <div className="forum-editor-tabs">
+                <button
+                  type="button"
+                  className={`forum-editor-tab${!isComposePreview ? " active" : ""}`}
+                  onClick={() => setIsComposePreview(false)}
+                >
+                  {t("writeTab")}
+                </button>
+                <button
+                  type="button"
+                  className={`forum-editor-tab${isComposePreview ? " active" : ""}`}
+                  onClick={() => setIsComposePreview(true)}
+                >
+                  {t("previewTab")}
+                </button>
+              </div>
+              {isComposePreview ? (
+                <div className="forum-editor-preview">
+                  {composeContent.trim() ? (
+                    <ForumMarkdown content={composeContent} />
+                  ) : (
+                    <p className="text-muted" style={{ fontStyle: "italic" }}>
+                      {t("previewEmpty")}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <MarkdownToolbar
+                    textareaRef={composeTextareaRef}
+                    value={composeContent}
+                    onChange={setComposeContent}
+                    supabase={supabase}
+                    userId={userId}
+                    storageBucket={MESSAGE_IMAGE_BUCKET}
+                  />
+                  <textarea
+                    id="composeContent"
+                    ref={composeTextareaRef}
+                    value={composeContent}
+                    onChange={(event) => setComposeContent(event.target.value)}
+                    placeholder={composeMode === "direct" ? t("messagePlaceholder") : t("broadcastPlaceholder")}
+                    rows={8}
+                    required
+                    onPaste={(e) =>
+                      handleImagePaste(
+                        e,
+                        supabase,
+                        userId,
+                        insertAtComposeCursor,
+                        setIsComposeUploading,
+                        MESSAGE_IMAGE_BUCKET,
+                      )
+                    }
+                    onDrop={(e) =>
+                      handleImageDrop(
+                        e,
+                        supabase,
+                        userId,
+                        insertAtComposeCursor,
+                        setIsComposeUploading,
+                        MESSAGE_IMAGE_BUCKET,
+                      )
+                    }
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  />
+                  {isComposeUploading ? <div className="text-muted text-[0.8rem]">{t("uploadingImage")}</div> : null}
+                </>
+              )}
+              <p className="text-muted text-[0.75rem] mt-1">{t("markdownHint")}</p>
             </div>
 
             {/* Submit */}
@@ -688,9 +781,8 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       ) : null}
 
       <div className="messages-layout">
-        {/* Conversation list */}
+        {/* ── Conversation list ── */}
         <section className="card messages-list-panel">
-          {/* Inbox / Sent view tabs */}
           <div className="messages-view-tabs">
             <button
               className={`messages-view-tab ${viewMode === "inbox" ? "active" : ""}`}
@@ -742,6 +834,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
               ))}
             </div>
           </div>
+          {/* Conversation list — email-style: subject first */}
           <div className="messages-conversation-list">
             {isLoading ? (
               <div className="list-item">
@@ -759,19 +852,19 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                   className={`messages-conversation-item ${selectedPartnerId === conv.partnerId ? "active" : ""} ${conv.unreadCount > 0 ? "unread" : ""}`}
                   onClick={() => handleSelectConversation(conv.partnerId)}
                 >
-                  <div className="messages-conversation-header">
-                    <strong>{conv.partnerLabel}</strong>
-                    <span className="text-muted" style={{ fontSize: "0.75rem" }}>
+                  {/* Row 1: Subject + date */}
+                  <div className="messages-conversation-subject-row">
+                    <strong className="messages-conversation-subject">
+                      {conv.lastMessage.subject || t("noSubject")}
+                    </strong>
+                    <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
                       {formatLocalDateTime(conv.lastMessage.created_at, locale)}
                     </span>
                   </div>
-                  <div className="messages-conversation-preview">
-                    <span className="text-muted">
-                      {conv.lastMessage.subject
-                        ? conv.lastMessage.subject
-                        : conv.lastMessage.content.length > 60
-                          ? `${conv.lastMessage.content.slice(0, 60)}...`
-                          : conv.lastMessage.content}
+                  {/* Row 2: Sender/recipient + badges */}
+                  <div className="messages-conversation-sender-row">
+                    <span className="text-muted" style={{ fontSize: "0.82rem" }}>
+                      {viewMode === "inbox" ? t("from") : t("to")}: {conv.partnerLabel}
                     </span>
                     <span className="messages-meta">
                       {conv.unreadCount > 0 ? <span className="badge">{conv.unreadCount}</span> : null}
@@ -782,13 +875,19 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                       ) : null}
                     </span>
                   </div>
+                  {/* Row 3: Content preview */}
+                  <div className="messages-conversation-snippet">
+                    {conv.lastMessage.content.length > 80
+                      ? `${conv.lastMessage.content.slice(0, 80)}...`
+                      : conv.lastMessage.content}
+                  </div>
                 </button>
               ))
             )}
           </div>
         </section>
 
-        {/* Thread view */}
+        {/* ── Thread view (email-style cards) ── */}
         <section className="card messages-thread-panel">
           {!selectedPartnerId ? (
             <div className="messages-empty">
@@ -806,7 +905,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                   </div>
                 </div>
               </div>
-              {/* Broadcast info banner */}
               {selectedConversation?.isBroadcastGroup ? (
                 <div className="messages-broadcast-info">
                   {selectedConversation.messageType === "broadcast"
@@ -814,21 +912,41 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                     : t("multiRecipientInfoBanner", { count: selectedConversation.recipientCount })}
                 </div>
               ) : null}
+              {/* Email-style message cards */}
               <div className="messages-thread-list">
                 {selectedThread.map((message) => {
                   const isSelf = message.sender_id === userId;
                   const isSystem = message.message_type === "system";
+                  const senderLabel = isSelf
+                    ? t("you")
+                    : isSystem
+                      ? t("systemPartner")
+                      : getPartnerLabel(message.sender_id ?? SYSTEM_PARTNER_ID);
                   return (
                     <div
                       key={message.id}
-                      className={`messages-bubble ${isSelf ? "self" : ""} ${isSystem ? "system" : ""}`}
+                      className={`messages-email-card ${isSelf ? "sent" : ""} ${isSystem ? "system" : ""}`}
                     >
-                      {message.subject ? <div className="messages-bubble-subject">{message.subject}</div> : null}
-                      <div className="messages-bubble-content">{message.content}</div>
-                      <div className="messages-bubble-meta">
-                        <span className="text-muted" style={{ fontSize: "0.75rem" }}>
-                          {formatLocalDateTime(message.created_at, locale)}
+                      <div className="messages-email-header">
+                        <span className="messages-email-from">
+                          {t("from")}: <strong>{senderLabel}</strong>
                         </span>
+                        <span className="messages-email-date">{formatLocalDateTime(message.created_at, locale)}</span>
+                      </div>
+                      {message.subject ? <div className="messages-email-subject">{message.subject}</div> : null}
+                      <div className="messages-email-body">
+                        <ForumMarkdown content={message.content} />
+                      </div>
+                      <div className="messages-email-footer">
+                        {canReply && !isSelf ? (
+                          <button
+                            type="button"
+                            className="button text-[0.78rem]"
+                            onClick={() => openReplyToMessage(message)}
+                          >
+                            {t("reply")}
+                          </button>
+                        ) : null}
                         {message.recipient_id === userId ? (
                           <button
                             type="button"
@@ -836,7 +954,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                             onClick={() => handleDeleteMessage(message.id)}
                             aria-label={t("deleteMessage")}
                           >
-                            &times;
+                            {t("delete")}
                           </button>
                         ) : null}
                       </div>
@@ -844,21 +962,135 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                   );
                 })}
               </div>
-              {/* Reply bar: hide for system messages and broadcast groups */}
-              {selectedPartnerId !== SYSTEM_PARTNER_ID && !selectedConversation?.isBroadcastGroup ? (
-                <form className="messages-reply-bar" onSubmit={handleSendReply}>
-                  <input
-                    className="messages-reply-input"
-                    value={replyContent}
-                    onChange={(event) => setReplyContent(event.target.value)}
-                    placeholder={t("typeMessage")}
-                    required
-                  />
-                  <button className="button primary" type="submit">
-                    {t("send")}
-                  </button>
-                  {replyStatus ? <span className="text-muted">{replyStatus}</span> : null}
-                </form>
+
+              {/* ── Reply form (expandable) ── */}
+              {canReply ? (
+                <div className="messages-reply-form">
+                  {!isReplyOpen ? (
+                    <button
+                      type="button"
+                      className="button primary"
+                      onClick={() => {
+                        const lastReceived = [...selectedThread].reverse().find((m) => m.sender_id !== userId);
+                        if (lastReceived) {
+                          openReplyToMessage(lastReceived);
+                        } else {
+                          setIsReplyOpen(true);
+                        }
+                      }}
+                    >
+                      {t("reply")}
+                    </button>
+                  ) : (
+                    <form onSubmit={handleSendReply}>
+                      <div className="form-group mb-2">
+                        <label htmlFor="replySubject" className="text-[0.8rem]">
+                          {t("subject")}
+                        </label>
+                        <input
+                          id="replySubject"
+                          value={replySubject}
+                          onChange={(event) => setReplySubject(event.target.value)}
+                          placeholder={t("subjectPlaceholder")}
+                        />
+                      </div>
+                      <div className="form-group mb-2">
+                        <div className="forum-editor-tabs">
+                          <button
+                            type="button"
+                            className={`forum-editor-tab${!isReplyPreview ? " active" : ""}`}
+                            onClick={() => setIsReplyPreview(false)}
+                          >
+                            {t("writeTab")}
+                          </button>
+                          <button
+                            type="button"
+                            className={`forum-editor-tab${isReplyPreview ? " active" : ""}`}
+                            onClick={() => setIsReplyPreview(true)}
+                          >
+                            {t("previewTab")}
+                          </button>
+                        </div>
+                        {isReplyPreview ? (
+                          <div className="forum-editor-preview" style={{ minHeight: "100px" }}>
+                            {replyContent.trim() ? (
+                              <ForumMarkdown content={replyContent} />
+                            ) : (
+                              <p className="text-muted" style={{ fontStyle: "italic" }}>
+                                {t("previewEmpty")}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <MarkdownToolbar
+                              textareaRef={replyTextareaRef}
+                              value={replyContent}
+                              onChange={setReplyContent}
+                              supabase={supabase}
+                              userId={userId}
+                              storageBucket={MESSAGE_IMAGE_BUCKET}
+                            />
+                            <textarea
+                              ref={replyTextareaRef}
+                              value={replyContent}
+                              onChange={(event) => setReplyContent(event.target.value)}
+                              placeholder={t("composeReply")}
+                              rows={6}
+                              required
+                              onPaste={(e) =>
+                                handleImagePaste(
+                                  e,
+                                  supabase,
+                                  userId,
+                                  insertAtReplyCursor,
+                                  setIsReplyUploading,
+                                  MESSAGE_IMAGE_BUCKET,
+                                )
+                              }
+                              onDrop={(e) =>
+                                handleImageDrop(
+                                  e,
+                                  supabase,
+                                  userId,
+                                  insertAtReplyCursor,
+                                  setIsReplyUploading,
+                                  MESSAGE_IMAGE_BUCKET,
+                                )
+                              }
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                            />
+                            {isReplyUploading ? (
+                              <div className="text-muted text-[0.8rem]">{t("uploadingImage")}</div>
+                            ) : null}
+                          </>
+                        )}
+                        <p className="text-muted text-[0.75rem] mt-1">{t("markdownHint")}</p>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <button className="button primary" type="submit">
+                          {t("send")}
+                        </button>
+                        <button
+                          className="button"
+                          type="button"
+                          onClick={() => {
+                            setIsReplyOpen(false);
+                            setReplyContent("");
+                            setReplySubject("");
+                            setIsReplyPreview(false);
+                          }}
+                        >
+                          {t("cancel")}
+                        </button>
+                        {replyStatus ? <span className="text-muted">{replyStatus}</span> : null}
+                      </div>
+                    </form>
+                  )}
+                </div>
               ) : null}
             </>
           )}

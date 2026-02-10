@@ -90,3 +90,21 @@ alter table public.messages
 create index if not exists messages_broadcast_group_id_idx
   on public.messages (broadcast_group_id)
   where broadcast_group_id is not null;
+
+-- 11. Storage bucket for message image uploads (email-style rich text messages)
+-- Run once in Supabase SQL editor or via migrations:
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('message-images', 'message-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow authenticated users to upload to message-images bucket
+CREATE POLICY "message_images_insert"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'message-images');
+
+-- Allow public read access for message images
+CREATE POLICY "message_images_select"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'message-images');

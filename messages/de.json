@@ -625,7 +625,15 @@
     "sentToRecipients": "Gesendet an {count} Empfänger",
     "broadcastSummary": "Broadcast-Nachricht",
     "broadcastInfoBanner": "Dieser Broadcast wurde an {count} Empfänger gesendet.",
-    "multiRecipientInfoBanner": "Diese Nachricht wurde an {count} Empfänger gesendet."
+    "multiRecipientInfoBanner": "Diese Nachricht wurde an {count} Empfänger gesendet.",
+    "writeTab": "Schreiben",
+    "previewTab": "Vorschau",
+    "previewEmpty": "Vorschau wird angezeigt, sobald Inhalt vorhanden ist.",
+    "markdownHint": "Markdown wird unterstützt. Bilder per Einfügen oder Drag & Drop hinzufügen.",
+    "uploadingImage": "Bild wird hochgeladen…",
+    "noSubject": "(Kein Betreff)",
+    "composeReply": "Antwort schreiben…",
+    "you": "Du"
   },
   "profile": {
     "breadcrumb": "TotalChiller \u2022 Konto",

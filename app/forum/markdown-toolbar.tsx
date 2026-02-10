@@ -33,7 +33,7 @@ const TOOLBAR_ACTIONS: ToolbarAction[] = [
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const STORAGE_BUCKET = "forum-images";
+const DEFAULT_STORAGE_BUCKET = "forum-images";
 
 /* ─── Props ─── */
 
@@ -45,6 +45,8 @@ interface MarkdownToolbarProps {
   readonly supabase?: SupabaseClient;
   /** Current user ID — required for image upload. */
   readonly userId?: string;
+  /** Storage bucket for image uploads (default: "forum-images"). */
+  readonly storageBucket?: string;
 }
 
 /** Generate a unique storage path for an uploaded file. */
@@ -58,7 +60,14 @@ function generateStoragePath(userId: string, fileName: string): string {
  * Formatting toolbar for markdown text areas.
  * Supports text formatting, image upload via file picker, paste, or drag-and-drop.
  */
-function MarkdownToolbar({ textareaRef, value, onChange, supabase, userId }: MarkdownToolbarProps): JSX.Element {
+function MarkdownToolbar({
+  textareaRef,
+  value,
+  onChange,
+  supabase,
+  userId,
+  storageBucket = DEFAULT_STORAGE_BUCKET,
+}: MarkdownToolbarProps): JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string>("");
@@ -119,13 +128,13 @@ function MarkdownToolbar({ textareaRef, value, onChange, supabase, userId }: Mar
     try {
       const filePath = generateStoragePath(userId, file.name || "image.png");
       const { error: uploadErr } = await supabase.storage
-        .from(STORAGE_BUCKET)
+        .from(storageBucket)
         .upload(filePath, file, { cacheControl: "3600", upsert: false });
       if (uploadErr) {
         setUploadError(`Upload failed: ${uploadErr.message}`);
         return;
       }
-      const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from(storageBucket).getPublicUrl(filePath);
       const altText = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
       insertAtCursor(`\n![${altText}](${urlData.publicUrl})\n`);
     } catch {
@@ -214,6 +223,7 @@ export function handleImagePaste(
   userId: string,
   insertFn: (markdown: string) => void,
   setUploading: (v: boolean) => void,
+  bucket: string = DEFAULT_STORAGE_BUCKET,
 ): void {
   if (!supabase || !userId) return;
   const items = e.clipboardData?.items;
@@ -227,12 +237,12 @@ export function handleImagePaste(
     setUploading(true);
     const filePath = generateStoragePath(userId, file.name || "pasted-image.png");
     void supabase.storage
-      .from(STORAGE_BUCKET)
+      .from(bucket)
       .upload(filePath, file, { cacheControl: "3600", upsert: false })
       .then(({ error }) => {
         setUploading(false);
         if (error) return;
-        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
+        const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
         const alt = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
         insertFn(`\n![${alt}](${data.publicUrl})\n`);
       });
@@ -250,6 +260,7 @@ export function handleImageDrop(
   userId: string,
   insertFn: (markdown: string) => void,
   setUploading: (v: boolean) => void,
+  bucket: string = DEFAULT_STORAGE_BUCKET,
 ): void {
   if (!supabase || !userId) return;
   const files = e.dataTransfer?.files;
@@ -271,12 +282,12 @@ export function handleImageDrop(
     setUploading(true);
     const filePath = generateStoragePath(userId, file.name ?? "image");
     void supabase.storage
-      .from(STORAGE_BUCKET)
+      .from(bucket)
       .upload(filePath, file, { cacheControl: "3600", upsert: false })
       .then(({ error }) => {
         setUploading(false);
         if (error) return;
-        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
+        const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
         const alt = (file.name ?? "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
         insertFn(`\n![${alt}](${data.publicUrl})\n`);
       });

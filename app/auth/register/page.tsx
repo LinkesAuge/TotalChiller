@@ -11,6 +11,7 @@ interface RegisterFormState {
   readonly password: string;
   readonly confirmPassword: string;
   readonly status: string;
+  readonly isRegistered: boolean;
 }
 
 const initialFormState: RegisterFormState = {
@@ -19,10 +20,37 @@ const initialFormState: RegisterFormState = {
   password: "",
   confirmPassword: "",
   status: "",
+  isRegistered: false,
 };
 
 /**
+ * Renders a single numbered step in the post-registration success panel.
+ */
+function SuccessStep({
+  step,
+  title,
+  text,
+}: {
+  readonly step: number;
+  readonly title: string;
+  readonly text: string;
+}): JSX.Element {
+  return (
+    <div className="flex gap-3 items-start">
+      <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gold/20 text-gold flex items-center justify-center text-sm font-bold">
+        {step}
+      </span>
+      <div>
+        <p className="m-0 font-semibold text-[0.88rem]">{title}</p>
+        <p className="m-0 mt-0.5 text-[0.82rem] text-muted">{text}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Renders the Supabase email/password registration form.
+ * After successful registration, displays a success panel with clear next steps.
  */
 function RegisterPage(): JSX.Element {
   const [formState, setFormState] = useState<RegisterFormState>(initialFormState);
@@ -53,7 +81,7 @@ function RegisterPage(): JSX.Element {
       email: formState.email,
       password: formState.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/auth/login`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/profile`,
         data: {
           username: nextUsername,
           display_name: nextUsername,
@@ -64,7 +92,43 @@ function RegisterPage(): JSX.Element {
       updateFormState({ status: error.message });
       return;
     }
-    updateFormState({ status: t("created") });
+    updateFormState({ status: t("created"), isRegistered: true });
+  }
+
+  if (formState.isRegistered) {
+    return (
+      <div className="flex flex-col items-center gap-6 pt-10 mx-auto max-w-[720px]">
+        <section className="card max-w-[480px] w-full">
+          <div className="tooltip-head">
+            <Image
+              src="/assets/vip/back_tooltip_2.png"
+              alt="Card header decorative background"
+              className="tooltip-head-bg"
+              width={400}
+              height={44}
+            />
+            <div className="tooltip-head-inner">
+              <Image src="/assets/vip/batler_icons_star_4.png" alt="Success icon" width={18} height={18} />
+              <h1 className="card-title">{t("successHeading")}</h1>
+            </div>
+          </div>
+          <div className="card-body leading-relaxed text-sm">
+            <p className="m-0 mb-4">{t("successIntro")}</p>
+            <div className="flex flex-col gap-4">
+              <SuccessStep step={1} title={t("successStep1Title")} text={t("successStep1Text")} />
+              <SuccessStep step={2} title={t("successStep2Title")} text={t("successStep2Text")} />
+              <SuccessStep step={3} title={t("successStep3Title")} text={t("successStep3Text")} />
+            </div>
+            <p className="mt-4 mb-0 text-[0.8rem] text-muted italic">{t("successNote")}</p>
+            <div className="mt-4 text-center">
+              <a href="/auth/login" className="text-gold no-underline text-[0.88rem]">
+                {t("backToLogin")}
+              </a>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -79,12 +143,7 @@ function RegisterPage(): JSX.Element {
             height={44}
           />
           <div className="tooltip-head-inner">
-            <Image
-              src="/assets/vip/batler_icons_star_4.png"
-              alt="Registration icon"
-              width={18}
-              height={18}
-            />
+            <Image src="/assets/vip/batler_icons_star_4.png" alt="Registration icon" width={18} height={18} />
             <h1 className="card-title">{t("heading")}</h1>
           </div>
         </div>

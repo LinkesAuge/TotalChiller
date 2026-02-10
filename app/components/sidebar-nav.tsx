@@ -6,7 +6,6 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
 import { ADMIN_SECTIONS } from "@/app/admin/admin-sections";
 import { useSidebar } from "./sidebar-context";
@@ -55,7 +54,6 @@ interface NavSection {
   readonly title: string;
   readonly groupLabel: string;
   readonly items: readonly NavItem[];
-  readonly adminOnly?: boolean;
 }
 
 /** Maps ADMIN_SECTIONS labelKey to sidebar-specific display properties. */
@@ -88,7 +86,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Admin",
     groupLabel: "administration",
-    adminOnly: true,
     items: ADMIN_SECTIONS.map((section) => {
       const meta = SIDEBAR_ADMIN_META[section.labelKey];
       return {
@@ -150,7 +147,6 @@ function SidebarNav(): JSX.Element {
   const t = useTranslations("nav");
   const clanContext = useClanContext();
   const { isAuthenticated, isLoading } = useAuth();
-  const { isAdmin } = useUserRole(supabase);
   const [forumCategories, setForumCategories] = useState<ForumCategorySub[]>([]);
 
   /* Load forum categories when on the forum page */
@@ -216,9 +212,6 @@ function SidebarNav(): JSX.Element {
         <>
           {/* Nav sections (no clan selector) */}
           {NAV_SECTIONS.map((section, sectionIndex) => {
-            if (section.adminOnly && !isAdmin) {
-              return null;
-            }
             return (
               <div className="nav-group" key={section.title}>
                 {sectionIndex > 0 && <div className="nav-group-divider" />}

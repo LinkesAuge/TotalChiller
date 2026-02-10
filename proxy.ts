@@ -88,6 +88,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     if (!isAdmin) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/not-authorized";
+      redirectUrl.searchParams.set("reason", "admin");
       return NextResponse.redirect(redirectUrl);
     }
     if (request.nextUrl.pathname === "/data-import") {

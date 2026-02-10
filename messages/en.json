@@ -1131,6 +1131,7 @@
   "notAuthorized": {
     "title": "Not Authorized",
     "message": "You do not have access to clan areas yet. Please create a game account in your profile first. Once an admin activates and assigns you to a clan, you will get access.",
+    "adminMessage": "This area is restricted to administrators. If you believe you should have access, please contact an administrator.",
     "goHome": "Go to Home",
     "goProfile": "Go to Profile"
   },

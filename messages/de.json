@@ -1131,6 +1131,7 @@
   "notAuthorized": {
     "title": "Nicht autorisiert",
     "message": "Du hast noch keinen Zugang zu Clan-Bereichen. Erstelle zuerst einen Game-Account in deinem Profil. Nach Freischaltung und Clan-Zuweisung durch einen Admin erhältst du Zugang.",
+    "adminMessage": "Dieser Bereich ist nur für Administratoren zugänglich. Wenn du glaubst, dass du Zugang haben solltest, wende dich bitte an einen Administrator.",
     "goHome": "Zur Startseite",
     "goProfile": "Zum Profil"
   },

@@ -76,7 +76,7 @@ Pencil button is always an **absolute hover overlay** — never takes layout spa
 - `PATCH /api/site-content` — Admin-only.
 - `GET /api/site-list-items?page=X` — Public (service role client).
 - `PATCH /api/site-list-items` — Admin-only (create/update/delete/reorder).
-- **CRITICAL**: Both `/api/site-content` and `/api/site-list-items` MUST be in `isPublicPath()` in `proxy.ts`.
+- All `/api/` routes bypass the proxy auth redirect by default (they handle their own auth). The CMS API paths are also listed in `isPublicPath()` for historical reasons but this is now redundant.
 
 ## CSS
 
@@ -99,4 +99,4 @@ Pencil button is always an **absolute hover overlay** — never takes layout spa
 4. Use `<EditableList>` for dynamic list sections.
 5. Add `<LoadingSkeleton>` for loading and `<ErrorBanner>` for errors.
 6. Add seed data to `Documentation/migrations/site_content.sql` and/or `site_list_items.sql`.
-7. Ensure API paths are in `isPublicPath()` in `proxy.ts` (already done for both).
+7. API routes bypass the proxy auth redirect by default — no need to add new API paths to `isPublicPath()`.

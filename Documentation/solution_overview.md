@@ -126,7 +126,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Route pages: `news`, `forum`, `charts`, `events`, `messages`, `admin`, `admin/data-import`, `admin/data-table`.
 - Supabase Auth wiring in `lib/supabase/` and `app/auth/login`.
 - Auth pages: `app/auth/register`, `app/auth/forgot`.
-- Proxy guard: `proxy.ts` redirects unauthenticated users to `/home`, enforces admin access for admin routes with `/not-authorized` fallback.
+- Proxy guard: `proxy.ts` redirects unauthenticated users to `/home` for page routes, enforces admin access for admin routes with `/not-authorized` fallback. API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns JSON error responses.
 - Added `app/auth/update` for reset flows and `app/components/auth-actions.tsx` for sign-out (restyled with Sanctum dropdown panel, icons, and dividers).
 - Protected example: `app/profile` (middleware enforces auth).
 
@@ -350,6 +350,8 @@ app/admin/
 - **Clan Management**: Deleting a game account now refreshes the clan membership list.
 - **Clan Management**: Switching clans clears stale membership edits and errors; added race condition guards for concurrent fetches.
 - **RLS**: `clans` table was missing `enable row level security` — policies existed but had no effect. Run `alter table public.clans enable row level security;` to fix.
+- **Proxy API redirect** (Feb 2026): API routes (`/api/`) were being redirected to `/home` by the proxy for unauthenticated requests, causing them to return HTML instead of JSON error responses. Fixed by exempting all `/api/` paths from the proxy auth redirect — each API route handles its own authentication.
+- **Create-user variable redeclaration** (Feb 2026): `app/api/admin/create-user/route.ts` had a duplicate `const { data: userData }` declaration in the same function scope (once for auth check, once for invite). Renamed the second to `inviteData`/`inviteError`.
 
 ## Content Security Policy
 

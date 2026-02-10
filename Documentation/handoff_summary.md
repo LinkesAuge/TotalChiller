@@ -57,7 +57,8 @@ This file is a compact context transfer for a new chat.
   - Stored in `localStorage`; active clan/account selection is visible in the sidebar.
   - Files: `app/components/sidebar-shell.tsx`, `app/components/use-clan-context.ts`
 - **Admin gating**
-  - Admin routes protected by `proxy.ts` with `/not-authorized` fallback.
+  - Admin page routes protected by `proxy.ts` with `/not-authorized` fallback.
+  - API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns proper JSON error responses (401/403).
   - Admin toggle + safeguard to keep at least one admin.
   - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
 - **Admin UI** (refactored Feb 2026 — modular architecture)
@@ -108,7 +109,7 @@ This file is a compact context transfer for a new chat.
     - `PATCH /api/site-content` — Admin-only (upsert/delete).
     - `GET /api/site-list-items?page=X` — Public (service role client).
     - `PATCH /api/site-list-items` — Admin-only (create/update/delete/reorder).
-    - **CRITICAL**: Both `/api/site-content` and `/api/site-list-items` must be in `isPublicPath()` in `proxy.ts`.
+    - Both `/api/site-content` and `/api/site-list-items` are listed in `isPublicPath()` in `proxy.ts`. Note: all `/api/` routes now bypass the proxy auth redirect by default, so these entries are redundant but kept for documentation clarity.
   - **Pages**: Home, About, Contact, Privacy Policy — all use the same `useSiteContent` hook pattern.
   - **Testing**: 40 Playwright tests (API, Markdown rendering, public view, responsive, components).
   - **Migrations**: `site_content.sql`, `site_list_items.sql`, `cms_icons_bucket.sql`, `fix_broken_markdown.sql`.
@@ -272,7 +273,7 @@ This file is a compact context transfer for a new chat.
   - Homepage "Über uns" section with THC hero background image (opacity 0.32, no blur).
   - "Erfahre mehr über uns" button in Über uns section (primary button style, centered).
   - "Clan-Neuigkeiten" replaces "Öffentliche Neuigkeiten" as section title.
-  - **Proxy**: Both `/api/site-content` and `/api/site-list-items` whitelisted in `isPublicPath()` in `proxy.ts`.
+  - **Proxy**: Both `/api/site-content` and `/api/site-list-items` listed in `isPublicPath()` in `proxy.ts` (now redundant since all `/api/` routes bypass the auth redirect, but kept for clarity).
   - 40 Playwright tests covering API, Markdown rendering, public view, responsive, and component tests.
 - **Branding update** (Feb 2026):
   - "The Chillers" → "[THC] Chiller & Killer" across all pages and metadata.
@@ -297,6 +298,12 @@ This file is a compact context transfer for a new chat.
   - 4 shared hooks (`usePagination`, `useSortable`, `useConfirmDelete`, `useRuleList`) eliminating ~900 lines of duplication.
   - 4 shared components (`DangerConfirmModal`, `SortableColumnHeader`, `PaginationBar`, `RuleImportModal`).
   - Updated Playwright tests with async assertions and 15s timeouts for lazy-loaded content.
+- **Proxy API route fix** (Feb 2026):
+  - API routes (`/api/`) were being redirected to `/home` by the proxy for unauthenticated requests, returning HTML instead of proper JSON errors.
+  - Fixed: all `/api/` paths now bypass the proxy auth redirect. Each API route handles its own authentication (returning 401/403 JSON responses as appropriate).
+  - File: `proxy.ts`
+- **Create-user route fix** (Feb 2026):
+  - Fixed duplicate `const { data: userData }` declaration in `app/api/admin/create-user/route.ts` (same-scope redeclaration). Renamed second instance to `inviteData`/`inviteError`.
 - **Linting**
   - ESLint configured with Next.js flat config.
   - Run `npx eslint .`
@@ -401,15 +408,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-## Test Suite (2026-02-09, updated 2026-02-10)
+## Test Suite (2026-02-10)
 
 Comprehensive Playwright test suite covering all page functionality, organized by feature area.
 
-- **~253 tests** across 22 spec files in `tests/`.
+- **290 tests passing** (10 skipped) across 22 spec files in `tests/`.
 - **Shared auth helper** at `tests/helpers/auth.ts` — `loginAs(page, role)` logs in as one of 6 test users (owner, admin, moderator, editor, member, guest).
 - **Test user setup**: `Documentation/test-user-setup.sql` — creates roles for the pre-provisioned test users.
 - **Design document**: `Documentation/plans/2026-02-09-test-suite-design.md`.
 - **Admin tests updated** for lazy-loaded tab architecture — uses Playwright's auto-retrying `toContainText` assertions with 15s timeouts to wait for `next/dynamic` chunks. Added tests for logs and forum tabs.
+- **Error path tests** verify API routes return proper JSON error responses (400/401) for invalid or unauthenticated requests.
 
 | Category                               | File                           | Auth  |
 | -------------------------------------- | ------------------------------ | ----- |
@@ -446,6 +454,7 @@ Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
 ## Completed (Feb 2026)
 
 - **Admin panel architecture refactoring** — monolithic 6,286-line `admin-client.tsx` refactored into modular architecture with shared hooks, components, context, and lazy-loaded tabs. See "Admin UI" section above for full file listing.
+- **Proxy API route fix** — API routes no longer get redirected to `/home` for unauthenticated requests; each route returns proper JSON errors. Fixed duplicate variable declaration in `create-user/route.ts`.
 - **Website improvement plan — partial implementation**:
   - API rate limiting (sliding-window, strict/standard/relaxed tiers) — `lib/rate-limit.ts`
   - Zod input validation on all API routes
@@ -458,7 +467,7 @@ Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
   - React Suspense streaming for admin, profile, messages pages
   - Stricter TypeScript (`strict: true` in `tsconfig.json`)
   - Developer tooling: Prettier, Husky pre-commit hooks, lint-staged, GitHub Actions CI
-  - Playwright E2E test suite (~253 tests across 22 spec files)
+  - Playwright E2E test suite (290 tests passing across 22 spec files)
   - Accessibility tests with `@axe-core/playwright`
   - Internationalization of hardcoded German strings in `editable-text.tsx` and `editable-list.tsx`
 
@@ -487,7 +496,7 @@ Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
 - CMS content is loaded via `useSiteContent(page)` hook on all public pages (home, about, contact, privacy-policy). Text fields from `site_content`, list items from `site_list_items`. Falls back to `next-intl` translations if CMS has no data.
 - CMS edit controls (pencil buttons) are only visible to admins on hover. All content is publicly visible.
 - CMS API uses service role client for reads (bypasses RLS) and admin-checks for writes.
-- **CMS API must be in public paths**: Both `/api/site-content` and `/api/site-list-items` are whitelisted in `isPublicPath()` in `proxy.ts`. Without this, unauthenticated users get redirected and see only fallback content.
+- **API routes bypass proxy redirect**: All `/api/` routes bypass the proxy's auth redirect and handle their own authentication, returning proper JSON error responses. The CMS APIs (`/api/site-content`, `/api/site-list-items`) are also listed in `isPublicPath()` for historical reasons but this is now redundant.
 - CMS Markdown rendering uses `CmsMarkdown` (not `ForumMarkdown`). CSS class `.cms-md` inherits parent styles. Built-in `sanitizeCmsMarkdown()` auto-fixes broken emphasis markers (`**word **` → `**word**`).
 - Homepage hero background uses `thc_hero.png` at 32% opacity with no blur effect.
 - Buttons standardized: "Registrieren"/"Register" for registration, "Einloggen"/"Sign In" for login, across all pages.

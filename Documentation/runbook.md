@@ -59,6 +59,9 @@ Open: `http://localhost:3000`
 
 - Unauthenticated `/` redirects to `/home`
 - Authenticated `/home` redirects to `/`
+- **API routes** (`/api/`) are **not** redirected by the proxy — they handle their own auth and return JSON error responses (e.g. 401, 403)
+- Non-API, non-public page routes redirect unauthenticated users to `/home`
+- Admin page routes (`/admin`, `/data-import`, `/data-table`) require admin role; non-admins redirected to `/not-authorized`
 
 ## 6) Core Pages
 
@@ -159,9 +162,11 @@ In `/events`:
 - Calendar view with day-detail panel (auto-scrolls on day click)
 - Optional organizer field
 
-## 16) Running Tests
+## 15) Running Tests
 
 ### Playwright E2E Tests
+
+**Current status (2026-02-10):** 290 tests passing, 10 skipped.
 
 ```
 npx playwright test                          # Run all tests (all browsers)
@@ -195,3 +200,4 @@ Before running tests for the first time, create test users by running `Documenta
 - If admin tab shows loading skeleton indefinitely: check browser devtools network tab for chunk load errors (dynamic imports via `next/dynamic`)
 - If admin tests fail with timeouts: increase the `timeout` value in `toContainText()` / `toBeVisible()` assertions, or check that the dev server is running
 - If `.next` cache causes stale behavior after refactoring: delete `.next/` and restart `npm run dev`
+- If API routes return HTML instead of JSON: verify that `proxy.ts` skips the auth redirect for `/api/` paths (the proxy should not redirect API requests — they handle their own auth)

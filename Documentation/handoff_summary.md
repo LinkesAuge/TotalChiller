@@ -2,6 +2,19 @@
 
 This file is a compact context transfer for a new chat.
 
+## Roles & Permissions Refactor (2026-02-09)
+
+- **Dropped 6 unused tables**: `roles`, `ranks`, `permissions`, `role_permissions`, `rank_permissions`, `cross_clan_permissions`.
+- **Dropped `profiles.is_admin`** column (redundant with `user_roles.role`).
+- **New `lib/permissions.ts`**: static permission map — single source of truth for role → permission mapping. Components use `hasPermission()`, `canDo()`, `isAdmin()`, `isContentManager()`.
+- **New `lib/hooks/use-user-role.ts`**: React hook that fetches user role and exposes permission helpers.
+- **Simplified `is_any_admin()` SQL function**: now checks `user_roles` only (no `profiles.is_admin`).
+- **New `has_permission(text)` SQL function**: mirrors the TypeScript permission map for use in RLS policies.
+- **Updated RLS policies**: articles and events now use `has_permission()` for fine-grained access control.
+- **Ranks on `game_account_clan_memberships`** are now purely cosmetic (reflect in-game rank, no functional impact).
+- **Migration**: `Documentation/migrations/roles_permissions_cleanup.sql`.
+- **All ~20 TypeScript files refactored** to use the new permission system instead of hardcoded role checks and `profiles.is_admin`.
+
 ## Current State (Implemented)
 
 - **App scaffold + theme** with App Router and global styles.
@@ -374,6 +387,36 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
+
+## Test Suite (2026-02-09)
+
+Comprehensive Playwright test suite covering all page functionality, organized by feature area.
+
+- **~251 tests** across 15 spec files in `tests/`.
+- **Shared auth helper** at `tests/helpers/auth.ts` — `loginAs(page, role)` logs in as one of 6 test users (owner, admin, moderator, editor, member, guest).
+- **Test user setup**: `Documentation/test-user-setup.sql` — creates roles for the pre-provisioned test users.
+- **Design document**: `Documentation/plans/2026-02-09-test-suite-design.md`.
+
+| Category                               | File                           | Auth  |
+| -------------------------------------- | ------------------------------ | ----- |
+| Smoke / page loads                     | `smoke.spec.ts`                | No    |
+| Auth forms                             | `auth.spec.ts`                 | No    |
+| Navigation / sidebar                   | `navigation.spec.ts`           | Mixed |
+| API contracts                          | `api-endpoints.spec.ts`        | No    |
+| CMS pages                              | `cms-pages.spec.ts`            | Mixed |
+| CMS API/components/responsive/markdown | `cms-*.spec.ts` (pre-existing) | No    |
+| News / Articles                        | `news.spec.ts`                 | Yes   |
+| Events / Calendar                      | `events.spec.ts`               | Yes   |
+| Forum                                  | `forum.spec.ts`                | Yes   |
+| Messages                               | `messages.spec.ts`             | Yes   |
+| Profile & Settings                     | `profile-settings.spec.ts`     | Yes   |
+| Charts                                 | `charts.spec.ts`               | Yes   |
+| Dashboard                              | `dashboard.spec.ts`            | Yes   |
+| Admin panel                            | `admin.spec.ts`                | Yes   |
+| Permissions unit                       | `permissions-unit.spec.ts`     | No    |
+| Role-based E2E                         | `roles-permissions.spec.ts`    | Yes   |
+
+Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
 
 ## Remaining TODOs (Suggested Next Steps)
 

@@ -1,18 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import useClanContext from "../components/use-clan-context";
 import DatePicker from "../components/date-picker";
 import AuthActions from "../components/auth-actions";
 import SectionHero from "../components/section-hero";
-import {
-  ScoreLineChart,
-  TopPlayersBar,
-  ChestTypePie,
-  PersonalScoreChart,
-  SummaryPanel,
-} from "./chart-components";
+import { ScoreLineChart, TopPlayersBar, ChestTypePie, PersonalScoreChart, SummaryPanel } from "./chart-components";
 import type { ChartsApiResponse, ChartSummary } from "./chart-types";
 
 /** Empty summary used as default before data loads. */
@@ -126,7 +121,15 @@ function ChartsClient(): JSX.Element {
     <>
       {/* Top Bar */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -144,129 +147,121 @@ function ChartsClient(): JSX.Element {
       />
 
       <div className="content-inner">
-      <div className="grid">
-        {/* ── Filters ── */}
-        <section className="panel" style={{ gridColumn: "1 / -1" }}>
-          <div className="card-title" style={{ marginBottom: 12 }}>{t("filters")}</div>
-          <div className="filter-bar list inline" style={{ gap: 16, alignItems: "flex-end" }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label htmlFor="chart-date-from">{t("from")}</label>
-              <DatePicker value={dateFrom} onChange={setDateFrom} />
+        <div className="grid">
+          {/* ── Filters ── */}
+          <section className="panel" style={{ gridColumn: "1 / -1" }}>
+            <div className="card-title" style={{ marginBottom: 12 }}>
+              {t("filters")}
             </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label htmlFor="chart-date-to">{t("to")}</label>
-              <DatePicker value={dateTo} onChange={setDateTo} />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label htmlFor="chart-player">{t("player")}</label>
-              <input
-                id="chart-player"
-                type="text"
-                placeholder={t("playerPlaceholder")}
-                value={playerFilter}
-                onChange={(e) => setPlayerFilter(e.target.value)}
-                style={{ padding: "8px 12px", fontSize: "0.85rem", minWidth: 160 }}
-              />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label htmlFor="chart-source">{t("source")}</label>
-              <input
-                id="chart-source"
-                type="text"
-                placeholder={t("sourcePlaceholder")}
-                value={sourceFilter}
-                onChange={(e) => setSourceFilter(e.target.value)}
-                style={{ padding: "8px 12px", fontSize: "0.85rem", minWidth: 160 }}
-              />
-            </div>
-            {hasFilters && (
-              <button
-                type="button"
-                className="button"
-                onClick={handleClearFilters}
-                style={{ alignSelf: "flex-end" }}
-              >
-                {t("clear")}
-              </button>
-            )}
-          </div>
-        </section>
-
-        {/* ── Error ── */}
-        {errorMessage && (
-          <div className="alert error" style={{ gridColumn: "1 / -1" }}>
-            {errorMessage}
-          </div>
-        )}
-
-        {/* ── Loading ── */}
-        {isLoading && (
-          <div
-            className="alert info loading"
-            style={{ gridColumn: "1 / -1" }}
-          >
-            {t("loadingCharts")}
-          </div>
-        )}
-
-        {/* ── Summary Panel ── */}
-        <section className="panel" style={{ gridColumn: "span 1" }}>
-          <div className="card-title">{t("summary")}</div>
-          <SummaryPanel summary={chartData.summary} />
-        </section>
-
-        {/* ── Personal Score ── */}
-        <section className="card" style={{ gridColumn: "span 1" }}>
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("personalScore")}</div>
-              <div className="card-subtitle">{t("personalScoreSubtitle")}</div>
-            </div>
-            <span className="badge">{t("badgeLine")}</span>
-          </div>
-          <PersonalScoreChart data={chartData.personalScore} />
-        </section>
-
-        {/* ── Clan Score Over Time ── */}
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("clanScoreOverTime")}</div>
-              <div className="card-subtitle">
-                {dateFrom || dateTo
-                  ? `${dateFrom || t("start")} – ${dateTo || t("now")}`
-                  : t("allTime")}
+            <div className="filter-bar list inline" style={{ gap: 16, alignItems: "flex-end" }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="chart-date-from">{t("from")}</label>
+                <DatePicker value={dateFrom} onChange={setDateFrom} />
               </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="chart-date-to">{t("to")}</label>
+                <DatePicker value={dateTo} onChange={setDateTo} />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="chart-player">{t("player")}</label>
+                <input
+                  id="chart-player"
+                  type="text"
+                  placeholder={t("playerPlaceholder")}
+                  value={playerFilter}
+                  onChange={(e) => setPlayerFilter(e.target.value)}
+                  style={{ padding: "8px 12px", fontSize: "0.85rem", minWidth: 160 }}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="chart-source">{t("source")}</label>
+                <input
+                  id="chart-source"
+                  type="text"
+                  placeholder={t("sourcePlaceholder")}
+                  value={sourceFilter}
+                  onChange={(e) => setSourceFilter(e.target.value)}
+                  style={{ padding: "8px 12px", fontSize: "0.85rem", minWidth: 160 }}
+                />
+              </div>
+              {hasFilters && (
+                <button type="button" className="button" onClick={handleClearFilters} style={{ alignSelf: "flex-end" }}>
+                  {t("clear")}
+                </button>
+              )}
             </div>
-            <span className="badge">{t("badgeLine")}</span>
-          </div>
-          <ScoreLineChart data={chartData.scoreOverTime} />
-        </section>
+          </section>
 
-        {/* ── Top Players ── */}
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("topPlayers")}</div>
-              <div className="card-subtitle">{t("byTotalScore")}</div>
+          {/* ── Error ── */}
+          {errorMessage && (
+            <div className="alert error" style={{ gridColumn: "1 / -1" }}>
+              {errorMessage}
             </div>
-            <span className="badge">{t("badgeBar")}</span>
-          </div>
-          <TopPlayersBar data={chartData.topPlayers} />
-        </section>
+          )}
 
-        {/* ── Chest Type Distribution ── */}
-        <section className="card" style={{ gridColumn: "1 / -1" }}>
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("chestTypes")}</div>
-              <div className="card-subtitle">{t("distributionByCount")}</div>
+          {/* ── Loading ── */}
+          {isLoading && (
+            <div className="alert info loading" style={{ gridColumn: "1 / -1" }}>
+              {t("loadingCharts")}
             </div>
-            <span className="badge">{t("badgePie")}</span>
-          </div>
-          <ChestTypePie data={chartData.chestTypes} height={320} />
-        </section>
-      </div>
+          )}
+
+          {/* ── Summary Panel ── */}
+          <section className="panel" style={{ gridColumn: "span 1" }}>
+            <div className="card-title">{t("summary")}</div>
+            <SummaryPanel summary={chartData.summary} />
+          </section>
+
+          {/* ── Personal Score ── */}
+          <section className="card" style={{ gridColumn: "span 1" }}>
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("personalScore")}</div>
+                <div className="card-subtitle">{t("personalScoreSubtitle")}</div>
+              </div>
+              <span className="badge">{t("badgeLine")}</span>
+            </div>
+            <PersonalScoreChart data={chartData.personalScore} />
+          </section>
+
+          {/* ── Clan Score Over Time ── */}
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("clanScoreOverTime")}</div>
+                <div className="card-subtitle">
+                  {dateFrom || dateTo ? `${dateFrom || t("start")} – ${dateTo || t("now")}` : t("allTime")}
+                </div>
+              </div>
+              <span className="badge">{t("badgeLine")}</span>
+            </div>
+            <ScoreLineChart data={chartData.scoreOverTime} />
+          </section>
+
+          {/* ── Top Players ── */}
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("topPlayers")}</div>
+                <div className="card-subtitle">{t("byTotalScore")}</div>
+              </div>
+              <span className="badge">{t("badgeBar")}</span>
+            </div>
+            <TopPlayersBar data={chartData.topPlayers} />
+          </section>
+
+          {/* ── Chest Type Distribution ── */}
+          <section className="card" style={{ gridColumn: "1 / -1" }}>
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("chestTypes")}</div>
+                <div className="card-subtitle">{t("distributionByCount")}</div>
+              </div>
+              <span className="badge">{t("badgePie")}</span>
+            </div>
+            <ChestTypePie data={chartData.chestTypes} height={320} />
+          </section>
+        </div>
       </div>
     </>
   );

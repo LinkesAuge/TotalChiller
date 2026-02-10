@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+import { strictLimiter } from "../../../../lib/rate-limit";
 
 const COMMIT_ROW_SCHEMA = z.object({
   collected_date: z.string().min(1),
@@ -29,6 +30,8 @@ interface CommitRowInput {
  * Commits data import rows using service role access.
  */
 export async function POST(request: Request): Promise<Response> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const parsed = COMMIT_SCHEMA.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });

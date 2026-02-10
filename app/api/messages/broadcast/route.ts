@@ -1,13 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import getIsContentManager from "../../../../lib/supabase/role-access";
+import { strictLimiter } from "../../../../lib/rate-limit";
 
-interface BroadcastBody {
-  readonly clan_id: string;
-  readonly subject?: string;
-  readonly content: string;
-}
+const BROADCAST_SCHEMA = z.object({
+  clan_id: z.string().min(1).max(128),
+  subject: z.string().max(200).optional(),
+  content: z.string().min(1).max(10_000),
+});
 
 /**
  * POST /api/messages/broadcast
@@ -16,6 +18,8 @@ interface BroadcastBody {
  * Use clan_id: "all" to broadcast to all users globally.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user) {
@@ -25,18 +29,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!isContentManager) {
     return NextResponse.json({ error: "Forbidden: content manager access required." }, { status: 403 });
   }
-  let body: BroadcastBody;
+  let rawBody: unknown;
   try {
-    body = (await request.json()) as BroadcastBody;
+    rawBody = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-  if (!body.clan_id) {
-    return NextResponse.json({ error: "clan_id is required. Use 'all' for global broadcast." }, { status: 400 });
+  const parsed = BROADCAST_SCHEMA.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-  if (!body.content?.trim()) {
-    return NextResponse.json({ error: "Message content is required." }, { status: 400 });
-  }
+  const body = parsed.data;
   const senderId = authData.user.id;
   const serviceClient = createSupabaseServiceRoleClient();
 
@@ -84,9 +87,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     subject: body.subject?.trim() || null,
     content: body.content.trim(),
   }));
-  const { error: insertError } = await serviceClient
-    .from("messages")
-    .insert(messageRows);
+  const { error: insertError } = await serviceClient.from("messages").insert(messageRows);
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
@@ -98,8 +99,5 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     reference_id: body.clan_id === "all" ? "global" : body.clan_id,
   }));
   await serviceClient.from("notifications").insert(notificationRows);
-  return NextResponse.json(
-    { data: { recipients: recipientIds.length, clan_id: body.clan_id } },
-    { status: 201 },
-  );
+  return NextResponse.json({ data: { recipients: recipientIds.length, clan_id: body.clan_id } }, { status: 201 });
 }

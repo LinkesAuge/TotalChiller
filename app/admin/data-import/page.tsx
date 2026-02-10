@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import DataImportClient from "../../data-import/data-import-client";
 import AuthActions from "../../components/auth-actions";
@@ -18,7 +19,15 @@ async function AdminDataImportPage(): Promise<JSX.Element> {
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">{t("dataImport.breadcrumb")}</div>

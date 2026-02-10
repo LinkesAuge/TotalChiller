@@ -8,14 +8,31 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "analyze": "ANALYZE=true next build",
+    "prepare": "husky",
     "playwright:dashboard-workflow": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/playwright/dashboard-workflow.ps1",
     "playwright:ui-audit": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/playwright/ui-audit.ps1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
+    "@sentry/nextjs": "^10.38.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.94.0",
     "flatpickr": "^4.6.13",
@@ -30,12 +47,17 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@eslint/eslintrc": "^3.3.3",
+    "@next/bundle-analyzer": "^16.1.6",
     "@playwright/test": "^1.58.2",
     "@types/node": "25.2.0",
     "@types/react": "19.2.10",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
     "typescript": "5.9.3"
   }
 }

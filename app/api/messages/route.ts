@@ -1,13 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import createSupabaseServerClient from "../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
+import { standardLimiter } from "../../../lib/rate-limit";
 
-interface SendMessageBody {
-  readonly recipient_id?: string;
-  readonly recipient_ids?: readonly string[];
-  readonly subject?: string;
-  readonly content: string;
-}
+const SEND_MESSAGE_SCHEMA = z.object({
+  recipient_id: z.string().uuid().optional(),
+  recipient_ids: z.array(z.string().uuid()).max(50).optional(),
+  subject: z.string().max(200).optional(),
+  content: z.string().min(1).max(10_000),
+});
 
 /**
  * GET /api/messages
@@ -15,6 +17,8 @@ interface SendMessageBody {
  * Supports ?type=all|private|broadcast|system filtering.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user) {
@@ -68,18 +72,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Accepts `recipient_id` (single) or `recipient_ids` (array) for multi-recipient.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const senderId = authData.user.id;
-  let body: SendMessageBody;
+  let rawBody: unknown;
   try {
-    body = (await request.json()) as SendMessageBody;
+    rawBody = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
+  const parsed = SEND_MESSAGE_SCHEMA.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+  const body = parsed.data;
 
   /* Resolve recipient list: support both single and multi */
   const recipientIds: string[] = [];
@@ -103,10 +114,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const serviceClient = createSupabaseServiceRoleClient();
 
   /* Validate all recipients exist */
-  const { data: validProfiles } = await serviceClient
-    .from("profiles")
-    .select("id")
-    .in("id", recipientIds);
+  const { data: validProfiles } = await serviceClient.from("profiles").select("id").in("id", recipientIds);
   const validIds = new Set((validProfiles ?? []).map((p) => p.id as string));
   const invalidIds = recipientIds.filter((id) => !validIds.has(id));
   if (invalidIds.length > 0) {

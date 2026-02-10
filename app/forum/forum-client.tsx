@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import getIsContentManager from "../../lib/supabase/role-access";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
 import SectionHero from "../components/section-hero";
@@ -92,10 +93,7 @@ async function resolveAuthorNames(
 ): Promise<Record<string, string>> {
   const unique = [...new Set(userIds)].filter(Boolean);
   if (unique.length === 0) return {};
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, display_name, username")
-    .in("id", unique);
+  const { data } = await supabase.from("profiles").select("id, display_name, username").in("id", unique);
   const map: Record<string, string> = {};
   for (const row of data ?? []) {
     map[row.id] = row.display_name || row.username || "Unknown";
@@ -107,7 +105,16 @@ async function resolveAuthorNames(
 
 function UpArrow(): JSX.Element {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12 19V5M5 12l7-7 7 7" />
     </svg>
   );
@@ -115,7 +122,16 @@ function UpArrow(): JSX.Element {
 
 function DownArrow(): JSX.Element {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12 5v14M19 12l-7 7-7-7" />
     </svg>
   );
@@ -123,7 +139,16 @@ function DownArrow(): JSX.Element {
 
 function CommentIcon(): JSX.Element {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
     </svg>
   );
@@ -138,15 +163,8 @@ function PostThumbnailBox({ thumbnail }: { readonly thumbnail: PostThumbnail | n
   if (thumbnail.thumbnailUrl) {
     return (
       <div className="forum-thumb">
-        <img
-          src={thumbnail.thumbnailUrl}
-          alt=""
-          loading="lazy"
-          className="forum-thumb-img"
-        />
-        {thumbnail.type === "youtube" && (
-          <span className="forum-thumb-play">&#9654;</span>
-        )}
+        <img src={thumbnail.thumbnailUrl} alt="" loading="lazy" className="forum-thumb-img" />
+        {thumbnail.type === "youtube" && <span className="forum-thumb-play">&#9654;</span>}
       </div>
     );
   }
@@ -155,7 +173,16 @@ function PostThumbnailBox({ thumbnail }: { readonly thumbnail: PostThumbnail | n
   if (thumbnail.type === "video") {
     return (
       <div className="forum-thumb forum-thumb-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <rect x="2" y="4" width="20" height="16" rx="2" />
           <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none" />
         </svg>
@@ -167,7 +194,16 @@ function PostThumbnailBox({ thumbnail }: { readonly thumbnail: PostThumbnail | n
   if (thumbnail.type === "link") {
     return (
       <div className="forum-thumb forum-thumb-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
         </svg>
@@ -201,7 +237,6 @@ function ForumClient(): JSX.Element {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [canManage, setCanManage] = useState<boolean>(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
@@ -231,17 +266,12 @@ function ForumClient(): JSX.Element {
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  /* ─── Auth ─── */
+  /* ─── Auth + permissions ─── */
+  const { isContentManager: canManage } = useUserRole(supabase);
   useEffect(() => {
-    async function loadAuth(): Promise<void> {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        setCurrentUserId(data.user.id);
-        const isManager = await getIsContentManager({ supabase });
-        setCanManage(isManager);
-      }
-    }
-    void loadAuth();
+    void supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setCurrentUserId(data.user.id);
+    });
   }, [supabase]);
 
   /* ─── Load categories ─── */
@@ -285,10 +315,7 @@ function ForumClient(): JSX.Element {
       return;
     }
     setIsLoading(true);
-    let query = supabase
-      .from("forum_posts")
-      .select("*", { count: "exact" })
-      .eq("clan_id", clanContext.clanId);
+    let query = supabase.from("forum_posts").select("*", { count: "exact" }).eq("clan_id", clanContext.clanId);
     if (selectedCategory) {
       query = query.eq("category_id", selectedCategory);
     }
@@ -341,8 +368,8 @@ function ForumClient(): JSX.Element {
     const enriched: ForumPost[] = rawPosts.map((p) => ({
       ...p,
       authorName: nameMap[p.author_id] ?? "Unknown",
-      categoryName: p.category_id ? catMap[p.category_id]?.name ?? "" : "",
-      categorySlug: p.category_id ? catMap[p.category_id]?.slug ?? "" : "",
+      categoryName: p.category_id ? (catMap[p.category_id]?.name ?? "") : "",
+      categorySlug: p.category_id ? (catMap[p.category_id]?.slug ?? "") : "",
       userVote: voteMap[p.id] ?? 0,
     }));
     /* Client-side "hot" sorting */
@@ -364,56 +391,59 @@ function ForumClient(): JSX.Element {
   }, [loadPosts, clanContext, categories]);
 
   /* ─── Load comments for a post ─── */
-  const loadComments = useCallback(async (postId: string): Promise<void> => {
-    if (!tablesReady) {
-      setComments([]);
-      return;
-    }
-    const { data, error } = await supabase
-      .from("forum_comments")
-      .select("*")
-      .eq("post_id", postId)
-      .order("created_at", { ascending: true });
-    if (error) {
-      return;
-    }
-    const rawComments = (data ?? []) as ForumComment[];
-    const authorIds = rawComments.map((c) => c.author_id);
-    const nameMap = await resolveAuthorNames(supabase, authorIds);
-    /* Fetch user's votes on comments */
-    let voteMap: Record<string, number> = {};
-    if (currentUserId && rawComments.length > 0) {
-      const commentIds = rawComments.map((c) => c.id);
-      const { data: votes } = await supabase
-        .from("forum_comment_votes")
-        .select("comment_id, vote_type")
-        .eq("user_id", currentUserId)
-        .in("comment_id", commentIds);
-      for (const v of votes ?? []) {
-        voteMap[v.comment_id] = v.vote_type;
+  const loadComments = useCallback(
+    async (postId: string): Promise<void> => {
+      if (!tablesReady) {
+        setComments([]);
+        return;
       }
-    }
-    /* Build thread tree */
-    const enriched: ForumComment[] = rawComments.map((c) => ({
-      ...c,
-      authorName: nameMap[c.author_id] ?? "Unknown",
-      userVote: voteMap[c.id] ?? 0,
-      replies: [],
-    }));
-    const topLevel: ForumComment[] = [];
-    const byId: Record<string, ForumComment> = {};
-    for (const c of enriched) {
-      byId[c.id] = c;
-    }
-    for (const c of enriched) {
-      if (c.parent_comment_id && byId[c.parent_comment_id]) {
-        byId[c.parent_comment_id].replies!.push(c);
-      } else {
-        topLevel.push(c);
+      const { data, error } = await supabase
+        .from("forum_comments")
+        .select("*")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
+      if (error) {
+        return;
       }
-    }
-    setComments(topLevel);
-  }, [supabase, currentUserId]);
+      const rawComments = (data ?? []) as ForumComment[];
+      const authorIds = rawComments.map((c) => c.author_id);
+      const nameMap = await resolveAuthorNames(supabase, authorIds);
+      /* Fetch user's votes on comments */
+      let voteMap: Record<string, number> = {};
+      if (currentUserId && rawComments.length > 0) {
+        const commentIds = rawComments.map((c) => c.id);
+        const { data: votes } = await supabase
+          .from("forum_comment_votes")
+          .select("comment_id, vote_type")
+          .eq("user_id", currentUserId)
+          .in("comment_id", commentIds);
+        for (const v of votes ?? []) {
+          voteMap[v.comment_id] = v.vote_type;
+        }
+      }
+      /* Build thread tree */
+      const enriched: ForumComment[] = rawComments.map((c) => ({
+        ...c,
+        authorName: nameMap[c.author_id] ?? "Unknown",
+        userVote: voteMap[c.id] ?? 0,
+        replies: [],
+      }));
+      const topLevel: ForumComment[] = [];
+      const byId: Record<string, ForumComment> = {};
+      for (const c of enriched) {
+        byId[c.id] = c;
+      }
+      for (const c of enriched) {
+        if (c.parent_comment_id && byId[c.parent_comment_id]) {
+          byId[c.parent_comment_id].replies!.push(c);
+        } else {
+          topLevel.push(c);
+        }
+      }
+      setComments(topLevel);
+    },
+    [supabase, currentUserId],
+  );
 
   /* ─── Voting ─── */
   async function handleVotePost(postId: string, voteType: number): Promise<void> {
@@ -428,21 +458,18 @@ function ForumClient(): JSX.Element {
       await supabase.from("forum_votes").delete().eq("post_id", postId).eq("user_id", currentUserId);
     } else {
       /* Upsert */
-      await supabase.from("forum_votes").upsert(
-        { post_id: postId, user_id: currentUserId, vote_type: voteType },
-        { onConflict: "post_id,user_id" },
-      );
+      await supabase
+        .from("forum_votes")
+        .upsert({ post_id: postId, user_id: currentUserId, vote_type: voteType }, { onConflict: "post_id,user_id" });
     }
     /* Update cached score */
     const scoreDelta = newVote - currentVote;
     const newScore = post.score + scoreDelta;
     await supabase.from("forum_posts").update({ score: newScore }).eq("id", postId);
     /* Optimistic update */
-    setPosts((prev) => prev.map((p) =>
-      p.id === postId ? { ...p, score: newScore, userVote: newVote } : p,
-    ));
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, score: newScore, userVote: newVote } : p)));
     if (selectedPost?.id === postId) {
-      setSelectedPost((prev) => prev ? { ...prev, score: newScore, userVote: newVote } : prev);
+      setSelectedPost((prev) => (prev ? { ...prev, score: newScore, userVote: newVote } : prev));
     }
   }
 
@@ -465,10 +492,12 @@ function ForumClient(): JSX.Element {
       newVote = 0;
       await supabase.from("forum_comment_votes").delete().eq("comment_id", commentId).eq("user_id", currentUserId);
     } else {
-      await supabase.from("forum_comment_votes").upsert(
-        { comment_id: commentId, user_id: currentUserId, vote_type: voteType },
-        { onConflict: "comment_id,user_id" },
-      );
+      await supabase
+        .from("forum_comment_votes")
+        .upsert(
+          { comment_id: commentId, user_id: currentUserId, vote_type: voteType },
+          { onConflict: "comment_id,user_id" },
+        );
     }
     const scoreDelta = newVote - currentVote;
     const newScore = comment.score + scoreDelta;
@@ -555,7 +584,7 @@ function ForumClient(): JSX.Element {
     await supabase.from("forum_posts").update({ is_pinned: !post.is_pinned }).eq("id", post.id);
     void loadPosts();
     if (selectedPost?.id === post.id) {
-      setSelectedPost((prev) => prev ? { ...prev, is_pinned: !prev.is_pinned } : prev);
+      setSelectedPost((prev) => (prev ? { ...prev, is_pinned: !prev.is_pinned } : prev));
     }
   }
 
@@ -563,7 +592,7 @@ function ForumClient(): JSX.Element {
     await supabase.from("forum_posts").update({ is_locked: !post.is_locked }).eq("id", post.id);
     void loadPosts();
     if (selectedPost?.id === post.id) {
-      setSelectedPost((prev) => prev ? { ...prev, is_locked: !prev.is_locked } : prev);
+      setSelectedPost((prev) => (prev ? { ...prev, is_locked: !prev.is_locked } : prev));
     }
   }
 
@@ -591,10 +620,13 @@ function ForumClient(): JSX.Element {
     if (!error) {
       setCommentText("");
       /* Update comment count */
-      await supabase.from("forum_posts").update({
-        comment_count: (selectedPost.comment_count ?? 0) + 1,
-      }).eq("id", selectedPost.id);
-      setSelectedPost((prev) => prev ? { ...prev, comment_count: prev.comment_count + 1 } : prev);
+      await supabase
+        .from("forum_posts")
+        .update({
+          comment_count: (selectedPost.comment_count ?? 0) + 1,
+        })
+        .eq("id", selectedPost.id);
+      setSelectedPost((prev) => (prev ? { ...prev, comment_count: prev.comment_count + 1 } : prev));
       void loadComments(selectedPost.id);
     }
   }
@@ -610,10 +642,13 @@ function ForumClient(): JSX.Element {
     if (!error) {
       setReplyText("");
       setReplyingTo("");
-      await supabase.from("forum_posts").update({
-        comment_count: (selectedPost.comment_count ?? 0) + 1,
-      }).eq("id", selectedPost.id);
-      setSelectedPost((prev) => prev ? { ...prev, comment_count: prev.comment_count + 1 } : prev);
+      await supabase
+        .from("forum_posts")
+        .update({
+          comment_count: (selectedPost.comment_count ?? 0) + 1,
+        })
+        .eq("id", selectedPost.id);
+      setSelectedPost((prev) => (prev ? { ...prev, comment_count: prev.comment_count + 1 } : prev));
       void loadComments(selectedPost.id);
     }
   }
@@ -624,7 +659,15 @@ function ForumClient(): JSX.Element {
       <>
         {/* ── Top Bar ── */}
         <div className="top-bar">
-          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <Image
+            src="/assets/vip/header_3.png"
+            alt=""
+            role="presentation"
+            className="top-bar-bg"
+            width={1200}
+            height={56}
+            priority
+          />
           <div className="top-bar-inner">
             <div>
               <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -649,7 +692,15 @@ function ForumClient(): JSX.Element {
       <>
         {/* ── Top Bar ── */}
         <div className="top-bar">
-          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <Image
+            src="/assets/vip/header_3.png"
+            alt=""
+            role="presentation"
+            className="top-bar-bg"
+            width={1200}
+            height={56}
+            priority
+          />
           <div className="top-bar-inner">
             <div>
               <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -663,7 +714,8 @@ function ForumClient(): JSX.Element {
           <div className="forum-empty">
             <p style={{ marginBottom: 8 }}>{t("emptyTitle")}</p>
             <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
-              The forum database tables have not been created yet. Please run the migration in <code>Documentation/migrations/forum_tables.sql</code> against your Supabase instance.
+              The forum database tables have not been created yet. Please run the migration in{" "}
+              <code>Documentation/migrations/forum_tables.sql</code> against your Supabase instance.
             </p>
           </div>
         </div>
@@ -677,7 +729,15 @@ function ForumClient(): JSX.Element {
       <>
         {/* ── Top Bar ── */}
         <div className="top-bar">
-          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <Image
+            src="/assets/vip/header_3.png"
+            alt=""
+            role="presentation"
+            className="top-bar-bg"
+            width={1200}
+            height={56}
+            priority
+          />
           <div className="top-bar-inner">
             <div>
               <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -688,7 +748,14 @@ function ForumClient(): JSX.Element {
         </div>
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
-          <button className="button" onClick={() => { resetForm(); setViewMode("list"); }} style={{ marginBottom: 16 }}>
+          <button
+            className="button"
+            onClick={() => {
+              resetForm();
+              setViewMode("list");
+            }}
+            style={{ marginBottom: 16 }}
+          >
             ← {t("backToForum")}
           </button>
           <section className="forum-form">
@@ -696,7 +763,9 @@ function ForumClient(): JSX.Element {
               {editingPostId ? t("editPost") : t("createPost")}
             </h3>
             <div className="form-group" style={{ marginBottom: 10 }}>
-              <label className="form-label" htmlFor="post-title">{t("postTitle")}</label>
+              <label className="form-label" htmlFor="post-title">
+                {t("postTitle")}
+              </label>
               <input
                 id="post-title"
                 type="text"
@@ -707,22 +776,44 @@ function ForumClient(): JSX.Element {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 10 }}>
-              <label className="form-label" htmlFor="post-category">{t("category")}</label>
+              <label className="form-label" htmlFor="post-category">
+                {t("category")}
+              </label>
               <select
                 id="post-category"
                 value={formCategoryId}
                 onChange={(e) => setFormCategoryId(e.target.value)}
-                style={{ width: "100%", padding: "8px 10px", background: "var(--color-bg)", color: "var(--color-text)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)", fontFamily: "var(--font-body)", fontSize: "0.84rem" }}
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  background: "var(--color-bg)",
+                  color: "var(--color-text)",
+                  border: "1px solid var(--color-edge)",
+                  borderRadius: "var(--radius-sm)",
+                  fontFamily: "var(--font-body)",
+                  fontSize: "0.84rem",
+                }}
               >
                 <option value="">{t("selectCategory")}</option>
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
                 ))}
               </select>
             </div>
             {canManage && (
               <div className="form-group" style={{ marginBottom: 10 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.84rem", color: "var(--color-text)" }}>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "pointer",
+                    fontSize: "0.84rem",
+                    color: "var(--color-text)",
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={formPinned}
@@ -734,7 +825,9 @@ function ForumClient(): JSX.Element {
               </div>
             )}
             <div className="form-group" style={{ marginBottom: 10 }}>
-              <label className="form-label" htmlFor="post-content">{t("postContent")}</label>
+              <label className="form-label" htmlFor="post-content">
+                {t("postContent")}
+              </label>
               <div className="forum-editor-tabs">
                 <button
                   type="button"
@@ -775,9 +868,28 @@ function ForumClient(): JSX.Element {
                     onChange={(e) => setFormContent(e.target.value)}
                     placeholder={t("postContentPlaceholder")}
                     rows={10}
-                    onPaste={(e) => handleImagePaste(e, supabase, currentUserId, (md) => setFormContent((prev) => prev + md), setIsImageUploading)}
-                    onDrop={(e) => handleImageDrop(e, supabase, currentUserId, (md) => setFormContent((prev) => prev + md), setIsImageUploading)}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onPaste={(e) =>
+                      handleImagePaste(
+                        e,
+                        supabase,
+                        currentUserId,
+                        (md) => setFormContent((prev) => prev + md),
+                        setIsImageUploading,
+                      )
+                    }
+                    onDrop={(e) =>
+                      handleImageDrop(
+                        e,
+                        supabase,
+                        currentUserId,
+                        (md) => setFormContent((prev) => prev + md),
+                        setIsImageUploading,
+                      )
+                    }
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
                   />
                 </>
               )}
@@ -787,7 +899,13 @@ function ForumClient(): JSX.Element {
               <button className="button primary" onClick={handleSubmitPost} disabled={!formTitle.trim()}>
                 {editingPostId ? t("save") : t("submit")}
               </button>
-              <button className="button" onClick={() => { resetForm(); setViewMode("list"); }}>
+              <button
+                className="button"
+                onClick={() => {
+                  resetForm();
+                  setViewMode("list");
+                }}
+              >
                 {t("cancel")}
               </button>
             </div>
@@ -805,7 +923,15 @@ function ForumClient(): JSX.Element {
       <>
         {/* ── Top Bar ── */}
         <div className="top-bar">
-          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <Image
+            src="/assets/vip/header_3.png"
+            alt=""
+            role="presentation"
+            className="top-bar-bg"
+            width={1200}
+            height={56}
+            priority
+          />
           <div className="top-bar-inner">
             <div>
               <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -822,7 +948,10 @@ function ForumClient(): JSX.Element {
           <section className="forum-detail-card" ref={detailRef}>
             <div className="forum-detail-header">
               {/* Vote column */}
-              <div className="forum-vote-col" style={{ padding: "0 6px 0 0", background: "transparent", minWidth: "auto" }}>
+              <div
+                className="forum-vote-col"
+                style={{ padding: "0 6px 0 0", background: "transparent", minWidth: "auto" }}
+              >
                 <button
                   className={`forum-vote-btn${selectedPost.userVote === 1 ? " upvoted" : ""}`}
                   onClick={() => handleVotePost(selectedPost.id, 1)}
@@ -843,10 +972,10 @@ function ForumClient(): JSX.Element {
               </div>
               <div style={{ flex: 1 }}>
                 <div className="forum-post-meta">
-                  {selectedPost.categoryName && (
-                    <span className="forum-cat-badge">{selectedPost.categoryName}</span>
-                  )}
-                  <span>{t("by")} <strong style={{ color: "var(--color-text)" }}>{selectedPost.authorName}</strong></span>
+                  {selectedPost.categoryName && <span className="forum-cat-badge">{selectedPost.categoryName}</span>}
+                  <span>
+                    {t("by")} <strong style={{ color: "var(--color-text)" }}>{selectedPost.authorName}</strong>
+                  </span>
                   <span>{formatTimeAgo(selectedPost.created_at, t)}</span>
                   {selectedPost.is_pinned && <span className="forum-badge-pinned">{t("pinned")}</span>}
                   {selectedPost.is_locked && <span className="forum-badge-locked">{t("locked")}</span>}
@@ -860,13 +989,29 @@ function ForumClient(): JSX.Element {
               </div>
             )}
             <div className="forum-detail-actions">
-              <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.78rem", color: "var(--color-text-muted)" }}>
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "0.78rem",
+                  color: "var(--color-text-muted)",
+                }}
+              >
                 <CommentIcon /> {selectedPost.comment_count} {t("comments")}
               </span>
               {canModerate && (
                 <>
-                  <button className="forum-mod-btn" onClick={() => handleEditPost(selectedPost)} type="button">{t("editPost")}</button>
-                  <button className="forum-mod-btn danger" onClick={() => setDeletingPostId(selectedPost.id)} type="button">{t("deletePost")}</button>
+                  <button className="forum-mod-btn" onClick={() => handleEditPost(selectedPost)} type="button">
+                    {t("editPost")}
+                  </button>
+                  <button
+                    className="forum-mod-btn danger"
+                    onClick={() => setDeletingPostId(selectedPost.id)}
+                    type="button"
+                  >
+                    {t("deletePost")}
+                  </button>
                 </>
               )}
               {canManage && (
@@ -885,11 +1030,19 @@ function ForumClient(): JSX.Element {
           {/* Delete confirmation */}
           {deletingPostId && (
             <div className="card" style={{ marginTop: 12, borderColor: "var(--color-accent-red)" }}>
-              <div className="card-header"><h4 className="card-title">{t("deleteConfirmTitle")}</h4></div>
-              <p style={{ padding: "0 16px 8px", fontSize: "0.84rem", color: "var(--color-text-2)" }}>{t("deleteConfirmText")}</p>
+              <div className="card-header">
+                <h4 className="card-title">{t("deleteConfirmTitle")}</h4>
+              </div>
+              <p style={{ padding: "0 16px 8px", fontSize: "0.84rem", color: "var(--color-text-2)" }}>
+                {t("deleteConfirmText")}
+              </p>
               <div style={{ display: "flex", gap: 8, padding: "0 16px 16px" }}>
-                <button className="button danger" onClick={handleConfirmDelete}>{t("deleteConfirmButton")}</button>
-                <button className="button" onClick={() => setDeletingPostId("")}>{t("cancel")}</button>
+                <button className="button danger" onClick={handleConfirmDelete}>
+                  {t("deleteConfirmButton")}
+                </button>
+                <button className="button" onClick={() => setDeletingPostId("")}>
+                  {t("cancel")}
+                </button>
               </div>
             </div>
           )}
@@ -941,10 +1094,22 @@ function ForumClient(): JSX.Element {
                         style={{ minHeight: 48 }}
                       />
                       <div className="forum-form-row">
-                        <button className="button primary" onClick={handleSubmitReply} disabled={!replyText.trim()} style={{ fontSize: "0.75rem", padding: "4px 12px" }}>
+                        <button
+                          className="button primary"
+                          onClick={handleSubmitReply}
+                          disabled={!replyText.trim()}
+                          style={{ fontSize: "0.75rem", padding: "4px 12px" }}
+                        >
                           {t("submitReply")}
                         </button>
-                        <button className="button" onClick={() => { setReplyingTo(""); setReplyText(""); }} style={{ fontSize: "0.75rem", padding: "4px 12px" }}>
+                        <button
+                          className="button"
+                          onClick={() => {
+                            setReplyingTo("");
+                            setReplyText("");
+                          }}
+                          style={{ fontSize: "0.75rem", padding: "4px 12px" }}
+                        >
                           {t("cancel")}
                         </button>
                       </div>
@@ -991,7 +1156,14 @@ function ForumClient(): JSX.Element {
           </div>
           <div className="forum-comment-actions">
             {!isReply && selectedPost && !selectedPost.is_locked && (
-              <button className="forum-comment-action-btn" onClick={() => { setReplyingTo(comment.id); setReplyText(""); }} type="button">
+              <button
+                className="forum-comment-action-btn"
+                onClick={() => {
+                  setReplyingTo(comment.id);
+                  setReplyText("");
+                }}
+                type="button"
+              >
                 {t("reply")}
               </button>
             )}
@@ -1006,7 +1178,15 @@ function ForumClient(): JSX.Element {
     <>
       {/* ── Top Bar ── */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -1020,13 +1200,34 @@ function ForumClient(): JSX.Element {
         {/* Toolbar: sort + search + create */}
         <div className="forum-toolbar">
           <div className="forum-sort-group">
-            <button className={`forum-sort-btn${sortMode === "hot" ? " active" : ""}`} onClick={() => { setSortMode("hot"); setPage(1); }} type="button">
+            <button
+              className={`forum-sort-btn${sortMode === "hot" ? " active" : ""}`}
+              onClick={() => {
+                setSortMode("hot");
+                setPage(1);
+              }}
+              type="button"
+            >
               {t("sortHot")}
             </button>
-            <button className={`forum-sort-btn${sortMode === "new" ? " active" : ""}`} onClick={() => { setSortMode("new"); setPage(1); }} type="button">
+            <button
+              className={`forum-sort-btn${sortMode === "new" ? " active" : ""}`}
+              onClick={() => {
+                setSortMode("new");
+                setPage(1);
+              }}
+              type="button"
+            >
               {t("sortNew")}
             </button>
-            <button className={`forum-sort-btn${sortMode === "top" ? " active" : ""}`} onClick={() => { setSortMode("top"); setPage(1); }} type="button">
+            <button
+              className={`forum-sort-btn${sortMode === "top" ? " active" : ""}`}
+              onClick={() => {
+                setSortMode("top");
+                setPage(1);
+              }}
+              type="button"
+            >
               {t("sortTop")}
             </button>
           </div>
@@ -1035,11 +1236,24 @@ function ForumClient(): JSX.Element {
             className="form-input"
             placeholder={t("search")}
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-            style={{ maxWidth: 260, padding: "6px 10px", fontSize: "0.78rem", background: "var(--color-surface)", border: "1px solid var(--color-edge)", borderRadius: "var(--radius-sm)", color: "var(--color-text)" }}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(1);
+            }}
+            style={{
+              maxWidth: 260,
+              padding: "6px 10px",
+              fontSize: "0.78rem",
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-edge)",
+              borderRadius: "var(--radius-sm)",
+              color: "var(--color-text)",
+            }}
           />
           <div style={{ marginLeft: "auto" }}>
-            <button className="button primary" onClick={handleOpenCreate}>{t("newPost")}</button>
+            <button className="button primary" onClick={handleOpenCreate}>
+              {t("newPost")}
+            </button>
           </div>
         </div>
 
@@ -1047,7 +1261,10 @@ function ForumClient(): JSX.Element {
         <div className="forum-categories" style={{ marginBottom: 16 }}>
           <button
             className={`forum-cat-pill${!selectedCategory ? " active" : ""}`}
-            onClick={() => { router.push("/forum"); setPage(1); }}
+            onClick={() => {
+              router.push("/forum");
+              setPage(1);
+            }}
             type="button"
           >
             {t("allCategories")}
@@ -1056,7 +1273,10 @@ function ForumClient(): JSX.Element {
             <button
               key={cat.id}
               className={`forum-cat-pill${selectedCategory === cat.id ? " active" : ""}`}
-              onClick={() => { router.push(`/forum?category=${cat.slug}`); setPage(1); }}
+              onClick={() => {
+                router.push(`/forum?category=${cat.slug}`);
+                setPage(1);
+              }}
               type="button"
             >
               {cat.name}
@@ -1066,21 +1286,40 @@ function ForumClient(): JSX.Element {
 
         {/* Post list */}
         {isLoading ? (
-          <div className="forum-empty"><p>Loading...</p></div>
+          <div className="forum-empty">
+            <p>Loading...</p>
+          </div>
         ) : posts.length === 0 ? (
           <div className="forum-empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
             <p>{searchTerm ? t("noResults") : t("noPosts")}</p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {posts.map((post) => (
-              <div key={post.id} className="forum-post-card" onClick={() => handleOpenPost(post)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") handleOpenPost(post); }}>
+              <div
+                key={post.id}
+                className="forum-post-card"
+                onClick={() => handleOpenPost(post)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleOpenPost(post);
+                  }
+                }}
+              >
                 {/* Vote column */}
                 <div className="forum-vote-col" onClick={(e) => e.stopPropagation()}>
                   <button
                     className={`forum-vote-btn${post.userVote === 1 ? " upvoted" : ""}`}
-                    onClick={(e) => { e.stopPropagation(); void handleVotePost(post.id, 1); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleVotePost(post.id, 1);
+                    }}
                     aria-label={t("upvote")}
                     type="button"
                   >
@@ -1089,7 +1328,10 @@ function ForumClient(): JSX.Element {
                   <span className="forum-vote-score">{post.score}</span>
                   <button
                     className={`forum-vote-btn${post.userVote === -1 ? " downvoted" : ""}`}
-                    onClick={(e) => { e.stopPropagation(); void handleVotePost(post.id, -1); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleVotePost(post.id, -1);
+                    }}
                     aria-label={t("downvote")}
                     type="button"
                   >
@@ -1102,7 +1344,9 @@ function ForumClient(): JSX.Element {
                 <div className="forum-post-body">
                   <div className="forum-post-meta">
                     {post.categoryName && <span className="forum-cat-badge">{post.categoryName}</span>}
-                    <span>{t("by")} {post.authorName}</span>
+                    <span>
+                      {t("by")} {post.authorName}
+                    </span>
                     <span>{formatTimeAgo(post.created_at, t)}</span>
                     {post.is_pinned && <span className="forum-badge-pinned">{t("pinned")}</span>}
                     {post.is_locked && <span className="forum-badge-locked">{t("locked")}</span>}
@@ -1114,7 +1358,9 @@ function ForumClient(): JSX.Element {
                     </div>
                   )}
                   <div className="forum-post-footer">
-                    <span><CommentIcon /> {post.comment_count} {t("comments")}</span>
+                    <span>
+                      <CommentIcon /> {post.comment_count} {t("comments")}
+                    </span>
                   </div>
                 </div>
               </div>

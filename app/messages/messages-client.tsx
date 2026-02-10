@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import getIsContentManager from "../../lib/supabase/role-access";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 import { formatLocalDateTime } from "../../lib/date-format";
 import SearchInput from "../components/ui/search-input";
 import RadixSelect from "../components/ui/radix-select";
@@ -55,7 +55,6 @@ interface SelectedRecipient {
 type ComposeMode = "direct" | "clan" | "global";
 
 const SYSTEM_PARTNER_ID = "__system__";
-const CONTENT_MANAGER_ROLES: readonly string[] = ["owner", "admin", "moderator", "editor"];
 
 /**
  * Full messaging UI with conversation list, thread view, and compose.
@@ -95,7 +94,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* Role / permission state */
-  const [isContentMgr, setIsContentMgr] = useState<boolean>(false);
+  const { isContentManager: isContentMgr } = useUserRole(supabase);
   const [clans, setClans] = useState<readonly ClanOption[]>([]);
 
   /* ── Data loading ── */
@@ -117,20 +116,17 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   }, [loadMessages]);
 
   useEffect(() => {
-    async function loadRolesAndClans(): Promise<void> {
-      const contentMgrStatus = await getIsContentManager({ supabase });
-      setIsContentMgr(contentMgrStatus);
-      if (contentMgrStatus) {
-        const { data: clanData } = await supabase
-          .from("clans")
-          .select("id,name")
-          .eq("is_unassigned", false)
-          .order("name");
-        setClans((clanData ?? []) as readonly ClanOption[]);
-      }
+    async function loadClans(): Promise<void> {
+      if (!isContentMgr) return;
+      const { data: clanData } = await supabase
+        .from("clans")
+        .select("id,name")
+        .eq("is_unassigned", false)
+        .order("name");
+      setClans((clanData ?? []) as readonly ClanOption[]);
     }
-    void loadRolesAndClans();
-  }, [supabase]);
+    void loadClans();
+  }, [supabase, isContentMgr]);
 
   /* ── Recipient search with debounce ── */
 
@@ -242,9 +238,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
       const sorted = [...partnerMessages].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
-      const unreadCount = sorted.filter(
-        (message) => message.recipient_id === userId && !message.is_read,
-      ).length;
+      const unreadCount = sorted.filter((message) => message.recipient_id === userId && !message.is_read).length;
       summaries.push({
         partnerId,
         partnerLabel: getPartnerLabel(partnerId),
@@ -253,7 +247,9 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         messageType: sorted[0].message_type,
       });
     }
-    summaries.sort((a, b) => new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime());
+    summaries.sort(
+      (a, b) => new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime(),
+    );
     return summaries;
   }, [messages, profiles, userId]);
 
@@ -298,9 +294,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
         (message) =>
           message.recipient_id === userId &&
           !message.is_read &&
-          (partnerId === SYSTEM_PARTNER_ID
-            ? message.message_type === "system"
-            : message.sender_id === partnerId),
+          (partnerId === SYSTEM_PARTNER_ID ? message.message_type === "system" : message.sender_id === partnerId),
       )
       .map((message) => message.id);
     for (const messageId of unreadIds) {
@@ -308,9 +302,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     }
     if (unreadIds.length > 0) {
       setMessages((current) =>
-        current.map((message) =>
-          unreadIds.includes(message.id) ? { ...message, is_read: true } : message,
-        ),
+        current.map((message) => (unreadIds.includes(message.id) ? { ...message, is_read: true } : message)),
       );
     }
   }
@@ -416,20 +408,13 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     return "";
   }
 
-  const selectedConversation = filteredConversations.find(
-    (conv) => conv.partnerId === selectedPartnerId,
-  );
+  const selectedConversation = filteredConversations.find((conv) => conv.partnerId === selectedPartnerId);
 
   /* ── Compose mode options ── */
   const composeModeOptions = useMemo(() => {
-    const options = [
-      { value: "direct", label: t("directMessage") },
-    ];
+    const options = [{ value: "direct", label: t("directMessage") }];
     if (isContentMgr) {
-      options.push(
-        { value: "clan", label: t("clanBroadcast") },
-        { value: "global", label: t("globalBroadcast") },
-      );
+      options.push({ value: "clan", label: t("clanBroadcast") }, { value: "global", label: t("globalBroadcast") });
     }
     return options;
   }, [isContentMgr, t]);
@@ -473,8 +458,8 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
             {/* Mode selector (only for content managers) */}
             {isContentMgr ? (
               <div className="form-group">
-                <label>{t("recipientType")}</label>
-                <div className="tabs" style={{ fontSize: "0.85rem" }}>
+                <label id="recipientTypeLabel">{t("recipientType")}</label>
+                <div className="tabs" role="group" aria-labelledby="recipientTypeLabel" style={{ fontSize: "0.85rem" }}>
                   {composeModeOptions.map((option) => (
                     <button
                       key={option.value}
@@ -497,18 +482,33 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
             {/* Recipient selection: direct message mode */}
             {composeMode === "direct" ? (
               <div className="form-group">
-                <label>{t("to")}</label>
+                <label htmlFor="recipientSearch">{t("to")}</label>
                 {/* Selected recipient chips */}
                 {composeRecipients.length > 0 ? (
-                  <div className="recipient-chips" style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.5rem" }}>
+                  <div
+                    className="recipient-chips"
+                    style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.5rem" }}
+                  >
                     {composeRecipients.map((recipient) => (
-                      <span key={recipient.id} className="badge" style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                      <span
+                        key={recipient.id}
+                        className="badge"
+                        style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
+                      >
                         {recipient.label}
                         <button
                           type="button"
                           onClick={() => removeRecipient(recipient.id)}
                           aria-label={t("removeRecipient")}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: "1rem", lineHeight: 1 }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "inherit",
+                            padding: 0,
+                            fontSize: "1rem",
+                            lineHeight: 1,
+                          }}
                         >
                           &times;
                         </button>
@@ -519,6 +519,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                 {/* Search input with dropdown */}
                 <div ref={searchWrapperRef} style={{ position: "relative" }}>
                   <input
+                    id="recipientSearch"
                     value={recipientSearch}
                     onChange={(event) => setRecipientSearch(event.target.value)}
                     onFocus={() => {
@@ -530,17 +531,41 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                     autoComplete="off"
                   />
                   {isSearching ? (
-                    <div className="combobox-dropdown" style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10 }}>
-                      <div className="combobox-option" style={{ padding: "0.5rem", opacity: 0.6 }}>{t("loadingMessages")}</div>
+                    <div
+                      className="combobox-dropdown"
+                      style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10 }}
+                    >
+                      <div className="combobox-option" style={{ padding: "0.5rem", opacity: 0.6 }}>
+                        {t("loadingMessages")}
+                      </div>
                     </div>
                   ) : isSearchDropdownOpen && recipientResults.length > 0 ? (
-                    <div className="combobox-dropdown" style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10, maxHeight: "240px", overflowY: "auto" }}>
+                    <div
+                      className="combobox-dropdown"
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        zIndex: 10,
+                        maxHeight: "240px",
+                        overflowY: "auto",
+                      }}
+                    >
                       {recipientResults.map((result) => (
                         <button
                           key={result.id}
                           type="button"
                           className="combobox-option"
-                          style={{ display: "block", width: "100%", textAlign: "left", padding: "0.5rem 0.75rem", cursor: "pointer", border: "none", background: "none" }}
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "0.5rem 0.75rem",
+                            cursor: "pointer",
+                            border: "none",
+                            background: "none",
+                          }}
                           onMouseDown={(event) => {
                             event.preventDefault();
                             addRecipient({ id: result.id, label: result.label });
@@ -549,7 +574,9 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                           <div>
                             <strong>{result.label}</strong>
                             {result.username ? (
-                              <span className="text-muted" style={{ marginLeft: "0.5rem", fontSize: "0.85em" }}>@{result.username}</span>
+                              <span className="text-muted" style={{ marginLeft: "0.5rem", fontSize: "0.85em" }}>
+                                @{result.username}
+                              </span>
                             ) : null}
                           </div>
                           {result.gameAccounts.length > 0 ? (
@@ -561,8 +588,13 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                       ))}
                     </div>
                   ) : isSearchDropdownOpen && recipientSearch.trim().length >= 2 ? (
-                    <div className="combobox-dropdown" style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10 }}>
-                      <div className="combobox-option" style={{ padding: "0.5rem", opacity: 0.6 }}>{t("noResults")}</div>
+                    <div
+                      className="combobox-dropdown"
+                      style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10 }}
+                    >
+                      <div className="combobox-option" style={{ padding: "0.5rem", opacity: 0.6 }}>
+                        {t("noResults")}
+                      </div>
                     </div>
                   ) : null}
                 </div>
@@ -633,7 +665,13 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
             </div>
           </div>
           <div className="messages-filters">
-            <SearchInput id="messageSearch" label="" value={search} onChange={setSearch} placeholder={t("searchPlaceholder")} />
+            <SearchInput
+              id="messageSearch"
+              label=""
+              value={search}
+              onChange={setSearch}
+              placeholder={t("searchPlaceholder")}
+            />
             <div className="tabs" style={{ fontSize: "0.8rem" }}>
               {(["all", "private", "system", "broadcast"] as const).map((tab) => (
                 <button
@@ -642,16 +680,26 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                   type="button"
                   onClick={() => setTypeFilter(tab)}
                 >
-                  {tab === "all" ? t("all") : tab === "private" ? t("private") : tab === "system" ? t("system") : t("broadcast")}
+                  {tab === "all"
+                    ? t("all")
+                    : tab === "private"
+                      ? t("private")
+                      : tab === "system"
+                        ? t("system")
+                        : t("broadcast")}
                 </button>
               ))}
             </div>
           </div>
           <div className="messages-conversation-list">
             {isLoading ? (
-              <div className="list-item"><span className="text-muted">{t("loadingMessages")}</span></div>
+              <div className="list-item">
+                <span className="text-muted">{t("loadingMessages")}</span>
+              </div>
             ) : filteredConversations.length === 0 ? (
-              <div className="list-item"><span className="text-muted">{t("noMessages")}</span></div>
+              <div className="list-item">
+                <span className="text-muted">{t("noMessages")}</span>
+              </div>
             ) : (
               filteredConversations.map((conv) => (
                 <button
@@ -675,11 +723,11 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                           : conv.lastMessage.content}
                     </span>
                     <span className="messages-meta">
-                      {conv.unreadCount > 0 ? (
-                        <span className="badge">{conv.unreadCount}</span>
-                      ) : null}
+                      {conv.unreadCount > 0 ? <span className="badge">{conv.unreadCount}</span> : null}
                       {getMessageTypeLabel(conv.messageType) ? (
-                        <span className="badge" style={{ fontSize: "0.7rem" }}>{getMessageTypeLabel(conv.messageType)}</span>
+                        <span className="badge" style={{ fontSize: "0.7rem" }}>
+                          {getMessageTypeLabel(conv.messageType)}
+                        </span>
                       ) : null}
                     </span>
                   </div>
@@ -712,9 +760,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                       key={message.id}
                       className={`messages-bubble ${isSelf ? "self" : ""} ${isSystem ? "system" : ""}`}
                     >
-                      {message.subject ? (
-                        <div className="messages-bubble-subject">{message.subject}</div>
-                      ) : null}
+                      {message.subject ? <div className="messages-bubble-subject">{message.subject}</div> : null}
                       <div className="messages-bubble-content">{message.content}</div>
                       <div className="messages-bubble-meta">
                         <span className="text-muted" style={{ fontSize: "0.75rem" }}>

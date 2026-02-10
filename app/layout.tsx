@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Image from "next/image";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
@@ -13,9 +14,7 @@ interface RootLayoutProps {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app",
-  ),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.vercel.app"),
   title: {
     default: "TotalChiller - [THC] Chiller & Killer Community Hub",
     template: "%s | TotalChiller",
@@ -70,17 +69,14 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
                 <SidebarShell>
                   <ClanAccessGate>{children}</ClanAccessGate>
                   <footer className="app-footer">
-                    <img
+                    <Image
                       src="/assets/vip/components_decor_5.png"
                       alt="Ornamental footer divider"
                       className="app-footer-divider"
                       width={800}
                       height={16}
-                      loading="lazy"
                     />
-                    <span className="app-footer-text">
-                      {t("footer", "tagline")}
-                    </span>
+                    <span className="app-footer-text">{t("footer", "tagline")}</span>
                     <div className="app-footer-links">
                       <a href="/home">{t("footer", "home")}</a>
                       <span>&bull;</span>
@@ -90,9 +86,7 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
                       <span>&bull;</span>
                       <a href="/privacy-policy">{t("footer", "privacy")}</a>
                     </div>
-                    <div className="app-footer-sub">
-                      {t("footer", "builtWith")}
-                    </div>
+                    <div className="app-footer-sub">{t("footer", "builtWith")}</div>
                   </footer>
                 </SidebarShell>
               </div>

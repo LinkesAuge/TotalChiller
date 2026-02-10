@@ -1,6 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import createSupabaseServerClient from "../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
+import { standardLimiter } from "../../../lib/rate-limit";
+
+const PATCH_SCHEMA = z.object({
+  page: z.string().min(1).max(64),
+  section_key: z.string().min(1).max(128),
+  field_key: z.string().min(1).max(128),
+  content_de: z.string().max(50_000).optional(),
+  content_en: z.string().max(50_000).optional(),
+  _delete: z.boolean().optional(),
+});
 
 /**
  * GET /api/site-content?page=home
@@ -37,6 +48,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Body: { page, section_key, field_key, content_de, content_en }
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   /* Auth check */
   const authClient = await createSupabaseServerClient();
   const { data: authData } = await authClient.auth.getUser();
@@ -44,24 +57,17 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  /* Admin check */
+  /* Admin check — relies on simplified is_any_admin (user_roles only) */
   const { data: adminFlag } = await authClient.rpc("is_any_admin");
   if (!adminFlag) {
-    const { data: profileData } = await authClient
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", userId)
-      .maybeSingle();
-    if (!profileData?.is_admin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await request.json();
-  const { page, section_key, field_key, content_de, content_en, _delete } = body as Record<string, string | boolean>;
-  if (!page || !section_key || !field_key) {
-    return NextResponse.json({ error: "Missing required fields: page, section_key, field_key" }, { status: 400 });
+  const parsed = PATCH_SCHEMA.safeParse(await request.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
+  const { page, section_key, field_key, content_de, content_en, _delete } = parsed.data;
 
   const supabase = createSupabaseServiceRoleClient();
 
@@ -70,9 +76,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const { error } = await supabase
       .from("site_content")
       .delete()
-      .eq("page", page as string)
-      .eq("section_key", section_key as string)
-      .eq("field_key", field_key as string);
+      .eq("page", page)
+      .eq("section_key", section_key)
+      .eq("field_key", field_key);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -80,20 +86,18 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   }
 
   /* Upsert mode: create or update */
-  const { error } = await supabase
-    .from("site_content")
-    .upsert(
-      {
-        page,
-        section_key,
-        field_key,
-        content_de: (content_de as string) ?? "",
-        content_en: (content_en as string) ?? "",
-        updated_by: userId,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "page,section_key,field_key" }
-    );
+  const { error } = await supabase.from("site_content").upsert(
+    {
+      page,
+      section_key,
+      field_key,
+      content_de: content_de ?? "",
+      content_en: content_en ?? "",
+      updated_by: userId,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "page,section_key,field_key" },
+  );
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

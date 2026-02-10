@@ -13,6 +13,7 @@
  */
 
 import { useState, useRef, useCallback, type ChangeEvent } from "react";
+import { useTranslations } from "next-intl";
 import CmsMarkdown from "./cms-markdown";
 import type { ListItem } from "./use-site-content";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -52,9 +53,16 @@ interface EditableListProps {
   /** Current locale */
   readonly locale: string;
   /** Callback to add a new item */
-  readonly onAdd: (textDe: string, textEn: string, extra?: Partial<Pick<ListItem, "badge_de" | "badge_en" | "link_url" | "icon" | "icon_type">>) => Promise<ListItem>;
+  readonly onAdd: (
+    textDe: string,
+    textEn: string,
+    extra?: Partial<Pick<ListItem, "badge_de" | "badge_en" | "link_url" | "icon" | "icon_type">>,
+  ) => Promise<ListItem>;
   /** Callback to update an item */
-  readonly onUpdate: (id: string, updates: Partial<Omit<ListItem, "id" | "page" | "section_key" | "sort_order">>) => Promise<void>;
+  readonly onUpdate: (
+    id: string,
+    updates: Partial<Omit<ListItem, "id" | "page" | "section_key" | "sort_order">>,
+  ) => Promise<void>;
   /** Callback to remove an item */
   readonly onRemove: (id: string) => Promise<void>;
   /** Callback to reorder items */
@@ -98,6 +106,7 @@ function EditableList({
   supabase,
   userId,
 }: EditableListProps): JSX.Element {
+  const t = useTranslations("common");
   const [editModal, setEditModal] = useState<EditModalState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -138,7 +147,7 @@ function EditableList({
     try {
       await onReorder(reorderPayload);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Sortierung fehlgeschlagen");
+      setActionError(err instanceof Error ? err.message : t("reorderFailed"));
     }
   }, [dragIdx, dropIdx, items, onReorder]);
 
@@ -147,9 +156,9 @@ function EditableList({
   async function handleAdd(): Promise<void> {
     setActionError("");
     try {
-      await onAdd("Neuer Eintrag", "New item");
+      await onAdd(t("newItem"), "New item");
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Hinzufügen fehlgeschlagen");
+      setActionError(err instanceof Error ? err.message : t("addFailed"));
     }
   }
 
@@ -160,7 +169,7 @@ function EditableList({
     try {
       await onRemove(id);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Löschen fehlgeschlagen");
+      setActionError(err instanceof Error ? err.message : t("deleteFailed"));
     }
   }
 
@@ -172,11 +181,11 @@ function EditableList({
     if (!file || !supabase || !userId || !editModal) return;
 
     if (file.type !== "image/svg+xml") {
-      setActionError("Nur SVG-Dateien sind erlaubt.");
+      setActionError(t("svgOnly"));
       return;
     }
     if (file.size > MAX_SVG_SIZE) {
-      setActionError(`Datei zu groß (max ${MAX_SVG_SIZE / 1024} KB).`);
+      setActionError(t("fileTooLarge", { max: MAX_SVG_SIZE / 1024 }));
       return;
     }
 
@@ -192,17 +201,15 @@ function EditableList({
         .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
       if (uploadErr) {
-        setActionError(`Upload fehlgeschlagen: ${uploadErr.message}`);
+        setActionError(`${t("uploadFailed")}: ${uploadErr.message}`);
         return;
       }
 
-      const { data: urlData } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
 
       setEditModal({ ...editModal, icon: urlData.publicUrl, iconType: "custom" });
     } catch {
-      setActionError("Upload unerwartet fehlgeschlagen.");
+      setActionError(t("uploadUnexpectedError"));
     } finally {
       setIsUploading(false);
     }
@@ -240,7 +247,7 @@ function EditableList({
       });
       setEditModal(null);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Speichern fehlgeschlagen");
+      setActionError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -248,11 +255,9 @@ function EditableList({
 
   /* ── Render ── */
 
-  const getText = (item: ListItem): string =>
-    locale === "en" ? (item.text_en || item.text_de) : item.text_de;
+  const getText = (item: ListItem): string => (locale === "en" ? item.text_en || item.text_de : item.text_de);
 
-  const getBadge = (item: ListItem): string =>
-    locale === "en" ? (item.badge_en || item.badge_de) : item.badge_de;
+  const getBadge = (item: ListItem): string => (locale === "en" ? item.badge_en || item.badge_de : item.badge_de);
 
   return (
     <div className={`editable-list ${className}`.trim()} ref={listRef}>
@@ -260,7 +265,14 @@ function EditableList({
       {actionError && (
         <div className="editable-list-error">
           {actionError}
-          <button type="button" onClick={() => setActionError("")} className="editable-list-error-close" aria-label="Fehler schließen">✕</button>
+          <button
+            type="button"
+            onClick={() => setActionError("")}
+            className="editable-list-error-close"
+            aria-label={t("closeError")}
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -276,7 +288,7 @@ function EditableList({
         >
           {/* Drag handle */}
           {canEdit && (
-            <span className="editable-list-drag-handle" aria-label="Ziehen zum Sortieren">
+            <span className="editable-list-drag-handle" aria-label={t("dragToSort")}>
               ⠿
             </span>
           )}
@@ -284,11 +296,11 @@ function EditableList({
           {/* Icon */}
           {showIcons && item.icon && (
             <span className="editable-list-icon">
-              {item.icon_type === "preset" && PRESET_ICONS[item.icon]
-                ? PRESET_ICONS[item.icon]
-                : item.icon_type === "custom" && item.icon
-                  ? <img src={item.icon} alt="" className="editable-list-icon-custom" />
-                  : null}
+              {item.icon_type === "preset" && PRESET_ICONS[item.icon] ? (
+                PRESET_ICONS[item.icon]
+              ) : item.icon_type === "custom" && item.icon ? (
+                <img src={item.icon} alt="" className="editable-list-icon-custom" />
+              ) : null}
             </span>
           )}
 
@@ -298,9 +310,7 @@ function EditableList({
           </div>
 
           {/* Badge */}
-          {showBadges && getBadge(item) && (
-            <span className="editable-list-badge">{getBadge(item)}</span>
-          )}
+          {showBadges && getBadge(item) && <span className="editable-list-badge">{getBadge(item)}</span>}
 
           {/* Edit / Remove buttons (hover-only) */}
           {canEdit && (
@@ -309,9 +319,18 @@ function EditableList({
                 className="editable-list-btn editable-list-edit"
                 type="button"
                 onClick={() => openEdit(item)}
-                aria-label="Eintrag bearbeiten"
+                aria-label={t("editItem")}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
@@ -320,7 +339,7 @@ function EditableList({
                 className="editable-list-btn editable-list-remove"
                 type="button"
                 onClick={() => handleRemove(item.id)}
-                aria-label="Eintrag entfernen"
+                aria-label={t("removeItem")}
               >
                 ✕
               </button>
@@ -331,13 +350,8 @@ function EditableList({
 
       {/* Add button */}
       {canEdit && (
-        <button
-          className="editable-list-add"
-          type="button"
-          onClick={handleAdd}
-          aria-label="Eintrag hinzufügen"
-        >
-          + Eintrag hinzufügen
+        <button className="editable-list-add" type="button" onClick={handleAdd} aria-label={t("addItem")}>
+          + {t("addItem")}
         </button>
       )}
 
@@ -345,7 +359,7 @@ function EditableList({
       {editModal && (
         <div className="editable-list-modal-backdrop" onClick={() => setEditModal(null)}>
           <div className="editable-list-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="editable-list-modal-title">Eintrag bearbeiten</h3>
+            <h3 className="editable-list-modal-title">{t("editItem")}</h3>
 
             <div className="editable-list-modal-field">
               <label className="editable-list-modal-label">Text (DE)</label>
@@ -406,7 +420,7 @@ function EditableList({
                     type="button"
                     className={`editable-list-icon-option${editModal.icon === "" ? " active" : ""}`}
                     onClick={() => setEditModal({ ...editModal, icon: "", iconType: "preset" })}
-                    aria-label="Kein Icon"
+                    aria-label={t("noIcon")}
                   >
                     ∅
                   </button>
@@ -432,9 +446,9 @@ function EditableList({
                       className="editable-list-svg-upload-btn"
                       onClick={() => svgInputRef.current?.click()}
                       disabled={isUploading}
-                      aria-label="Eigenes SVG-Icon hochladen"
+                      aria-label={t("uploadCustomSvg")}
                     >
-                      {isUploading ? "Wird hochgeladen…" : "Eigenes SVG hochladen"}
+                      {isUploading ? t("uploading") : t("uploadCustomSvg")}
                     </button>
                     <input
                       ref={svgInputRef}
@@ -451,7 +465,7 @@ function EditableList({
                           type="button"
                           className="editable-list-svg-preview-remove"
                           onClick={() => setEditModal({ ...editModal, icon: "", iconType: "preset" })}
-                          aria-label="Custom Icon entfernen"
+                          aria-label={t("removeCustomIcon")}
                         >
                           ✕
                         </button>
@@ -462,9 +476,7 @@ function EditableList({
               </div>
             )}
 
-            {actionError && (
-              <div className="editable-text-error">{actionError}</div>
-            )}
+            {actionError && <div className="editable-text-error">{actionError}</div>}
 
             <div className="editable-text-actions">
               <button
@@ -472,17 +484,12 @@ function EditableList({
                 type="button"
                 onClick={handleEditSave}
                 disabled={isSaving}
-                aria-label="Speichern"
+                aria-label={t("save")}
               >
-                {isSaving ? "…" : "Speichern"}
+                {isSaving ? "…" : t("save")}
               </button>
-              <button
-                className="button"
-                type="button"
-                onClick={() => setEditModal(null)}
-                aria-label="Abbrechen"
-              >
-                Abbrechen
+              <button className="button" type="button" onClick={() => setEditModal(null)} aria-label={t("cancel")}>
+                {t("cancel")}
               </button>
             </div>
           </div>

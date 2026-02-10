@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSiteContent } from "../components/use-site-content";
@@ -14,7 +15,15 @@ function ContactClient(): JSX.Element {
     return (
       <>
         <div className="top-bar">
-          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <Image
+            src="/assets/vip/header_3.png"
+            alt=""
+            role="presentation"
+            className="top-bar-bg"
+            width={1200}
+            height={56}
+            priority
+          />
           <div className="top-bar-inner">
             <div>
               <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -22,7 +31,9 @@ function ContactClient(): JSX.Element {
             </div>
           </div>
         </div>
-        <div className="content-inner"><LoadingSkeleton rows={4} /></div>
+        <div className="content-inner">
+          <LoadingSkeleton rows={4} />
+        </div>
       </>
     );
   }
@@ -30,7 +41,15 @@ function ContactClient(): JSX.Element {
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -41,7 +60,6 @@ function ContactClient(): JSX.Element {
       <div className="content-inner">
         {error && <ErrorBanner message={error} />}
         <div className="grid">
-
           {/* ═══ Contact Methods ═══ */}
           <section className="card" style={{ gridColumn: "span 2" }}>
             <div className="card-header">
@@ -70,7 +88,11 @@ function ContactClient(): JSX.Element {
               />
               <EditableText
                 as="div"
-                value={c("getInTouch", "methods", `**${t("discord")}**\n${t("discordDesc")}\n\n**${t("emailTitle")}**\n${t("emailDesc")}\n\n**${t("inGame")}**\n${t("inGameDesc")}`)}
+                value={c(
+                  "getInTouch",
+                  "methods",
+                  `**${t("discord")}**\n${t("discordDesc")}\n\n**${t("emailTitle")}**\n${t("emailDesc")}\n\n**${t("inGame")}**\n${t("inGameDesc")}`,
+                )}
                 valueEn={cEn("getInTouch", "methods")}
                 canEdit={canEdit}
                 locale={locale}
@@ -109,8 +131,12 @@ function ContactClient(): JSX.Element {
                 onSave={(de, en) => saveField("join", "text", de, en)}
               />
               <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
-                <Link className="button primary" href="/auth/register">{t("applyForMembership")}</Link>
-                <Link className="button" href="/auth/login">{t("existingMemberSignIn")}</Link>
+                <Link className="button primary" href="/auth/register">
+                  {t("applyForMembership")}
+                </Link>
+                <Link className="button" href="/auth/login">
+                  {t("existingMemberSignIn")}
+                </Link>
               </div>
             </div>
           </section>
@@ -132,7 +158,11 @@ function ContactClient(): JSX.Element {
             <div className="card-body">
               <EditableText
                 as="div"
-                value={c("response", "text", `${t("responseIntro")}\n\n- ${t("responseDiscord")} — ${t("responseDiscordBadge")}\n- ${t("responseEmail")} — ${t("responseEmailBadge")}\n- ${t("responseRecruitment")} — ${t("responseRecruitmentBadge")}\n- ${t("responsePrivacy")} — ${t("responsePrivacyBadge")}`)}
+                value={c(
+                  "response",
+                  "text",
+                  `${t("responseIntro")}\n\n- ${t("responseDiscord")} — ${t("responseDiscordBadge")}\n- ${t("responseEmail")} — ${t("responseEmailBadge")}\n- ${t("responseRecruitment")} — ${t("responseRecruitmentBadge")}\n- ${t("responsePrivacy")} — ${t("responsePrivacyBadge")}`,
+                )}
                 valueEn={cEn("response", "text")}
                 canEdit={canEdit}
                 locale={locale}
@@ -161,7 +191,11 @@ function ContactClient(): JSX.Element {
             <div className="card-body">
               <EditableText
                 as="div"
-                value={c("faq", "text", `**${t("faq1Question")}** ${t("faq1Start")} [${t("faq1Link")}](/auth/register). ${t("faq1End")}\n\n**${t("faq2Question")}** ${t("faq2Start")} [${t("faq2Link")}](/auth/forgot) ${t("faq2End")}\n\n**${t("faq3Question")}** ${t("faq3Start")} [${t("faq3AboutLink")}](/about) ${t("faq3Mid")} [${t("faq3HomeLink")}](/home).`)}
+                value={c(
+                  "faq",
+                  "text",
+                  `**${t("faq1Question")}** ${t("faq1Start")} [${t("faq1Link")}](/auth/register). ${t("faq1End")}\n\n**${t("faq2Question")}** ${t("faq2Start")} [${t("faq2Link")}](/auth/forgot) ${t("faq2End")}\n\n**${t("faq3Question")}** ${t("faq3Start")} [${t("faq3AboutLink")}](/about) ${t("faq3Mid")} [${t("faq3HomeLink")}](/home).`,
+                )}
                 valueEn={cEn("faq", "text")}
                 canEdit={canEdit}
                 locale={locale}
@@ -172,7 +206,6 @@ function ContactClient(): JSX.Element {
               />
             </div>
           </section>
-
         </div>
       </div>
     </>

@@ -14,6 +14,7 @@
  */
 
 import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import CmsMarkdown from "./cms-markdown";
 import CmsMarkdownToolbar from "./cms-markdown-toolbar";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -66,6 +67,7 @@ function EditableText({
   supabase,
   userId,
 }: EditableTextProps): JSX.Element {
+  const t = useTranslations("common");
   const [isEditing, setIsEditing] = useState(false);
   const [editDe, setEditDe] = useState("");
   const [editEn, setEditEn] = useState("");
@@ -100,7 +102,7 @@ function EditableText({
       await onSave(editDe, editEn);
       setIsEditing(false);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Speichern fehlgeschlagen");
+      setSaveError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -129,12 +131,16 @@ function EditableText({
                 className={`editable-text-tab${activeTab === "de" ? " active" : ""}`}
                 type="button"
                 onClick={() => setActiveTab("de")}
-              >DE</button>
+              >
+                DE
+              </button>
               <button
                 className={`editable-text-tab${activeTab === "en" ? " active" : ""}`}
                 type="button"
                 onClick={() => setActiveTab("en")}
-              >EN</button>
+              >
+                EN
+              </button>
               <div className="editable-text-tab-spacer" />
               {useMarkdownEditor && (
                 <button
@@ -142,7 +148,7 @@ function EditableText({
                   type="button"
                   onClick={() => setShowPreview(!showPreview)}
                 >
-                  {showPreview ? "Editor" : "Vorschau"}
+                  {showPreview ? t("editor") : t("preview")}
                 </button>
               )}
             </div>
@@ -186,19 +192,13 @@ function EditableText({
             </div>
             <div className="editable-text-field-group">
               <label className="editable-text-label">EN</label>
-              <input
-                className="editable-text-input"
-                value={editEn}
-                onChange={(e) => setEditEn(e.target.value)}
-              />
+              <input className="editable-text-input" value={editEn} onChange={(e) => setEditEn(e.target.value)} />
             </div>
           </div>
         )}
 
         {/* Error message */}
-        {saveError && (
-          <div className="editable-text-error">{saveError}</div>
-        )}
+        {saveError && <div className="editable-text-error">{saveError}</div>}
 
         <div className="editable-text-actions">
           <button
@@ -206,17 +206,12 @@ function EditableText({
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            aria-label="Speichern"
+            aria-label={t("save")}
           >
-            {isSaving ? "…" : "Speichern"}
+            {isSaving ? "…" : t("save")}
           </button>
-          <button
-            className="button"
-            type="button"
-            onClick={handleCancel}
-            aria-label="Abbrechen"
-          >
-            Abbrechen
+          <button className="button" type="button" onClick={handleCancel} aria-label={t("cancel")}>
+            {t("cancel")}
           </button>
         </div>
       </div>
@@ -226,13 +221,17 @@ function EditableText({
   /* ─── Display UI ─── */
 
   const pencilBtn = canEdit ? (
-    <button
-      className="editable-text-pencil"
-      type="button"
-      onClick={handleOpen}
-      aria-label="Inhalt bearbeiten"
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <button className="editable-text-pencil" type="button" onClick={handleOpen} aria-label={t("editContent")}>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
       </svg>

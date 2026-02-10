@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import AuthActions from "../components/auth-actions";
@@ -16,7 +17,15 @@ async function NotAuthorizedPage(): Promise<JSX.Element> {
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <h1 className="top-bar-title">{t("title")}</h1>
@@ -27,18 +36,18 @@ async function NotAuthorizedPage(): Promise<JSX.Element> {
         </div>
       </div>
       <div className="content-inner">
-      <div className="grid">
-        <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
-          {t("message")}
-        </div>
-        <section className="card">
-          <div className="list">
-            <Link className="button primary" href="/home">
-              {t("goHome")}
-            </Link>
+        <div className="grid">
+          <div className="alert warn" style={{ gridColumn: "1 / -1" }}>
+            {t("message")}
           </div>
-        </section>
-      </div>
+          <section className="card">
+            <div className="list">
+              <Link className="button primary" href="/home">
+                {t("goHome")}
+              </Link>
+            </div>
+          </section>
+        </div>
       </div>
     </>
   );

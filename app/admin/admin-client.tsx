@@ -12,203 +12,44 @@ import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import ForumCategoryAdmin from "./forum-category-admin";
 import { formatLocalDateTime } from "../../lib/date-format";
 import { useToast } from "../components/toast-provider";
-
-interface ClanRow {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string | null;
-  readonly is_unassigned?: boolean | null;
-}
-
-interface GameAccountRow {
-  readonly id: string;
-  readonly user_id: string;
-  readonly game_username: string;
-  readonly approval_status?: string;
-}
-
-interface MembershipRow {
-  readonly id: string;
-  readonly clan_id: string;
-  readonly game_account_id: string;
-  readonly is_active: boolean;
-  readonly rank: string | null;
-  readonly game_accounts: GameAccountRow | null;
-}
-
-type MembershipQueryRow = Omit<MembershipRow, "game_accounts"> & {
-  readonly game_accounts: GameAccountRow | readonly GameAccountRow[] | null;
-};
-
-interface MembershipEditState {
-  readonly is_active?: boolean;
-  readonly rank?: string | null;
-  readonly clan_id?: string;
-}
-
-interface GameAccountEditState {
-  readonly game_username?: string;
-}
-
-interface AssignableGameAccount {
-  readonly id: string;
-  readonly user_id: string;
-  readonly game_username: string;
-  readonly clan_id: string | null;
-  readonly user_email: string;
-  readonly user_display: string;
-}
-
-interface ProfileRow {
-  readonly id: string;
-  readonly email: string;
-  readonly display_name: string | null;
-  readonly username: string | null;
-}
-
-interface PendingApprovalRow {
-  readonly id: string;
-  readonly user_id: string;
-  readonly game_username: string;
-  readonly approval_status: string;
-  readonly created_at: string;
-  readonly profiles: { readonly email: string; readonly username: string | null; readonly display_name: string | null } | null;
-}
-
-type MemberSortKey = "game" | "user" | "clan" | "rank" | "status";
-type UserSortKey = "username" | "email" | "nickname" | "role" | "admin" | "accounts";
-
-interface UserRow {
-  readonly id: string;
-  readonly email: string;
-  readonly display_name: string | null;
-  readonly username: string | null;
-  readonly user_db: string | null;
-  readonly is_admin?: boolean | null;
-}
-
-interface UserEditState {
-  readonly display_name?: string | null;
-  readonly username?: string | null;
-  readonly role?: string | null;
-}
-
-interface RuleRow {
-  readonly id: string;
-  readonly field?: string;
-  readonly match_value?: string;
-  readonly replacement_value?: string;
-  readonly status?: string;
-  readonly chest_match?: string;
-  readonly source_match?: string;
-  readonly min_level?: number | null;
-  readonly max_level?: number | null;
-  readonly score?: number;
-  readonly rule_order?: number;
-}
-
-interface ValidationFieldCount {
-  total: number;
-  active: number;
-}
-
-interface AuditLogRow {
-  readonly id: string;
-  readonly clan_id: string;
-  readonly actor_id: string;
-  readonly action: string;
-  readonly entity: string;
-  readonly entity_id: string;
-  readonly diff: Record<string, unknown> | null;
-  readonly created_at: string;
-}
-
-const roleOptions: readonly string[] = ["owner", "admin", "moderator", "editor", "member"];
-const rankOptions: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier"];
-const ruleFieldOptions: readonly string[] = ["player", "source", "chest", "clan"];
-const correctionFieldOptions: readonly string[] = ["all", ...ruleFieldOptions];
-const NEW_VALIDATION_ID = "validation-new";
-const NEW_CORRECTION_ID = "correction-new";
-type ValidationSortValue = "field" | "status" | "match_value";
-type CorrectionSortValue = "field" | "match_value" | "replacement_value" | "status";
-type ScoringSortValue = "rule_order" | "score" | "chest_match" | "source_match";
-
-function getValidationSortOptions(t: (key: string) => string): readonly { value: ValidationSortValue; label: string }[] {
-  return [
-    { value: "field", label: t("sortOptions.field") },
-    { value: "status", label: t("common.status") },
-    { value: "match_value", label: t("sortOptions.matchValue") },
-  ];
-}
-function getCorrectionSortOptions(t: (key: string) => string): readonly { value: CorrectionSortValue; label: string }[] {
-  return [
-    { value: "field", label: t("sortOptions.field") },
-    { value: "match_value", label: t("sortOptions.matchValue") },
-    { value: "replacement_value", label: t("sortOptions.replacementValue") },
-    { value: "status", label: t("common.status") },
-  ];
-}
-function getScoringSortOptions(t: (key: string) => string): readonly { value: ScoringSortValue; label: string }[] {
-  return [
-    { value: "rule_order", label: t("sortOptions.order") },
-    { value: "score", label: t("sortOptions.score") },
-    { value: "chest_match", label: t("sortOptions.chest") },
-    { value: "source_match", label: t("sortOptions.source") },
-  ];
-}
-
-/** Localised display names for ranks. */
-const RANK_LABELS: Record<string, Record<string, string>> = {
-  de: { leader: "Anführer", superior: "Vorgesetzter", officer: "Offizier", veteran: "Veteran", soldier: "Soldat" },
-  en: { leader: "Leader", superior: "Superior", officer: "Officer", veteran: "Veteran", soldier: "Soldier" },
-};
-
-/** Localised display names for user roles. */
-const ROLE_LABELS: Record<string, Record<string, string>> = {
-  de: { owner: "Eigentümer", admin: "Administrator", moderator: "Moderator", editor: "Editor", member: "Mitglied" },
-  en: { owner: "Owner", admin: "Admin", moderator: "Moderator", editor: "Editor", member: "Member" },
-};
-
-function formatLabel(value: string): string {
-  if (!value) {
-    return value;
-  }
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-/**
- * Returns the localised label for a rank key.
- */
-function formatRank(rank: string, locale: string): string {
-  return RANK_LABELS[locale]?.[rank] ?? RANK_LABELS.en[rank] ?? formatLabel(rank);
-}
-
-/**
- * Returns the localised label for a role key.
- */
-function formatRole(role: string, locale: string): string {
-  return ROLE_LABELS[locale]?.[role] ?? ROLE_LABELS.en[role] ?? formatLabel(role);
-}
-
-function buildFallbackUserDb(email: string, userId: string): string {
-  const prefix = email.split("@")[0] || "user";
-  const suffix = userId.replace(/-/g, "").slice(-6);
-  return `${prefix}_${suffix}`.toLowerCase();
-}
-
-function normalizeMembershipRow(row: MembershipQueryRow): MembershipRow {
-  const gameAccount = Array.isArray(row.game_accounts)
-    ? (row.game_accounts[0] ?? null)
-    : row.game_accounts;
-  return {
-    ...row,
-    game_accounts: gameAccount ?? null,
-  };
-}
-
-function normalizeMembershipRows(rows: readonly MembershipQueryRow[] | null | undefined): readonly MembershipRow[] {
-  return (rows ?? []).map(normalizeMembershipRow);
-}
+import { isAdmin as isAdminRole } from "@/lib/permissions";
+import {
+  type ClanRow,
+  type GameAccountRow,
+  type MembershipRow,
+  type MembershipQueryRow,
+  type MembershipEditState,
+  type GameAccountEditState,
+  type AssignableGameAccount,
+  type ProfileRow,
+  type PendingApprovalRow,
+  type MemberSortKey,
+  type UserSortKey,
+  type UserRow,
+  type UserEditState,
+  type RuleRow,
+  type ValidationFieldCount,
+  type AuditLogRow,
+  type ValidationSortValue,
+  type CorrectionSortValue,
+  type ScoringSortValue,
+  type AdminSection,
+  roleOptions,
+  rankOptions,
+  ruleFieldOptions,
+  correctionFieldOptions,
+  NEW_VALIDATION_ID,
+  NEW_CORRECTION_ID,
+  getValidationSortOptions,
+  getCorrectionSortOptions,
+  getScoringSortOptions,
+  formatLabel,
+  formatRank,
+  formatRole,
+  buildFallbackUserDb,
+  normalizeMembershipRows,
+  resolveSection,
+} from "./admin-types";
 
 /**
  * Admin UI for clan and game account management.
@@ -259,8 +100,9 @@ function AdminClient(): ReactElement {
   const [correctionSearch, setCorrectionSearch] = useState<string>("");
   const [correctionListField, setCorrectionListField] = useState<string>("player");
   const [correctionStatusFilter, setCorrectionStatusFilter] = useState<string>("all");
-  const [correctionSortKey, setCorrectionSortKey] =
-    useState<"field" | "match_value" | "replacement_value" | "status">("field");
+  const [correctionSortKey, setCorrectionSortKey] = useState<"field" | "match_value" | "replacement_value" | "status">(
+    "field",
+  );
   const [correctionSortDirection, setCorrectionSortDirection] = useState<"asc" | "desc">("asc");
   const [correctionImportStatus, setCorrectionImportStatus] = useState<string>("");
   const [correctionImportMode, setCorrectionImportMode] = useState<"append" | "replace">("append");
@@ -276,8 +118,9 @@ function AdminClient(): ReactElement {
   const [isCorrectionDeleteInputOpen, setIsCorrectionDeleteInputOpen] = useState<boolean>(false);
   const [correctionDeleteInput, setCorrectionDeleteInput] = useState<string>("");
   const [scoringSearch, setScoringSearch] = useState<string>("");
-  const [scoringSortKey, setScoringSortKey] =
-    useState<"rule_order" | "score" | "chest_match" | "source_match">("rule_order");
+  const [scoringSortKey, setScoringSortKey] = useState<"rule_order" | "score" | "chest_match" | "source_match">(
+    "rule_order",
+  );
   const [scoringSortDirection, setScoringSortDirection] = useState<"asc" | "desc">("asc");
   const [validationPage, setValidationPage] = useState<number>(1);
   const [correctionPage, setCorrectionPage] = useState<number>(1);
@@ -311,7 +154,9 @@ function AdminClient(): ReactElement {
   const [scoringScore, setScoringScore] = useState<string>("");
   const [scoringOrder, setScoringOrder] = useState<string>("1");
   const [scoringEditingId, setScoringEditingId] = useState<string>("");
-  const [activeSection, setActiveSection] = useState<"clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum">("clans");
+  const [activeSection, setActiveSection] = useState<
+    "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum"
+  >("clans");
   const [pendingApprovals, setPendingApprovals] = useState<readonly PendingApprovalRow[]>([]);
   const [approvalStatus, setApprovalStatus] = useState<string>("");
   const [isApprovalsLoading, setIsApprovalsLoading] = useState<boolean>(false);
@@ -325,7 +170,6 @@ function AdminClient(): ReactElement {
   const [defaultClanId, setDefaultClanId] = useState<string>("");
   const [userSearch, setUserSearch] = useState<string>("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
-  const [userAdminFilter, setUserAdminFilter] = useState<string>("all");
   const [userRows, setUserRows] = useState<readonly UserRow[]>([]);
   const [gameAccountsByUserId, setGameAccountsByUserId] = useState<Record<string, GameAccountRow[]>>({});
   const [userMembershipsByAccountId, setUserMembershipsByAccountId] = useState<Record<string, MembershipRow>>({});
@@ -377,10 +221,7 @@ function AdminClient(): ReactElement {
   const [gameAccountDeleteInput, setGameAccountDeleteInput] = useState<string>("");
   const [gameAccountToDelete, setGameAccountToDelete] = useState<GameAccountRow | null>(null);
 
-  const selectedClan = useMemo(
-    () => clans.find((clan) => clan.id === selectedClanId),
-    [clans, selectedClanId],
-  );
+  const selectedClan = useMemo(() => clans.find((clan) => clan.id === selectedClanId), [clans, selectedClanId]);
   const validationSelectAllRef = useRef<HTMLInputElement | null>(null);
   const correctionSelectAllRef = useRef<HTMLInputElement | null>(null);
 
@@ -441,9 +282,6 @@ function AdminClient(): ReactElement {
     }
     if (userSortKey === "role") {
       return userRolesById[user.id] ?? "member";
-    }
-    if (userSortKey === "admin") {
-      return user.is_admin ? 1 : 0;
     }
     if (userSortKey === "accounts") {
       return gameAccountsByUserId[user.id]?.length ?? 0;
@@ -872,7 +710,7 @@ function AdminClient(): ReactElement {
     const normalizedSearch = memberSearch.trim().toLowerCase();
     return memberships.filter((membership) => {
       const userId = membership.game_accounts?.user_id ?? "";
-      const userRole = userId ? userRolesById[userId] ?? "member" : "member";
+      const userRole = userId ? (userRolesById[userId] ?? "member") : "member";
       if (memberRankFilter !== "all" && (membership.rank ?? "") !== memberRankFilter) {
         return false;
       }
@@ -916,15 +754,9 @@ function AdminClient(): ReactElement {
       if (userRoleFilter !== "all" && role !== userRoleFilter) {
         return false;
       }
-      if (userAdminFilter !== "all") {
-        const expectedAdmin = userAdminFilter === "admin";
-        if (Boolean(user.is_admin) !== expectedAdmin) {
-          return false;
-        }
-      }
       return true;
     });
-  }, [userAdminFilter, userRoleFilter, userRows, userRolesById]);
+  }, [userRoleFilter, userRows, userRolesById]);
   const sortedUserRows = useMemo(() => {
     const sorted = [...filteredUserRows];
     sorted.sort((left, right) => {
@@ -935,8 +767,17 @@ function AdminClient(): ReactElement {
     return sorted;
   }, [filteredUserRows, getUserSortValue, userSortDirection]);
 
-  function resolveSection(value: string | null): "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum" {
-    if (value === "validation" || value === "corrections" || value === "logs" || value === "users" || value === "approvals" || value === "forum") {
+  function resolveSection(
+    value: string | null,
+  ): "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum" {
+    if (
+      value === "validation" ||
+      value === "corrections" ||
+      value === "logs" ||
+      value === "users" ||
+      value === "approvals" ||
+      value === "forum"
+    ) {
       return value;
     }
     if (value === "rules") {
@@ -945,7 +786,9 @@ function AdminClient(): ReactElement {
     return "clans";
   }
 
-  function updateActiveSection(nextSection: "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum"): void {
+  function updateActiveSection(
+    nextSection: "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum",
+  ): void {
     setActiveSection(nextSection);
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", nextSection);
@@ -977,10 +820,7 @@ function AdminClient(): ReactElement {
   }
 
   async function loadClans(): Promise<void> {
-    const { data, error } = await supabase
-      .from("clans")
-      .select("id,name,description,is_unassigned")
-      .order("name");
+    const { data, error } = await supabase.from("clans").select("id,name,description,is_unassigned").order("name");
     if (error) {
       setStatus(`Failed to load clans: ${error.message}`);
       return;
@@ -1006,13 +846,8 @@ function AdminClient(): ReactElement {
     }
   }
 
-
   async function loadDefaultClan(): Promise<void> {
-    const { data: defaultClan } = await supabase
-      .from("clans")
-      .select("id")
-      .eq("is_default", true)
-      .maybeSingle();
+    const { data: defaultClan } = await supabase.from("clans").select("id").eq("is_default", true).maybeSingle();
     setDefaultClanId(defaultClan?.id ?? "");
   }
 
@@ -1099,8 +934,7 @@ function AdminClient(): ReactElement {
     let query = supabase
       .from("audit_logs")
       .select("id,clan_id,actor_id,action,entity,entity_id,diff,created_at", { count: "exact" });
-    const clanFilterValue =
-      auditClanFilter && auditClanFilter !== "all" ? auditClanFilter : clanId;
+    const clanFilterValue = auditClanFilter && auditClanFilter !== "all" ? auditClanFilter : clanId;
     if (clanFilterValue) {
       query = query.eq("clan_id", clanFilterValue);
     }
@@ -1204,11 +1038,7 @@ function AdminClient(): ReactElement {
   }
 
   async function loadUsers(): Promise<void> {
-    const query = supabase
-      .from("profiles")
-      .select("id,email,display_name,username,user_db,is_admin")
-      .order("email")
-      .limit(25);
+    const query = supabase.from("profiles").select("id,email,display_name,username,user_db").order("email").limit(25);
     if (userSearch.trim()) {
       const pattern = `%${userSearch.trim()}%`;
       query.or(`email.ilike.${pattern},username.ilike.${pattern},display_name.ilike.${pattern}`);
@@ -1272,7 +1102,9 @@ function AdminClient(): ReactElement {
       setUserStatus(`Failed to load memberships: ${membershipError.message}`);
       return;
     }
-    const membershipMap = normalizeMembershipRows(membershipData as readonly MembershipQueryRow[] | null | undefined).reduce<Record<string, MembershipRow>>((acc, membership) => {
+    const membershipMap = normalizeMembershipRows(
+      membershipData as readonly MembershipQueryRow[] | null | undefined,
+    ).reduce<Record<string, MembershipRow>>((acc, membership) => {
       acc[membership.game_account_id] = membership;
       return acc;
     }, {});
@@ -1329,7 +1161,10 @@ function AdminClient(): ReactElement {
       setUserStatus("You cannot delete your own account.");
       return;
     }
-    if (user.is_admin && userRows.filter((row) => Boolean(row.is_admin)).length <= 1) {
+    if (
+      isAdminRole(userRolesById[user.id] ?? "member") &&
+      userRows.filter((row) => isAdminRole(userRolesById[row.id] ?? "member")).length <= 1
+    ) {
       setUserStatus("At least one admin is required.");
       return;
     }
@@ -1608,35 +1443,6 @@ function AdminClient(): ReactElement {
     setCreateUserStatus("Invite resent.");
   }
 
-  async function handleToggleAdmin(user: UserRow): Promise<void> {
-    const nextValue = !Boolean(user.is_admin);
-    if (!nextValue && currentUserId && user.id === currentUserId) {
-      setUserStatus(tAdmin("users.cannotRevokeOwn"));
-      return;
-    }
-    if (!nextValue) {
-      const adminCount = userRows.filter((row) => Boolean(row.is_admin)).length;
-      if (adminCount <= 1) {
-        setUserStatus(tAdmin("users.lastAdminRequired"));
-        return;
-      }
-    }
-    const confirmToggle = window.confirm(
-      `${nextValue ? "Grant" : "Revoke"} admin access for ${user.email}?`,
-    );
-    if (!confirmToggle) {
-      return;
-    }
-    setUserStatus("Updating admin access...");
-    const { error } = await supabase.from("profiles").update({ is_admin: nextValue }).eq("id", user.id);
-    if (error) {
-      setUserStatus(`Failed to update admin access: ${error.message}`);
-      return;
-    }
-    setUserStatus("Admin access updated.");
-    await loadUsers();
-  }
-
   function updateUserEdit(userId: string, field: keyof UserEditState, value: string): void {
     setUserEdits((current) => ({
       ...current,
@@ -1829,11 +1635,7 @@ function AdminClient(): ReactElement {
     });
   }
 
-  function updateGameAccountEdit(
-    accountId: string,
-    field: keyof GameAccountEditState,
-    value: string,
-  ): void {
+  function updateGameAccountEdit(accountId: string, field: keyof GameAccountEditState, value: string): void {
     setGameAccountEdits((current) => ({
       ...current,
       [accountId]: {
@@ -1853,10 +1655,7 @@ function AdminClient(): ReactElement {
     setActiveGameAccountId((current) => (current === accountId ? "" : current));
   }
 
-  async function handleSaveGameAccountEdit(
-    account: GameAccountRow,
-    shouldReload: boolean = true,
-  ): Promise<boolean> {
+  async function handleSaveGameAccountEdit(account: GameAccountRow, shouldReload: boolean = true): Promise<boolean> {
     const editState = gameAccountEdits[account.id];
     if (!editState) {
       return true;
@@ -1888,9 +1687,7 @@ function AdminClient(): ReactElement {
   }
 
   async function handleDeleteGameAccount(account: GameAccountRow): Promise<void> {
-    const confirmDelete = window.confirm(
-      `Delete game account ${account.game_username}? This cannot be undone.`,
-    );
+    const confirmDelete = window.confirm(`Delete game account ${account.game_username}? This cannot be undone.`);
     if (!confirmDelete) {
       return;
     }
@@ -1909,10 +1706,7 @@ function AdminClient(): ReactElement {
 
   useEffect(() => {
     async function initializeAdmin(): Promise<void> {
-      const { data, error } = await supabase
-        .from("clans")
-        .select("id,name,description,is_unassigned")
-        .order("name");
+      const { data, error } = await supabase.from("clans").select("id,name,description,is_unassigned").order("name");
       if (error) {
         setStatus(`Failed to load clans: ${error.message}`);
         return;
@@ -1926,11 +1720,7 @@ function AdminClient(): ReactElement {
         const matchedClan = storedClanId ? clanRows.find((clan) => clan.id === storedClanId) : undefined;
         setSelectedClanId(matchedClan?.id ?? clanRows[0].id);
       }
-      const { data: defaultClan } = await supabase
-        .from("clans")
-        .select("id")
-        .eq("is_default", true)
-        .maybeSingle();
+      const { data: defaultClan } = await supabase.from("clans").select("id").eq("is_default", true).maybeSingle();
       setDefaultClanId(defaultClan?.id ?? "");
       const { data: authData } = await supabase.auth.getUser();
       setCurrentUserId(authData.user?.id ?? "");
@@ -1997,7 +1787,9 @@ function AdminClient(): ReactElement {
         setStatus(`Failed to load memberships: ${membershipError.message}`);
         return;
       }
-      const membershipRows = normalizeMembershipRows(membershipData as readonly MembershipQueryRow[] | null | undefined);
+      const membershipRows = normalizeMembershipRows(
+        membershipData as readonly MembershipQueryRow[] | null | undefined,
+      );
       setMemberships(membershipRows);
       const userIds = membershipRows
         .map((row) => row.game_accounts?.user_id)
@@ -2050,11 +1842,7 @@ function AdminClient(): ReactElement {
       if (activeSection !== "users") {
         return;
       }
-      const query = supabase
-        .from("profiles")
-        .select("id,email,display_name,username,user_db,is_admin")
-        .order("email")
-        .limit(25);
+      const query = supabase.from("profiles").select("id,email,display_name,username,user_db").order("email").limit(25);
       if (userSearch.trim()) {
         const pattern = `%${userSearch.trim()}%`;
         query.or(`email.ilike.${pattern},username.ilike.${pattern},display_name.ilike.${pattern}`);
@@ -2121,7 +1909,9 @@ function AdminClient(): ReactElement {
         setUserStatus(`Failed to load memberships: ${membershipError.message}`);
         return;
       }
-      const membershipMap = normalizeMembershipRows(membershipData as readonly MembershipQueryRow[] | null | undefined).reduce<Record<string, MembershipRow>>((acc, membership) => {
+      const membershipMap = normalizeMembershipRows(
+        membershipData as readonly MembershipQueryRow[] | null | undefined,
+      ).reduce<Record<string, MembershipRow>>((acc, membership) => {
         acc[membership.game_account_id] = membership;
         return acc;
       }, {});
@@ -2154,8 +1944,7 @@ function AdminClient(): ReactElement {
       let query = supabase
         .from("audit_logs")
         .select("id,clan_id,actor_id,action,entity,entity_id,diff,created_at", { count: "exact" });
-      const clanFilterValue =
-        auditClanFilter && auditClanFilter !== "all" ? auditClanFilter : selectedClanId;
+      const clanFilterValue = auditClanFilter && auditClanFilter !== "all" ? auditClanFilter : selectedClanId;
       if (clanFilterValue) {
         query = query.eq("clan_id", clanFilterValue);
       }
@@ -2472,10 +2261,7 @@ function AdminClient(): ReactElement {
     setStatus("All membership changes cleared.");
   }
 
-  function isMembershipFieldChanged(
-    membership: MembershipRow,
-    field: keyof MembershipEditState,
-  ): boolean {
+  function isMembershipFieldChanged(membership: MembershipRow, field: keyof MembershipEditState): boolean {
     const edits = membershipEdits[membership.id];
     if (!edits || edits[field] === undefined) {
       return false;
@@ -2926,10 +2712,7 @@ function AdminClient(): ReactElement {
     return normalized;
   }
 
-  function parseValidationListText(
-    text: string,
-    expectedField: string,
-  ): { entries: RuleRow[]; errors: string[] } {
+  function parseValidationListText(text: string, expectedField: string): { entries: RuleRow[]; errors: string[] } {
     const allowedStatuses = new Set(["valid", "invalid", "active", "inactive"]);
     const lines = text
       .split(/\r?\n/)
@@ -2938,8 +2721,7 @@ function AdminClient(): ReactElement {
     const errors: string[] = [];
     const entries: RuleRow[] = [];
     const seenValues = new Set<string>();
-    const startIndex =
-      lines.length > 0 && lines[0].toLowerCase().startsWith("value") ? 1 : 0;
+    const startIndex = lines.length > 0 && lines[0].toLowerCase().startsWith("value") ? 1 : 0;
     for (let index = startIndex; index < lines.length; index += 1) {
       const parts = lines[index].split(/[;,]/).map((part) => part.trim());
       if (parts.length < 1) {
@@ -3015,10 +2797,7 @@ function AdminClient(): ReactElement {
 
   async function executeValidationImport(): Promise<void> {
     if (validationImportMode === "replace") {
-      const { error: deleteError } = await supabase
-        .from("validation_rules")
-        .delete()
-        .eq("field", validationListField);
+      const { error: deleteError } = await supabase.from("validation_rules").delete().eq("field", validationListField);
       if (deleteError) {
         setValidationImportStatus(`Failed to clear list: ${deleteError.message}`);
         return;
@@ -3120,10 +2899,7 @@ function AdminClient(): ReactElement {
     return value.trim().toLowerCase();
   }
 
-  function parseCorrectionListText(
-    text: string,
-    expectedField: string,
-  ): { entries: RuleRow[]; errors: string[] } {
+  function parseCorrectionListText(text: string, expectedField: string): { entries: RuleRow[]; errors: string[] } {
     const allowedStatuses = new Set(["active", "inactive"]);
     const allowedFields = new Set(correctionFieldOptions);
     const lines = text
@@ -3254,10 +3030,7 @@ function AdminClient(): ReactElement {
 
   async function executeCorrectionImport(): Promise<void> {
     if (correctionImportMode === "replace") {
-      const { error: deleteError } = await supabase
-        .from("correction_rules")
-        .delete()
-        .eq("field", correctionListField);
+      const { error: deleteError } = await supabase.from("correction_rules").delete().eq("field", correctionListField);
       if (deleteError) {
         setCorrectionImportStatus(`Failed to clear list: ${deleteError.message}`);
         return;
@@ -3374,9 +3147,10 @@ function AdminClient(): ReactElement {
       replacement_value: correctionReplacement.trim(),
       status: correctionStatus.trim(),
     };
-    const { error } = correctionEditingId && !isNew
-      ? await supabase.from("correction_rules").update(payload).eq("id", correctionEditingId)
-      : await supabase.from("correction_rules").insert(payload);
+    const { error } =
+      correctionEditingId && !isNew
+        ? await supabase.from("correction_rules").update(payload).eq("id", correctionEditingId)
+        : await supabase.from("correction_rules").insert(payload);
     if (error) {
       setStatus(`Failed to add correction rule: ${error.message}`);
       return;
@@ -3540,7 +3314,8 @@ function AdminClient(): ReactElement {
             type="button"
             onClick={() => updateActiveSection("approvals")}
           >
-            {tAdmin("tabs.approvals")}{pendingApprovals.length > 0 ? ` (${pendingApprovals.length})` : ""}
+            {tAdmin("tabs.approvals")}
+            {pendingApprovals.length > 0 ? ` (${pendingApprovals.length})` : ""}
           </button>
           <button
             className={`tab ${activeSection === "users" ? "active" : ""}`}
@@ -3586,1833 +3361,2049 @@ function AdminClient(): ReactElement {
         </div>
       </section>
       {activeSection === "clans" ? (
-      <section className="card" style={{ gridColumn: "1 / -1" }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">{tAdmin("clans.title")}</div>
-            <div className="card-subtitle">{selectedClan ? selectedClan.name : tAdmin("clans.selectClan")}</div>
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">{tAdmin("clans.title")}</div>
+              <div className="card-subtitle">{selectedClan ? selectedClan.name : tAdmin("clans.selectClan")}</div>
+            </div>
+            <IconButton
+              ariaLabel={tAdmin("clans.deleteClan")}
+              onClick={openClanDeleteConfirm}
+              disabled={!selectedClanId || selectedClanId === unassignedClanId}
+              variant="danger"
+            >
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2.5L13.5 12.5H2.5L8 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                <path d="M8 6V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M8 11.2H8.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            </IconButton>
           </div>
-          <IconButton
-            ariaLabel={tAdmin("clans.deleteClan")}
-            onClick={openClanDeleteConfirm}
-            disabled={!selectedClanId || selectedClanId === unassignedClanId}
-            variant="danger"
-          >
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M8 2.5L13.5 12.5H2.5L8 2.5Z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-              <path d="M8 6V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M8 11.2H8.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-          </IconButton>
-        </div>
-        <div className="admin-clan-row">
-          <label htmlFor="selectedClan">{tAdmin("common.clan")}</label>
-          <RadixSelect
-            id="selectedClan"
-            ariaLabel={tAdmin("common.clan")}
-            value={clanSelectValue}
-            onValueChange={(value) => setSelectedClanId(value === clanSelectNone ? "" : value)}
-            options={clanSelectOptions}
-            renderOptionContent={(option) => {
-              if (option.value === clanSelectNone) {
-                return option.label;
-              }
-              return (
-                <span className="select-item-content">
-                  <span>{option.label}</span>
-                  {defaultClanId && option.value === defaultClanId ? (
-                    <span className="badge select-badge">{tAdmin("common.default")}</span>
-                  ) : null}
-                </span>
-              );
-            }}
-          />
-          <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
-            <span className="text-muted">{tAdmin("clans.clanActions")}</span>
-            <div className="list inline">
-              <IconButton ariaLabel={tAdmin("clans.createClan")} onClick={openCreateClanModal} variant="primary">
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </IconButton>
-              <IconButton ariaLabel={tAdmin("clans.editClan")} onClick={openEditClanModal} disabled={!selectedClanId}>
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M3 11.5L4 8.5L10.5 2L14 5.5L7.5 12L3 11.5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
-                  />
-                  <path d="M9.5 3L13 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </IconButton>
-              <IconButton ariaLabel={tAdmin("clans.assignAccounts")} onClick={openAssignAccountsModal} disabled={!selectedClanId}>
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M5 6.5C6.1 6.5 7 5.6 7 4.5C7 3.4 6.1 2.5 5 2.5C3.9 2.5 3 3.4 3 4.5C3 5.6 3.9 6.5 5 6.5Z" stroke="currentColor" strokeWidth="1.5" />
-                  <path d="M1.5 12.5C1.5 10.6 3.1 9 5 9C6.9 9 8.5 10.6 8.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M11 5V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M8.5 8H13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </IconButton>
-              <IconButton
-                ariaLabel={tAdmin("clans.setDefault")}
-                onClick={() => {
-                  if (!selectedClanId) {
-                    setStatus("Select a clan to set default.");
-                    return;
-                  }
-                  void supabase
-                    .from("clans")
-                    .update({ is_default: true })
-                    .eq("id", selectedClanId)
-                    .then(({ error }) => {
-                      if (error) {
-                        setStatus(`Failed to set default: ${error.message}`);
-                        return;
-                      }
-                      setDefaultClanId(selectedClanId);
-                      setStatus("Default clan saved.");
-                    });
-                }}
-                disabled={!selectedClanId}
-              >
-                <svg
-                  aria-hidden="true"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill={selectedClanId && selectedClanId === defaultClanId ? "currentColor" : "none"}
-                >
-                  <path
-                    d="M8 2.5L9.7 6.1L13.5 6.6L10.7 9.2L11.4 13L8 11.1L4.6 13L5.3 9.2L2.5 6.6L6.3 6.1L8 2.5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </IconButton>
-              {selectedClanId && selectedClanId === defaultClanId ? (
+          <div className="admin-clan-row">
+            <label htmlFor="selectedClan">{tAdmin("common.clan")}</label>
+            <RadixSelect
+              id="selectedClan"
+              ariaLabel={tAdmin("common.clan")}
+              value={clanSelectValue}
+              onValueChange={(value) => setSelectedClanId(value === clanSelectNone ? "" : value)}
+              options={clanSelectOptions}
+              renderOptionContent={(option) => {
+                if (option.value === clanSelectNone) {
+                  return option.label;
+                }
+                return (
+                  <span className="select-item-content">
+                    <span>{option.label}</span>
+                    {defaultClanId && option.value === defaultClanId ? (
+                      <span className="badge select-badge">{tAdmin("common.default")}</span>
+                    ) : null}
+                  </span>
+                );
+              }}
+            />
+            <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+              <span className="text-muted">{tAdmin("clans.clanActions")}</span>
+              <div className="list inline">
+                <IconButton ariaLabel={tAdmin("clans.createClan")} onClick={openCreateClanModal} variant="primary">
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </IconButton>
+                <IconButton ariaLabel={tAdmin("clans.editClan")} onClick={openEditClanModal} disabled={!selectedClanId}>
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M3 11.5L4 8.5L10.5 2L14 5.5L7.5 12L3 11.5Z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                    <path d="M9.5 3L13 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </IconButton>
                 <IconButton
-                  ariaLabel={tAdmin("clans.clearDefault")}
+                  ariaLabel={tAdmin("clans.assignAccounts")}
+                  onClick={openAssignAccountsModal}
+                  disabled={!selectedClanId}
+                >
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M5 6.5C6.1 6.5 7 5.6 7 4.5C7 3.4 6.1 2.5 5 2.5C3.9 2.5 3 3.4 3 4.5C3 5.6 3.9 6.5 5 6.5Z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d="M1.5 12.5C1.5 10.6 3.1 9 5 9C6.9 9 8.5 10.6 8.5 12.5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <path d="M11 5V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M8.5 8H13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </IconButton>
+                <IconButton
+                  ariaLabel={tAdmin("clans.setDefault")}
                   onClick={() => {
+                    if (!selectedClanId) {
+                      setStatus("Select a clan to set default.");
+                      return;
+                    }
                     void supabase
                       .from("clans")
-                      .update({ is_default: false })
+                      .update({ is_default: true })
                       .eq("id", selectedClanId)
                       .then(({ error }) => {
                         if (error) {
-                          setStatus(`Failed to clear default: ${error.message}`);
+                          setStatus(`Failed to set default: ${error.message}`);
                           return;
                         }
-                        setDefaultClanId("");
-                        setStatus("Default clan cleared.");
+                        setDefaultClanId(selectedClanId);
+                        setStatus("Default clan saved.");
                       });
                   }}
+                  disabled={!selectedClanId}
                 >
-                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <svg
+                    aria-hidden="true"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill={selectedClanId && selectedClanId === defaultClanId ? "currentColor" : "none"}
+                  >
                     <path
                       d="M8 2.5L9.7 6.1L13.5 6.6L10.7 9.2L11.4 13L8 11.1L4.6 13L5.3 9.2L2.5 6.6L6.3 6.1L8 2.5Z"
                       stroke="currentColor"
                       strokeWidth="1.5"
                       strokeLinejoin="round"
                     />
-                    <path d="M3 13L13 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
                 </IconButton>
-              ) : null}
-            </div>
-          </div>
-        </div>
-        <div className="card-section" />
-        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <SearchInput
-            id="memberSearch"
-            label={tAdmin("common.search")}
-            value={memberSearch}
-            onChange={setMemberSearch}
-            placeholder={tAdmin("clans.searchPlaceholder")}
-          />
-          <LabeledSelect
-            id="memberRankFilter"
-            label={tAdmin("common.rank")}
-            value={memberRankFilter}
-            onValueChange={(value) => setMemberRankFilter(value)}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              { value: "", label: tAdmin("common.none") },
-              ...rankOptions.map((rank) => ({ value: rank, label: formatRank(rank, locale) })),
-            ]}
-          />
-          <LabeledSelect
-            id="memberStatusFilter"
-            label={tAdmin("common.status")}
-            value={memberStatusFilter}
-            onValueChange={(value) => setMemberStatusFilter(value)}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              { value: "active", label: tAdmin("common.active") },
-              { value: "inactive", label: tAdmin("common.inactive") },
-            ]}
-          />
-          <button
-            className="button"
-            type="button"
-            onClick={() => {
-              setMemberSearch("");
-              setMemberRankFilter("all");
-              setMemberStatusFilter("all");
-            }}
-          >
-            {tAdmin("common.clearFilters")}
-          </button>
-          <button
-            className="button"
-            type="button"
-            onClick={handleSaveAllMembershipEdits}
-            disabled={Object.keys(membershipEdits).length === 0}
-          >
-            {tAdmin("common.saveAll")}
-          </button>
-          <button
-            className="button"
-            type="button"
-            onClick={cancelAllMembershipEdits}
-            disabled={Object.keys(membershipEdits).length === 0}
-          >
-            {tAdmin("common.cancelAll")}
-          </button>
-          <span className="text-muted">
-            {filteredMemberships.length} / {memberships.length}
-          </span>
-        </div>
-        {memberships.length === 0 ? (
-          <div className="list">
-            <div className="list-item">
-              <span>{tAdmin("clans.noAccountsYet")}</span>
-              <span className="badge">{tAdmin("clans.assignSome")}</span>
-            </div>
-          </div>
-        ) : filteredMemberships.length === 0 ? (
-          <div className="list">
-            <div className="list-item">
-              <span>{tAdmin("clans.noAccountsMatch")}</span>
-              <span className="badge">{tAdmin("clans.adjustSearch")}</span>
-            </div>
-          </div>
-        ) : (
-          <TableScroll>
-            <div className="table members">
-            <header>
-              <span>#</span>
-              <span>{renderMemberSortButton(tAdmin("members.gameAccount"), "game")}</span>
-              <span>{renderMemberSortButton(tAdmin("members.user"), "user")}</span>
-              <span>{renderMemberSortButton(tAdmin("common.clan"), "clan")}</span>
-              <span>{renderMemberSortButton(tAdmin("common.rank"), "rank")}</span>
-              <span>{renderMemberSortButton(tAdmin("common.status"), "status")}</span>
-              <span>{tAdmin("common.actions")}</span>
-            </header>
-            {sortedMemberships.map((membership, index) => (
-              <div className="row" key={membership.id}>
-                <span className="text-muted">{index + 1}</span>
-                <div>
-                  {membership.game_accounts?.id ? (
-                    activeGameAccountId === membership.game_accounts.id ? (
-                      <input
-                        value={
-                          gameAccountEdits[membership.game_accounts.id]?.game_username ??
-                          membership.game_accounts.game_username
-                        }
-                        onChange={(event) =>
-                          updateGameAccountEdit(membership.game_accounts?.id ?? "", "game_username", event.target.value)
-                        }
-                        placeholder={tAdmin("clans.gameUsername")}
-                      />
-                    ) : (
-                      <button
-                        className="editable-button editable-field"
-                        type="button"
-                        onClick={() =>
-                          beginGameAccountEdit({
-                            id: membership.game_accounts?.id ?? "",
-                            user_id: membership.game_accounts?.user_id ?? "",
-                            game_username: membership.game_accounts?.game_username ?? "",
-                          })
-                        }
-                      >
-                        {getMembershipLabel(membership)}
-                      </button>
-                    )
-                  ) : (
-                    <div>{getMembershipLabel(membership)}</div>
-                  )}
-                </div>
-                <div>
-                  <div>
-                    {membership.game_accounts?.user_id
-                      ? profilesById[membership.game_accounts.user_id]?.email ?? "-"
-                      : "-"}
-                  </div>
-                  <div className="text-muted">
-                    {membership.game_accounts?.user_id
-                      ? profilesById[membership.game_accounts.user_id]?.display_name ??
-                        profilesById[membership.game_accounts.user_id]?.username ??
-                        "-"
-                      : "-"}
-                  </div>
-                </div>
-                <RadixSelect
-                  ariaLabel={tAdmin("common.clan")}
-                  value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
-                  onValueChange={(value) => updateMembershipEdit(membership.id, "clan_id", value)}
-                  options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
-                  triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "clan_id") ? " is-edited" : ""}`}
-                />
-                <RadixSelect
-                  ariaLabel={tAdmin("common.rank")}
-                  value={getMembershipEditValue(membership).rank ?? ""}
-                  onValueChange={(value) => updateMembershipEdit(membership.id, "rank", value)}
-                  options={[
-                    { value: "", label: tAdmin("common.none") },
-                    ...rankOptions.map((rank) => ({ value: rank, label: formatRank(rank, locale) })),
-                  ]}
-                  triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "rank") ? " is-edited" : ""}`}
-                />
-                <RadixSelect
-                  ariaLabel={tAdmin("common.status")}
-                  value={getMembershipEditValue(membership).is_active ? "true" : "false"}
-                  onValueChange={(value) => updateMembershipEdit(membership.id, "is_active", value)}
-                  options={[
-                    { value: "true", label: tAdmin("common.active") },
-                    { value: "false", label: tAdmin("common.inactive") },
-                  ]}
-                  triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
-                  triggerDataRole="status-select"
-                />
-                <div className="list inline">
-                  <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={() => handleSaveMembershipEdit(membership)}>
-                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M4 8.5L7 11.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </IconButton>
-                  <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={() => cancelMembershipEdits(membership.id)}>
-                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </IconButton>
-                  {membership.game_accounts?.id ? (
-                    <IconButton
-                      ariaLabel={tAdmin("members.deleteGameAccount")}
-                      onClick={() =>
-                        openGameAccountDeleteConfirm({
-                          id: membership.game_accounts?.id ?? "",
-                          user_id: membership.game_accounts?.user_id ?? "",
-                          game_username: membership.game_accounts?.game_username ?? "",
-                        })
-                      }
-                      variant="danger"
-                    >
-                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                      </svg>
-                    </IconButton>
-                  ) : null}
-                  {membershipErrors[membership.id] ? (
-                    <span className="text-muted">{membershipErrors[membership.id]}</span>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-            </div>
-          </TableScroll>
-        )}
-      </section>
-      ) : null}
-      {activeSection === "users" ? (
-      <section className="card" style={{ gridColumn: "1 / -1" }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">{tAdmin("users.title")}</div>
-            <div className="card-subtitle">{tAdmin("users.subtitle")}</div>
-          </div>
-          <span className="badge">{filteredUserRows.length}</span>
-        </div>
-        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <SearchInput
-            id="userSearch"
-            label={tAdmin("common.search")}
-            value={userSearch}
-            onChange={setUserSearch}
-            placeholder={tAdmin("users.searchPlaceholder")}
-          />
-          <LabeledSelect
-            id="userRoleFilter"
-            label={tAdmin("common.role")}
-            value={userRoleFilter}
-            onValueChange={(value) => setUserRoleFilter(value)}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              ...roleOptions.map((role) => ({ value: role, label: formatRole(role, locale) })),
-            ]}
-          />
-          <LabeledSelect
-            id="userAdminFilter"
-            label={tAdmin("users.admin")}
-            value={userAdminFilter}
-            onValueChange={(value) => setUserAdminFilter(value)}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              { value: "admin", label: tAdmin("users.admin") },
-              { value: "member", label: tAdmin("users.nonAdmin") },
-            ]}
-          />
-          <button
-            className="button"
-            type="button"
-            onClick={() => {
-              setUserSearch("");
-              setUserRoleFilter("all");
-              setUserAdminFilter("all");
-            }}
-          >
-            Clear filters
-          </button>
-          <button
-            className="button"
-            type="button"
-            onClick={handleSaveAllUserEdits}
-            disabled={
-              Object.keys(userEdits).length === 0 &&
-              Object.keys(gameAccountEdits).length === 0 &&
-              Object.keys(membershipEdits).length === 0
-            }
-          >
-            {tAdmin("common.saveAll")}
-          </button>
-          <button
-            className="button"
-            type="button"
-            onClick={cancelAllUserEdits}
-            disabled={
-              Object.keys(userEdits).length === 0 &&
-              Object.keys(gameAccountEdits).length === 0 &&
-              Object.keys(membershipEdits).length === 0
-            }
-          >
-            {tAdmin("common.cancelAll")}
-          </button>
-          <span className="text-muted">
-            {filteredUserRows.length} / {userRows.length}
-          </span>
-          <button className="button primary" type="button" onClick={openCreateUserModal}>
-            {tAdmin("users.createUser")}
-          </button>
-        </div>
-        {userStatus ? <div className="alert info">{userStatus}</div> : null}
-        {userRows.length === 0 ? (
-          <div className="list">
-            <div className="list-item">
-              <span>{tAdmin("users.noUsersFound")}</span>
-              <span className="badge">{tAdmin("users.adjustSearch")}</span>
-            </div>
-          </div>
-        ) : filteredUserRows.length === 0 ? (
-          <div className="list">
-            <div className="list-item">
-              <span>{tAdmin("users.noUsersMatch")}</span>
-              <span className="badge">{tAdmin("users.adjustSearch")}</span>
-            </div>
-          </div>
-        ) : (
-          <TableScroll>
-            <div className="table users">
-            <header>
-              <span>#</span>
-              <span>{renderUserSortButton(tAdmin("users.username"), "username")}</span>
-              <span>{renderUserSortButton(tAdmin("users.email"), "email")}</span>
-              <span>{renderUserSortButton(tAdmin("users.nickname"), "nickname")}</span>
-              <span>{renderUserSortButton(tAdmin("common.role"), "role")}</span>
-              <span>{renderUserSortButton(tAdmin("users.admin"), "admin")}</span>
-              <span>{renderUserSortButton(tAdmin("users.gameAccounts"), "accounts")}</span>
-              <span>{tAdmin("common.actions")}</span>
-            </header>
-            {sortedUserRows.map((user, index) => {
-              const isExpanded = expandedUserIds.includes(user.id);
-              const accounts = gameAccountsByUserId[user.id] ?? [];
-              const sortedAccounts = [...accounts].sort((left, right) => {
-                const leftValue = getAccountSortValue(left);
-                const rightValue = getAccountSortValue(right);
-                return compareRuleValues(leftValue, rightValue, memberSortDirection);
-              });
-              const edits = getUserEditValue(user);
-              const isEditing = activeEditingUserId === user.id;
-              return (
-                <div key={user.id}>
-                  <div
-                    className="row"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => handleUserRowClick(user.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        handleUserRowClick(user.id);
-                      }
+                {selectedClanId && selectedClanId === defaultClanId ? (
+                  <IconButton
+                    ariaLabel={tAdmin("clans.clearDefault")}
+                    onClick={() => {
+                      void supabase
+                        .from("clans")
+                        .update({ is_default: false })
+                        .eq("id", selectedClanId)
+                        .then(({ error }) => {
+                          if (error) {
+                            setStatus(`Failed to clear default: ${error.message}`);
+                            return;
+                          }
+                          setDefaultClanId("");
+                          setStatus("Default clan cleared.");
+                        });
                     }}
                   >
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M8 2.5L9.7 6.1L13.5 6.6L10.7 9.2L11.4 13L8 11.1L4.6 13L5.3 9.2L2.5 6.6L6.3 6.1L8 2.5Z"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinejoin="round"
+                      />
+                      <path d="M3 13L13 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </IconButton>
+                ) : null}
+              </div>
+            </div>
+          </div>
+          <div className="card-section" />
+          <div
+            className="list inline admin-members-filters filter-bar"
+            style={{ alignItems: "center", flexWrap: "wrap" }}
+          >
+            <SearchInput
+              id="memberSearch"
+              label={tAdmin("common.search")}
+              value={memberSearch}
+              onChange={setMemberSearch}
+              placeholder={tAdmin("clans.searchPlaceholder")}
+            />
+            <LabeledSelect
+              id="memberRankFilter"
+              label={tAdmin("common.rank")}
+              value={memberRankFilter}
+              onValueChange={(value) => setMemberRankFilter(value)}
+              options={[
+                { value: "all", label: tAdmin("common.all") },
+                { value: "", label: tAdmin("common.none") },
+                ...rankOptions.map((rank) => ({ value: rank, label: formatRank(rank, locale) })),
+              ]}
+            />
+            <LabeledSelect
+              id="memberStatusFilter"
+              label={tAdmin("common.status")}
+              value={memberStatusFilter}
+              onValueChange={(value) => setMemberStatusFilter(value)}
+              options={[
+                { value: "all", label: tAdmin("common.all") },
+                { value: "active", label: tAdmin("common.active") },
+                { value: "inactive", label: tAdmin("common.inactive") },
+              ]}
+            />
+            <button
+              className="button"
+              type="button"
+              onClick={() => {
+                setMemberSearch("");
+                setMemberRankFilter("all");
+                setMemberStatusFilter("all");
+              }}
+            >
+              {tAdmin("common.clearFilters")}
+            </button>
+            <button
+              className="button"
+              type="button"
+              onClick={handleSaveAllMembershipEdits}
+              disabled={Object.keys(membershipEdits).length === 0}
+            >
+              {tAdmin("common.saveAll")}
+            </button>
+            <button
+              className="button"
+              type="button"
+              onClick={cancelAllMembershipEdits}
+              disabled={Object.keys(membershipEdits).length === 0}
+            >
+              {tAdmin("common.cancelAll")}
+            </button>
+            <span className="text-muted">
+              {filteredMemberships.length} / {memberships.length}
+            </span>
+          </div>
+          {memberships.length === 0 ? (
+            <div className="list">
+              <div className="list-item">
+                <span>{tAdmin("clans.noAccountsYet")}</span>
+                <span className="badge">{tAdmin("clans.assignSome")}</span>
+              </div>
+            </div>
+          ) : filteredMemberships.length === 0 ? (
+            <div className="list">
+              <div className="list-item">
+                <span>{tAdmin("clans.noAccountsMatch")}</span>
+                <span className="badge">{tAdmin("clans.adjustSearch")}</span>
+              </div>
+            </div>
+          ) : (
+            <TableScroll>
+              <div className="table members">
+                <header>
+                  <span>#</span>
+                  <span>{renderMemberSortButton(tAdmin("members.gameAccount"), "game")}</span>
+                  <span>{renderMemberSortButton(tAdmin("members.user"), "user")}</span>
+                  <span>{renderMemberSortButton(tAdmin("common.clan"), "clan")}</span>
+                  <span>{renderMemberSortButton(tAdmin("common.rank"), "rank")}</span>
+                  <span>{renderMemberSortButton(tAdmin("common.status"), "status")}</span>
+                  <span>{tAdmin("common.actions")}</span>
+                </header>
+                {sortedMemberships.map((membership, index) => (
+                  <div className="row" key={membership.id}>
                     <span className="text-muted">{index + 1}</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span className="row-caret" aria-hidden="true">
-                        <svg width="14" height="10" viewBox="0 0 12 8" fill="none">
-                          <path
-                            d={isExpanded ? "M1 1L6 6L11 1" : "M3 1L9 4L3 7"}
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+                    <div>
+                      {membership.game_accounts?.id ? (
+                        activeGameAccountId === membership.game_accounts.id ? (
+                          <input
+                            value={
+                              gameAccountEdits[membership.game_accounts.id]?.game_username ??
+                              membership.game_accounts.game_username
+                            }
+                            onChange={(event) =>
+                              updateGameAccountEdit(
+                                membership.game_accounts?.id ?? "",
+                                "game_username",
+                                event.target.value,
+                              )
+                            }
+                            placeholder={tAdmin("clans.gameUsername")}
                           />
-                        </svg>
-                      </span>
-                      {isEditing ? (
-                        <input
-                          className={`editable-field ${isUserFieldChanged(user, "username") ? "is-edited" : ""}`.trim()}
-                          value={edits.username ?? ""}
-                          onClick={(event) => event.stopPropagation()}
-                          onChange={(event) => updateUserEdit(user.id, "username", event.target.value)}
-                          style={{ flex: 1 }}
-                        />
+                        ) : (
+                          <button
+                            className="editable-button editable-field"
+                            type="button"
+                            onClick={() =>
+                              beginGameAccountEdit({
+                                id: membership.game_accounts?.id ?? "",
+                                user_id: membership.game_accounts?.user_id ?? "",
+                                game_username: membership.game_accounts?.game_username ?? "",
+                              })
+                            }
+                          >
+                            {getMembershipLabel(membership)}
+                          </button>
+                        )
                       ) : (
-                        <button
-                          className="editable-button editable-field"
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            beginUserEdit(user);
-                          }}
-                        >
-                        {edits.username || "-"}
-                        </button>
+                        <div>{getMembershipLabel(membership)}</div>
                       )}
                     </div>
-                    <div>{user.email}</div>
-                    {isEditing ? (
-                      <input
-                        className={`editable-field ${isUserFieldChanged(user, "display_name") ? "is-edited" : ""}`.trim()}
-                        value={edits.display_name ?? ""}
-                        onClick={(event) => event.stopPropagation()}
-                        onChange={(event) => updateUserEdit(user.id, "display_name", event.target.value)}
-                      />
-                    ) : (
-                      <button
-                        className="editable-button editable-field"
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          beginUserEdit(user);
+                    <div>
+                      <div>
+                        {membership.game_accounts?.user_id
+                          ? (profilesById[membership.game_accounts.user_id]?.email ?? "-")
+                          : "-"}
+                      </div>
+                      <div className="text-muted">
+                        {membership.game_accounts?.user_id
+                          ? (profilesById[membership.game_accounts.user_id]?.display_name ??
+                            profilesById[membership.game_accounts.user_id]?.username ??
+                            "-")
+                          : "-"}
+                      </div>
+                    </div>
+                    <RadixSelect
+                      ariaLabel={tAdmin("common.clan")}
+                      value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
+                      onValueChange={(value) => updateMembershipEdit(membership.id, "clan_id", value)}
+                      options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
+                      triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "clan_id") ? " is-edited" : ""}`}
+                    />
+                    <RadixSelect
+                      ariaLabel={tAdmin("common.rank")}
+                      value={getMembershipEditValue(membership).rank ?? ""}
+                      onValueChange={(value) => updateMembershipEdit(membership.id, "rank", value)}
+                      options={[
+                        { value: "", label: tAdmin("common.none") },
+                        ...rankOptions.map((rank) => ({ value: rank, label: formatRank(rank, locale) })),
+                      ]}
+                      triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "rank") ? " is-edited" : ""}`}
+                    />
+                    <RadixSelect
+                      ariaLabel={tAdmin("common.status")}
+                      value={getMembershipEditValue(membership).is_active ? "true" : "false"}
+                      onValueChange={(value) => updateMembershipEdit(membership.id, "is_active", value)}
+                      options={[
+                        { value: "true", label: tAdmin("common.active") },
+                        { value: "false", label: tAdmin("common.inactive") },
+                      ]}
+                      triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
+                      triggerDataRole="status-select"
+                    />
+                    <div className="list inline">
+                      <IconButton
+                        ariaLabel={tAdmin("common.saveChanges")}
+                        onClick={() => handleSaveMembershipEdit(membership)}
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M4 8.5L7 11.5L12 5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </IconButton>
+                      <IconButton
+                        ariaLabel={tAdmin("common.cancelChanges")}
+                        onClick={() => cancelMembershipEdits(membership.id)}
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </IconButton>
+                      {membership.game_accounts?.id ? (
+                        <IconButton
+                          ariaLabel={tAdmin("members.deleteGameAccount")}
+                          onClick={() =>
+                            openGameAccountDeleteConfirm({
+                              id: membership.game_accounts?.id ?? "",
+                              user_id: membership.game_accounts?.user_id ?? "",
+                              game_username: membership.game_accounts?.game_username ?? "",
+                            })
+                          }
+                          variant="danger"
+                        >
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                            <path
+                              d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </IconButton>
+                      ) : null}
+                      {membershipErrors[membership.id] ? (
+                        <span className="text-muted">{membershipErrors[membership.id]}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TableScroll>
+          )}
+        </section>
+      ) : null}
+      {activeSection === "users" ? (
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">{tAdmin("users.title")}</div>
+              <div className="card-subtitle">{tAdmin("users.subtitle")}</div>
+            </div>
+            <span className="badge">{filteredUserRows.length}</span>
+          </div>
+          <div
+            className="list inline admin-members-filters filter-bar"
+            style={{ alignItems: "center", flexWrap: "wrap" }}
+          >
+            <SearchInput
+              id="userSearch"
+              label={tAdmin("common.search")}
+              value={userSearch}
+              onChange={setUserSearch}
+              placeholder={tAdmin("users.searchPlaceholder")}
+            />
+            <LabeledSelect
+              id="userRoleFilter"
+              label={tAdmin("common.role")}
+              value={userRoleFilter}
+              onValueChange={(value) => setUserRoleFilter(value)}
+              options={[
+                { value: "all", label: tAdmin("common.all") },
+                ...roleOptions.map((role) => ({ value: role, label: formatRole(role, locale) })),
+              ]}
+            />
+            <button
+              className="button"
+              type="button"
+              onClick={() => {
+                setUserSearch("");
+                setUserRoleFilter("all");
+              }}
+            >
+              Clear filters
+            </button>
+            <button
+              className="button"
+              type="button"
+              onClick={handleSaveAllUserEdits}
+              disabled={
+                Object.keys(userEdits).length === 0 &&
+                Object.keys(gameAccountEdits).length === 0 &&
+                Object.keys(membershipEdits).length === 0
+              }
+            >
+              {tAdmin("common.saveAll")}
+            </button>
+            <button
+              className="button"
+              type="button"
+              onClick={cancelAllUserEdits}
+              disabled={
+                Object.keys(userEdits).length === 0 &&
+                Object.keys(gameAccountEdits).length === 0 &&
+                Object.keys(membershipEdits).length === 0
+              }
+            >
+              {tAdmin("common.cancelAll")}
+            </button>
+            <span className="text-muted">
+              {filteredUserRows.length} / {userRows.length}
+            </span>
+            <button className="button primary" type="button" onClick={openCreateUserModal}>
+              {tAdmin("users.createUser")}
+            </button>
+          </div>
+          {userStatus ? <div className="alert info">{userStatus}</div> : null}
+          {userRows.length === 0 ? (
+            <div className="list">
+              <div className="list-item">
+                <span>{tAdmin("users.noUsersFound")}</span>
+                <span className="badge">{tAdmin("users.adjustSearch")}</span>
+              </div>
+            </div>
+          ) : filteredUserRows.length === 0 ? (
+            <div className="list">
+              <div className="list-item">
+                <span>{tAdmin("users.noUsersMatch")}</span>
+                <span className="badge">{tAdmin("users.adjustSearch")}</span>
+              </div>
+            </div>
+          ) : (
+            <TableScroll>
+              <div className="table users">
+                <header>
+                  <span>#</span>
+                  <span>{renderUserSortButton(tAdmin("users.username"), "username")}</span>
+                  <span>{renderUserSortButton(tAdmin("users.email"), "email")}</span>
+                  <span>{renderUserSortButton(tAdmin("users.nickname"), "nickname")}</span>
+                  <span>{renderUserSortButton(tAdmin("common.role"), "role")}</span>
+                  <span>{renderUserSortButton(tAdmin("users.gameAccounts"), "accounts")}</span>
+                  <span>{tAdmin("common.actions")}</span>
+                </header>
+                {sortedUserRows.map((user, index) => {
+                  const isExpanded = expandedUserIds.includes(user.id);
+                  const accounts = gameAccountsByUserId[user.id] ?? [];
+                  const sortedAccounts = [...accounts].sort((left, right) => {
+                    const leftValue = getAccountSortValue(left);
+                    const rightValue = getAccountSortValue(right);
+                    return compareRuleValues(leftValue, rightValue, memberSortDirection);
+                  });
+                  const edits = getUserEditValue(user);
+                  const isEditing = activeEditingUserId === user.id;
+                  return (
+                    <div key={user.id}>
+                      <div
+                        className="row"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleUserRowClick(user.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            handleUserRowClick(user.id);
+                          }
                         }}
                       >
-                        {edits.display_name || "-"}
-                      </button>
-                    )}
-                    <div onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
-                      <RadixSelect
-                        ariaLabel={tAdmin("common.role")}
-                        value={edits.role ?? getUserRole(user.id)}
-                        onValueChange={(value) => updateUserEdit(user.id, "role", value)}
-                        options={roleOptions.map((role) => ({ value: role, label: formatRole(role, locale) }))}
-                        triggerClassName={`select-trigger${isUserFieldChanged(user, "role") ? " is-edited" : ""}`}
-                      />
-                    </div>
-                    <div>{user.is_admin ? tAdmin("common.yes") : tAdmin("common.no")}</div>
-                    <div className="text-muted" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span className="badge" aria-label={`${accounts.length} game accounts`}>
-                        {accounts.length}
-                      </span>
-                    </div>
-                    {(() => {
-                      const actionCount = isEditing ? 6 : 4;
-                      return (
-                        <div
-                          className={`list inline user-actions action-icons ${actionCount > 4 ? "action-icons-wrap" : ""}`.trim()}
-                        >
-                      <IconButton
-                        ariaLabel={user.is_admin ? tAdmin("users.revokeAdmin") : tAdmin("users.grantAdmin")}
-                        title={
-                          user.is_admin && user.id === currentUserId
-                            ? tAdmin("users.cannotRevokeOwn")
-                            : user.is_admin && userRows.filter((row) => Boolean(row.is_admin)).length <= 1
-                              ? tAdmin("users.lastAdminRequired")
-                              : user.is_admin
-                                ? tAdmin("users.revokeAdmin")
-                                : tAdmin("users.grantAdmin")
-                        }
-                        onClick={() => handleToggleAdmin(user)}
-                        disabled={
-                          !currentUserId ||
-                          (Boolean(user.is_admin) && user.id === currentUserId) ||
-                          (Boolean(user.is_admin) && userRows.filter((row) => Boolean(row.is_admin)).length <= 1)
-                        }
-                      >
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M8 2.5L12.5 4.5V8.5C12.5 10.8 10.9 12.9 8 13.5C5.1 12.9 3.5 10.8 3.5 8.5V4.5L8 2.5Z"
-                            stroke="currentColor"
-                            strokeWidth="1.3"
-                            strokeLinejoin="round"
-                          />
-                          {user.is_admin ? (
-                            <path
-                              d="M5.5 8.2L7.2 9.8L10.4 6.6"
-                              stroke="currentColor"
-                              strokeWidth="1.3"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
+                        <span className="text-muted">{index + 1}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span className="row-caret" aria-hidden="true">
+                            <svg width="14" height="10" viewBox="0 0 12 8" fill="none">
+                              <path
+                                d={isExpanded ? "M1 1L6 6L11 1" : "M3 1L9 4L3 7"}
+                                stroke="currentColor"
+                                strokeWidth="2.2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </span>
+                          {isEditing ? (
+                            <input
+                              className={`editable-field ${isUserFieldChanged(user, "username") ? "is-edited" : ""}`.trim()}
+                              value={edits.username ?? ""}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={(event) => updateUserEdit(user.id, "username", event.target.value)}
+                              style={{ flex: 1 }}
                             />
                           ) : (
-                            <path
-                              d="M6.2 6.2H9.8M8 4.4V8"
-                              stroke="currentColor"
-                              strokeWidth="1.3"
-                              strokeLinecap="round"
-                            />
+                            <button
+                              className="editable-button editable-field"
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                beginUserEdit(user);
+                              }}
+                            >
+                              {edits.username || "-"}
+                            </button>
                           )}
-                        </svg>
-                      </IconButton>
-                      <IconButton
-                        ariaLabel={tAdmin("users.resendInvite")}
-                        onClick={() => handleResendInvite(user.email)}
-                      >
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M2.5 3.5H13.5V12.5H2.5V3.5Z"
-                            stroke="currentColor"
-                            strokeWidth="1.3"
-                            strokeLinejoin="round"
+                        </div>
+                        <div>{user.email}</div>
+                        {isEditing ? (
+                          <input
+                            className={`editable-field ${isUserFieldChanged(user, "display_name") ? "is-edited" : ""}`.trim()}
+                            value={edits.display_name ?? ""}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={(event) => updateUserEdit(user.id, "display_name", event.target.value)}
                           />
-                          <path
-                            d="M2.8 4.2L8 8.2L13.2 4.2"
-                            stroke="currentColor"
-                            strokeWidth="1.3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </IconButton>
-                      <IconButton ariaLabel={tAdmin("users.addGameAccount")} onClick={() => openCreateGameAccountModal(user)}>
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M4.2 6.5H11.8"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinecap="round"
-                          />
-                          <path
-                            d="M6 9.5H10"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinecap="round"
-                          />
-                          <path
-                            d="M3 8C3 5.8 4.8 4 7 4H9C11.2 4 13 5.8 13 8C13 10.2 11.2 12 9 12H7C4.8 12 3 10.2 3 8Z"
-                            stroke="currentColor"
-                            strokeWidth="1.2"
-                          />
-                          <path
-                            d="M12.5 3.5V5.5M11.5 4.5H13.5"
-                            stroke="currentColor"
-                            strokeWidth="1.2"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </IconButton>
-                      {isEditing ? (
-                        <>
-                          <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={() => handleSaveUserEdit(user)}>
-                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                              <path d="M4 8.5L7 11.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </IconButton>
-                          <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={() => cancelUserEdit(user.id)}>
-                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                              <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                              <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                            </svg>
-                          </IconButton>
-                        </>
-                      ) : null}
-                      <IconButton ariaLabel={tAdmin("users.deleteUser")} onClick={() => openUserDeleteConfirm(user)} variant="danger">
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M3.5 5.5H12.5"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinecap="round"
-                          />
-                          <path
-                            d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinecap="round"
-                          />
-                          <path
-                            d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </IconButton>
-                    </div>
-                      );
-                    })()}
-                  </div>
-                  {isExpanded ? (
-                    <div className="row subrow">
-                      <div style={{ gridColumn: "1 / -1" }}>
-                        {accounts.length === 0 ? (
-                          <div className="text-muted">{tAdmin("clans.noAccountsYet")}</div>
                         ) : (
-                          <TableScroll>
-                            <div className="table members">
-                            <header>
-                              <span>#</span>
-                              <span>{renderMemberSortButton(tAdmin("members.gameAccount"), "game")}</span>
-                              <span>{renderMemberSortButton(tAdmin("members.user"), "user")}</span>
-                              <span>{renderMemberSortButton(tAdmin("common.clan"), "clan")}</span>
-                              <span>{renderMemberSortButton(tAdmin("common.rank"), "rank")}</span>
-                              <span>{renderMemberSortButton(tAdmin("common.status"), "status")}</span>
-                              <span>{tAdmin("common.actions")}</span>
-                            </header>
-                            {sortedAccounts.map((account, index) => {
-                              const membership = userMembershipsByAccountId[account.id];
-                              if (!membership) {
-                                return (
-                                  <div className="row" key={account.id}>
-                                    <span className="text-muted">{index + 1}</span>
-                                    <div>
-                                      <div>{account.game_username}{account.approval_status && account.approval_status !== "approved" ? (<span className={`badge ${account.approval_status === "pending" ? "warning" : "danger"}`} style={{ marginLeft: "0.5rem", fontSize: "0.75em" }}>{account.approval_status}</span>) : null}</div>
-                                    </div>
-                                    <div>
-                                      <div>{user.email}</div>
-                                      <div className="text-muted">{user.display_name ?? user.username ?? "-"}</div>
-                                    </div>
-                                    <div className="text-muted">-</div>
-                                    <div className="text-muted">-</div>
-                                  <div className="text-muted">{tAdmin("members.missingMembership")}</div>
-                                  <div />
-                                  </div>
-                                );
-                              }
-                              return (
-                                <div className="row" key={membership.id}>
-                                  <span className="text-muted">{index + 1}</span>
-                                  <div>
-                                    {membership.game_accounts?.id ? (
-                                      activeGameAccountId === membership.game_accounts.id ? (
-                                        <input
-                                          value={
-                                            gameAccountEdits[membership.game_accounts.id]?.game_username ??
-                                            membership.game_accounts.game_username
-                                          }
-                                          onChange={(event) =>
-                                            updateGameAccountEdit(membership.game_accounts?.id ?? "", "game_username", event.target.value)
-                                          }
-                                          placeholder={tAdmin("clans.gameUsername")}
-                                        />
-                                      ) : (
-                                        <button
-                                          className="editable-button editable-field"
-                                          type="button"
-                                          onClick={() =>
-                                            beginGameAccountEdit({
-                                              id: membership.game_accounts?.id ?? "",
-                                              user_id: membership.game_accounts?.user_id ?? "",
-                                              game_username: membership.game_accounts?.game_username ?? "",
-                                            })
-                                          }
-                                        >
-                                          {getMembershipLabel(membership)}
-                                        </button>
-                                      )
-                                    ) : (
-                                      <div>{getMembershipLabel(membership)}</div>
-                                    )}
-                                  </div>
-                                  <div>
-                                    <div>{user.email}</div>
-                                    <div className="text-muted">{user.display_name ?? user.username ?? "-"}</div>
-                                  </div>
-                                  <RadixSelect
-                                    ariaLabel={tAdmin("common.clan")}
-                                    value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
-                                    onValueChange={(value) => updateMembershipEdit(membership.id, "clan_id", value)}
-                                    options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
-                                    triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "clan_id") ? " is-edited" : ""}`}
+                          <button
+                            className="editable-button editable-field"
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              beginUserEdit(user);
+                            }}
+                          >
+                            {edits.display_name || "-"}
+                          </button>
+                        )}
+                        <div
+                          onClick={(event) => event.stopPropagation()}
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
+                          <RadixSelect
+                            ariaLabel={tAdmin("common.role")}
+                            value={edits.role ?? getUserRole(user.id)}
+                            onValueChange={(value) => updateUserEdit(user.id, "role", value)}
+                            options={roleOptions.map((role) => ({ value: role, label: formatRole(role, locale) }))}
+                            triggerClassName={`select-trigger${isUserFieldChanged(user, "role") ? " is-edited" : ""}`}
+                          />
+                        </div>
+                        <div className="text-muted" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span className="badge" aria-label={`${accounts.length} game accounts`}>
+                            {accounts.length}
+                          </span>
+                        </div>
+                        {(() => {
+                          const actionCount = isEditing ? 5 : 3;
+                          return (
+                            <div
+                              className={`list inline user-actions action-icons ${actionCount > 4 ? "action-icons-wrap" : ""}`.trim()}
+                            >
+                              <IconButton
+                                ariaLabel={tAdmin("users.resendInvite")}
+                                onClick={() => handleResendInvite(user.email)}
+                              >
+                                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                  <path
+                                    d="M2.5 3.5H13.5V12.5H2.5V3.5Z"
+                                    stroke="currentColor"
+                                    strokeWidth="1.3"
+                                    strokeLinejoin="round"
                                   />
-                                  <RadixSelect
-                                    ariaLabel={tAdmin("common.rank")}
-                                    value={getMembershipEditValue(membership).rank ?? ""}
-                                    onValueChange={(value) => updateMembershipEdit(membership.id, "rank", value)}
-                                    options={[
-                                      { value: "", label: tAdmin("common.none") },
-                                      ...rankOptions.map((rank) => ({ value: rank, label: formatRank(rank, locale) })),
-                                    ]}
-                                    triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "rank") ? " is-edited" : ""}`}
+                                  <path
+                                    d="M2.8 4.2L8 8.2L13.2 4.2"
+                                    stroke="currentColor"
+                                    strokeWidth="1.3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
                                   />
-                                  <RadixSelect
-                                    ariaLabel={tAdmin("common.status")}
-                                    value={getMembershipEditValue(membership).is_active ? "true" : "false"}
-                                    onValueChange={(value) => updateMembershipEdit(membership.id, "is_active", value)}
-                                    options={[
-                                      { value: "true", label: tAdmin("common.active") },
-                                      { value: "false", label: tAdmin("common.inactive") },
-                                    ]}
-                                    triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
-                                    triggerDataRole="status-select"
+                                </svg>
+                              </IconButton>
+                              <IconButton
+                                ariaLabel={tAdmin("users.addGameAccount")}
+                                onClick={() => openCreateGameAccountModal(user)}
+                              >
+                                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                  <path
+                                    d="M4.2 6.5H11.8"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
                                   />
-                <div className="list inline action-icons">
-                                    <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={() => handleSaveMembershipEdit(membership)}>
-                                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                        <path
-                                          d="M4 8.5L7 11.5L12 5"
-                                          stroke="currentColor"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        />
-                                      </svg>
-                                    </IconButton>
-                                    <IconButton
-                                      ariaLabel={tAdmin("common.cancelChanges")}
-                                      onClick={() => cancelMembershipEdits(membership.id)}
-                                    >
-                                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                        <path
-                                          d="M4.5 4.5L11.5 11.5"
-                                          stroke="currentColor"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                        />
-                                        <path
-                                          d="M11.5 4.5L4.5 11.5"
-                                          stroke="currentColor"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                        />
-                                      </svg>
-                                    </IconButton>
-                  {membership.game_accounts?.id ? (
-                    <IconButton
-                      ariaLabel={tAdmin("members.deleteGameAccount")}
-                      onClick={() =>
-                        openGameAccountDeleteConfirm({
-                          id: membership.game_accounts?.id ?? "",
-                          user_id: membership.game_accounts?.user_id ?? "",
-                          game_username: membership.game_accounts?.game_username ?? "",
-                        })
-                      }
-                      variant="danger"
-                    >
-                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                      </svg>
-                    </IconButton>
-                  ) : null}
-                                    {membershipErrors[membership.id] ? (
-                                      <span className="text-muted">{membershipErrors[membership.id]}</span>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                  <path d="M6 9.5H10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                                  <path
+                                    d="M3 8C3 5.8 4.8 4 7 4H9C11.2 4 13 5.8 13 8C13 10.2 11.2 12 9 12H7C4.8 12 3 10.2 3 8Z"
+                                    stroke="currentColor"
+                                    strokeWidth="1.2"
+                                  />
+                                  <path
+                                    d="M12.5 3.5V5.5M11.5 4.5H13.5"
+                                    stroke="currentColor"
+                                    strokeWidth="1.2"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              </IconButton>
+                              {isEditing ? (
+                                <>
+                                  <IconButton
+                                    ariaLabel={tAdmin("common.saveChanges")}
+                                    onClick={() => handleSaveUserEdit(user)}
+                                  >
+                                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                      <path
+                                        d="M4 8.5L7 11.5L12 5"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  </IconButton>
+                                  <IconButton
+                                    ariaLabel={tAdmin("common.cancelChanges")}
+                                    onClick={() => cancelUserEdit(user.id)}
+                                  >
+                                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                      <path
+                                        d="M4.5 4.5L11.5 11.5"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                      />
+                                      <path
+                                        d="M11.5 4.5L4.5 11.5"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                      />
+                                    </svg>
+                                  </IconButton>
+                                </>
+                              ) : null}
+                              <IconButton
+                                ariaLabel={tAdmin("users.deleteUser")}
+                                onClick={() => openUserDeleteConfirm(user)}
+                                variant="danger"
+                              >
+                                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                  <path
+                                    d="M3.5 5.5H12.5"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                  />
+                                  <path
+                                    d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                  />
+                                  <path
+                                    d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              </IconButton>
                             </div>
-                          </TableScroll>
+                          );
+                        })()}
+                      </div>
+                      {isExpanded ? (
+                        <div className="row subrow">
+                          <div style={{ gridColumn: "1 / -1" }}>
+                            {accounts.length === 0 ? (
+                              <div className="text-muted">{tAdmin("clans.noAccountsYet")}</div>
+                            ) : (
+                              <TableScroll>
+                                <div className="table members">
+                                  <header>
+                                    <span>#</span>
+                                    <span>{renderMemberSortButton(tAdmin("members.gameAccount"), "game")}</span>
+                                    <span>{renderMemberSortButton(tAdmin("members.user"), "user")}</span>
+                                    <span>{renderMemberSortButton(tAdmin("common.clan"), "clan")}</span>
+                                    <span>{renderMemberSortButton(tAdmin("common.rank"), "rank")}</span>
+                                    <span>{renderMemberSortButton(tAdmin("common.status"), "status")}</span>
+                                    <span>{tAdmin("common.actions")}</span>
+                                  </header>
+                                  {sortedAccounts.map((account, index) => {
+                                    const membership = userMembershipsByAccountId[account.id];
+                                    if (!membership) {
+                                      return (
+                                        <div className="row" key={account.id}>
+                                          <span className="text-muted">{index + 1}</span>
+                                          <div>
+                                            <div>
+                                              {account.game_username}
+                                              {account.approval_status && account.approval_status !== "approved" ? (
+                                                <span
+                                                  className={`badge ${account.approval_status === "pending" ? "warning" : "danger"}`}
+                                                  style={{ marginLeft: "0.5rem", fontSize: "0.75em" }}
+                                                >
+                                                  {account.approval_status}
+                                                </span>
+                                              ) : null}
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <div>{user.email}</div>
+                                            <div className="text-muted">
+                                              {user.display_name ?? user.username ?? "-"}
+                                            </div>
+                                          </div>
+                                          <div className="text-muted">-</div>
+                                          <div className="text-muted">-</div>
+                                          <div className="text-muted">{tAdmin("members.missingMembership")}</div>
+                                          <div />
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <div className="row" key={membership.id}>
+                                        <span className="text-muted">{index + 1}</span>
+                                        <div>
+                                          {membership.game_accounts?.id ? (
+                                            activeGameAccountId === membership.game_accounts.id ? (
+                                              <input
+                                                value={
+                                                  gameAccountEdits[membership.game_accounts.id]?.game_username ??
+                                                  membership.game_accounts.game_username
+                                                }
+                                                onChange={(event) =>
+                                                  updateGameAccountEdit(
+                                                    membership.game_accounts?.id ?? "",
+                                                    "game_username",
+                                                    event.target.value,
+                                                  )
+                                                }
+                                                placeholder={tAdmin("clans.gameUsername")}
+                                              />
+                                            ) : (
+                                              <button
+                                                className="editable-button editable-field"
+                                                type="button"
+                                                onClick={() =>
+                                                  beginGameAccountEdit({
+                                                    id: membership.game_accounts?.id ?? "",
+                                                    user_id: membership.game_accounts?.user_id ?? "",
+                                                    game_username: membership.game_accounts?.game_username ?? "",
+                                                  })
+                                                }
+                                              >
+                                                {getMembershipLabel(membership)}
+                                              </button>
+                                            )
+                                          ) : (
+                                            <div>{getMembershipLabel(membership)}</div>
+                                          )}
+                                        </div>
+                                        <div>
+                                          <div>{user.email}</div>
+                                          <div className="text-muted">{user.display_name ?? user.username ?? "-"}</div>
+                                        </div>
+                                        <RadixSelect
+                                          ariaLabel={tAdmin("common.clan")}
+                                          value={getMembershipEditValue(membership).clan_id ?? membership.clan_id}
+                                          onValueChange={(value) =>
+                                            updateMembershipEdit(membership.id, "clan_id", value)
+                                          }
+                                          options={clans.map((clan) => ({ value: clan.id, label: clan.name }))}
+                                          triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "clan_id") ? " is-edited" : ""}`}
+                                        />
+                                        <RadixSelect
+                                          ariaLabel={tAdmin("common.rank")}
+                                          value={getMembershipEditValue(membership).rank ?? ""}
+                                          onValueChange={(value) => updateMembershipEdit(membership.id, "rank", value)}
+                                          options={[
+                                            { value: "", label: tAdmin("common.none") },
+                                            ...rankOptions.map((rank) => ({
+                                              value: rank,
+                                              label: formatRank(rank, locale),
+                                            })),
+                                          ]}
+                                          triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "rank") ? " is-edited" : ""}`}
+                                        />
+                                        <RadixSelect
+                                          ariaLabel={tAdmin("common.status")}
+                                          value={getMembershipEditValue(membership).is_active ? "true" : "false"}
+                                          onValueChange={(value) =>
+                                            updateMembershipEdit(membership.id, "is_active", value)
+                                          }
+                                          options={[
+                                            { value: "true", label: tAdmin("common.active") },
+                                            { value: "false", label: tAdmin("common.inactive") },
+                                          ]}
+                                          triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
+                                          triggerDataRole="status-select"
+                                        />
+                                        <div className="list inline action-icons">
+                                          <IconButton
+                                            ariaLabel={tAdmin("common.saveChanges")}
+                                            onClick={() => handleSaveMembershipEdit(membership)}
+                                          >
+                                            <svg
+                                              aria-hidden="true"
+                                              width="16"
+                                              height="16"
+                                              viewBox="0 0 16 16"
+                                              fill="none"
+                                            >
+                                              <path
+                                                d="M4 8.5L7 11.5L12 5"
+                                                stroke="currentColor"
+                                                strokeWidth="1.5"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                              />
+                                            </svg>
+                                          </IconButton>
+                                          <IconButton
+                                            ariaLabel={tAdmin("common.cancelChanges")}
+                                            onClick={() => cancelMembershipEdits(membership.id)}
+                                          >
+                                            <svg
+                                              aria-hidden="true"
+                                              width="16"
+                                              height="16"
+                                              viewBox="0 0 16 16"
+                                              fill="none"
+                                            >
+                                              <path
+                                                d="M4.5 4.5L11.5 11.5"
+                                                stroke="currentColor"
+                                                strokeWidth="1.5"
+                                                strokeLinecap="round"
+                                              />
+                                              <path
+                                                d="M11.5 4.5L4.5 11.5"
+                                                stroke="currentColor"
+                                                strokeWidth="1.5"
+                                                strokeLinecap="round"
+                                              />
+                                            </svg>
+                                          </IconButton>
+                                          {membership.game_accounts?.id ? (
+                                            <IconButton
+                                              ariaLabel={tAdmin("members.deleteGameAccount")}
+                                              onClick={() =>
+                                                openGameAccountDeleteConfirm({
+                                                  id: membership.game_accounts?.id ?? "",
+                                                  user_id: membership.game_accounts?.user_id ?? "",
+                                                  game_username: membership.game_accounts?.game_username ?? "",
+                                                })
+                                              }
+                                              variant="danger"
+                                            >
+                                              <svg
+                                                aria-hidden="true"
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 16 16"
+                                                fill="none"
+                                              >
+                                                <path
+                                                  d="M3.5 5.5H12.5"
+                                                  stroke="currentColor"
+                                                  strokeWidth="1.4"
+                                                  strokeLinecap="round"
+                                                />
+                                                <path
+                                                  d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                                                  stroke="currentColor"
+                                                  strokeWidth="1.4"
+                                                  strokeLinecap="round"
+                                                />
+                                                <path
+                                                  d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                                                  stroke="currentColor"
+                                                  strokeWidth="1.4"
+                                                  strokeLinecap="round"
+                                                />
+                                              </svg>
+                                            </IconButton>
+                                          ) : null}
+                                          {membershipErrors[membership.id] ? (
+                                            <span className="text-muted">{membershipErrors[membership.id]}</span>
+                                          ) : null}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </TableScroll>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+                      {userErrors[user.id] ? (
+                        <div className="row subrow">
+                          <div style={{ gridColumn: "1 / -1" }}>
+                            <div className="alert warn">{userErrors[user.id]}</div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </TableScroll>
+          )}
+        </section>
+      ) : null}
+      {activeSection === "validation" ? (
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">{tAdmin("validation.title")}</div>
+              <div className="card-subtitle">{tAdmin("validation.subtitle")}</div>
+            </div>
+          </div>
+          <div className="rule-bar">
+            <div className="tabs">
+              {ruleFieldOptions.map((field) => (
+                <button
+                  key={field}
+                  className={`tab ${validationListField === field ? "active" : ""}`}
+                  type="button"
+                  onClick={() => {
+                    setValidationListField(field);
+                    setValidationField(field);
+                    handleCancelValidationEdit();
+                    setValidationPage(1);
+                  }}
+                >
+                  {formatLabel(field)}
+                </button>
+              ))}
+            </div>
+            <div className="list inline action-icons">
+              <IconButton ariaLabel={tAdmin("validation.addRule")} onClick={handleCreateValidationRow}>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </IconButton>
+              <IconButton ariaLabel={tAdmin("validation.backupRules")} onClick={handleBackupValidationList}>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 4.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path
+                    d="M4.5 4.5V12C4.5 12.6 5 13 5.6 13H10.4C11 13 11.5 12.6 11.5 12V4.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  <path d="M6.5 7.5H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </IconButton>
+              <span className="rule-bar-separator" aria-hidden="true" />
+              <IconButton ariaLabel={tAdmin("validation.importRules")} onClick={() => setIsValidationImportOpen(true)}>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 11.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M8 3.5V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M5.5 8L8 10.5L10.5 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </IconButton>
+              <IconButton ariaLabel={tAdmin("validation.exportRules")} onClick={handleExportValidationList}>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 12.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M8 12V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M5.5 6.5L8 4L10.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </IconButton>
+              <span className="rule-bar-separator" aria-hidden="true" />
+              <IconButton
+                ariaLabel={tAdmin("validation.deleteSelectedRules")}
+                onClick={openValidationDeleteConfirm}
+                variant="danger"
+                disabled={validationSelectedIds.length === 0}
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                  <path
+                    d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </IconButton>
+            </div>
+          </div>
+          {validationImportStatus ? <div className="alert info">{validationImportStatus}</div> : null}
+          <div
+            className="list inline admin-members-filters filter-bar"
+            style={{ alignItems: "center", flexWrap: "wrap" }}
+          >
+            <SearchInput
+              id="validationSearch"
+              label={tAdmin("common.search")}
+              value={validationSearch}
+              onChange={(value) => {
+                setValidationSearch(value);
+                setValidationPage(1);
+              }}
+              placeholder={tAdmin("validation.searchPlaceholder")}
+            />
+            <LabeledSelect
+              id="validationStatusFilter"
+              label={tAdmin("common.status")}
+              value={validationStatusFilter}
+              onValueChange={(value) => {
+                setValidationStatusFilter(value);
+                setValidationPage(1);
+              }}
+              options={[
+                { value: "all", label: tAdmin("common.all") },
+                { value: "valid", label: tAdmin("common.valid") },
+                { value: "invalid", label: tAdmin("common.invalid") },
+              ]}
+            />
+            <LabeledSelect
+              id="validationSort"
+              label={tAdmin("common.sort")}
+              value={validationSortKey}
+              onValueChange={(value) => {
+                setValidationSortKey(value as "field" | "status" | "match_value");
+                setValidationPage(1);
+              }}
+              options={getValidationSortOptions(tAdmin).map((option) => ({ value: option.value, label: option.label }))}
+            />
+            <RadixSelect
+              ariaLabel={tAdmin("validation.sortDirection")}
+              value={validationSortDirection}
+              onValueChange={(value) => {
+                setValidationSortDirection(value as "asc" | "desc");
+                setValidationPage(1);
+              }}
+              options={[
+                { value: "asc", label: tAdmin("common.asc") },
+                { value: "desc", label: tAdmin("common.desc") },
+              ]}
+            />
+            <button
+              className="button"
+              type="button"
+              onClick={() => {
+                setValidationSearch("");
+                setValidationStatusFilter("all");
+                setValidationSortKey("field");
+                setValidationSortDirection("asc");
+                setValidationPageSize(50);
+                setValidationPage(1);
+              }}
+            >
+              {tAdmin("common.reset")}
+            </button>
+            <span className="text-muted">
+              {formatLabel(validationListField)} {tAdmin("validation.rules")}: {activeValidationCounts.total} (
+              {activeValidationCounts.active} {tAdmin("common.active")})
+              {validationSelectedIds.length > 0
+                ? ` • ${validationSelectedIds.length} ${tAdmin("common.selected")}`
+                : ""}
+            </span>
+          </div>
+          {filteredValidationRules.length > 0 ? (
+            <div className="pagination-bar table-pagination">
+              <div className="pagination-page-size">
+                <label htmlFor="validationPageSize" className="text-muted">
+                  {tAdmin("common.pageSize")}
+                </label>
+                <RadixSelect
+                  id="validationPageSize"
+                  ariaLabel={tAdmin("common.pageSize")}
+                  value={String(validationPageSize)}
+                  onValueChange={(value) => {
+                    setValidationPageSize(Number(value));
+                    setValidationPage(1);
+                  }}
+                  options={[
+                    { value: "25", label: "25" },
+                    { value: "50", label: "50" },
+                    { value: "100", label: "100" },
+                    { value: "250", label: "250" },
+                  ]}
+                />
+              </div>
+              <span className="text-muted">
+                {tAdmin("common.showing")}{" "}
+                {filteredValidationRules.length === 0 ? 0 : (validationPage - 1) * validationPageSize + 1}–
+                {Math.min(validationPage * validationPageSize, filteredValidationRules.length)} {tAdmin("common.of")}{" "}
+                {filteredValidationRules.length}
+              </span>
+              <div className="pagination-actions">
+                <div className="pagination-page-indicator">
+                  <label htmlFor="validationPageJump" className="text-muted">
+                    {tAdmin("common.page")}
+                  </label>
+                  <input
+                    id="validationPageJump"
+                    className="pagination-page-input"
+                    type="number"
+                    min={1}
+                    max={validationTotalPages}
+                    value={validationPage}
+                    onChange={(event) => {
+                      const nextPage = clampPageValue(event.target.value, validationTotalPages);
+                      if (nextPage !== null) {
+                        setValidationPage(nextPage);
+                      }
+                    }}
+                  />
+                  <span className="text-muted">/ {validationTotalPages}</span>
+                </div>
+                <IconButton
+                  ariaLabel={tAdmin("common.previousPage")}
+                  onClick={() => setValidationPage((current) => Math.max(1, current - 1))}
+                  disabled={validationPage === 1}
+                >
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M10 3L6 8L10 13"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </IconButton>
+                <IconButton
+                  ariaLabel={tAdmin("common.nextPage")}
+                  onClick={() => setValidationPage((current) => current + 1)}
+                  disabled={validationPage >= validationTotalPages}
+                >
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M6 3L10 8L6 13"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </IconButton>
+              </div>
+            </div>
+          ) : null}
+          <TableScroll>
+            <div className="table validation-list">
+              <header>
+                <span>#</span>
+                <span>
+                  <input
+                    type="checkbox"
+                    ref={validationSelectAllRef}
+                    checked={areAllValidationRowsSelected}
+                    onChange={toggleValidationSelectAll}
+                    aria-label={tAdmin("common.selectAll")}
+                  />
+                </span>
+                <span>{renderValidationSortButton(tAdmin("validation.value"), "match_value")}</span>
+                <span>{renderValidationSortButton(tAdmin("common.status"), "status")}</span>
+                <span>{tAdmin("common.actions")}</span>
+              </header>
+              {[
+                ...(validationEditingId === NEW_VALIDATION_ID
+                  ? [
+                      {
+                        id: NEW_VALIDATION_ID,
+                        field: validationField,
+                        match_value: validationMatch,
+                        status: validationStatus,
+                      },
+                    ]
+                  : []),
+                ...pagedValidationRules,
+              ].length === 0 ? (
+                <div className="row">
+                  <span />
+                  <span />
+                  <span>{tAdmin("validation.noEntries")}</span>
+                  <span />
+                  <span />
+                </div>
+              ) : filteredValidationRules.length === 0 && validationEditingId !== NEW_VALIDATION_ID ? (
+                <div className="row">
+                  <span />
+                  <span />
+                  <span>{tAdmin("validation.noEntriesMatch")}</span>
+                  <span />
+                  <span />
+                </div>
+              ) : (
+                [
+                  ...(validationEditingId === NEW_VALIDATION_ID
+                    ? [
+                        {
+                          id: NEW_VALIDATION_ID,
+                          field: validationField,
+                          match_value: validationMatch,
+                          status: validationStatus,
+                        },
+                      ]
+                    : []),
+                  ...pagedValidationRules,
+                ].map((rule, index) => {
+                  const isEditing = validationEditingId === rule.id;
+                  const isSelectable = rule.id !== NEW_VALIDATION_ID;
+                  const isSelected = isSelectable && validationSelectedSet.has(rule.id);
+                  const rowNumber = (validationPage - 1) * validationPageSize + index + 1;
+                  return (
+                    <div className={`row ${isSelected ? "selected" : ""}`.trim()} key={rule.id}>
+                      <span className="text-muted">{rowNumber}</span>
+                      <span>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={isSelectable ? () => toggleValidationSelect(rule.id) : undefined}
+                          disabled={!isSelectable}
+                          aria-label={tAdmin("common.selectRule")}
+                        />
+                      </span>
+                      {isEditing ? (
+                        <input value={validationMatch} onChange={(event) => setValidationMatch(event.target.value)} />
+                      ) : (
+                        <span>{rule.match_value}</span>
+                      )}
+                      {isEditing ? (
+                        <RadixSelect
+                          ariaLabel={tAdmin("common.status")}
+                          value={validationStatus}
+                          onValueChange={(value) => setValidationStatus(value)}
+                          options={[
+                            { value: "valid", label: tAdmin("common.valid") },
+                            { value: "invalid", label: tAdmin("common.invalid") },
+                          ]}
+                        />
+                      ) : (
+                        <span className="badge">{rule.status ?? "active"}</span>
+                      )}
+                      <div className="list inline action-icons">
+                        {isEditing ? (
+                          <>
+                            <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={handleSaveValidationRow}>
+                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path
+                                  d="M4 8.5L7 11.5L12 5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </IconButton>
+                            <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={handleCancelValidationEdit}>
+                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path
+                                  d="M4.5 4.5L11.5 11.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                />
+                                <path
+                                  d="M11.5 4.5L4.5 11.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            </IconButton>
+                          </>
+                        ) : (
+                          <>
+                            <IconButton
+                              ariaLabel={tAdmin("validation.editRule")}
+                              onClick={() => handleEditValidationRule(rule)}
+                            >
+                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path
+                                  d="M3 11.5L11.5 3"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                />
+                                <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                            </IconButton>
+                            <IconButton
+                              ariaLabel={tAdmin("validation.deleteRule")}
+                              onClick={() => handleDeleteValidationRule(rule.id)}
+                              variant="danger"
+                            >
+                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                                <path
+                                  d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.4"
+                                  strokeLinecap="round"
+                                />
+                                <path
+                                  d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.4"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            </IconButton>
+                          </>
                         )}
                       </div>
                     </div>
-                  ) : null}
-                  {userErrors[user.id] ? (
-                    <div className="row subrow">
-                      <div style={{ gridColumn: "1 / -1" }}>
-                        <div className="alert warn">{userErrors[user.id]}</div>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+                  );
+                })
+              )}
             </div>
           </TableScroll>
-        )}
-      </section>
-      ) : null}
-      {activeSection === "validation" ? (
-      <section className="card" style={{ gridColumn: "1 / -1" }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">{tAdmin("validation.title")}</div>
-            <div className="card-subtitle">{tAdmin("validation.subtitle")}</div>
-          </div>
-        </div>
-        <div className="rule-bar">
-          <div className="tabs">
-            {ruleFieldOptions.map((field) => (
-              <button
-                key={field}
-                className={`tab ${validationListField === field ? "active" : ""}`}
-                type="button"
-                onClick={() => {
-                  setValidationListField(field);
-                  setValidationField(field);
-                  handleCancelValidationEdit();
-                  setValidationPage(1);
-                }}
-              >
-                {formatLabel(field)}
-              </button>
-            ))}
-          </div>
-          <div className="list inline action-icons">
-            <IconButton ariaLabel={tAdmin("validation.addRule")} onClick={handleCreateValidationRow}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-            <IconButton ariaLabel={tAdmin("validation.backupRules")} onClick={handleBackupValidationList}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3 4.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M4.5 4.5V12C4.5 12.6 5 13 5.6 13H10.4C11 13 11.5 12.6 11.5 12V4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M6.5 7.5H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-            <span className="rule-bar-separator" aria-hidden="true" />
-            <IconButton ariaLabel={tAdmin("validation.importRules")} onClick={() => setIsValidationImportOpen(true)}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3 11.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M8 3.5V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M5.5 8L8 10.5L10.5 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-            <IconButton ariaLabel={tAdmin("validation.exportRules")} onClick={handleExportValidationList}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3 12.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M8 12V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M5.5 6.5L8 4L10.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-            <span className="rule-bar-separator" aria-hidden="true" />
-            <IconButton
-              ariaLabel={tAdmin("validation.deleteSelectedRules")}
-              onClick={openValidationDeleteConfirm}
-              variant="danger"
-              disabled={validationSelectedIds.length === 0}
-            >
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-          </div>
-        </div>
-        {validationImportStatus ? <div className="alert info">{validationImportStatus}</div> : null}
-        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <SearchInput
-            id="validationSearch"
-            label={tAdmin("common.search")}
-            value={validationSearch}
-            onChange={(value) => {
-              setValidationSearch(value);
-              setValidationPage(1);
-            }}
-            placeholder={tAdmin("validation.searchPlaceholder")}
-          />
-          <LabeledSelect
-            id="validationStatusFilter"
-            label={tAdmin("common.status")}
-            value={validationStatusFilter}
-            onValueChange={(value) => {
-              setValidationStatusFilter(value);
-              setValidationPage(1);
-            }}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              { value: "valid", label: tAdmin("common.valid") },
-              { value: "invalid", label: tAdmin("common.invalid") },
-            ]}
-          />
-          <LabeledSelect
-            id="validationSort"
-            label={tAdmin("common.sort")}
-            value={validationSortKey}
-            onValueChange={(value) => {
-              setValidationSortKey(value as "field" | "status" | "match_value");
-              setValidationPage(1);
-            }}
-            options={getValidationSortOptions(tAdmin).map((option) => ({ value: option.value, label: option.label }))}
-          />
-          <RadixSelect
-            ariaLabel={tAdmin("validation.sortDirection")}
-            value={validationSortDirection}
-            onValueChange={(value) => {
-              setValidationSortDirection(value as "asc" | "desc");
-              setValidationPage(1);
-            }}
-            options={[
-              { value: "asc", label: tAdmin("common.asc") },
-              { value: "desc", label: tAdmin("common.desc") },
-            ]}
-          />
-          <button
-            className="button"
-            type="button"
-            onClick={() => {
-              setValidationSearch("");
-              setValidationStatusFilter("all");
-              setValidationSortKey("field");
-              setValidationSortDirection("asc");
-              setValidationPageSize(50);
-              setValidationPage(1);
-            }}
-          >
-            {tAdmin("common.reset")}
-          </button>
-          <span className="text-muted">
-            {formatLabel(validationListField)} {tAdmin("validation.rules")}: {activeValidationCounts.total} ({activeValidationCounts.active} {tAdmin("common.active")})
-            {validationSelectedIds.length > 0 ? ` • ${validationSelectedIds.length} ${tAdmin("common.selected")}` : ""}
-          </span>
-        </div>
-        {filteredValidationRules.length > 0 ? (
-          <div className="pagination-bar table-pagination">
-            <div className="pagination-page-size">
-              <label htmlFor="validationPageSize" className="text-muted">
-                {tAdmin("common.pageSize")}
-              </label>
-              <RadixSelect
-                id="validationPageSize"
-                ariaLabel={tAdmin("common.pageSize")}
-                value={String(validationPageSize)}
-                onValueChange={(value) => {
-                  setValidationPageSize(Number(value));
-                  setValidationPage(1);
-                }}
-                options={[
-                  { value: "25", label: "25" },
-                  { value: "50", label: "50" },
-                  { value: "100", label: "100" },
-                  { value: "250", label: "250" },
-                ]}
-              />
-            </div>
-            <span className="text-muted">
-              {tAdmin("common.showing")} {filteredValidationRules.length === 0 ? 0 : (validationPage - 1) * validationPageSize + 1}–
-              {Math.min(validationPage * validationPageSize, filteredValidationRules.length)} {tAdmin("common.of")} {filteredValidationRules.length}
-            </span>
-            <div className="pagination-actions">
-              <div className="pagination-page-indicator">
-                <label htmlFor="validationPageJump" className="text-muted">
-                  {tAdmin("common.page")}
-                </label>
-                <input
-                  id="validationPageJump"
-                  className="pagination-page-input"
-                  type="number"
-                  min={1}
-                  max={validationTotalPages}
-                  value={validationPage}
-                  onChange={(event) => {
-                    const nextPage = clampPageValue(event.target.value, validationTotalPages);
-                    if (nextPage !== null) {
-                      setValidationPage(nextPage);
-                    }
-                  }}
-                />
-                <span className="text-muted">/ {validationTotalPages}</span>
-              </div>
-              <IconButton
-                ariaLabel={tAdmin("common.previousPage")}
-                onClick={() => setValidationPage((current) => Math.max(1, current - 1))}
-                disabled={validationPage === 1}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </IconButton>
-              <IconButton
-                ariaLabel={tAdmin("common.nextPage")}
-                onClick={() => setValidationPage((current) => current + 1)}
-                disabled={validationPage >= validationTotalPages}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </IconButton>
-            </div>
-          </div>
-        ) : null}
-        <TableScroll>
-          <div className="table validation-list">
-          <header>
-            <span>#</span>
-            <span>
-              <input
-                type="checkbox"
-                ref={validationSelectAllRef}
-                checked={areAllValidationRowsSelected}
-                onChange={toggleValidationSelectAll}
-                aria-label={tAdmin("common.selectAll")}
-              />
-            </span>
-            <span>{renderValidationSortButton(tAdmin("validation.value"), "match_value")}</span>
-            <span>{renderValidationSortButton(tAdmin("common.status"), "status")}</span>
-            <span>{tAdmin("common.actions")}</span>
-          </header>
-          {[
-            ...(validationEditingId === NEW_VALIDATION_ID
-              ? [
-                  {
-                    id: NEW_VALIDATION_ID,
-                    field: validationField,
-                    match_value: validationMatch,
-                    status: validationStatus,
-                  },
-                ]
-              : []),
-            ...pagedValidationRules,
-          ].length === 0 ? (
-            <div className="row">
-              <span />
-              <span />
-              <span>{tAdmin("validation.noEntries")}</span>
-              <span />
-              <span />
-            </div>
-          ) : filteredValidationRules.length === 0 && validationEditingId !== NEW_VALIDATION_ID ? (
-            <div className="row">
-              <span />
-              <span />
-              <span>{tAdmin("validation.noEntriesMatch")}</span>
-              <span />
-              <span />
-            </div>
-          ) : (
-            [
-              ...(validationEditingId === NEW_VALIDATION_ID
-                ? [
-                    {
-                      id: NEW_VALIDATION_ID,
-                      field: validationField,
-                      match_value: validationMatch,
-                      status: validationStatus,
-                    },
-                  ]
-                : []),
-              ...pagedValidationRules,
-            ].map((rule, index) => {
-              const isEditing = validationEditingId === rule.id;
-              const isSelectable = rule.id !== NEW_VALIDATION_ID;
-              const isSelected = isSelectable && validationSelectedSet.has(rule.id);
-              const rowNumber = (validationPage - 1) * validationPageSize + index + 1;
-              return (
-                <div className={`row ${isSelected ? "selected" : ""}`.trim()} key={rule.id}>
-                  <span className="text-muted">{rowNumber}</span>
-                  <span>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={isSelectable ? () => toggleValidationSelect(rule.id) : undefined}
-                      disabled={!isSelectable}
-                      aria-label={tAdmin("common.selectRule")}
-                    />
-                  </span>
-                  {isEditing ? (
-                    <input
-                      value={validationMatch}
-                      onChange={(event) => setValidationMatch(event.target.value)}
-                    />
-                  ) : (
-                    <span>{rule.match_value}</span>
-                  )}
-                  {isEditing ? (
-                    <RadixSelect
-                      ariaLabel={tAdmin("common.status")}
-                      value={validationStatus}
-                      onValueChange={(value) => setValidationStatus(value)}
-                      options={[
-                        { value: "valid", label: tAdmin("common.valid") },
-                        { value: "invalid", label: tAdmin("common.invalid") },
-                      ]}
-                    />
-                  ) : (
-                    <span className="badge">{rule.status ?? "active"}</span>
-                  )}
-                  <div className="list inline action-icons">
-                    {isEditing ? (
-                      <>
-                        <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={handleSaveValidationRow}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path
-                              d="M4 8.5L7 11.5L12 5"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </IconButton>
-                        <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={handleCancelValidationEdit}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                            <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          </svg>
-                        </IconButton>
-                      </>
-                    ) : (
-                      <>
-                        <IconButton ariaLabel={tAdmin("validation.editRule")} onClick={() => handleEditValidationRule(rule)}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M3 11.5L11.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                            <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          </svg>
-                        </IconButton>
-                        <IconButton ariaLabel={tAdmin("validation.deleteRule")} onClick={() => handleDeleteValidationRule(rule.id)} variant="danger">
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                            <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                            <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          </svg>
-                        </IconButton>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-          </div>
-        </TableScroll>
-      </section>
+        </section>
       ) : null}
       {activeSection === "corrections" ? (
-      <section className="card" style={{ gridColumn: "1 / -1" }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">{tAdmin("corrections.title")}</div>
-            <div className="card-subtitle">{tAdmin("corrections.subtitle")}</div>
-          </div>
-        </div>
-        <div className="rule-bar">
-          <div className="tabs">
-            {correctionFieldOptions.map((field) => (
-              <button
-                key={field}
-                className={`tab ${correctionListField === field ? "active" : ""}`}
-                type="button"
-                onClick={() => {
-                  setCorrectionListField(field);
-                  setCorrectionField(field);
-                  handleCancelCorrectionEdit();
-                  setCorrectionPage(1);
-                }}
-              >
-                {field === "all" ? tAdmin("common.all") : formatLabel(field)}
-              </button>
-            ))}
-          </div>
-          <div className="list inline action-icons">
-            <IconButton ariaLabel={tAdmin("corrections.addRule")} onClick={handleCreateCorrectionRow}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-            <IconButton ariaLabel={tAdmin("corrections.backupRules")} onClick={handleBackupCorrectionList}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3 4.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M4.5 4.5V12C4.5 12.6 5 13 5.6 13H10.4C11 13 11.5 12.6 11.5 12V4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M6.5 7.5H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-            <span className="rule-bar-separator" aria-hidden="true" />
-            <IconButton ariaLabel={tAdmin("corrections.importRules")} onClick={() => setIsCorrectionImportOpen(true)}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3 11.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M8 3.5V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M5.5 8L8 10.5L10.5 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-            <IconButton ariaLabel={tAdmin("corrections.exportRules")} onClick={handleExportCorrectionList}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3 12.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M8 12V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M5.5 6.5L8 4L10.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-            <span className="rule-bar-separator" aria-hidden="true" />
-            <IconButton
-              ariaLabel={tAdmin("corrections.deleteSelectedRules")}
-              onClick={openCorrectionDeleteConfirm}
-              variant="danger"
-              disabled={correctionSelectedIds.length === 0}
-            >
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              </svg>
-            </IconButton>
-          </div>
-        </div>
-        {correctionImportStatus ? <div className="alert info">{correctionImportStatus}</div> : null}
-        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <SearchInput
-            id="correctionSearch"
-            label={tAdmin("common.search")}
-            value={correctionSearch}
-            onChange={(value) => {
-              setCorrectionSearch(value);
-              setCorrectionPage(1);
-            }}
-            placeholder={tAdmin("corrections.searchPlaceholder")}
-          />
-          <LabeledSelect
-            id="correctionStatusFilter"
-            label={tAdmin("common.status")}
-            value={correctionStatusFilter}
-            onValueChange={(value) => {
-              setCorrectionStatusFilter(value);
-              setCorrectionPage(1);
-            }}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              { value: "active", label: tAdmin("common.active") },
-              { value: "inactive", label: tAdmin("common.inactive") },
-            ]}
-          />
-          <LabeledSelect
-            id="correctionSort"
-            label={tAdmin("common.sort")}
-            value={correctionSortKey}
-            onValueChange={(value) => {
-              setCorrectionSortKey(value as "field" | "match_value" | "replacement_value" | "status");
-              setCorrectionPage(1);
-            }}
-            options={getCorrectionSortOptions(tAdmin).map((option) => ({ value: option.value, label: option.label }))}
-          />
-          <RadixSelect
-            ariaLabel={tAdmin("corrections.sortDirection")}
-            value={correctionSortDirection}
-            onValueChange={(value) => {
-              setCorrectionSortDirection(value as "asc" | "desc");
-              setCorrectionPage(1);
-            }}
-            options={[
-              { value: "asc", label: tAdmin("common.asc") },
-              { value: "desc", label: tAdmin("common.desc") },
-            ]}
-          />
-          <button
-            className="button"
-            type="button"
-            onClick={() => {
-              setCorrectionSearch("");
-              setCorrectionStatusFilter("all");
-              setCorrectionSortKey("field");
-              setCorrectionSortDirection("asc");
-              setCorrectionPageSize(50);
-              setCorrectionPage(1);
-            }}
-          >
-            {tAdmin("common.reset")}
-          </button>
-          <span className="text-muted">
-            {correctionListField === "all" ? tAdmin("common.all") : formatLabel(correctionListField)} {tAdmin("corrections.corrections")}:{" "}
-            {activeCorrectionCounts.total} ({activeCorrectionCounts.active} {tAdmin("common.active")})
-            {correctionSelectedIds.length > 0 ? ` • ${correctionSelectedIds.length} ${tAdmin("common.selected")}` : ""}
-          </span>
-        </div>
-        {filteredCorrectionRules.length > 0 ? (
-          <div className="pagination-bar table-pagination">
-            <div className="pagination-page-size">
-              <label htmlFor="correctionPageSize" className="text-muted">
-                {tAdmin("common.pageSize")}
-              </label>
-              <RadixSelect
-                id="correctionPageSize"
-                ariaLabel={tAdmin("common.pageSize")}
-                value={String(correctionPageSize)}
-                onValueChange={(value) => {
-                  setCorrectionPageSize(Number(value));
-                  setCorrectionPage(1);
-                }}
-                options={[
-                  { value: "25", label: "25" },
-                  { value: "50", label: "50" },
-                  { value: "100", label: "100" },
-                  { value: "250", label: "250" },
-                ]}
-              />
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">{tAdmin("corrections.title")}</div>
+              <div className="card-subtitle">{tAdmin("corrections.subtitle")}</div>
             </div>
-            <span className="text-muted">
-              {tAdmin("common.showing")} {filteredCorrectionRules.length === 0 ? 0 : (correctionPage - 1) * correctionPageSize + 1}–
-              {Math.min(correctionPage * correctionPageSize, filteredCorrectionRules.length)} {tAdmin("common.of")} {filteredCorrectionRules.length}
-            </span>
-            <div className="pagination-actions">
-              <div className="pagination-page-indicator">
-                <label htmlFor="correctionPageJump" className="text-muted">
-                  {tAdmin("common.page")}
-                </label>
-                <input
-                  id="correctionPageJump"
-                  className="pagination-page-input"
-                  type="number"
-                  min={1}
-                  max={correctionTotalPages}
-                  value={correctionPage}
-                  onChange={(event) => {
-                    const nextPage = clampPageValue(event.target.value, correctionTotalPages);
-                    if (nextPage !== null) {
-                      setCorrectionPage(nextPage);
-                    }
+          </div>
+          <div className="rule-bar">
+            <div className="tabs">
+              {correctionFieldOptions.map((field) => (
+                <button
+                  key={field}
+                  className={`tab ${correctionListField === field ? "active" : ""}`}
+                  type="button"
+                  onClick={() => {
+                    setCorrectionListField(field);
+                    setCorrectionField(field);
+                    handleCancelCorrectionEdit();
+                    setCorrectionPage(1);
                   }}
-                />
-                <span className="text-muted">/ {correctionTotalPages}</span>
-              </div>
-              <IconButton
-                ariaLabel={tAdmin("common.previousPage")}
-                onClick={() => setCorrectionPage((current) => Math.max(1, current - 1))}
-                disabled={correctionPage === 1}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </IconButton>
-              <IconButton
-                ariaLabel={tAdmin("common.nextPage")}
-                onClick={() => setCorrectionPage((current) => current + 1)}
-                disabled={correctionPage >= correctionTotalPages}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </IconButton>
-            </div>
-          </div>
-        ) : null}
-        <TableScroll>
-          <div className="table correction-list">
-          <header>
-            <span>#</span>
-            <span>
-              <input
-                type="checkbox"
-                ref={correctionSelectAllRef}
-                checked={areAllCorrectionRowsSelected}
-                onChange={toggleCorrectionSelectAll}
-                aria-label={tAdmin("common.selectAll")}
-              />
-            </span>
-            <span>{renderCorrectionSortButton(tAdmin("corrections.match"), "match_value")}</span>
-            <span>{renderCorrectionSortButton(tAdmin("corrections.replacement"), "replacement_value")}</span>
-            <span>{renderCorrectionSortButton(tAdmin("common.status"), "status")}</span>
-            <span>{tAdmin("common.actions")}</span>
-          </header>
-          {[
-            ...(correctionEditingId === NEW_CORRECTION_ID
-              ? [
-                  {
-                    id: NEW_CORRECTION_ID,
-                    field: correctionField,
-                    match_value: correctionMatch,
-                    replacement_value: correctionReplacement,
-                    status: correctionStatus,
-                  },
-                ]
-              : []),
-            ...pagedCorrectionRules,
-          ].length === 0 ? (
-            <div className="row">
-              <span />
-              <span />
-              <span>{tAdmin("corrections.noEntries")}</span>
-              <span />
-              <span />
-              <span />
-            </div>
-          ) : filteredCorrectionRules.length === 0 && correctionEditingId !== NEW_CORRECTION_ID ? (
-            <div className="row">
-              <span />
-              <span />
-              <span>{tAdmin("corrections.noEntriesMatch")}</span>
-              <span />
-              <span />
-              <span />
-            </div>
-          ) : (
-            [
-              ...(correctionEditingId === NEW_CORRECTION_ID
-                ? [
-                    {
-                      id: NEW_CORRECTION_ID,
-                      field: correctionField,
-                      match_value: correctionMatch,
-                      replacement_value: correctionReplacement,
-                      status: correctionStatus,
-                    },
-                  ]
-                : []),
-              ...pagedCorrectionRules,
-            ].map((rule, index) => {
-              const isEditing = correctionEditingId === rule.id;
-              const isSelectable = rule.id !== NEW_CORRECTION_ID;
-              const isSelected = isSelectable && correctionSelectedSet.has(rule.id);
-              const rowNumber = (correctionPage - 1) * correctionPageSize + index + 1;
-              return (
-                <div className={`row ${isSelected ? "selected" : ""}`.trim()} key={rule.id}>
-                  <span className="text-muted">{rowNumber}</span>
-                  <span>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={isSelectable ? () => toggleCorrectionSelect(rule.id) : undefined}
-                      disabled={!isSelectable}
-                      aria-label={tAdmin("common.selectRule")}
-                    />
-                  </span>
-                  {isEditing ? (
-                    <input
-                      value={correctionMatch}
-                      onChange={(event) => setCorrectionMatch(event.target.value)}
-                    />
-                  ) : (
-                    <span>{rule.match_value}</span>
-                  )}
-                  {isEditing ? (
-                    <input
-                      value={correctionReplacement}
-                      onChange={(event) => setCorrectionReplacement(event.target.value)}
-                    />
-                  ) : (
-                    <span>{rule.replacement_value}</span>
-                  )}
-                  {isEditing ? (
-                    <RadixSelect
-                      ariaLabel={tAdmin("common.status")}
-                      value={correctionStatus}
-                      onValueChange={(value) => setCorrectionStatus(value)}
-                      options={[
-                        { value: "active", label: tAdmin("common.active") },
-                        { value: "inactive", label: tAdmin("common.inactive") },
-                      ]}
-                    />
-                  ) : (
-                    <span className="badge">{rule.status}</span>
-                  )}
-                  <div className="list inline action-icons">
-                    {isEditing ? (
-                      <>
-                        <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={handleSaveCorrectionRow}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path
-                              d="M4 8.5L7 11.5L12 5"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </IconButton>
-                        <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={handleCancelCorrectionEdit}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                            <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          </svg>
-                        </IconButton>
-                      </>
-                    ) : (
-                      <>
-                        <IconButton ariaLabel={tAdmin("corrections.editRule")} onClick={() => handleEditCorrectionRule(rule)}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M3 11.5L11.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                            <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          </svg>
-                        </IconButton>
-                        <IconButton ariaLabel={tAdmin("corrections.deleteRule")} onClick={() => handleDeleteCorrectionRule(rule.id)} variant="danger">
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                            <path d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                            <path d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          </svg>
-                        </IconButton>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-          </div>
-        </TableScroll>
-      </section>
-      ) : null}
-      {activeSection === "logs" ? (
-      <section className="card" style={{ gridColumn: "1 / -1" }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">{tAdmin("logs.title")}</div>
-            <div className="card-subtitle">{tAdmin("logs.subtitle")}</div>
-          </div>
-          <span className="badge">{auditTotalCount} {tAdmin("logs.total")}</span>
-        </div>
-        <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
-          <SearchInput
-            id="auditSearch"
-            label={tAdmin("common.search")}
-            value={auditSearch}
-            onChange={setAuditSearch}
-            placeholder={tAdmin("logs.searchPlaceholder")}
-          />
-          <LabeledSelect
-            id="auditClanFilter"
-            label={tAdmin("common.clan")}
-            value={auditClanFilter || "all"}
-            onValueChange={(value) => setAuditClanFilter(value)}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
-            ]}
-          />
-          <LabeledSelect
-            id="auditActionFilter"
-            label={tAdmin("logs.action")}
-            value={auditActionFilter}
-            onValueChange={(value) => setAuditActionFilter(value)}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              ...auditActionOptions.map((option) => ({ value: option, label: option })),
-            ]}
-          />
-          <LabeledSelect
-            id="auditEntityFilter"
-            label={tAdmin("logs.entity")}
-            value={auditEntityFilter}
-            onValueChange={(value) => setAuditEntityFilter(value)}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              ...auditEntityOptions.map((option) => ({ value: option, label: option })),
-            ]}
-          />
-          <LabeledSelect
-            id="auditActorFilter"
-            label={tAdmin("logs.actor")}
-            value={auditActorFilter}
-            onValueChange={(value) => setAuditActorFilter(value)}
-            options={[
-              { value: "all", label: tAdmin("common.all") },
-              ...auditActorOptions.map((actorId) => ({
-                value: actorId,
-                label: getAuditActorLabel(actorId),
-              })),
-            ]}
-          />
-          <button
-            className="button"
-            type="button"
-            onClick={() => {
-              setAuditSearch("");
-              setAuditClanFilter("all");
-              setAuditActionFilter("all");
-              setAuditEntityFilter("all");
-              setAuditActorFilter("all");
-              setAuditPage(1);
-            }}
-          >
-            Reset
-          </button>
-          <span className="text-muted">
-            {auditLogs.length} shown
-          </span>
-        </div>
-        {auditTotalCount > 0 ? (
-          <div className="pagination-bar table-pagination">
-            <div className="pagination-page-size">
-              <label htmlFor="auditPageSize" className="text-muted">
-                {tAdmin("common.pageSize")}
-              </label>
-              <RadixSelect
-                id="auditPageSize"
-                ariaLabel={tAdmin("common.pageSize")}
-                value={String(auditPageSize)}
-                onValueChange={(value) => {
-                  setAuditPageSize(Number(value));
-                  setAuditPage(1);
-                }}
-                options={[
-                  { value: "25", label: "25" },
-                  { value: "50", label: "50" },
-                  { value: "100", label: "100" },
-                  { value: "250", label: "250" },
-                ]}
-              />
-            </div>
-            <span className="text-muted">
-              {tAdmin("common.showing")} {auditTotalCount === 0 ? 0 : (auditPage - 1) * auditPageSize + 1}–
-              {Math.min(auditPage * auditPageSize, auditTotalCount)} {tAdmin("common.of")} {auditTotalCount}
-            </span>
-            <div className="pagination-actions">
-              <div className="pagination-page-indicator">
-                <label htmlFor="auditPageJump" className="text-muted">
-                  {tAdmin("common.page")}
-                </label>
-                <input
-                  id="auditPageJump"
-                  className="pagination-page-input"
-                  type="number"
-                  min={1}
-                  max={auditTotalPages}
-                  value={auditPage}
-                  onChange={(event) => {
-                    const nextPage = clampPageValue(event.target.value, auditTotalPages);
-                    if (nextPage !== null) {
-                      setAuditPage(nextPage);
-                    }
-                  }}
-                />
-                <span className="text-muted">/ {auditTotalPages}</span>
-              </div>
-              <IconButton
-                ariaLabel={tAdmin("common.previousPage")}
-                onClick={() => setAuditPage((current) => Math.max(1, current - 1))}
-                disabled={auditPage === 1}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M10 3L6 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </IconButton>
-              <IconButton
-                ariaLabel={tAdmin("common.nextPage")}
-                onClick={() => setAuditPage((current) => current + 1)}
-                disabled={auditPage >= auditTotalPages}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 3L10 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </IconButton>
-            </div>
-          </div>
-        ) : null}
-        <div className="list">
-          {auditLogs.length === 0 ? (
-            <div className="list-item">
-              <span>{tAdmin("logs.noEntries")}</span>
-              <span className="badge">{tAdmin("logs.makeAChange")}</span>
-            </div>
-          ) : (
-            auditLogs.map((entry) => (
-              <div className="list-item" key={entry.id}>
-                <div>
-                  <div>
-                    {entry.action} • {entry.entity}
-                  </div>
-                  <div className="text-muted">
-                    {getAuditActorLabel(entry.actor_id)} • {formatAuditTimestamp(entry.created_at)}
-                  </div>
-                </div>
-                <div className="list">
-                  <span className="badge">{getAuditDiffSummary(entry.diff)}</span>
-                  <span className="text-muted">{entry.entity_id.slice(0, 8)}</span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-      ) : null}
-      {activeSection === "approvals" ? (
-      <section className="card" style={{ gridColumn: "1 / -1" }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">{tAdmin("approvals.title")}</div>
-            <div className="card-subtitle">{tAdmin("approvals.subtitle")}</div>
-          </div>
-          <span className="badge">{pendingApprovals.length} {tAdmin("approvals.pending")}</span>
-        </div>
-        {approvalStatus ? <div className="alert info">{approvalStatus}</div> : null}
-        {isApprovalsLoading ? (
-          <div className="list">
-            <div className="list-item">
-              <span className="text-muted">{tAdmin("approvals.loading")}</span>
-            </div>
-          </div>
-        ) : pendingApprovals.length === 0 ? (
-          <div className="list">
-            <div className="list-item">
-              <span>{tAdmin("approvals.noPending")}</span>
-              <span className="badge">{tAdmin("approvals.allClear")}</span>
-            </div>
-          </div>
-        ) : (
-          <TableScroll>
-            <div className="table approvals-list">
-              <header>
-                <span>#</span>
-                <span>{tAdmin("approvals.gameUsername")}</span>
-                <span>{tAdmin("approvals.user")}</span>
-                <span>{tAdmin("approvals.email")}</span>
-                <span>{tAdmin("approvals.requested")}</span>
-                <span>{tAdmin("approvals.actions")}</span>
-              </header>
-              {pendingApprovals.map((approval, index) => (
-                <div className="row" key={approval.id}>
-                  <span className="text-muted">{index + 1}</span>
-                  <div>
-                    <strong>{approval.game_username}</strong>
-                  </div>
-                  <div>
-                    <div>{approval.profiles?.display_name ?? approval.profiles?.username ?? tAdmin("common.unknown")}</div>
-                    {approval.profiles?.username && approval.profiles?.display_name ? (
-                      <div className="text-muted">{approval.profiles.username}</div>
-                    ) : null}
-                  </div>
-                  <div>
-                    <span className="text-muted">{approval.profiles?.email ?? tAdmin("common.unknown")}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted">{formatLocalDateTime(approval.created_at, locale)}</span>
-                  </div>
-                  <div className="list inline" style={{ gap: "8px", flexWrap: "nowrap" }}>
-                    <button
-                      className="button primary"
-                      type="button"
-                      onClick={() => handleApprovalAction(approval.id, "approve")}
-                    >
-                      {tAdmin("common.approve")}
-                    </button>
-                    <button
-                      className="button danger"
-                      type="button"
-                      onClick={() => handleApprovalAction(approval.id, "reject")}
-                    >
-                      {tAdmin("common.reject")}
-                    </button>
-                  </div>
-                </div>
+                >
+                  {field === "all" ? tAdmin("common.all") : formatLabel(field)}
+                </button>
               ))}
             </div>
+            <div className="list inline action-icons">
+              <IconButton ariaLabel={tAdmin("corrections.addRule")} onClick={handleCreateCorrectionRow}>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </IconButton>
+              <IconButton ariaLabel={tAdmin("corrections.backupRules")} onClick={handleBackupCorrectionList}>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 4.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path
+                    d="M4.5 4.5V12C4.5 12.6 5 13 5.6 13H10.4C11 13 11.5 12.6 11.5 12V4.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  <path d="M6.5 7.5H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </IconButton>
+              <span className="rule-bar-separator" aria-hidden="true" />
+              <IconButton ariaLabel={tAdmin("corrections.importRules")} onClick={() => setIsCorrectionImportOpen(true)}>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 11.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M8 3.5V10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M5.5 8L8 10.5L10.5 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </IconButton>
+              <IconButton ariaLabel={tAdmin("corrections.exportRules")} onClick={handleExportCorrectionList}>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 12.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M8 12V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M5.5 6.5L8 4L10.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </IconButton>
+              <span className="rule-bar-separator" aria-hidden="true" />
+              <IconButton
+                ariaLabel={tAdmin("corrections.deleteSelectedRules")}
+                onClick={openCorrectionDeleteConfirm}
+                variant="danger"
+                disabled={correctionSelectedIds.length === 0}
+              >
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                  <path
+                    d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </IconButton>
+            </div>
+          </div>
+          {correctionImportStatus ? <div className="alert info">{correctionImportStatus}</div> : null}
+          <div
+            className="list inline admin-members-filters filter-bar"
+            style={{ alignItems: "center", flexWrap: "wrap" }}
+          >
+            <SearchInput
+              id="correctionSearch"
+              label={tAdmin("common.search")}
+              value={correctionSearch}
+              onChange={(value) => {
+                setCorrectionSearch(value);
+                setCorrectionPage(1);
+              }}
+              placeholder={tAdmin("corrections.searchPlaceholder")}
+            />
+            <LabeledSelect
+              id="correctionStatusFilter"
+              label={tAdmin("common.status")}
+              value={correctionStatusFilter}
+              onValueChange={(value) => {
+                setCorrectionStatusFilter(value);
+                setCorrectionPage(1);
+              }}
+              options={[
+                { value: "all", label: tAdmin("common.all") },
+                { value: "active", label: tAdmin("common.active") },
+                { value: "inactive", label: tAdmin("common.inactive") },
+              ]}
+            />
+            <LabeledSelect
+              id="correctionSort"
+              label={tAdmin("common.sort")}
+              value={correctionSortKey}
+              onValueChange={(value) => {
+                setCorrectionSortKey(value as "field" | "match_value" | "replacement_value" | "status");
+                setCorrectionPage(1);
+              }}
+              options={getCorrectionSortOptions(tAdmin).map((option) => ({ value: option.value, label: option.label }))}
+            />
+            <RadixSelect
+              ariaLabel={tAdmin("corrections.sortDirection")}
+              value={correctionSortDirection}
+              onValueChange={(value) => {
+                setCorrectionSortDirection(value as "asc" | "desc");
+                setCorrectionPage(1);
+              }}
+              options={[
+                { value: "asc", label: tAdmin("common.asc") },
+                { value: "desc", label: tAdmin("common.desc") },
+              ]}
+            />
+            <button
+              className="button"
+              type="button"
+              onClick={() => {
+                setCorrectionSearch("");
+                setCorrectionStatusFilter("all");
+                setCorrectionSortKey("field");
+                setCorrectionSortDirection("asc");
+                setCorrectionPageSize(50);
+                setCorrectionPage(1);
+              }}
+            >
+              {tAdmin("common.reset")}
+            </button>
+            <span className="text-muted">
+              {correctionListField === "all" ? tAdmin("common.all") : formatLabel(correctionListField)}{" "}
+              {tAdmin("corrections.corrections")}: {activeCorrectionCounts.total} ({activeCorrectionCounts.active}{" "}
+              {tAdmin("common.active")})
+              {correctionSelectedIds.length > 0
+                ? ` • ${correctionSelectedIds.length} ${tAdmin("common.selected")}`
+                : ""}
+            </span>
+          </div>
+          {filteredCorrectionRules.length > 0 ? (
+            <div className="pagination-bar table-pagination">
+              <div className="pagination-page-size">
+                <label htmlFor="correctionPageSize" className="text-muted">
+                  {tAdmin("common.pageSize")}
+                </label>
+                <RadixSelect
+                  id="correctionPageSize"
+                  ariaLabel={tAdmin("common.pageSize")}
+                  value={String(correctionPageSize)}
+                  onValueChange={(value) => {
+                    setCorrectionPageSize(Number(value));
+                    setCorrectionPage(1);
+                  }}
+                  options={[
+                    { value: "25", label: "25" },
+                    { value: "50", label: "50" },
+                    { value: "100", label: "100" },
+                    { value: "250", label: "250" },
+                  ]}
+                />
+              </div>
+              <span className="text-muted">
+                {tAdmin("common.showing")}{" "}
+                {filteredCorrectionRules.length === 0 ? 0 : (correctionPage - 1) * correctionPageSize + 1}–
+                {Math.min(correctionPage * correctionPageSize, filteredCorrectionRules.length)} {tAdmin("common.of")}{" "}
+                {filteredCorrectionRules.length}
+              </span>
+              <div className="pagination-actions">
+                <div className="pagination-page-indicator">
+                  <label htmlFor="correctionPageJump" className="text-muted">
+                    {tAdmin("common.page")}
+                  </label>
+                  <input
+                    id="correctionPageJump"
+                    className="pagination-page-input"
+                    type="number"
+                    min={1}
+                    max={correctionTotalPages}
+                    value={correctionPage}
+                    onChange={(event) => {
+                      const nextPage = clampPageValue(event.target.value, correctionTotalPages);
+                      if (nextPage !== null) {
+                        setCorrectionPage(nextPage);
+                      }
+                    }}
+                  />
+                  <span className="text-muted">/ {correctionTotalPages}</span>
+                </div>
+                <IconButton
+                  ariaLabel={tAdmin("common.previousPage")}
+                  onClick={() => setCorrectionPage((current) => Math.max(1, current - 1))}
+                  disabled={correctionPage === 1}
+                >
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M10 3L6 8L10 13"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </IconButton>
+                <IconButton
+                  ariaLabel={tAdmin("common.nextPage")}
+                  onClick={() => setCorrectionPage((current) => current + 1)}
+                  disabled={correctionPage >= correctionTotalPages}
+                >
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M6 3L10 8L6 13"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </IconButton>
+              </div>
+            </div>
+          ) : null}
+          <TableScroll>
+            <div className="table correction-list">
+              <header>
+                <span>#</span>
+                <span>
+                  <input
+                    type="checkbox"
+                    ref={correctionSelectAllRef}
+                    checked={areAllCorrectionRowsSelected}
+                    onChange={toggleCorrectionSelectAll}
+                    aria-label={tAdmin("common.selectAll")}
+                  />
+                </span>
+                <span>{renderCorrectionSortButton(tAdmin("corrections.match"), "match_value")}</span>
+                <span>{renderCorrectionSortButton(tAdmin("corrections.replacement"), "replacement_value")}</span>
+                <span>{renderCorrectionSortButton(tAdmin("common.status"), "status")}</span>
+                <span>{tAdmin("common.actions")}</span>
+              </header>
+              {[
+                ...(correctionEditingId === NEW_CORRECTION_ID
+                  ? [
+                      {
+                        id: NEW_CORRECTION_ID,
+                        field: correctionField,
+                        match_value: correctionMatch,
+                        replacement_value: correctionReplacement,
+                        status: correctionStatus,
+                      },
+                    ]
+                  : []),
+                ...pagedCorrectionRules,
+              ].length === 0 ? (
+                <div className="row">
+                  <span />
+                  <span />
+                  <span>{tAdmin("corrections.noEntries")}</span>
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              ) : filteredCorrectionRules.length === 0 && correctionEditingId !== NEW_CORRECTION_ID ? (
+                <div className="row">
+                  <span />
+                  <span />
+                  <span>{tAdmin("corrections.noEntriesMatch")}</span>
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              ) : (
+                [
+                  ...(correctionEditingId === NEW_CORRECTION_ID
+                    ? [
+                        {
+                          id: NEW_CORRECTION_ID,
+                          field: correctionField,
+                          match_value: correctionMatch,
+                          replacement_value: correctionReplacement,
+                          status: correctionStatus,
+                        },
+                      ]
+                    : []),
+                  ...pagedCorrectionRules,
+                ].map((rule, index) => {
+                  const isEditing = correctionEditingId === rule.id;
+                  const isSelectable = rule.id !== NEW_CORRECTION_ID;
+                  const isSelected = isSelectable && correctionSelectedSet.has(rule.id);
+                  const rowNumber = (correctionPage - 1) * correctionPageSize + index + 1;
+                  return (
+                    <div className={`row ${isSelected ? "selected" : ""}`.trim()} key={rule.id}>
+                      <span className="text-muted">{rowNumber}</span>
+                      <span>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={isSelectable ? () => toggleCorrectionSelect(rule.id) : undefined}
+                          disabled={!isSelectable}
+                          aria-label={tAdmin("common.selectRule")}
+                        />
+                      </span>
+                      {isEditing ? (
+                        <input value={correctionMatch} onChange={(event) => setCorrectionMatch(event.target.value)} />
+                      ) : (
+                        <span>{rule.match_value}</span>
+                      )}
+                      {isEditing ? (
+                        <input
+                          value={correctionReplacement}
+                          onChange={(event) => setCorrectionReplacement(event.target.value)}
+                        />
+                      ) : (
+                        <span>{rule.replacement_value}</span>
+                      )}
+                      {isEditing ? (
+                        <RadixSelect
+                          ariaLabel={tAdmin("common.status")}
+                          value={correctionStatus}
+                          onValueChange={(value) => setCorrectionStatus(value)}
+                          options={[
+                            { value: "active", label: tAdmin("common.active") },
+                            { value: "inactive", label: tAdmin("common.inactive") },
+                          ]}
+                        />
+                      ) : (
+                        <span className="badge">{rule.status}</span>
+                      )}
+                      <div className="list inline action-icons">
+                        {isEditing ? (
+                          <>
+                            <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={handleSaveCorrectionRow}>
+                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path
+                                  d="M4 8.5L7 11.5L12 5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </IconButton>
+                            <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={handleCancelCorrectionEdit}>
+                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path
+                                  d="M4.5 4.5L11.5 11.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                />
+                                <path
+                                  d="M11.5 4.5L4.5 11.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            </IconButton>
+                          </>
+                        ) : (
+                          <>
+                            <IconButton
+                              ariaLabel={tAdmin("corrections.editRule")}
+                              onClick={() => handleEditCorrectionRule(rule)}
+                            >
+                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path
+                                  d="M3 11.5L11.5 3"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                />
+                                <path d="M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                            </IconButton>
+                            <IconButton
+                              ariaLabel={tAdmin("corrections.deleteRule")}
+                              onClick={() => handleDeleteCorrectionRule(rule.id)}
+                              variant="danger"
+                            >
+                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                                <path
+                                  d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.4"
+                                  strokeLinecap="round"
+                                />
+                                <path
+                                  d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.4"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            </IconButton>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </TableScroll>
-        )}
-      </section>
+        </section>
+      ) : null}
+      {activeSection === "logs" ? (
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">{tAdmin("logs.title")}</div>
+              <div className="card-subtitle">{tAdmin("logs.subtitle")}</div>
+            </div>
+            <span className="badge">
+              {auditTotalCount} {tAdmin("logs.total")}
+            </span>
+          </div>
+          <div
+            className="list inline admin-members-filters filter-bar"
+            style={{ alignItems: "center", flexWrap: "wrap" }}
+          >
+            <SearchInput
+              id="auditSearch"
+              label={tAdmin("common.search")}
+              value={auditSearch}
+              onChange={setAuditSearch}
+              placeholder={tAdmin("logs.searchPlaceholder")}
+            />
+            <LabeledSelect
+              id="auditClanFilter"
+              label={tAdmin("common.clan")}
+              value={auditClanFilter || "all"}
+              onValueChange={(value) => setAuditClanFilter(value)}
+              options={[
+                { value: "all", label: tAdmin("common.all") },
+                ...clans.map((clan) => ({ value: clan.id, label: clan.name })),
+              ]}
+            />
+            <LabeledSelect
+              id="auditActionFilter"
+              label={tAdmin("logs.action")}
+              value={auditActionFilter}
+              onValueChange={(value) => setAuditActionFilter(value)}
+              options={[
+                { value: "all", label: tAdmin("common.all") },
+                ...auditActionOptions.map((option) => ({ value: option, label: option })),
+              ]}
+            />
+            <LabeledSelect
+              id="auditEntityFilter"
+              label={tAdmin("logs.entity")}
+              value={auditEntityFilter}
+              onValueChange={(value) => setAuditEntityFilter(value)}
+              options={[
+                { value: "all", label: tAdmin("common.all") },
+                ...auditEntityOptions.map((option) => ({ value: option, label: option })),
+              ]}
+            />
+            <LabeledSelect
+              id="auditActorFilter"
+              label={tAdmin("logs.actor")}
+              value={auditActorFilter}
+              onValueChange={(value) => setAuditActorFilter(value)}
+              options={[
+                { value: "all", label: tAdmin("common.all") },
+                ...auditActorOptions.map((actorId) => ({
+                  value: actorId,
+                  label: getAuditActorLabel(actorId),
+                })),
+              ]}
+            />
+            <button
+              className="button"
+              type="button"
+              onClick={() => {
+                setAuditSearch("");
+                setAuditClanFilter("all");
+                setAuditActionFilter("all");
+                setAuditEntityFilter("all");
+                setAuditActorFilter("all");
+                setAuditPage(1);
+              }}
+            >
+              Reset
+            </button>
+            <span className="text-muted">{auditLogs.length} shown</span>
+          </div>
+          {auditTotalCount > 0 ? (
+            <div className="pagination-bar table-pagination">
+              <div className="pagination-page-size">
+                <label htmlFor="auditPageSize" className="text-muted">
+                  {tAdmin("common.pageSize")}
+                </label>
+                <RadixSelect
+                  id="auditPageSize"
+                  ariaLabel={tAdmin("common.pageSize")}
+                  value={String(auditPageSize)}
+                  onValueChange={(value) => {
+                    setAuditPageSize(Number(value));
+                    setAuditPage(1);
+                  }}
+                  options={[
+                    { value: "25", label: "25" },
+                    { value: "50", label: "50" },
+                    { value: "100", label: "100" },
+                    { value: "250", label: "250" },
+                  ]}
+                />
+              </div>
+              <span className="text-muted">
+                {tAdmin("common.showing")} {auditTotalCount === 0 ? 0 : (auditPage - 1) * auditPageSize + 1}–
+                {Math.min(auditPage * auditPageSize, auditTotalCount)} {tAdmin("common.of")} {auditTotalCount}
+              </span>
+              <div className="pagination-actions">
+                <div className="pagination-page-indicator">
+                  <label htmlFor="auditPageJump" className="text-muted">
+                    {tAdmin("common.page")}
+                  </label>
+                  <input
+                    id="auditPageJump"
+                    className="pagination-page-input"
+                    type="number"
+                    min={1}
+                    max={auditTotalPages}
+                    value={auditPage}
+                    onChange={(event) => {
+                      const nextPage = clampPageValue(event.target.value, auditTotalPages);
+                      if (nextPage !== null) {
+                        setAuditPage(nextPage);
+                      }
+                    }}
+                  />
+                  <span className="text-muted">/ {auditTotalPages}</span>
+                </div>
+                <IconButton
+                  ariaLabel={tAdmin("common.previousPage")}
+                  onClick={() => setAuditPage((current) => Math.max(1, current - 1))}
+                  disabled={auditPage === 1}
+                >
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M10 3L6 8L10 13"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </IconButton>
+                <IconButton
+                  ariaLabel={tAdmin("common.nextPage")}
+                  onClick={() => setAuditPage((current) => current + 1)}
+                  disabled={auditPage >= auditTotalPages}
+                >
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M6 3L10 8L6 13"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </IconButton>
+              </div>
+            </div>
+          ) : null}
+          <div className="list">
+            {auditLogs.length === 0 ? (
+              <div className="list-item">
+                <span>{tAdmin("logs.noEntries")}</span>
+                <span className="badge">{tAdmin("logs.makeAChange")}</span>
+              </div>
+            ) : (
+              auditLogs.map((entry) => (
+                <div className="list-item" key={entry.id}>
+                  <div>
+                    <div>
+                      {entry.action} • {entry.entity}
+                    </div>
+                    <div className="text-muted">
+                      {getAuditActorLabel(entry.actor_id)} • {formatAuditTimestamp(entry.created_at)}
+                    </div>
+                  </div>
+                  <div className="list">
+                    <span className="badge">{getAuditDiffSummary(entry.diff)}</span>
+                    <span className="text-muted">{entry.entity_id.slice(0, 8)}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      ) : null}
+      {activeSection === "approvals" ? (
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">{tAdmin("approvals.title")}</div>
+              <div className="card-subtitle">{tAdmin("approvals.subtitle")}</div>
+            </div>
+            <span className="badge">
+              {pendingApprovals.length} {tAdmin("approvals.pending")}
+            </span>
+          </div>
+          {approvalStatus ? <div className="alert info">{approvalStatus}</div> : null}
+          {isApprovalsLoading ? (
+            <div className="list">
+              <div className="list-item">
+                <span className="text-muted">{tAdmin("approvals.loading")}</span>
+              </div>
+            </div>
+          ) : pendingApprovals.length === 0 ? (
+            <div className="list">
+              <div className="list-item">
+                <span>{tAdmin("approvals.noPending")}</span>
+                <span className="badge">{tAdmin("approvals.allClear")}</span>
+              </div>
+            </div>
+          ) : (
+            <TableScroll>
+              <div className="table approvals-list">
+                <header>
+                  <span>#</span>
+                  <span>{tAdmin("approvals.gameUsername")}</span>
+                  <span>{tAdmin("approvals.user")}</span>
+                  <span>{tAdmin("approvals.email")}</span>
+                  <span>{tAdmin("approvals.requested")}</span>
+                  <span>{tAdmin("approvals.actions")}</span>
+                </header>
+                {pendingApprovals.map((approval, index) => (
+                  <div className="row" key={approval.id}>
+                    <span className="text-muted">{index + 1}</span>
+                    <div>
+                      <strong>{approval.game_username}</strong>
+                    </div>
+                    <div>
+                      <div>
+                        {approval.profiles?.display_name ?? approval.profiles?.username ?? tAdmin("common.unknown")}
+                      </div>
+                      {approval.profiles?.username && approval.profiles?.display_name ? (
+                        <div className="text-muted">{approval.profiles.username}</div>
+                      ) : null}
+                    </div>
+                    <div>
+                      <span className="text-muted">{approval.profiles?.email ?? tAdmin("common.unknown")}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted">{formatLocalDateTime(approval.created_at, locale)}</span>
+                    </div>
+                    <div className="list inline" style={{ gap: "8px", flexWrap: "nowrap" }}>
+                      <button
+                        className="button primary"
+                        type="button"
+                        onClick={() => handleApprovalAction(approval.id, "approve")}
+                      >
+                        {tAdmin("common.approve")}
+                      </button>
+                      <button
+                        className="button danger"
+                        type="button"
+                        onClick={() => handleApprovalAction(approval.id, "reject")}
+                      >
+                        {tAdmin("common.reject")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TableScroll>
+          )}
+        </section>
       ) : null}
       {isCorrectionDeleteConfirmOpen ? (
         <div className="modal-backdrop">
@@ -5425,9 +5416,7 @@ function AdminClient(): ReactElement {
               </div>
             </div>
             <div className="list">
-              <div className="alert danger">
-                This will permanently delete the selected correction rules.
-              </div>
+              <div className="alert danger">This will permanently delete the selected correction rules.</div>
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={openCorrectionDeleteInput}>
@@ -5559,7 +5548,10 @@ function AdminClient(): ReactElement {
                   </div>
                 ) : (
                   correctionImportEntries.map((entry, index) => (
-                    <div className="row" key={`${entry.field}-${entry.match_value}-${entry.replacement_value}-${index}`}>
+                    <div
+                      className="row"
+                      key={`${entry.field}-${entry.match_value}-${entry.replacement_value}-${index}`}
+                    >
                       <span className="text-muted">{index + 1}</span>
                       <input
                         type="checkbox"
@@ -5568,7 +5560,9 @@ function AdminClient(): ReactElement {
                       />
                       <input
                         value={entry.match_value ?? ""}
-                        onChange={(event) => handleUpdateCorrectionImportEntry(index, "match_value", event.target.value)}
+                        onChange={(event) =>
+                          handleUpdateCorrectionImportEntry(index, "match_value", event.target.value)
+                        }
                       />
                       <input
                         value={entry.replacement_value ?? ""}
@@ -5592,7 +5586,10 @@ function AdminClient(): ReactElement {
                 )}
               </div>
             </div>
-            <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap", marginTop: "16px" }}>
+            <div
+              className="list inline"
+              style={{ justifyContent: "space-between", flexWrap: "wrap", marginTop: "16px" }}
+            >
               <button
                 className="button danger"
                 type="button"
@@ -5648,9 +5645,7 @@ function AdminClient(): ReactElement {
               </div>
             </div>
             <div className="list">
-              <div className="alert danger">
-                This will permanently delete the selected validation rules.
-              </div>
+              <div className="alert danger">This will permanently delete the selected validation rules.</div>
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={openValidationDeleteInput}>
@@ -5807,7 +5802,10 @@ function AdminClient(): ReactElement {
                 )}
               </div>
             </div>
-            <div className="list inline" style={{ justifyContent: "space-between", flexWrap: "wrap", marginTop: "16px" }}>
+            <div
+              className="list inline"
+              style={{ justifyContent: "space-between", flexWrap: "wrap", marginTop: "16px" }}
+            >
               <button
                 className="button danger"
                 type="button"
@@ -5857,7 +5855,9 @@ function AdminClient(): ReactElement {
           <div className="modal card">
             <div className="card-header">
               <div>
-                <div className="card-title">{clanModalMode === "edit" ? tAdmin("clans.editClan") : tAdmin("clans.createClan")}</div>
+                <div className="card-title">
+                  {clanModalMode === "edit" ? tAdmin("clans.editClan") : tAdmin("clans.createClan")}
+                </div>
                 <div className="card-subtitle">{tAdmin("clans.nameAndDescription")}</div>
               </div>
             </div>
@@ -5964,7 +5964,8 @@ function AdminClient(): ReactElement {
             </div>
             <div className="list">
               <div className="alert danger">
-                This will permanently delete <strong>{userToDelete?.username ?? userToDelete?.email}</strong> and all related data.
+                This will permanently delete <strong>{userToDelete?.username ?? userToDelete?.email}</strong> and all
+                related data.
               </div>
             </div>
             <div className="list inline">
@@ -6065,9 +6066,7 @@ function AdminClient(): ReactElement {
             <div className="card-header">
               <div>
                 <div className="card-title">{tAdmin("gameAccounts.addTitle")}</div>
-                <div className="card-subtitle">
-                  {createGameAccountUser?.email ?? tAdmin("gameAccounts.selectUser")}
-                </div>
+                <div className="card-subtitle">{createGameAccountUser?.email ?? tAdmin("gameAccounts.selectUser")}</div>
               </div>
             </div>
             <div className="form-group">
@@ -6103,7 +6102,7 @@ function AdminClient(): ReactElement {
               <label htmlFor="createGameAccountStatus">{tAdmin("common.status")}</label>
               <RadixSelect
                 id="createGameAccountStatus"
-                                    ariaLabel={tAdmin("common.status")}
+                ariaLabel={tAdmin("common.status")}
                 value={createGameAccountStatus}
                 onValueChange={(value) => setCreateGameAccountStatus(value)}
                 options={[
@@ -6160,9 +6159,7 @@ function AdminClient(): ReactElement {
                   ]}
                 />
               </div>
-              <span className="text-muted">
-                {assignSelectedIds.length} selected
-              </span>
+              <span className="text-muted">{assignSelectedIds.length} selected</span>
             </div>
             {assignStatus ? <div className="alert info">{assignStatus}</div> : null}
             {filteredAssignableAccounts.length === 0 ? (
@@ -6180,11 +6177,7 @@ function AdminClient(): ReactElement {
                   const isSelected = assignSelectedIds.includes(account.id);
                   return (
                     <label key={account.id} className="list-item" style={{ cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleAssignSelection(account.id)}
-                      />
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleAssignSelection(account.id)} />
                       <div>
                         <div>{account.game_username}</div>
                         <div className="text-muted">
@@ -6268,17 +6261,17 @@ function AdminClient(): ReactElement {
         </div>
       ) : null}
       {activeSection === "forum" ? (
-      <section className="card" style={{ gridColumn: "1 / -1" }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">{tAdmin("forum.title")}</div>
-            <div className="card-subtitle">{tAdmin("forum.subtitle")}</div>
+        <section className="card" style={{ gridColumn: "1 / -1" }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">{tAdmin("forum.title")}</div>
+              <div className="card-subtitle">{tAdmin("forum.subtitle")}</div>
+            </div>
           </div>
-        </div>
-        <div style={{ padding: "0 16px 16px" }}>
-          <ForumCategoryAdmin />
-        </div>
-      </section>
+          <div style={{ padding: "0 16px 16px" }}>
+            <ForumCategoryAdmin />
+          </div>
+        </section>
       ) : null}
       {status ? (
         <div className="alert info" style={{ gridColumn: "1 / -1" }}>

@@ -8,6 +8,7 @@
  * No more inline EditableList, deriveItems, or normalizeContent.
  */
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
@@ -21,9 +22,20 @@ function HomeClient(): JSX.Element {
   const t = useTranslations("home");
 
   const {
-    lists, canEdit, userId, supabase, locale, isLoaded, error,
-    c, cEn, saveField,
-    addListItem, updateListItem, removeListItem, reorderListItems,
+    lists,
+    canEdit,
+    userId,
+    supabase,
+    locale,
+    isLoaded,
+    error,
+    c,
+    cEn,
+    saveField,
+    addListItem,
+    updateListItem,
+    removeListItem,
+    reorderListItems,
   } = useSiteContent("home");
 
   /* ── Loading state ── */
@@ -31,13 +43,27 @@ function HomeClient(): JSX.Element {
     return (
       <>
         <div className="top-bar">
-          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <Image
+            src="/assets/vip/header_3.png"
+            alt=""
+            role="presentation"
+            className="top-bar-bg"
+            width={1200}
+            height={56}
+            priority
+          />
           <div className="top-bar-inner">
-            <div><h1 className="top-bar-title">{t("title")}</h1></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}><PublicAuthActions /></div>
+            <div>
+              <h1 className="top-bar-title">{t("title")}</h1>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <PublicAuthActions />
+            </div>
           </div>
         </div>
-        <div className="content-inner"><LoadingSkeleton rows={4} /></div>
+        <div className="content-inner">
+          <LoadingSkeleton rows={4} />
+        </div>
       </>
     );
   }
@@ -46,7 +72,15 @@ function HomeClient(): JSX.Element {
     <>
       {/* ═══ Top Bar ═══ */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <h1 className="top-bar-title">{t("title")}</h1>
@@ -60,13 +94,42 @@ function HomeClient(): JSX.Element {
       {/* ═══ Hero Banner ═══ */}
       <div className="hero-banner">
         <div className="hero-overlay" />
-        <img src="/assets/banners/banner_gold_dragon.webp" alt={t("heroBannerAlt")} className="hero-bg" width={1200} height={300} loading="eager" fetchPriority="high" />
-        <img src="/assets/vip/decor_light_1.png" alt="" className="hero-light" width={400} height={400} loading="eager" />
+        <img
+          src="/assets/banners/banner_gold_dragon.webp"
+          alt={t("heroBannerAlt")}
+          className="hero-bg"
+          width={1200}
+          height={300}
+          loading="eager"
+          fetchPriority="high"
+        />
+        <img
+          src="/assets/vip/decor_light_1.png"
+          alt=""
+          className="hero-light"
+          width={400}
+          height={400}
+          loading="eager"
+        />
         <div className="hero-content">
-          <img src="/assets/vip/components_decor_6.png" alt="" className="hero-decor" width={300} height={20} loading="lazy" />
+          <img
+            src="/assets/vip/components_decor_6.png"
+            alt=""
+            className="hero-decor"
+            width={300}
+            height={20}
+            loading="lazy"
+          />
           <h2 className="hero-title">{t("heroTitle")}</h2>
           <p className="hero-subtitle">{t("heroSubtitle")}</p>
-          <img src="/assets/vip/components_decor_6.png" alt="" className="hero-decor flipped" width={300} height={20} loading="lazy" />
+          <img
+            src="/assets/vip/components_decor_6.png"
+            alt=""
+            className="hero-decor flipped"
+            width={300}
+            height={20}
+            loading="lazy"
+          />
         </div>
       </div>
 
@@ -75,12 +138,18 @@ function HomeClient(): JSX.Element {
         {error && <ErrorBanner message={error} />}
 
         <div className="grid">
-
           {/* ═══ Über uns (with background image) ═══ */}
           <section className="card home-about-card" style={{ gridColumn: "1 / -1" }}>
             <div className="home-about-bg" />
             <div className="tooltip-head">
-              <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} loading="lazy" />
+              <img
+                src="/assets/vip/back_tooltip_2.png"
+                alt=""
+                className="tooltip-head-bg"
+                width={400}
+                height={44}
+                loading="lazy"
+              />
               <div className="tooltip-head-inner">
                 <img src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} loading="lazy" />
                 <EditableText
@@ -174,7 +243,9 @@ function HomeClient(): JSX.Element {
                 />
               </div>
               <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
-                <a className="button primary" href="/about">{t("learnMoreAbout")}</a>
+                <a className="button primary" href="/about">
+                  {t("learnMoreAbout")}
+                </a>
               </div>
             </div>
           </section>
@@ -192,7 +263,9 @@ function HomeClient(): JSX.Element {
                 singleLine
                 onSave={(de, en) => saveField("whyJoin", "title", de, en)}
               />
-              <a className="button primary" href="/auth/register">{t("applyNow")}</a>
+              <a className="button primary" href="/auth/register">
+                {t("applyNow")}
+              </a>
             </div>
             <div className="card-body">
               <EditableText
@@ -346,7 +419,6 @@ function HomeClient(): JSX.Element {
               />
             </div>
           </section>
-
         </div>
       </div>
     </>

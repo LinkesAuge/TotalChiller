@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+import { strictLimiter } from "../../../../lib/rate-limit";
 
 const CREATE_USER_SCHEMA = z.object({
   email: z.string().email(),
@@ -27,11 +29,24 @@ function resolveProfileErrorMessage(error: { code?: string; message?: string }):
 
 /**
  * Creates a new Supabase user and profile.
+ * Requires admin authentication.
  */
 export async function POST(request: Request): Promise<Response> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const parsed = CREATE_USER_SCHEMA.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+  }
+  /* ── Auth guard: require authenticated admin ── */
+  const authClient = await createSupabaseServerClient();
+  const { data: userData } = await authClient.auth.getUser();
+  if (!userData.user) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+  const { data: isAdmin, error: adminError } = await authClient.rpc("is_any_admin");
+  if (adminError || !isAdmin) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
   const supabase = createSupabaseServiceRoleClient();
   const { email, username, displayName } = parsed.data;

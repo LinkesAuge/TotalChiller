@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import AuthActions from "../components/auth-actions";
-import getIsAdminAccess from "../../lib/supabase/admin-access";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 import LanguageSelector from "../components/language-selector";
 import SectionHero from "../components/section-hero";
 
@@ -46,7 +47,6 @@ function SettingsPage(): JSX.Element {
   const t = useTranslations("settings");
   const [formState, setFormState] = useState<SettingsFormState>(initialSettingsState);
   const [userId, setUserId] = useState<string>("");
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>({
     messages_enabled: true,
     news_enabled: true,
@@ -54,7 +54,8 @@ function SettingsPage(): JSX.Element {
     system_enabled: true,
   });
   const [notifStatus, setNotifStatus] = useState<string>("");
-  const supabase = createSupabaseBrowserClient();
+  const [supabase] = useState(() => createSupabaseBrowserClient());
+  const { isAdmin } = useUserRole(supabase);
 
   function updateFormState(nextState: Partial<SettingsFormState>): void {
     setFormState((currentState) => ({ ...currentState, ...nextState }));
@@ -104,7 +105,6 @@ function SettingsPage(): JSX.Element {
             displayName: profileData?.display_name ?? profileData?.username ?? "",
           });
         }
-        setIsAdmin(await getIsAdminAccess({ supabase }));
         const notifRes = await fetch("/api/notification-settings");
         if (notifRes.ok) {
           const notifResult = await notifRes.json();
@@ -248,7 +248,15 @@ function SettingsPage(): JSX.Element {
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -265,199 +273,201 @@ function SettingsPage(): JSX.Element {
         bannerSrc="/assets/banners/banner_tournir_kvk.png"
       />
       <div className="content-inner">
-      <div className="grid">
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("accountDetails")}</div>
-              <div className="card-subtitle">{t("emailHint")}</div>
+        <div className="grid">
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("accountDetails")}</div>
+                <div className="card-subtitle">{t("emailHint")}</div>
+              </div>
             </div>
-          </div>
-          <form onSubmit={handleEmailSubmit}>
-            <div className="form-group">
-              <label htmlFor="email">{t("email")}</label>
-              <input
-                id="email"
-                type="email"
-                value={formState.email}
-                onChange={(event) => updateFormState({ email: event.target.value })}
-                placeholder="you@example.com"
-                required
-              />
+            <form onSubmit={handleEmailSubmit}>
+              <div className="form-group">
+                <label htmlFor="email">{t("email")}</label>
+                <input
+                  id="email"
+                  type="email"
+                  value={formState.email}
+                  onChange={(event) => updateFormState({ email: event.target.value })}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              <div className="list">
+                <button className="button primary" type="submit">
+                  {t("updateEmail")}
+                </button>
+              </div>
+              {formState.emailStatus ? <p className="text-muted">{formState.emailStatus}</p> : null}
+            </form>
+          </section>
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("username")}</div>
+                <div className="card-subtitle">{t("usernameHint")}</div>
+              </div>
+            </div>
+            <form onSubmit={handleUsernameSubmit}>
+              <div className="form-group">
+                <label htmlFor="username">{t("username")}</label>
+                <input
+                  id="username"
+                  value={formState.username}
+                  onChange={(event) => updateFormState({ username: event.target.value })}
+                  placeholder="your_username"
+                  minLength={2}
+                  maxLength={32}
+                  disabled={!isAdmin}
+                  required
+                />
+              </div>
+              <div className="list">
+                <button className="button primary" type="submit">
+                  {t("updateUsername")}
+                </button>
+              </div>
+              {!isAdmin ? <span className="badge">{t("usernameHint")}</span> : null}
+              {formState.usernameStatus ? <p className="text-muted">{formState.usernameStatus}</p> : null}
+            </form>
+          </section>
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("nickname")}</div>
+                <div className="card-subtitle">{t("nicknameHint")}</div>
+              </div>
+            </div>
+            <form onSubmit={handleDisplayNameSubmit}>
+              <div className="form-group">
+                <label htmlFor="displayName">{t("nickname")}</label>
+                <input
+                  id="displayName"
+                  value={formState.displayName}
+                  onChange={(event) => updateFormState({ displayName: event.target.value })}
+                  placeholder="Nickname"
+                />
+              </div>
+              <div className="list">
+                <button className="button primary" type="submit">
+                  {t("updateNickname")}
+                </button>
+              </div>
+              {formState.displayNameStatus ? <p className="text-muted">{formState.displayNameStatus}</p> : null}
+            </form>
+          </section>
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("password")}</div>
+                <div className="card-subtitle">{t("updatePassword")}</div>
+              </div>
+            </div>
+            <form onSubmit={handlePasswordSubmit}>
+              <div className="form-group">
+                <label htmlFor="password">{t("newPassword")}</label>
+                <input
+                  id="password"
+                  type="password"
+                  value={formState.password}
+                  onChange={(event) => updateFormState({ password: event.target.value })}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="confirmPassword">{t("confirmPassword")}</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={formState.confirmPassword}
+                  onChange={(event) => updateFormState({ confirmPassword: event.target.value })}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <div className="list">
+                <button className="button primary" type="submit">
+                  {t("updatePassword")}
+                </button>
+              </div>
+              {formState.passwordStatus ? <p className="text-muted">{formState.passwordStatus}</p> : null}
+            </form>
+          </section>
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("notifications")}</div>
+                <div className="card-subtitle">{t("languageHint")}</div>
+              </div>
             </div>
             <div className="list">
-              <button className="button primary" type="submit">
-                {t("updateEmail")}
-              </button>
+              <div className="list-item">
+                <span>{t("notifMessages")}</span>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.messages_enabled}
+                    onChange={() => handleToggleNotification("messages_enabled")}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+              <div className="list-item">
+                <span>{t("notifNews")}</span>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.news_enabled}
+                    onChange={() => handleToggleNotification("news_enabled")}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+              <div className="list-item">
+                <span>{t("notifEvents")}</span>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.events_enabled}
+                    onChange={() => handleToggleNotification("events_enabled")}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+              <div className="list-item">
+                <span>{t("notifSystem")}</span>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.system_enabled}
+                    onChange={() => handleToggleNotification("system_enabled")}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
             </div>
-            {formState.emailStatus ? <p className="text-muted">{formState.emailStatus}</p> : null}
-          </form>
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("username")}</div>
-              <div className="card-subtitle">{t("usernameHint")}</div>
-            </div>
-          </div>
-          <form onSubmit={handleUsernameSubmit}>
-            <div className="form-group">
-              <label htmlFor="username">{t("username")}</label>
-              <input
-                id="username"
-                value={formState.username}
-                onChange={(event) => updateFormState({ username: event.target.value })}
-                placeholder="your_username"
-                minLength={2}
-                maxLength={32}
-                disabled={!isAdmin}
-                required
-              />
-            </div>
-            <div className="list">
-              <button className="button primary" type="submit">
-                {t("updateUsername")}
-              </button>
-            </div>
-            {!isAdmin ? <span className="badge">{t("usernameHint")}</span> : null}
-            {formState.usernameStatus ? <p className="text-muted">{formState.usernameStatus}</p> : null}
-          </form>
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("nickname")}</div>
-              <div className="card-subtitle">{t("nicknameHint")}</div>
-            </div>
-          </div>
-          <form onSubmit={handleDisplayNameSubmit}>
-            <div className="form-group">
-              <label htmlFor="displayName">{t("nickname")}</label>
-              <input
-                id="displayName"
-                value={formState.displayName}
-                onChange={(event) => updateFormState({ displayName: event.target.value })}
-                placeholder="Nickname"
-              />
-            </div>
-            <div className="list">
-              <button className="button primary" type="submit">
-                {t("updateNickname")}
-              </button>
-            </div>
-            {formState.displayNameStatus ? <p className="text-muted">{formState.displayNameStatus}</p> : null}
-          </form>
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("password")}</div>
-              <div className="card-subtitle">{t("updatePassword")}</div>
-            </div>
-          </div>
-          <form onSubmit={handlePasswordSubmit}>
-            <div className="form-group">
-              <label htmlFor="password">{t("newPassword")}</label>
-              <input
-                id="password"
-                type="password"
-                value={formState.password}
-                onChange={(event) => updateFormState({ password: event.target.value })}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="confirmPassword">{t("confirmPassword")}</label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={formState.confirmPassword}
-                onChange={(event) => updateFormState({ confirmPassword: event.target.value })}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            <div className="list">
-              <button className="button primary" type="submit">
-                {t("updatePassword")}
-              </button>
-            </div>
-            {formState.passwordStatus ? (
-              <p className="text-muted">{formState.passwordStatus}</p>
+            {notifStatus ? (
+              <p className="text-muted" style={{ padding: "0 18px 12px" }}>
+                {notifStatus}
+              </p>
             ) : null}
-          </form>
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("notifications")}</div>
-              <div className="card-subtitle">{t("languageHint")}</div>
+          </section>
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("language")}</div>
+                <div className="card-subtitle">{t("languageHint")}</div>
+              </div>
             </div>
-          </div>
-          <div className="list">
-            <div className="list-item">
-              <span>{t("notifMessages")}</span>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={notifPrefs.messages_enabled}
-                  onChange={() => handleToggleNotification("messages_enabled")}
-                />
-                <span className="toggle-slider" />
-              </label>
+            <div className="list">
+              <div className="list-item">
+                <span>{t("languageLabel")}</span>
+                <LanguageSelector />
+              </div>
             </div>
-            <div className="list-item">
-              <span>{t("notifNews")}</span>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={notifPrefs.news_enabled}
-                  onChange={() => handleToggleNotification("news_enabled")}
-                />
-                <span className="toggle-slider" />
-              </label>
-            </div>
-            <div className="list-item">
-              <span>{t("notifEvents")}</span>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={notifPrefs.events_enabled}
-                  onChange={() => handleToggleNotification("events_enabled")}
-                />
-                <span className="toggle-slider" />
-              </label>
-            </div>
-            <div className="list-item">
-              <span>{t("notifSystem")}</span>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={notifPrefs.system_enabled}
-                  onChange={() => handleToggleNotification("system_enabled")}
-                />
-                <span className="toggle-slider" />
-              </label>
-            </div>
-          </div>
-          {notifStatus ? <p className="text-muted" style={{ padding: "0 18px 12px" }}>{notifStatus}</p> : null}
-        </section>
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("language")}</div>
-              <div className="card-subtitle">{t("languageHint")}</div>
-            </div>
-          </div>
-          <div className="list">
-            <div className="list-item">
-              <span>{t("languageLabel")}</span>
-              <LanguageSelector />
-            </div>
-          </div>
-        </section>
-      </div>
+          </section>
+        </div>
       </div>
     </>
   );

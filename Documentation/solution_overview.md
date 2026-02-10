@@ -34,14 +34,11 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **game_accounts**: per-user game accounts with approval workflow (`approval_status`: pending/approved/rejected).
 - **game_account_clan_memberships**: clan membership per game account (rank, status).
 - **clans**: metadata.
-- **roles**: base permissions.
-- **ranks**: rank-based permission add-ons.
-- **permissions**: canonical permission list and mappings.
+- **user_roles**: one global role per user (owner, admin, moderator, editor, member, guest). Permission map in `lib/permissions.ts`.
 - **chest_entries**: CSV data with audit fields.
 - **rules**: validation, correction, scoring with precedence.
 - **audit_logs**: edit/delete/batch operations tracking.
 - **profiles**: user_db (case‑insensitive), username, display_name, `default_game_account_id` (nullable FK to game_accounts).
-- **user_roles**: global user role per user.
 - **clans**: global default flag (`is_default`).
 - **articles**: announcements per clan (formerly "news"). All content is type "announcement". Includes `created_by` for author display, `updated_by` for edit tracking, `banner_url` for header banner images.
 - **events**: clan events with date+time, optional duration (or open-ended), optional organizer, recurrence support (daily/weekly/biweekly/monthly with end date or ongoing). Single row per recurring event; occurrences computed client-side.

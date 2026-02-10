@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import AdminClient from "./admin-client";
 import AuthActions from "../components/auth-actions";
@@ -10,15 +12,21 @@ export const metadata: Metadata = {
   description: "Clan administration — user management, approvals, validation rules, and audit logs.",
 };
 
-/**
- * Renders the admin panel page shell.
- */
-async function AdminPage(): Promise<JSX.Element> {
+/** Async content streamed via Suspense. */
+async function AdminContent(): Promise<JSX.Element> {
   const t = await getTranslations("admin");
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -39,6 +47,29 @@ async function AdminPage(): Promise<JSX.Element> {
         <AdminClient />
       </div>
     </>
+  );
+}
+
+/**
+ * Renders the admin panel page shell with Suspense streaming.
+ */
+function AdminPage(): JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <div className="content-inner">
+          <div className="grid">
+            <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 16 }}>
+              <div className="skeleton" style={{ height: 56, borderRadius: 8 }} />
+              <div className="skeleton" style={{ height: 200, borderRadius: 8 }} />
+              <div className="skeleton" style={{ height: 400, borderRadius: 8 }} />
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <AdminContent />
+    </Suspense>
   );
 }
 

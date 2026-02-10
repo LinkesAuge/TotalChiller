@@ -1,0 +1,65 @@
+---
+description: Run Playwright tests to verify feature functionality after changes
+globs: **/*.{ts,tsx}
+---
+
+# Testing Guidelines
+
+## Always Run Tests After Changes
+
+After modifying any feature code, run the relevant Playwright tests to verify nothing is broken:
+
+```bash
+# Set base URL if dev server is not on port 3000
+$env:PLAYWRIGHT_BASE_URL = "http://localhost:3001"
+
+# Run all tests
+npx playwright test
+
+# Run specific test file for the area you changed
+npx playwright test tests/<area>.spec.ts
+```
+
+## Test File Map — Which Tests Cover Which Features
+
+| If you changed... | Run this test file |
+|---|---|
+| `app/auth/**` | `tests/auth.spec.ts` |
+| `app/news/**` | `tests/news.spec.ts` |
+| `app/events/**` | `tests/events.spec.ts` |
+| `app/forum/**` | `tests/forum.spec.ts` |
+| `app/messages/**` | `tests/messages.spec.ts` |
+| `app/profile/**`, `app/settings/**` | `tests/profile-settings.spec.ts` |
+| `app/charts/**` | `tests/charts.spec.ts` |
+| `app/admin/**` | `tests/admin.spec.ts` |
+| `app/home/**`, `app/about/**`, `app/contact/**`, `app/privacy-policy/**` | `tests/cms-pages.spec.ts` |
+| `app/api/**` | `tests/api-endpoints.spec.ts` |
+| `app/components/sidebar-*` | `tests/navigation.spec.ts` |
+| `lib/permissions.ts` | `tests/permissions-unit.spec.ts` |
+| Any page layout or routing | `tests/smoke.spec.ts` |
+| CMS content components | `tests/cms-api.spec.ts`, `tests/cms-components.spec.ts`, `tests/cms-public-view.spec.ts` |
+
+## Test Users
+
+Six test users exist in Supabase for authenticated E2E tests (all use password `TestPassword123!`):
+
+- `test-owner@example.com` → owner
+- `test-admin@example.com` → admin
+- `test-mod@example.com` → moderator
+- `test-editor@example.com` → editor
+- `test-member@example.com` → member
+- `test-guest@example.com` → guest
+
+Login helper: `tests/helpers/auth.ts` → `loginAs(page, "member")`
+
+## When Adding New Features
+
+1. Create a new spec file in `tests/` or add tests to the relevant existing file.
+2. Use the shared `loginAs()` helper from `tests/helpers/auth.ts` for authenticated tests.
+3. Follow existing patterns: use `page.waitForLoadState("networkidle")` after navigation, use `.first()` for ambiguous selectors, check both German and English text with regex alternation (`/erstellen|create/i`).
+4. Tests must be parallel-safe — never mutate shared state.
+5. Run the full suite before marking work as complete.
+
+## Dev Server Note (Windows UNC Path)
+
+The project lives on a network share. Next.js dev server must be started from `E:\OneDrive\WebDev\TotalChiller` (drive letter path), not the UNC path, to avoid the "Couldn't find any pages or app directory" error.

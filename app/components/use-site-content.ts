@@ -6,7 +6,7 @@
  * Loads text content (site_content) and list items (site_list_items) in parallel.
  * Provides admin check, error handling, and CRUD helpers for both text and lists.
  *
- * Permission model: admin-only (is_any_admin or profiles.is_admin).
+ * Permission model: admin-only (is_any_admin RPC, backed by user_roles).
  * This matches the server-side PATCH handlers to prevent client/server mismatch.
  */
 
@@ -76,32 +76,30 @@ export interface SiteContentHook {
   /* ── List helpers ── */
 
   /** Add a new list item. Returns the created item. Throws on failure. */
-  addListItem: (sectionKey: string, textDe: string, textEn: string, extra?: Partial<Pick<ListItem, "badge_de" | "badge_en" | "link_url" | "icon" | "icon_type">>) => Promise<ListItem>;
+  addListItem: (
+    sectionKey: string,
+    textDe: string,
+    textEn: string,
+    extra?: Partial<Pick<ListItem, "badge_de" | "badge_en" | "link_url" | "icon" | "icon_type">>,
+  ) => Promise<ListItem>;
   /** Update an existing list item. Throws on failure. */
-  updateListItem: (id: string, updates: Partial<Omit<ListItem, "id" | "page" | "section_key" | "sort_order">>) => Promise<void>;
+  updateListItem: (
+    id: string,
+    updates: Partial<Omit<ListItem, "id" | "page" | "section_key" | "sort_order">>,
+  ) => Promise<void>;
   /** Remove a list item. Throws on failure. */
   removeListItem: (id: string) => Promise<void>;
   /** Reorder list items (provide new sort_order values). Throws on failure. */
   reorderListItems: (items: Array<{ id: string; sort_order: number }>) => Promise<void>;
 }
 
-/* ─── Admin check (matching server-side logic) ─── */
+/* ─── Admin check (matching server-side logic — user_roles only) ─── */
 
 async function checkIsAdmin(supabase: SupabaseClient): Promise<boolean> {
   try {
     const { data: adminFlag, error: rpcError } = await supabase.rpc("is_any_admin");
     if (!rpcError && Boolean(adminFlag)) return true;
-
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData.user?.id;
-    if (!userId) return false;
-
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", userId)
-      .maybeSingle();
-    return Boolean(profileData?.is_admin);
+    return false;
   } catch {
     return false;
   }
@@ -317,8 +315,21 @@ export function useSiteContent(page: string): SiteContentHook {
   }
 
   return {
-    content, lists, canEdit, userId, supabase, locale, isLoaded, error,
-    c, cEn, saveField, setContent,
-    addListItem, updateListItem, removeListItem, reorderListItems,
+    content,
+    lists,
+    canEdit,
+    userId,
+    supabase,
+    locale,
+    isLoaded,
+    error,
+    c,
+    cEn,
+    saveField,
+    setContent,
+    addListItem,
+    updateListItem,
+    removeListItem,
+    reorderListItems,
   };
 }

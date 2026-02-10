@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import createSupabaseServerClient from "../../lib/supabase/server-client";
@@ -13,10 +15,8 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-/**
- * Renders the messaging page with authentication guard.
- */
-async function MessagesPage(): Promise<JSX.Element> {
+/** Async content that requires auth — streamed via Suspense. */
+async function MessagesContent(): Promise<JSX.Element> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
@@ -26,7 +26,15 @@ async function MessagesPage(): Promise<JSX.Element> {
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -37,15 +45,34 @@ async function MessagesPage(): Promise<JSX.Element> {
           </div>
         </div>
       </div>
-      <SectionHero
-        title={t("heroTitle")}
-        subtitle={t("heroSubtitle")}
-        bannerSrc="/assets/banners/banner_captain.png"
-      />
+      <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_captain.png" />
       <div className="content-inner">
         <MessagesClient userId={data.user.id} />
       </div>
     </>
+  );
+}
+
+/**
+ * Renders the messaging page with Suspense streaming.
+ */
+function MessagesPage(): JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <div className="content-inner">
+          <div className="grid">
+            <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 16 }}>
+              <div className="skeleton" style={{ height: 56, borderRadius: 8 }} />
+              <div className="skeleton" style={{ height: 200, borderRadius: 8 }} />
+              <div className="skeleton" style={{ height: 120, borderRadius: 8 }} />
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <MessagesContent />
+    </Suspense>
   );
 }
 

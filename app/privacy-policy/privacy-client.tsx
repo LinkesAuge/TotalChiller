@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
@@ -13,7 +14,15 @@ function PrivacyClient(): JSX.Element {
     return (
       <>
         <div className="top-bar">
-          <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+          <Image
+            src="/assets/vip/header_3.png"
+            alt=""
+            role="presentation"
+            className="top-bar-bg"
+            width={1200}
+            height={56}
+            priority
+          />
           <div className="top-bar-inner">
             <div>
               <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -21,7 +30,9 @@ function PrivacyClient(): JSX.Element {
             </div>
           </div>
         </div>
-        <div className="content-inner"><LoadingSkeleton rows={4} /></div>
+        <div className="content-inner">
+          <LoadingSkeleton rows={4} />
+        </div>
       </>
     );
   }
@@ -43,7 +54,15 @@ function PrivacyClient(): JSX.Element {
   return (
     <>
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -54,7 +73,6 @@ function PrivacyClient(): JSX.Element {
       <div className="content-inner">
         {error && <ErrorBanner message={error} />}
         <div className="grid">
-
           <section className="card" style={{ gridColumn: "1 / -1" }}>
             <div className="card-header">
               <EditableText
@@ -92,7 +110,6 @@ function PrivacyClient(): JSX.Element {
               />
             </div>
           </section>
-
         </div>
       </div>
     </>

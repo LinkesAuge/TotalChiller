@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+import { strictLimiter } from "../../../../lib/rate-limit";
 
 const DELETE_USER_SCHEMA = z.object({
   userId: z.string().uuid(),
@@ -11,6 +12,8 @@ const DELETE_USER_SCHEMA = z.object({
  * Deletes a user and cascades related profile data.
  */
 export async function POST(request: Request): Promise<Response> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const parsed = DELETE_USER_SCHEMA.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });

@@ -82,7 +82,6 @@ create table if not exists public.profiles (
   user_db text not null unique,
   username text,
   display_name text,
-  is_admin boolean not null default false,
   default_clan_id uuid references public.clans(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -93,11 +92,8 @@ create table if not exists public.user_roles (
   role text not null default 'member',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint user_roles_role_check check (role in ('owner', 'admin', 'moderator', 'editor', 'member'))
+  constraint user_roles_role_check check (role in ('owner', 'admin', 'moderator', 'editor', 'member', 'guest'))
 );
-
-alter table public.profiles
-  add column if not exists is_admin boolean not null default false;
 
 create table if not exists public.game_accounts (
   id uuid primary key default gen_random_uuid(),
@@ -319,45 +315,9 @@ create trigger prevent_profiles_username_change
 before update on public.profiles
 for each row execute function public.prevent_username_change();
 
-create table if not exists public.roles (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  description text
-);
-
-create table if not exists public.ranks (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  description text
-);
-
-create table if not exists public.permissions (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  description text
-);
-
-create table if not exists public.role_permissions (
-  id uuid primary key default gen_random_uuid(),
-  role_id uuid not null references public.roles(id) on delete cascade,
-  permission_id uuid not null references public.permissions(id) on delete cascade,
-  unique (role_id, permission_id)
-);
-
-create table if not exists public.rank_permissions (
-  id uuid primary key default gen_random_uuid(),
-  rank_id uuid not null references public.ranks(id) on delete cascade,
-  permission_id uuid not null references public.permissions(id) on delete cascade,
-  unique (rank_id, permission_id)
-);
-
-create table if not exists public.cross_clan_permissions (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  permission_id uuid not null references public.permissions(id) on delete cascade,
-  clan_id uuid references public.clans(id) on delete cascade,
-  created_at timestamptz not null default now()
-);
+-- Tables removed: roles, ranks, permissions, role_permissions, rank_permissions, cross_clan_permissions
+-- Permissions are now managed via lib/permissions.ts (static map).
+-- Ranks on game_account_clan_memberships are cosmetic only.
 
 create table if not exists public.validation_rules (
   id uuid primary key default gen_random_uuid(),
@@ -478,14 +438,8 @@ set row_security = off
 as $$
   select exists (
     select 1
-    from public.profiles
-    where profiles.id = auth.uid()
-      and profiles.is_admin = true
-  )
-  or exists (
-    select 1
     from public.user_roles
-    where user_roles.user_id = auth.uid()
+    where user_roles.user_id = (select auth.uid())
       and user_roles.role in ('owner', 'admin')
   );
 $$;
@@ -500,7 +454,7 @@ as $$
   select exists (
     select 1
     from public.user_roles
-    where user_roles.user_id = auth.uid()
+    where user_roles.user_id = (select auth.uid())
       and user_roles.role = any(required_roles)
   );
 $$;
@@ -543,12 +497,7 @@ alter table public.profiles enable row level security;
 alter table public.user_roles enable row level security;
 alter table public.game_accounts enable row level security;
 alter table public.game_account_clan_memberships enable row level security;
-alter table public.roles enable row level security;
-alter table public.ranks enable row level security;
-alter table public.permissions enable row level security;
-alter table public.role_permissions enable row level security;
-alter table public.rank_permissions enable row level security;
-alter table public.cross_clan_permissions enable row level security;
+-- Tables removed: roles, ranks, permissions, role_permissions, rank_permissions, cross_clan_permissions
 alter table public.validation_rules enable row level security;
 alter table public.correction_rules enable row level security;
 alter table public.scoring_rules enable row level security;
@@ -560,16 +509,10 @@ drop policy if exists "chest_entries_select_by_membership" on public.chest_entri
 drop policy if exists "chest_entries_insert_by_membership" on public.chest_entries;
 drop policy if exists "chest_entries_update_by_role" on public.chest_entries;
 drop policy if exists "chest_entries_delete_by_role" on public.chest_entries;
-drop policy if exists "roles_read" on public.roles;
 drop policy if exists "user_roles_select" on public.user_roles;
 drop policy if exists "user_roles_insert" on public.user_roles;
 drop policy if exists "user_roles_update" on public.user_roles;
 drop policy if exists "user_roles_delete" on public.user_roles;
-drop policy if exists "ranks_read" on public.ranks;
-drop policy if exists "permissions_read" on public.permissions;
-drop policy if exists "role_permissions_read" on public.role_permissions;
-drop policy if exists "rank_permissions_read" on public.rank_permissions;
-drop policy if exists "cross_clan_permissions_read" on public.cross_clan_permissions;
 -- Legacy: clan_memberships policies removed
 drop policy if exists "profiles_select" on public.profiles;
 drop policy if exists "profiles_update" on public.profiles;
@@ -665,12 +608,6 @@ using (
   or public.has_role(ARRAY['owner', 'admin'])
 );
 
-create policy "roles_read"
-on public.roles
-for select
-to authenticated
-using (public.is_any_admin());
-
 create policy "user_roles_select"
 on public.user_roles
 for select
@@ -696,37 +633,8 @@ for delete
 to authenticated
 using (public.is_any_admin());
 
-create policy "ranks_read"
-on public.ranks
-for select
-to authenticated
-using (public.is_any_admin());
-
-create policy "permissions_read"
-on public.permissions
-for select
-to authenticated
-using (public.is_any_admin());
-
-create policy "role_permissions_read"
-on public.role_permissions
-for select
-to authenticated
-using (public.is_any_admin());
-
-create policy "rank_permissions_read"
-on public.rank_permissions
-for select
-to authenticated
-using (public.is_any_admin());
-
-create policy "cross_clan_permissions_read"
-on public.cross_clan_permissions
-for select
-to authenticated
-using (auth.uid() = user_id);
-
 -- Legacy: clan_memberships policies removed
+-- Tables removed: roles, ranks, permissions, role_permissions, rank_permissions, cross_clan_permissions
 create policy "profiles_select"
 on public.profiles
 for select

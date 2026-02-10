@@ -1,6 +1,53 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import createSupabaseServerClient from "../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
+import { standardLimiter } from "../../../lib/rate-limit";
+
+const CREATE_ITEM_SCHEMA = z.object({
+  action: z.literal("create"),
+  page: z.string().min(1).max(64),
+  section_key: z.string().min(1).max(128),
+  text_de: z.string().max(5_000).optional(),
+  text_en: z.string().max(5_000).optional(),
+  badge_de: z.string().max(200).optional(),
+  badge_en: z.string().max(200).optional(),
+  link_url: z.string().max(2_000).optional(),
+  icon: z.string().max(500).optional(),
+  icon_type: z.enum(["preset", "custom"]).optional(),
+});
+
+const UPDATE_ITEM_SCHEMA = z.object({
+  action: z.literal("update"),
+  id: z.string().uuid(),
+  text_de: z.string().max(5_000).optional(),
+  text_en: z.string().max(5_000).optional(),
+  badge_de: z.string().max(200).optional(),
+  badge_en: z.string().max(200).optional(),
+  link_url: z.string().max(2_000).optional(),
+  icon: z.string().max(500).optional(),
+  icon_type: z.enum(["preset", "custom"]).optional(),
+});
+
+const DELETE_ITEM_SCHEMA = z.object({
+  action: z.literal("delete"),
+  id: z.string().uuid(),
+});
+
+const REORDER_ITEMS_SCHEMA = z.object({
+  action: z.literal("reorder"),
+  items: z
+    .array(z.object({ id: z.string().uuid(), sort_order: z.number().int().min(0) }))
+    .min(1)
+    .max(500),
+});
+
+const PATCH_SCHEMA = z.discriminatedUnion("action", [
+  CREATE_ITEM_SCHEMA,
+  UPDATE_ITEM_SCHEMA,
+  DELETE_ITEM_SCHEMA,
+  REORDER_ITEMS_SCHEMA,
+]);
 
 /**
  * GET /api/site-list-items?page=home
@@ -41,16 +88,10 @@ async function verifyAdmin(): Promise<{ userId: string } | NextResponse> {
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  /* Admin check — relies on simplified is_any_admin (user_roles only) */
   const { data: adminFlag } = await authClient.rpc("is_any_admin");
   if (!adminFlag) {
-    const { data: profileData } = await authClient
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", userId)
-      .maybeSingle();
-    if (!profileData?.is_admin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return { userId };
 }
@@ -65,22 +106,24 @@ async function verifyAdmin(): Promise<{ userId: string } | NextResponse> {
  * Reorder: { action: "reorder", items: [{ id, sort_order }] }
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   const auth = await verifyAdmin();
   if (auth instanceof NextResponse) return auth;
   const { userId } = auth;
 
-  const body = await request.json();
-  const { action } = body as { action: string };
+  const parsed = PATCH_SCHEMA.safeParse(await request.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten() }, { status: 400 });
+  }
+  const body = parsed.data;
 
   const supabase = createSupabaseServiceRoleClient();
 
-  switch (action) {
+  switch (body.action) {
     /* ── Create ── */
     case "create": {
       const { page, section_key, text_de, text_en, badge_de, badge_en, link_url, icon, icon_type } = body;
-      if (!page || !section_key) {
-        return NextResponse.json({ error: "Missing page or section_key" }, { status: 400 });
-      }
 
       /* Determine next sort_order */
       const { data: lastItem } = await supabase
@@ -121,29 +164,19 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     /* ── Update ── */
     case "update": {
-      const { id, ...fields } = body as Record<string, unknown>;
-      if (!id) {
-        return NextResponse.json({ error: "Missing id" }, { status: 400 });
-      }
+      const { id, action: _a, ...fields } = body;
 
-      /* Only allow updating specific fields */
-      const allowedFields = ["text_de", "text_en", "badge_de", "badge_en", "link_url", "icon", "icon_type"];
       const updates: Record<string, unknown> = {
         updated_by: userId,
         updated_at: new Date().toISOString(),
       };
-      for (const field of allowedFields) {
-        if (fields[field] !== undefined) {
-          updates[field] = fields[field];
+      for (const [key, value] of Object.entries(fields)) {
+        if (value !== undefined) {
+          updates[key] = value;
         }
       }
 
-      const { data, error } = await supabase
-        .from("site_list_items")
-        .update(updates)
-        .eq("id", id as string)
-        .select()
-        .single();
+      const { data, error } = await supabase.from("site_list_items").update(updates).eq("id", id).select().single();
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -153,15 +186,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     /* ── Delete ── */
     case "delete": {
-      const { id } = body as { id: string };
-      if (!id) {
-        return NextResponse.json({ error: "Missing id" }, { status: 400 });
-      }
+      const { id } = body;
 
-      const { error } = await supabase
-        .from("site_list_items")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("site_list_items").delete().eq("id", id);
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -171,10 +198,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     /* ── Reorder ── */
     case "reorder": {
-      const { items } = body as { items: Array<{ id: string; sort_order: number }> };
-      if (!items || !Array.isArray(items)) {
-        return NextResponse.json({ error: "Missing items array" }, { status: 400 });
-      }
+      const { items } = body;
 
       /* Batch update sort_order for all provided items */
       const errors: string[] = [];
@@ -193,6 +217,6 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     }
 
     default:
-      return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+      return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import { Suspense, useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
 import { useSidebar } from "./sidebar-context";
 import SidebarNav from "./sidebar-nav";
 import LanguageSelector from "./language-selector";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import getIsAdminAccess from "../../lib/supabase/admin-access";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 
 /* ── Rank hierarchy — lower index = higher rank ── */
 const RANK_ORDER: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier"];
@@ -91,9 +92,10 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
   const t = useTranslations("sidebar");
   const locale = useLocale();
   const [userData, setUserData] = useState<SidebarUserData>(DEFAULT_USER);
+  const [supabase] = useState(() => createSupabaseBrowserClient());
+  const { isAdmin } = useUserRole(supabase);
 
   const loadUserData = useCallback(async (): Promise<void> => {
-    const supabase = createSupabaseBrowserClient();
     const { data } = await supabase.auth.getUser();
     const userId = data.user?.id;
     if (!userId) {
@@ -101,33 +103,35 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
       return;
     }
 
-    /* Profile + admin status */
-    const [{ data: profile }, isAdmin] = await Promise.all([
-      supabase.from("profiles").select("user_db,username,display_name,default_game_account_id").eq("id", userId).maybeSingle(),
-      getIsAdminAccess({ supabase }),
-    ]);
+    /* Profile */
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("user_db,username,display_name,default_game_account_id")
+      .eq("id", userId)
+      .maybeSingle();
 
     /* Clan memberships with rank */
     const { data: memberships } = await supabase
       .from("game_account_clan_memberships")
-      .select("clan_id,game_account_id,rank,clans(name,is_unassigned),game_accounts!inner(game_username,approval_status)")
+      .select(
+        "clan_id,game_account_id,rank,clans(name,is_unassigned),game_accounts!inner(game_username,approval_status)",
+      )
       .eq("is_active", true)
       .eq("clans.is_unassigned", false)
       .eq("game_accounts.user_id", userId);
 
-    const options: ClanOption[] =
-      (memberships ?? [])
-        .filter((row) => {
-          const ga = row.game_accounts as unknown as { game_username: string; approval_status: string } | null;
-          return ga?.approval_status === "approved";
-        })
-        .map((row) => ({
-          clanId: row.clan_id as string,
-          gameAccountId: row.game_account_id as string,
-          clanName: (row.clans as unknown as { name: string } | null)?.name ?? "Clan",
-          gameLabel: (row.game_accounts as unknown as { game_username: string } | null)?.game_username ?? "Account",
-          rank: (row.rank as string) ?? null,
-        }));
+    const options: ClanOption[] = (memberships ?? [])
+      .filter((row) => {
+        const ga = row.game_accounts as unknown as { game_username: string; approval_status: string } | null;
+        return ga?.approval_status === "approved";
+      })
+      .map((row) => ({
+        clanId: row.clan_id as string,
+        gameAccountId: row.game_account_id as string,
+        clanName: (row.clans as unknown as { name: string } | null)?.name ?? "Clan",
+        gameLabel: (row.game_accounts as unknown as { game_username: string } | null)?.game_username ?? "Account",
+        rank: (row.rank as string) ?? null,
+      }));
 
     /* Restore previous selection: 1) DB default, 2) localStorage, 3) first option */
     const dbDefaultGameAccountId = (profile?.default_game_account_id as string | null) ?? null;
@@ -160,16 +164,15 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     setUserData({
       initials,
       displayLabel: name,
-      isAdmin,
+      isAdmin: false, // Will be overridden by hook-driven value
       isOnline: true,
       highestRank: resolveHighestRank(options),
       clanOptions: options,
       selectedKey,
     });
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
     void loadUserData();
     const { data: authListener } = supabase.auth.onAuthStateChange(() => {
       void loadUserData();
@@ -190,7 +193,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     }
   }
 
-  const roleLabel = userData.isAdmin ? t("admin") : t("member");
+  const roleLabel = isAdmin ? t("admin") : t("member");
   const rankLabel = userData.highestRank ? formatRank(userData.highestRank, locale) : null;
   /* Show rank + role, e.g. "Officer • Admin" or just "Member" */
   const statusLine = rankLabel ? `${rankLabel} \u2022 ${roleLabel}` : roleLabel;
@@ -199,29 +202,44 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     <>
       <aside className="sidebar" style={{ width }}>
         {/* Steel panel texture */}
-        <img
+        <Image
           src="/assets/vip/back_left.png"
           alt="Sidebar steel panel texture"
           className="sidebar-texture"
           width={236}
           height={900}
-          loading="eager"
+          priority
         />
 
         {/* Header — clan identity with logo */}
-        <div className={`sidebar-header${isOpen ? "" : " collapsed"}`} style={{ flexDirection: "column", alignItems: "center", gap: isOpen ? 8 : 4, padding: isOpen ? "16px 12px 12px" : undefined }}>
-          <img
-            src="/assets/ui/chillerkiller_logo.png"
-            alt="Chillers & Killers logo"
-            width={960}
-            height={967}
-            style={{ objectFit: "contain", width: isOpen ? 160 : 36, height: isOpen ? 160 : 36, flexShrink: 0 }}
-            loading="eager"
-          />
+        <div
+          className={`sidebar-header${isOpen ? "" : " collapsed"}`}
+          style={{
+            flexDirection: "column",
+            alignItems: "center",
+            gap: isOpen ? 8 : 4,
+            padding: isOpen ? "16px 12px 12px" : undefined,
+          }}
+        >
+          <picture>
+            <source srcSet="/assets/ui/chillerkiller_logo.webp" type="image/webp" />
+            <img
+              src="/assets/ui/chillerkiller_logo.png"
+              alt="Chillers & Killers logo"
+              width={960}
+              height={967}
+              style={{ objectFit: "contain", width: isOpen ? 160 : 36, height: isOpen ? 160 : 36, flexShrink: 0 }}
+              loading="eager"
+            />
+          </picture>
           {isOpen && (
             <div style={{ overflow: "hidden", textAlign: "center" }}>
-              <div className="sidebar-title" style={{ fontSize: "1.3rem" }}>{t("title")}</div>
-              <div className="sidebar-subtitle" style={{ fontSize: "0.8rem" }}>{t("subtitle")}</div>
+              <div className="sidebar-title" style={{ fontSize: "1.3rem" }}>
+                {t("title")}
+              </div>
+              <div className="sidebar-subtitle" style={{ fontSize: "0.8rem" }}>
+                {t("subtitle")}
+              </div>
             </div>
           )}
         </div>
@@ -242,18 +260,14 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
             strokeWidth="2.5"
             strokeLinecap="round"
           >
-            {isOpen ? (
-              <path d="M15 18l-6-6 6-6" />
-            ) : (
-              <path d="M9 18l6-6-6-6" />
-            )}
+            {isOpen ? <path d="M15 18l-6-6 6-6" /> : <path d="M9 18l6-6-6-6" />}
           </svg>
           {isOpen && <span style={{ fontSize: "0.7rem" }}>{t("collapse")}</span>}
         </button>
 
         {/* Gold scepter divider */}
         <div className="sidebar-divider">
-          <img
+          <Image
             src="/assets/vip/components_decor_7.png"
             alt="Gold scepter divider"
             width={200}
@@ -269,19 +283,12 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
 
         {/* Bottom: user card + clan selector */}
         <div className="sidebar-bottom">
-          <div
-            className="sidebar-bottom-divider"
-            style={{ width: isOpen ? "85%" : "60%", margin: "0 auto" }}
-          />
+          <div className="sidebar-bottom-divider" style={{ width: isOpen ? "85%" : "60%", margin: "0 auto" }} />
 
           {/* Clan selector */}
           {userData.clanOptions.length > 0 && isOpen ? (
             <div className="sidebar-clan-select">
-              <select
-                value={userData.selectedKey}
-                onChange={handleClanChange}
-                aria-label={t("selectClan")}
-              >
+              <select value={userData.selectedKey} onChange={handleClanChange} aria-label={t("selectClan")}>
                 {userData.clanOptions.map((option) => (
                   <option
                     key={`${option.clanId}:${option.gameAccountId}`}
@@ -311,10 +318,12 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
                 <div style={{ overflow: "hidden", flex: 1, minWidth: 0 }}>
                   <div className="sidebar-user-name">
                     {userData.displayLabel}
-                    {userData.isAdmin && (
-                      <img
+                    {isAdmin && (
+                      <Image
                         src="/assets/vip/button_vip_crown_22x33.png"
                         alt="Admin"
+                        width={10}
+                        height={15}
                         style={{ width: 10, height: "auto" }}
                       />
                     )}

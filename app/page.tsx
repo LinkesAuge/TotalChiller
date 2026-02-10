@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import createSupabaseBrowserClient from "../lib/supabase/browser-client";
@@ -98,10 +99,7 @@ function DashboardPage(): JSX.Element {
     const unique = [...new Set(userIds)].filter(Boolean);
     const map = new Map<string, string>();
     if (unique.length === 0) return map;
-    const { data } = await supabase
-      .from("profiles")
-      .select("id,display_name,username")
-      .in("id", unique);
+    const { data } = await supabase.from("profiles").select("id,display_name,username").in("id", unique);
     for (const p of (data ?? []) as Array<{ id: string; display_name: string | null; username: string | null }>) {
       const name = p.display_name || p.username || "";
       if (name) map.set(p.id, name);
@@ -132,10 +130,12 @@ function DashboardPage(): JSX.Element {
       }
       const rows = (data ?? []) as Array<Record<string, unknown>>;
       const authorMap = await resolveAuthorNames(rows.map((r) => String(r.created_by ?? "")));
-      setAnnouncements(rows.map((row) => ({
-        ...row,
-        author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
-      })) as ArticleRow[]);
+      setAnnouncements(
+        rows.map((row) => ({
+          ...row,
+          author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
+        })) as ArticleRow[],
+      );
     }
     void loadAnnouncements();
   }, [clanContext?.clanId, supabase]);
@@ -164,10 +164,12 @@ function DashboardPage(): JSX.Element {
       }
       const rows = (data ?? []) as Array<Record<string, unknown>>;
       const authorMap = await resolveAuthorNames(rows.map((r) => String(r.created_by ?? "")));
-      setEvents(rows.map((row) => ({
-        ...row,
-        author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
-      })) as EventRow[]);
+      setEvents(
+        rows.map((row) => ({
+          ...row,
+          author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
+        })) as EventRow[],
+      );
     }
     void loadEvents();
   }, [clanContext?.clanId, supabase]);
@@ -197,12 +199,18 @@ function DashboardPage(): JSX.Element {
     <>
       {/* Ornate top bar */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
-            <div className="top-bar-breadcrumb">
-              {t("breadcrumb")}
-            </div>
+            <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
             <h1 className="top-bar-title">{t("title")}</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -241,7 +249,12 @@ function DashboardPage(): JSX.Element {
                 <h3 className="card-title">{t("announcementsTitle")}</h3>
                 <Link
                   href="/news"
-                  style={{ marginLeft: "auto", fontSize: "0.65rem", color: "var(--color-gold)", textDecoration: "none" }}
+                  style={{
+                    marginLeft: "auto",
+                    fontSize: "0.65rem",
+                    color: "var(--color-gold)",
+                    textDecoration: "none",
+                  }}
                 >
                   {t("viewAll")} →
                 </Link>
@@ -249,72 +262,73 @@ function DashboardPage(): JSX.Element {
             </div>
             <div className="card-body">
               {isLoadingAnnouncements && (
-                <div style={{ padding: "16px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-                  Loading…
-                </div>
+                <div style={{ padding: "16px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Loading…</div>
               )}
               {!isLoadingAnnouncements && announcements.length === 0 && (
                 <div style={{ padding: "16px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
                   {t("noAnnouncements")}
                 </div>
               )}
-              {!isLoadingAnnouncements && announcements.map((article, i) => {
-                const firstTag = article.tags.length > 0 ? article.tags[0] : null;
-                const tagColor = firstTag ? (tagColorMap.get(firstTag) ?? "#4a6ea0") : "#4a6ea0";
-                return (
-                  <div key={article.id}>
-                    {i > 0 && <div className="gold-divider" />}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 10,
-                        padding: "10px 0",
-                      }}
-                    >
-                      <img
-                        src={article.is_pinned ? "/assets/vip/batler_icons_star_5.png" : "/assets/vip/batler_icons_star_4.png"}
-                        alt={article.is_pinned ? t("pinnedLabel") : ""}
-                        width={14}
-                        height={14}
-                        style={{ marginTop: 2 }}
-                        loading="lazy"
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: "0.88rem" }}>{article.title}</div>
-                        <div
-                          style={{
-                            fontSize: "0.68rem",
-                            color: "var(--color-text-muted)",
-                            marginTop: 3,
-                          }}
-                        >
-                          {formatRelativeTime(article.created_at)}
-                          {article.type === "announcement" ? " • " + article.type : ""}
-                          {article.author_name && ` • ${article.author_name}`}
+              {!isLoadingAnnouncements &&
+                announcements.map((article, i) => {
+                  const firstTag = article.tags.length > 0 ? article.tags[0] : null;
+                  const tagColor = firstTag ? (tagColorMap.get(firstTag) ?? "#4a6ea0") : "#4a6ea0";
+                  return (
+                    <div key={article.id}>
+                      {i > 0 && <div className="gold-divider" />}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 10,
+                          padding: "10px 0",
+                        }}
+                      >
+                        <img
+                          src={
+                            article.is_pinned
+                              ? "/assets/vip/batler_icons_star_5.png"
+                              : "/assets/vip/batler_icons_star_4.png"
+                          }
+                          alt={article.is_pinned ? t("pinnedLabel") : ""}
+                          width={14}
+                          height={14}
+                          style={{ marginTop: 2 }}
+                          loading="lazy"
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "0.88rem" }}>{article.title}</div>
+                          <div
+                            style={{
+                              fontSize: "0.68rem",
+                              color: "var(--color-text-muted)",
+                              marginTop: 3,
+                            }}
+                          >
+                            {formatRelativeTime(article.created_at)}
+                            {article.type === "announcement" ? " • " + article.type : ""}
+                            {article.author_name && ` • ${article.author_name}`}
+                          </div>
                         </div>
+                        {firstTag && (
+                          <span
+                            className="badge"
+                            style={{
+                              padding: "2px 8px",
+                              flexShrink: 0,
+                              background: `linear-gradient(180deg, ${tagColor}, ${tagColor}cc)`,
+                              borderColor: tagColor,
+                              color: "#fff",
+                            }}
+                          >
+                            {firstTag}
+                          </span>
+                        )}
+                        {article.is_pinned && !firstTag && <span className="pin-badge">{t("pinnedLabel")}</span>}
                       </div>
-                      {firstTag && (
-                        <span
-                          className="badge"
-                          style={{
-                            padding: "2px 8px",
-                            flexShrink: 0,
-                            background: `linear-gradient(180deg, ${tagColor}, ${tagColor}cc)`,
-                            borderColor: tagColor,
-                            color: "#fff",
-                          }}
-                        >
-                          {firstTag}
-                        </span>
-                      )}
-                      {article.is_pinned && !firstTag && (
-                        <span className="pin-badge">{t("pinnedLabel")}</span>
-                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </section>
 
@@ -330,13 +344,7 @@ function DashboardPage(): JSX.Element {
                 loading="lazy"
               />
               <div className="tooltip-head-inner">
-                <img
-                  src="/assets/vip/batler_icons_stat_armor.png"
-                  alt="Stats"
-                  width={18}
-                  height={18}
-                  loading="lazy"
-                />
+                <img src="/assets/vip/batler_icons_stat_armor.png" alt="Stats" width={18} height={18} loading="lazy" />
                 <h3 className="card-title">Quick Stats</h3>
                 <span
                   style={{
@@ -428,59 +436,66 @@ function DashboardPage(): JSX.Element {
                 </Link>
               </div>
               {isLoadingEvents && (
-                <div style={{ padding: "8px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-                  Loading…
-                </div>
+                <div style={{ padding: "8px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Loading…</div>
               )}
               {!isLoadingEvents && events.length === 0 && (
                 <div style={{ padding: "8px 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
                   {t("noEventsScheduled")}
                 </div>
               )}
-              {!isLoadingEvents && events.map((event, i) => {
-                const color = EVENT_COLORS[i % EVENT_COLORS.length];
-                return (
-                  <div
-                    key={event.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "6px 0",
-                      fontSize: "0.85rem",
-                    }}
-                  >
+              {!isLoadingEvents &&
+                events.map((event, i) => {
+                  const color = EVENT_COLORS[i % EVENT_COLORS.length];
+                  return (
                     <div
+                      key={event.id}
                       style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: color,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {event.title}
-                      {event.author_name && (
-                        <span style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", marginLeft: 4 }}>
-                          {event.author_name}
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      className="countdown-badge"
-                      style={{
-                        background: `${color}22`,
-                        border: `1px solid ${color}44`,
-                        color,
-                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "6px 0",
+                        fontSize: "0.85rem",
                       }}
                     >
-                      {formatCountdown(event.starts_at, t)}
-                    </span>
-                  </div>
-                );
-              })}
+                      <div
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: color,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {event.title}
+                        {event.author_name && (
+                          <span style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", marginLeft: 4 }}>
+                            {event.author_name}
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className="countdown-badge"
+                        style={{
+                          background: `${color}22`,
+                          border: `1px solid ${color}44`,
+                          color,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {formatCountdown(event.starts_at, t)}
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
           </section>
 
@@ -525,9 +540,7 @@ function DashboardPage(): JSX.Element {
                     }}
                   >
                     <span>{bar.label}</span>
-                    <span style={{ color: bar.color, fontWeight: 700 }}>
-                      {bar.value}%
-                    </span>
+                    <span style={{ color: bar.color, fontWeight: 700 }}>{bar.value}%</span>
                   </div>
                   <div className="game-progress">
                     <img
@@ -538,10 +551,7 @@ function DashboardPage(): JSX.Element {
                       height={20}
                       loading="lazy"
                     />
-                    <div
-                      className="game-progress-fill"
-                      style={{ width: `${bar.value}%` }}
-                    >
+                    <div className="game-progress-fill" style={{ width: `${bar.value}%` }}>
                       <img
                         src="/assets/vip/battler_stage_bar_full.png"
                         alt=""

@@ -1,3 +1,7 @@
+const { withSentryConfig } = require("@sentry/nextjs");
+const withBundleAnalyzer = require("@next/bundle-analyzer")({
+  enabled: process.env.ANALYZE === "true",
+});
 const createNextIntlPlugin = require("next-intl/plugin");
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
@@ -43,7 +47,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.ingest.sentry.io",
               "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
               "media-src 'self' https: blob:",
               "frame-ancestors 'none'",
@@ -59,4 +63,18 @@ const nextConfig = {
   },
 };
 
-module.exports = withNextIntl(nextConfig);
+module.exports = withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), {
+  /* Sentry build options */
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  /* Only upload source maps in production CI builds */
+  silent: !process.env.CI,
+  disableLogger: true,
+
+  /* Opt out of telemetry */
+  telemetry: false,
+
+  /* Skip source map upload when no auth token is configured */
+  ...(process.env.SENTRY_AUTH_TOKEN ? {} : { sourcemaps: { disable: true } }),
+});

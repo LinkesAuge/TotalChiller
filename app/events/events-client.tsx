@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { z } from "zod";
 import { useTranslations, useLocale } from "next-intl";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import getIsContentManager from "../../lib/supabase/role-access";
+import { useUserRole } from "@/lib/hooks/use-user-role";
 import { formatLocalDateTime } from "../../lib/date-format";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
@@ -76,7 +77,6 @@ const EVENT_SCHEMA = z.object({
 });
 
 const WEEKDAY_LABELS: readonly string[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
 
 /* ── Date helpers ── */
 
@@ -158,10 +158,7 @@ function advanceCursorDate(cursor: Date, type: RecurrenceType): void {
  * Non-recurring events pass through as-is.
  * Returns a sorted list of DisplayEvent.
  */
-function expandRecurringEvents(
-  sourceEvents: readonly EventRow[],
-  horizon: Date,
-): DisplayEvent[] {
+function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon: Date): DisplayEvent[] {
   const results: DisplayEvent[] = [];
   for (const ev of sourceEvents) {
     /* Always include the original event */
@@ -182,9 +179,7 @@ function expandRecurringEvents(
     if (ev.recurrence_type === "none") continue;
     const durationMs = new Date(ev.ends_at).getTime() - new Date(ev.starts_at).getTime();
     const cursor = new Date(ev.starts_at);
-    const recEnd = ev.recurrence_end_date
-      ? new Date(ev.recurrence_end_date + "T23:59:59")
-      : horizon;
+    const recEnd = ev.recurrence_end_date ? new Date(ev.recurrence_end_date + "T23:59:59") : horizon;
     const effectiveEnd = recEnd < horizon ? recEnd : horizon;
     let guard = 0;
     advanceCursorDate(cursor, ev.recurrence_type);
@@ -209,9 +204,7 @@ function expandRecurringEvents(
       guard += 1;
     }
   }
-  return results.sort(
-    (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
-  );
+  return results.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
 }
 
 const UPCOMING_PAGE_SIZE = 8;
@@ -230,11 +223,7 @@ function EventsClient(): JSX.Element {
   const dayPanelRef = useRef<HTMLElement>(null);
 
   /* ── Permission state ── */
-  const [canManage, setCanManage] = useState<boolean>(false);
-
-  useEffect(() => {
-    void getIsContentManager({ supabase }).then(setCanManage);
-  }, [supabase]);
+  const { isContentManager: canManage } = useUserRole(supabase);
 
   /* ── Data state ── */
   const [events, setEvents] = useState<readonly EventRow[]>([]);
@@ -294,10 +283,7 @@ function EventsClient(): JSX.Element {
     const unique = [...new Set(userIds)].filter(Boolean);
     const map = new Map<string, string>();
     if (unique.length === 0) return map;
-    const { data } = await supabase
-      .from("profiles")
-      .select("id,display_name,username")
-      .in("id", unique);
+    const { data } = await supabase.from("profiles").select("id,display_name,username").in("id", unique);
     for (const p of (data ?? []) as Array<{ id: string; display_name: string | null; username: string | null }>) {
       const name = p.display_name || p.username || "";
       if (name) map.set(p.id, name);
@@ -317,7 +303,9 @@ function EventsClient(): JSX.Element {
       setIsLoading(true);
       const { data, error } = await supabase
         .from("events")
-        .select("id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date")
+        .select(
+          "id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date",
+        )
         .eq("clan_id", clanContext.clanId)
         .order("starts_at", { ascending: true });
       setIsLoading(false);
@@ -327,13 +315,15 @@ function EventsClient(): JSX.Element {
       }
       const rows = (data ?? []) as Array<Record<string, unknown>>;
       const authorMap = await resolveAuthorNames(rows.map((r) => String(r.created_by ?? "")));
-      setEvents(rows.map((row) => ({
-        ...row,
-        organizer: (row.organizer as string) ?? null,
-        author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
-        recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
-        recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-      })) as EventRow[]);
+      setEvents(
+        rows.map((row) => ({
+          ...row,
+          organizer: (row.organizer as string) ?? null,
+          author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
+          recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
+          recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+        })) as EventRow[],
+      );
     }
     void loadEvents();
   }, [clanContext?.clanId, pushToast, supabase]);
@@ -355,17 +345,19 @@ function EventsClient(): JSX.Element {
         /* Table may not exist yet — silently ignore */
         return;
       }
-      setTemplates((data ?? []).map((row: Record<string, unknown>) => ({
-        id: row.id as string,
-        title: (row.title as string) ?? "",
-        description: (row.description as string) ?? "",
-        location: (row.location as string) ?? null,
-        duration_hours: (row.duration_hours as number) ?? 0,
-        is_open_ended: (row.is_open_ended as boolean) ?? (((row.duration_hours as number) ?? 0) <= 0),
-        organizer: (row.organizer as string) ?? null,
-        recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
-        recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-      })));
+      setTemplates(
+        (data ?? []).map((row: Record<string, unknown>) => ({
+          id: row.id as string,
+          title: (row.title as string) ?? "",
+          description: (row.description as string) ?? "",
+          location: (row.location as string) ?? null,
+          duration_hours: (row.duration_hours as number) ?? 0,
+          is_open_ended: (row.is_open_ended as boolean) ?? ((row.duration_hours as number) ?? 0) <= 0,
+          organizer: (row.organizer as string) ?? null,
+          recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
+          recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+        })),
+      );
     }
     void loadTemplates();
   }, [clanContext?.clanId, supabase]);
@@ -403,7 +395,9 @@ function EventsClient(): JSX.Element {
     if (!clanContext?.clanId) return;
     const { data, error } = await supabase
       .from("events")
-      .select("id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date")
+      .select(
+        "id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date",
+      )
       .eq("clan_id", clanContext.clanId)
       .order("starts_at", { ascending: true });
     if (error) {
@@ -412,13 +406,15 @@ function EventsClient(): JSX.Element {
     }
     const rows = (data ?? []) as Array<Record<string, unknown>>;
     const authorMap = await resolveAuthorNames(rows.map((r) => String(r.created_by ?? "")));
-    setEvents(rows.map((row) => ({
-      ...row,
-      organizer: (row.organizer as string) ?? null,
-      author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
-      recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
-      recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-    })) as EventRow[]);
+    setEvents(
+      rows.map((row) => ({
+        ...row,
+        organizer: (row.organizer as string) ?? null,
+        author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
+        recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
+        recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+      })) as EventRow[],
+    );
   }
 
   async function reloadTemplates(): Promise<void> {
@@ -429,17 +425,19 @@ function EventsClient(): JSX.Element {
       .eq("clan_id", clanContext.clanId)
       .order("title", { ascending: true });
     if (error) return;
-    setTemplates((data ?? []).map((row: Record<string, unknown>) => ({
-      id: row.id as string,
-      title: (row.title as string) ?? "",
-      description: (row.description as string) ?? "",
-      location: (row.location as string) ?? null,
-      duration_hours: (row.duration_hours as number) ?? 0,
-      is_open_ended: (row.is_open_ended as boolean) ?? (((row.duration_hours as number) ?? 0) <= 0),
-      organizer: (row.organizer as string) ?? null,
-      recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
-      recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-    })));
+    setTemplates(
+      (data ?? []).map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        title: (row.title as string) ?? "",
+        description: (row.description as string) ?? "",
+        location: (row.location as string) ?? null,
+        duration_hours: (row.duration_hours as number) ?? 0,
+        is_open_ended: (row.is_open_ended as boolean) ?? ((row.duration_hours as number) ?? 0) <= 0,
+        organizer: (row.organizer as string) ?? null,
+        recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
+        recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+      })),
+    );
   }
 
   /* ── Expand recurring events into virtual occurrences ── */
@@ -516,19 +514,17 @@ function EventsClient(): JSX.Element {
 
   const selectedDateLabel = selectedDate
     ? selectedDate.toLocaleDateString(locale, {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    })
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
     : selectedDateKey;
 
   /* ── Template selector options ── */
 
   const templateOptions = useMemo(() => {
-    const options: { value: string; label: string }[] = [
-      { value: "none", label: t("templateNone") },
-    ];
+    const options: { value: string; label: string }[] = [{ value: "none", label: t("templateNone") }];
     templates.forEach((tpl) => {
       options.push({ value: tpl.id, label: tpl.title });
     });
@@ -664,7 +660,7 @@ function EventsClient(): JSX.Element {
       pushToast(t("mustBeLoggedIn"));
       return;
     }
-    const effectiveEndDate = recurrenceOngoing ? null : (recurrenceEndDate || null);
+    const effectiveEndDate = recurrenceOngoing ? null : recurrenceEndDate || null;
     const payload: Record<string, unknown> = {
       clan_id: clanContext.clanId,
       title: parsed.data.title,
@@ -735,7 +731,7 @@ function EventsClient(): JSX.Element {
     }
     const totalMin = (parseInt(durationH, 10) || 0) * 60 + (parseInt(durationM, 10) || 0);
     const hours = isOpenEnded ? 0 : Math.max(0, totalMin / 60);
-    const effectiveRecurrenceEnd = recurrenceOngoing ? null : (recurrenceEndDate || null);
+    const effectiveRecurrenceEnd = recurrenceOngoing ? null : recurrenceEndDate || null;
     setIsSavingTemplate(true);
     const { error } = await supabase.from("event_templates").insert({
       clan_id: clanContext.clanId,
@@ -817,18 +813,21 @@ function EventsClient(): JSX.Element {
     }
     const totalMin = (parseInt(editTplDurationH, 10) || 0) * 60 + (parseInt(editTplDurationM, 10) || 0);
     const hours = editTplOpenEnded ? 0 : Math.max(0, totalMin / 60);
-    const effectiveRecurrenceEnd = editTplRecurrenceOngoing ? null : (editTplRecurrenceEnd || null);
+    const effectiveRecurrenceEnd = editTplRecurrenceOngoing ? null : editTplRecurrenceEnd || null;
     setIsSavingTemplate(true);
-    const { error } = await supabase.from("event_templates").update({
-      name: editTplTitle.trim(),
-      title: editTplTitle.trim(),
-      description: editTplDesc.trim(),
-      location: editTplLocation.trim() || null,
-      duration_hours: hours,
-      is_open_ended: editTplOpenEnded,
-      recurrence_type: editTplRecurrence,
-      recurrence_end_date: editTplRecurrence !== "none" ? effectiveRecurrenceEnd : null,
-    }).eq("id", editingTemplateId);
+    const { error } = await supabase
+      .from("event_templates")
+      .update({
+        name: editTplTitle.trim(),
+        title: editTplTitle.trim(),
+        description: editTplDesc.trim(),
+        location: editTplLocation.trim() || null,
+        duration_hours: hours,
+        is_open_ended: editTplOpenEnded,
+        recurrence_type: editTplRecurrence,
+        recurrence_end_date: editTplRecurrence !== "none" ? effectiveRecurrenceEnd : null,
+      })
+      .eq("id", editingTemplateId);
     setIsSavingTemplate(false);
     if (error) {
       pushToast(`Failed to update template: ${error.message}`);
@@ -907,10 +906,13 @@ function EventsClient(): JSX.Element {
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
             {entry.recurrence_type && entry.recurrence_type !== "none" && (
               <span className="badge" style={{ fontSize: "0.65rem" }}>
-                {entry.recurrence_type === "daily" ? t("recurrenceDailyLabel")
-                  : entry.recurrence_type === "weekly" ? t("recurrenceWeeklyLabel")
-                  : entry.recurrence_type === "biweekly" ? t("recurrenceBiweeklyLabel")
-                  : t("recurrenceMonthlyLabel")}
+                {entry.recurrence_type === "daily"
+                  ? t("recurrenceDailyLabel")
+                  : entry.recurrence_type === "weekly"
+                    ? t("recurrenceWeeklyLabel")
+                    : entry.recurrence_type === "biweekly"
+                      ? t("recurrenceBiweeklyLabel")
+                      : t("recurrenceMonthlyLabel")}
               </span>
             )}
             <span className="badge">{isPast ? t("past") : t("upcoming")}</span>
@@ -951,7 +953,15 @@ function EventsClient(): JSX.Element {
     <>
       {/* ── Top Bar ── */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" width={1200} height={56} loading="eager" />
+        <Image
+          src="/assets/vip/header_3.png"
+          alt=""
+          role="presentation"
+          className="top-bar-bg"
+          width={1200}
+          height={56}
+          priority
+        />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">{t("breadcrumb")}</div>
@@ -967,645 +977,729 @@ function EventsClient(): JSX.Element {
       />
 
       <div className="content-inner">
-      <div className="grid">
-
-        {/* ── Loading ── */}
-        {isLoading && (
-          <div className="alert info loading" style={{ gridColumn: "1 / -1" }}>
-            {t("loadingEvents")}
-          </div>
-        )}
-
-        {/* ── Empty state ── */}
-        {!isLoading && events.length === 0 && (
-          <section className="card" style={{ gridColumn: "1 / -1" }}>
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("noEvents")}</div>
-                <div className="card-subtitle">{t("createEvent")}</div>
-              </div>
+        <div className="grid">
+          {/* ── Loading ── */}
+          {isLoading && (
+            <div className="alert info loading" style={{ gridColumn: "1 / -1" }}>
+              {t("loadingEvents")}
             </div>
-          </section>
-        )}
+          )}
 
-        {/* ── Side-by-side: Calendar + Upcoming events ── */}
-        {!isLoading && (
-          <div className="events-two-col" style={{ gridColumn: "1 / -1" }}>
-            {/* Calendar */}
-            <section className="card event-calendar-card">
-              <div className="tooltip-head">
-                <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} loading="lazy" />
-                <div className="tooltip-head-inner">
-                  <img src="/assets/vip/batler_icons_stat_armor.png" alt={t("calendarOverview")} width={18} height={18} loading="lazy" />
-                  <h3 className="card-title">{t("monthlyOverview")}</h3>
-                  <span className="pin-badge">{events.length} {t("totalEvents")}</span>
-                </div>
-              </div>
-              <div className="event-calendar-body">
-                <img src="/assets/vip/backs_21.png" alt="" className="event-calendar-bg" width={800} height={600} loading="lazy" />
-                <div className="event-calendar-layout">
-                  <div>
-                    <div className="calendar-toolbar">
-                      <div className="calendar-nav">
-                        <button className="button" type="button" onClick={() => shiftCalendarMonth(-1)}>
-                          {t("prev")}
-                        </button>
-                        <div className="calendar-month-label">
-                          {calendarMonth.toLocaleDateString(locale, { month: "long", year: "numeric" })}
-                        </div>
-                        <button className="button" type="button" onClick={() => shiftCalendarMonth(1)}>
-                          {t("next")}
-                        </button>
-                      </div>
-                      <button className="button" type="button" onClick={jumpToToday}>
-                        {t("today")}
-                      </button>
-                    </div>
-
-                    <div className="event-calendar-grid">
-                      {WEEKDAY_LABELS.map((weekday) => (
-                        <div key={weekday} className="calendar-weekday">{t(`week${weekday}`)}</div>
-                      ))}
-                      {calendarDays.map((day) => (
-                        <button
-                          key={day.key}
-                          type="button"
-                          className={[
-                            "calendar-day-cell",
-                            day.isCurrentMonth ? "" : "muted",
-                            day.key === selectedDateKey ? "selected" : "",
-                            day.isToday ? "today" : "",
-                          ].filter(Boolean).join(" ")}
-                          onClick={() => {
-                            setSelectedDateKey(day.key);
-                            if (!day.isCurrentMonth) {
-                              setCalendarMonth(new Date(day.date.getFullYear(), day.date.getMonth(), 1));
-                            }
-                            setTimeout(() => {
-                              dayPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                            }, 50);
-                          }}
-                        >
-                          <span className="calendar-day-number">{day.date.getDate()}</span>
-                          {day.events.length > 0 && (
-                            <span className="calendar-day-count">{day.events.length}</span>
-                          )}
-                          <span className="calendar-day-dots">
-                            {day.events.slice(0, 3).map((entry, index) => (
-                              <span
-                                key={`${day.key}-${entry.id}`}
-                                className="calendar-dot"
-                                style={{
-                                  background: ["#c9a34a", "#4a6ea0", "#4a9960", "#c94a3a"][index % 4],
-                                }}
-                              />
-                            ))}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Selected day detail (shown below calendar on compact layouts) */}
-                    <aside ref={dayPanelRef} className="calendar-day-panel calendar-day-panel--inline">
-                      <div className="card-title" style={{ marginBottom: 6 }}>{t("selectedDay")}</div>
-                      <div className="card-subtitle" style={{ marginTop: 0 }}>{selectedDateLabel}</div>
-                      {selectedDayEvents.length === 0 ? (
-                        <div className="text-muted" style={{ marginTop: 12, fontSize: "0.85rem" }}>
-                          {t("noEventsOnDay")}
-                        </div>
-                      ) : (
-                        <div className="calendar-day-events">
-                          {selectedDayEvents.map((entry) => (
-                            <article key={`calendar-${entry.displayKey}`} className="calendar-day-event">
-                              <div className="calendar-day-event-title">{entry.title}</div>
-                              <div className="calendar-day-event-time">
-                                {formatLocalDateTime(entry.starts_at, locale)}
-                                {" "}({formatDuration(entry.starts_at, entry.ends_at)})
-                              </div>
-                              {entry.organizer && <div className="calendar-day-event-location">{t("organizer")}: {entry.organizer}</div>}
-                              {entry.location && <div className="calendar-day-event-location">{entry.location}</div>}
-                              {entry.author_name && (
-                                <div style={{ fontSize: "0.7rem", color: "var(--color-text-2)", marginTop: 2 }}>
-                                  {t("createdBy", { name: entry.author_name })}
-                                </div>
-                              )}
-                              {canManage && (
-                                <button className="button" type="button" onClick={() => handleEditEventById(entry.id)}>
-                                  {t("editEvent")}
-                                </button>
-                              )}
-                            </article>
-                          ))}
-                        </div>
-                      )}
-                    </aside>
-                  </div>
+          {/* ── Empty state ── */}
+          {!isLoading && events.length === 0 && (
+            <section className="card" style={{ gridColumn: "1 / -1" }}>
+              <div className="card-header">
+                <div>
+                  <div className="card-title">{t("noEvents")}</div>
+                  <div className="card-subtitle">{t("createEvent")}</div>
                 </div>
               </div>
             </section>
+          )}
 
-            {/* Upcoming events sidebar */}
-            <section className="events-upcoming-sidebar">
-              <div className="card-title" style={{ marginBottom: 10 }}>
-                {t("upcoming")} ({upcomingEvents.length})
-              </div>
-              {upcomingEvents.length === 0 ? (
-                <div className="text-muted" style={{ fontSize: "0.85rem" }}>
-                  {t("noEvents")}
+          {/* ── Side-by-side: Calendar + Upcoming events ── */}
+          {!isLoading && (
+            <div className="events-two-col" style={{ gridColumn: "1 / -1" }}>
+              {/* Calendar */}
+              <section className="card event-calendar-card">
+                <div className="tooltip-head">
+                  <img
+                    src="/assets/vip/back_tooltip_2.png"
+                    alt=""
+                    className="tooltip-head-bg"
+                    width={400}
+                    height={44}
+                    loading="lazy"
+                  />
+                  <div className="tooltip-head-inner">
+                    <img
+                      src="/assets/vip/batler_icons_stat_armor.png"
+                      alt={t("calendarOverview")}
+                      width={18}
+                      height={18}
+                      loading="lazy"
+                    />
+                    <h3 className="card-title">{t("monthlyOverview")}</h3>
+                    <span className="pin-badge">
+                      {events.length} {t("totalEvents")}
+                    </span>
+                  </div>
                 </div>
-              ) : (
-                <div className="events-upcoming-list">
-                  {upcomingEvents.slice(0, upcomingLimit).map((entry) => (
-                    <div
-                      key={`upcoming-${entry.displayKey}`}
-                      className="events-upcoming-row"
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                          <span style={{ fontWeight: 600, fontSize: "0.84rem" }}>{entry.title}</span>
-                          {entry.recurrence_type !== "none" && (
-                            <span className="badge" style={{ fontSize: "0.58rem" }}>
-                              {entry.recurrence_type === "daily" ? t("recurrenceDailyLabel")
-                                : entry.recurrence_type === "weekly" ? t("recurrenceWeeklyLabel")
-                                : entry.recurrence_type === "biweekly" ? t("recurrenceBiweeklyLabel")
-                                : t("recurrenceMonthlyLabel")}
+                <div className="event-calendar-body">
+                  <img
+                    src="/assets/vip/backs_21.png"
+                    alt=""
+                    className="event-calendar-bg"
+                    width={800}
+                    height={600}
+                    loading="lazy"
+                  />
+                  <div className="event-calendar-layout">
+                    <div>
+                      <div className="calendar-toolbar">
+                        <div className="calendar-nav">
+                          <button className="button" type="button" onClick={() => shiftCalendarMonth(-1)}>
+                            {t("prev")}
+                          </button>
+                          <div className="calendar-month-label">
+                            {calendarMonth.toLocaleDateString(locale, { month: "long", year: "numeric" })}
+                          </div>
+                          <button className="button" type="button" onClick={() => shiftCalendarMonth(1)}>
+                            {t("next")}
+                          </button>
+                        </div>
+                        <button className="button" type="button" onClick={jumpToToday}>
+                          {t("today")}
+                        </button>
+                      </div>
+
+                      <div className="event-calendar-grid">
+                        {WEEKDAY_LABELS.map((weekday) => (
+                          <div key={weekday} className="calendar-weekday">
+                            {t(`week${weekday}`)}
+                          </div>
+                        ))}
+                        {calendarDays.map((day) => (
+                          <button
+                            key={day.key}
+                            type="button"
+                            className={[
+                              "calendar-day-cell",
+                              day.isCurrentMonth ? "" : "muted",
+                              day.key === selectedDateKey ? "selected" : "",
+                              day.isToday ? "today" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            onClick={() => {
+                              setSelectedDateKey(day.key);
+                              if (!day.isCurrentMonth) {
+                                setCalendarMonth(new Date(day.date.getFullYear(), day.date.getMonth(), 1));
+                              }
+                              setTimeout(() => {
+                                dayPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                              }, 50);
+                            }}
+                          >
+                            <span className="calendar-day-number">{day.date.getDate()}</span>
+                            {day.events.length > 0 && <span className="calendar-day-count">{day.events.length}</span>}
+                            <span className="calendar-day-dots">
+                              {day.events.slice(0, 3).map((entry, index) => (
+                                <span
+                                  key={`${day.key}-${entry.id}`}
+                                  className="calendar-dot"
+                                  style={{
+                                    background: ["#c9a34a", "#4a6ea0", "#4a9960", "#c94a3a"][index % 4],
+                                  }}
+                                />
+                              ))}
                             </span>
-                          )}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Selected day detail (shown below calendar on compact layouts) */}
+                      <aside ref={dayPanelRef} className="calendar-day-panel calendar-day-panel--inline">
+                        <div className="card-title" style={{ marginBottom: 6 }}>
+                          {t("selectedDay")}
                         </div>
-                        <div style={{ fontSize: "0.72rem", color: "var(--color-text-2)", marginTop: 2 }}>
-                          {formatLocalDateTime(entry.starts_at, locale)} ({formatDuration(entry.starts_at, entry.ends_at)})
-                          {entry.location && <> &bull; {entry.location}</>}
-                          {entry.organizer && <> &bull; {entry.organizer}</>}
+                        <div className="card-subtitle" style={{ marginTop: 0 }}>
+                          {selectedDateLabel}
                         </div>
-                        {entry.author_name && (
-                          <div style={{ fontSize: "0.66rem", color: "var(--color-text-2)", marginTop: 1 }}>
-                            {t("createdBy", { name: entry.author_name })}
+                        {selectedDayEvents.length === 0 ? (
+                          <div className="text-muted" style={{ marginTop: 12, fontSize: "0.85rem" }}>
+                            {t("noEventsOnDay")}
+                          </div>
+                        ) : (
+                          <div className="calendar-day-events">
+                            {selectedDayEvents.map((entry) => (
+                              <article key={`calendar-${entry.displayKey}`} className="calendar-day-event">
+                                <div className="calendar-day-event-title">{entry.title}</div>
+                                <div className="calendar-day-event-time">
+                                  {formatLocalDateTime(entry.starts_at, locale)} (
+                                  {formatDuration(entry.starts_at, entry.ends_at)})
+                                </div>
+                                {entry.organizer && (
+                                  <div className="calendar-day-event-location">
+                                    {t("organizer")}: {entry.organizer}
+                                  </div>
+                                )}
+                                {entry.location && <div className="calendar-day-event-location">{entry.location}</div>}
+                                {entry.author_name && (
+                                  <div style={{ fontSize: "0.7rem", color: "var(--color-text-2)", marginTop: 2 }}>
+                                    {t("createdBy", { name: entry.author_name })}
+                                  </div>
+                                )}
+                                {canManage && (
+                                  <button
+                                    className="button"
+                                    type="button"
+                                    onClick={() => handleEditEventById(entry.id)}
+                                  >
+                                    {t("editEvent")}
+                                  </button>
+                                )}
+                              </article>
+                            ))}
                           </div>
                         )}
-                      </div>
-                      {canManage && (
-                        <button
-                          className="button"
-                          type="button"
-                          onClick={() => handleEditEventById(entry.id)}
-                          style={{ padding: "3px 8px", fontSize: "0.68rem", flexShrink: 0 }}
-                        >
-                          {t("editEvent")}
-                        </button>
-                      )}
+                      </aside>
                     </div>
-                  ))}
-                  {upcomingEvents.length > upcomingLimit && (
-                    <button
-                      className="button"
-                      type="button"
-                      onClick={() => setUpcomingLimit((prev) => prev + UPCOMING_PAGE_SIZE)}
-                      style={{ alignSelf: "center", fontSize: "0.78rem", marginTop: 4 }}
-                    >
-                      {t("show")} ({upcomingEvents.length - upcomingLimit} {t("more")})
-                    </button>
-                  )}
+                  </div>
                 </div>
-              )}
-            </section>
-          </div>
-        )}
+              </section>
 
-        {/* ── Action buttons row (below calendar/upcoming) ── */}
-        {canManage && (
-          <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {!isFormOpen && (
-              <button className="button primary" type="button" onClick={handleOpenCreate}>
-                {t("createEvent")}
-              </button>
-            )}
-            <button
-              className="button"
-              type="button"
-              onClick={() => setIsTemplatesOpen((prev) => !prev)}
-              style={{ fontSize: "0.82rem" }}
-            >
-              {t("manageTemplates")} {isTemplatesOpen ? "▲" : "▼"}
-            </button>
-          </div>
-        )}
-
-        {isFormOpen && canManage && (
-          <section ref={eventFormRef} className="card" style={{ gridColumn: "1 / -1" }}>
-            <div className="card-header">
-              <div>
-                <div className="card-title">{editingId ? t("editEvent") : t("createEvent")}</div>
-                <div className="card-subtitle">{t("visibleToClan")}</div>
-              </div>
+              {/* Upcoming events sidebar */}
+              <section className="events-upcoming-sidebar">
+                <div className="card-title" style={{ marginBottom: 10 }}>
+                  {t("upcoming")} ({upcomingEvents.length})
+                </div>
+                {upcomingEvents.length === 0 ? (
+                  <div className="text-muted" style={{ fontSize: "0.85rem" }}>
+                    {t("noEvents")}
+                  </div>
+                ) : (
+                  <div className="events-upcoming-list">
+                    {upcomingEvents.slice(0, upcomingLimit).map((entry) => (
+                      <div key={`upcoming-${entry.displayKey}`} className="events-upcoming-row">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 600, fontSize: "0.84rem" }}>{entry.title}</span>
+                            {entry.recurrence_type !== "none" && (
+                              <span className="badge" style={{ fontSize: "0.58rem" }}>
+                                {entry.recurrence_type === "daily"
+                                  ? t("recurrenceDailyLabel")
+                                  : entry.recurrence_type === "weekly"
+                                    ? t("recurrenceWeeklyLabel")
+                                    : entry.recurrence_type === "biweekly"
+                                      ? t("recurrenceBiweeklyLabel")
+                                      : t("recurrenceMonthlyLabel")}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-2)", marginTop: 2 }}>
+                            {formatLocalDateTime(entry.starts_at, locale)} (
+                            {formatDuration(entry.starts_at, entry.ends_at)})
+                            {entry.location && <> &bull; {entry.location}</>}
+                            {entry.organizer && <> &bull; {entry.organizer}</>}
+                          </div>
+                          {entry.author_name && (
+                            <div style={{ fontSize: "0.66rem", color: "var(--color-text-2)", marginTop: 1 }}>
+                              {t("createdBy", { name: entry.author_name })}
+                            </div>
+                          )}
+                        </div>
+                        {canManage && (
+                          <button
+                            className="button"
+                            type="button"
+                            onClick={() => handleEditEventById(entry.id)}
+                            style={{ padding: "3px 8px", fontSize: "0.68rem", flexShrink: 0 }}
+                          >
+                            {t("editEvent")}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {upcomingEvents.length > upcomingLimit && (
+                      <button
+                        className="button"
+                        type="button"
+                        onClick={() => setUpcomingLimit((prev) => prev + UPCOMING_PAGE_SIZE)}
+                        style={{ alignSelf: "center", fontSize: "0.78rem", marginTop: 4 }}
+                      >
+                        {t("show")} ({upcomingEvents.length - upcomingLimit} {t("more")})
+                      </button>
+                    )}
+                  </div>
+                )}
+              </section>
             </div>
-            <form onSubmit={handleSubmit}>
-              {/* Template selector — only for new events */}
-              {!editingId && (
-                <div className="form-group">
-                  <label htmlFor="eventTemplate">{t("templateLabel")}</label>
-                  <RadixSelect
-                    id="eventTemplate"
-                    ariaLabel={t("templateLabel")}
-                    value={selectedTemplate}
-                    onValueChange={applyTemplate}
-                    options={templateOptions}
-                  />
-                </div>
+          )}
+
+          {/* ── Action buttons row (below calendar/upcoming) ── */}
+          {canManage && (
+            <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              {!isFormOpen && (
+                <button className="button primary" type="button" onClick={handleOpenCreate}>
+                  {t("createEvent")}
+                </button>
               )}
-              <div className="form-group">
-                <label htmlFor="eventTitle">{t("eventTitle")}</label>
-                <input
-                  id="eventTitle"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={t("eventTitlePlaceholder")}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="eventDescription">{t("description")}</label>
-                <textarea
-                  id="eventDescription"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t("descriptionPlaceholder")}
-                  rows={4}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="eventLocation">{t("locationOptional")}</label>
-                <input
-                  id="eventLocation"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder={t("locationPlaceholder")}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="eventStartsAt">{t("dateAndTime")}</label>
-                <DatePicker value={startsAt} onChange={setStartsAt} enableTime />
-              </div>
-              {/* Duration or open-ended */}
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: "0.82rem",
-                  cursor: "pointer",
-                  marginBottom: 8,
-                }}
+              <button
+                className="button"
+                type="button"
+                onClick={() => setIsTemplatesOpen((prev) => !prev)}
+                style={{ fontSize: "0.82rem" }}
               >
-                <input
-                  type="checkbox"
-                  checked={isOpenEnded}
-                  onChange={(e) => setIsOpenEnded(e.target.checked)}
-                />
-                {t("openEnded")}
-              </label>
-              {!isOpenEnded && (
-                <div className="form-grid">
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label htmlFor="eventDurationH">{t("durationH")}</label>
-                    <input
-                      id="eventDurationH"
-                      type="number"
-                      min="0"
-                      max="72"
-                      value={durationH}
-                      onChange={(e) => setDurationH(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label htmlFor="eventDurationM">{t("durationM")}</label>
-                    <input
-                      id="eventDurationM"
-                      type="number"
-                      min="0"
-                      max="59"
-                      step="5"
-                      value={durationM}
-                      onChange={(e) => setDurationM(e.target.value)}
-                    />
-                  </div>
+                {t("manageTemplates")} {isTemplatesOpen ? "▲" : "▼"}
+              </button>
+            </div>
+          )}
+
+          {isFormOpen && canManage && (
+            <section ref={eventFormRef} className="card" style={{ gridColumn: "1 / -1" }}>
+              <div className="card-header">
+                <div>
+                  <div className="card-title">{editingId ? t("editEvent") : t("createEvent")}</div>
+                  <div className="card-subtitle">{t("visibleToClan")}</div>
                 </div>
-              )}
-              {/* Organizer */}
-              <div className="form-group">
-                <label htmlFor="eventOrganizer">{t("organizer")}</label>
-                <input
-                  id="eventOrganizer"
-                  list="gameAccountsList"
-                  value={organizer}
-                  onChange={(e) => setOrganizer(e.target.value)}
-                  placeholder={t("organizerPlaceholder")}
-                />
-                <datalist id="gameAccountsList">
-                  {gameAccounts.map((ga) => (
-                    <option key={ga.id} value={ga.game_username} />
-                  ))}
-                </datalist>
               </div>
-              {/* Recurrence */}
-              <div className="form-grid">
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label htmlFor="eventRecurrence">{t("recurrence")}</label>
-                  <RadixSelect
-                    id="eventRecurrence"
-                    ariaLabel={t("recurrence")}
-                    value={recurrenceType}
-                    onValueChange={(v) => setRecurrenceType(v as RecurrenceType)}
-                    options={[
-                      { value: "none", label: t("recurrenceNone") },
-                      { value: "daily", label: t("recurrenceDaily") },
-                      { value: "weekly", label: t("recurrenceWeekly") },
-                      { value: "biweekly", label: t("recurrenceBiweekly") },
-                      { value: "monthly", label: t("recurrenceMonthly") },
-                    ]}
-                  />
-                </div>
-                {recurrenceType !== "none" && !recurrenceOngoing && (
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label htmlFor="eventRecurrenceEnd">{t("recurrenceEndDate")}</label>
-                    <input
-                      id="eventRecurrenceEnd"
-                      type="date"
-                      value={recurrenceEndDate}
-                      onChange={(e) => setRecurrenceEndDate(e.target.value)}
+              <form onSubmit={handleSubmit}>
+                {/* Template selector — only for new events */}
+                {!editingId && (
+                  <div className="form-group">
+                    <label htmlFor="eventTemplate">{t("templateLabel")}</label>
+                    <RadixSelect
+                      id="eventTemplate"
+                      ariaLabel={t("templateLabel")}
+                      value={selectedTemplate}
+                      onValueChange={applyTemplate}
+                      options={templateOptions}
                     />
                   </div>
                 )}
-              </div>
-              {recurrenceType !== "none" && (
+                <div className="form-group">
+                  <label htmlFor="eventTitle">{t("eventTitle")}</label>
+                  <input
+                    id="eventTitle"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={t("eventTitlePlaceholder")}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="eventDescription">{t("description")}</label>
+                  <textarea
+                    id="eventDescription"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder={t("descriptionPlaceholder")}
+                    rows={4}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="eventLocation">{t("locationOptional")}</label>
+                  <input
+                    id="eventLocation"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder={t("locationPlaceholder")}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="eventStartsAt">{t("dateAndTime")}</label>
+                  <DatePicker value={startsAt} onChange={setStartsAt} enableTime />
+                </div>
+                {/* Duration or open-ended */}
                 <label
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
                     fontSize: "0.82rem",
-                    marginTop: 8,
                     cursor: "pointer",
+                    marginBottom: 8,
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={recurrenceOngoing}
-                    onChange={(e) => {
-                      setRecurrenceOngoing(e.target.checked);
-                      if (e.target.checked) setRecurrenceEndDate("");
-                    }}
-                  />
-                  {t("recurrenceOngoing")}
+                  <input type="checkbox" checked={isOpenEnded} onChange={(e) => setIsOpenEnded(e.target.checked)} />
+                  {t("openEnded")}
                 </label>
-              )}
-              <div className="list inline" style={{ marginTop: 16, flexWrap: "wrap" }}>
-                <button className="button primary" type="submit" disabled={isSaving}>
-                  {isSaving ? t("saving") : editingId ? t("save") : t("createEvent")}
-                </button>
-                <button className="button" type="button" onClick={resetForm}>
-                  {t("cancel")}
-                </button>
-                <button
-                  className="button"
-                  type="button"
-                  onClick={handleSaveFormAsTemplate}
-                  disabled={isSavingTemplate}
-                  style={{ fontSize: "0.78rem" }}
-                >
-                  {isSavingTemplate ? t("saving") : t("saveAsTemplate")}
-                </button>
-                {editingId && (
-                  <button
-                    className="button danger"
-                    type="button"
-                    onClick={() => { requestDeleteEvent(editingId); resetForm(); }}
-                    style={{ marginLeft: "auto" }}
-                  >
-                    {t("deleteEvent")}
-                  </button>
+                {!isOpenEnded && (
+                  <div className="form-grid">
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label htmlFor="eventDurationH">{t("durationH")}</label>
+                      <input
+                        id="eventDurationH"
+                        type="number"
+                        min="0"
+                        max="72"
+                        value={durationH}
+                        onChange={(e) => setDurationH(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label htmlFor="eventDurationM">{t("durationM")}</label>
+                      <input
+                        id="eventDurationM"
+                        type="number"
+                        min="0"
+                        max="59"
+                        step="5"
+                        value={durationM}
+                        onChange={(e) => setDurationM(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 )}
-              </div>
-            </form>
-          </section>
-        )}
-
-        {/* ── Manage Templates panel (collapsible) ── */}
-        {canManage && isTemplatesOpen && (
-          <div className="card" style={{ gridColumn: "1 / -1" }}>
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("manageTemplates")}</div>
-              </div>
-            </div>
-            <div style={{ padding: "4px 18px 14px" }}>
-              {templates.length === 0 && (
-                <div className="text-muted" style={{ padding: "12px 0", fontSize: "0.85rem" }}>
-                  {t("noEvents")}
+                {/* Organizer */}
+                <div className="form-group">
+                  <label htmlFor="eventOrganizer">{t("organizer")}</label>
+                  <input
+                    id="eventOrganizer"
+                    list="gameAccountsList"
+                    value={organizer}
+                    onChange={(e) => setOrganizer(e.target.value)}
+                    placeholder={t("organizerPlaceholder")}
+                  />
+                  <datalist id="gameAccountsList">
+                    {gameAccounts.map((ga) => (
+                      <option key={ga.id} value={ga.game_username} />
+                    ))}
+                  </datalist>
                 </div>
-              )}
-              {templates.map((tpl) => {
-                const isEditing = editingTemplateId === tpl.id;
-                return (
-                  <div key={tpl.id} style={{ borderBottom: "1px solid rgba(45, 80, 115, 0.15)" }}>
-                    {isEditing ? (
-                      /* ── Inline edit form (mirrors event form) ── */
-                      <div style={{ padding: "10px 0", display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label style={{ fontSize: "0.72rem" }}>{t("eventTitle")}</label>
-                          <input
-                            value={editTplTitle}
-                            onChange={(e) => setEditTplTitle(e.target.value)}
-                            placeholder={t("eventTitlePlaceholder")}
-                          />
-                        </div>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label style={{ fontSize: "0.72rem" }}>{t("description")}</label>
-                          <textarea
-                            value={editTplDesc}
-                            onChange={(e) => setEditTplDesc(e.target.value)}
-                            placeholder={t("descriptionPlaceholder")}
-                            rows={2}
-                          />
-                        </div>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label style={{ fontSize: "0.72rem" }}>{t("locationOptional")}</label>
-                          <input
-                            value={editTplLocation}
-                            onChange={(e) => setEditTplLocation(e.target.value)}
-                            placeholder={t("locationPlaceholder")}
-                          />
-                        </div>
-                        {/* Duration / Open-ended */}
-                        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.82rem", cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            checked={editTplOpenEnded}
-                            onChange={(e) => setEditTplOpenEnded(e.target.checked)}
-                          />
-                          {t("openEnded")}
-                        </label>
-                        {!editTplOpenEnded && (
-                          <div className="form-grid" style={{ gap: 8 }}>
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                              <label style={{ fontSize: "0.72rem" }}>{t("durationH")}</label>
-                              <input
-                                type="number"
-                                min="0"
-                                max="72"
-                                value={editTplDurationH}
-                                onChange={(e) => setEditTplDurationH(e.target.value)}
-                              />
-                            </div>
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                              <label style={{ fontSize: "0.72rem" }}>{t("durationM")}</label>
-                              <input
-                                type="number"
-                                min="0"
-                                max="59"
-                                step="5"
-                                value={editTplDurationM}
-                                onChange={(e) => setEditTplDurationM(e.target.value)}
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {/* Organizer */}
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label style={{ fontSize: "0.72rem" }}>{t("organizer")}</label>
-                          <input
-                            list="gameAccountsList"
-                            value={editTplOrganizer}
-                            onChange={(e) => setEditTplOrganizer(e.target.value)}
-                            placeholder={t("organizerPlaceholder")}
-                          />
-                        </div>
-                        {/* Recurrence */}
-                        <div className="form-grid" style={{ gap: 8 }}>
+                {/* Recurrence */}
+                <div className="form-grid">
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label htmlFor="eventRecurrence">{t("recurrence")}</label>
+                    <RadixSelect
+                      id="eventRecurrence"
+                      ariaLabel={t("recurrence")}
+                      value={recurrenceType}
+                      onValueChange={(v) => setRecurrenceType(v as RecurrenceType)}
+                      options={[
+                        { value: "none", label: t("recurrenceNone") },
+                        { value: "daily", label: t("recurrenceDaily") },
+                        { value: "weekly", label: t("recurrenceWeekly") },
+                        { value: "biweekly", label: t("recurrenceBiweekly") },
+                        { value: "monthly", label: t("recurrenceMonthly") },
+                      ]}
+                    />
+                  </div>
+                  {recurrenceType !== "none" && !recurrenceOngoing && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label htmlFor="eventRecurrenceEnd">{t("recurrenceEndDate")}</label>
+                      <input
+                        id="eventRecurrenceEnd"
+                        type="date"
+                        value={recurrenceEndDate}
+                        onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+                {recurrenceType !== "none" && (
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontSize: "0.82rem",
+                      marginTop: 8,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={recurrenceOngoing}
+                      onChange={(e) => {
+                        setRecurrenceOngoing(e.target.checked);
+                        if (e.target.checked) setRecurrenceEndDate("");
+                      }}
+                    />
+                    {t("recurrenceOngoing")}
+                  </label>
+                )}
+                <div className="list inline" style={{ marginTop: 16, flexWrap: "wrap" }}>
+                  <button className="button primary" type="submit" disabled={isSaving}>
+                    {isSaving ? t("saving") : editingId ? t("save") : t("createEvent")}
+                  </button>
+                  <button className="button" type="button" onClick={resetForm}>
+                    {t("cancel")}
+                  </button>
+                  <button
+                    className="button"
+                    type="button"
+                    onClick={handleSaveFormAsTemplate}
+                    disabled={isSavingTemplate}
+                    style={{ fontSize: "0.78rem" }}
+                  >
+                    {isSavingTemplate ? t("saving") : t("saveAsTemplate")}
+                  </button>
+                  {editingId && (
+                    <button
+                      className="button danger"
+                      type="button"
+                      onClick={() => {
+                        requestDeleteEvent(editingId);
+                        resetForm();
+                      }}
+                      style={{ marginLeft: "auto" }}
+                    >
+                      {t("deleteEvent")}
+                    </button>
+                  )}
+                </div>
+              </form>
+            </section>
+          )}
+
+          {/* ── Manage Templates panel (collapsible) ── */}
+          {canManage && isTemplatesOpen && (
+            <div className="card" style={{ gridColumn: "1 / -1" }}>
+              <div className="card-header">
+                <div>
+                  <div className="card-title">{t("manageTemplates")}</div>
+                </div>
+              </div>
+              <div style={{ padding: "4px 18px 14px" }}>
+                {templates.length === 0 && (
+                  <div className="text-muted" style={{ padding: "12px 0", fontSize: "0.85rem" }}>
+                    {t("noEvents")}
+                  </div>
+                )}
+                {templates.map((tpl) => {
+                  const isEditing = editingTemplateId === tpl.id;
+                  return (
+                    <div key={tpl.id} style={{ borderBottom: "1px solid rgba(45, 80, 115, 0.15)" }}>
+                      {isEditing ? (
+                        /* ── Inline edit form (mirrors event form) ── */
+                        <div style={{ padding: "10px 0", display: "flex", flexDirection: "column", gap: 8 }}>
                           <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label style={{ fontSize: "0.72rem" }}>{t("recurrence")}</label>
-                            <RadixSelect
-                              id={`tplRecurrence-${tpl.id}`}
-                              ariaLabel={t("recurrence")}
-                              value={editTplRecurrence}
-                              onValueChange={(v) => setEditTplRecurrence(v as RecurrenceType)}
-                              options={[
-                                { value: "none", label: t("recurrenceNone") },
-                                { value: "daily", label: t("recurrenceDaily") },
-                                { value: "weekly", label: t("recurrenceWeekly") },
-                                { value: "biweekly", label: t("recurrenceBiweekly") },
-                                { value: "monthly", label: t("recurrenceMonthly") },
-                              ]}
+                            <label htmlFor={`tplTitle-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                              {t("eventTitle")}
+                            </label>
+                            <input
+                              id={`tplTitle-${tpl.id}`}
+                              value={editTplTitle}
+                              onChange={(e) => setEditTplTitle(e.target.value)}
+                              placeholder={t("eventTitlePlaceholder")}
                             />
                           </div>
-                          {editTplRecurrence !== "none" && !editTplRecurrenceOngoing && (
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                              <label style={{ fontSize: "0.72rem" }}>{t("recurrenceEndDate")}</label>
-                              <input
-                                type="date"
-                                value={editTplRecurrenceEnd}
-                                onChange={(e) => setEditTplRecurrenceEnd(e.target.value)}
-                              />
-                            </div>
-                          )}
-                        </div>
-                        {editTplRecurrence !== "none" && (
-                          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.82rem", cursor: "pointer" }}>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label htmlFor={`tplDesc-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                              {t("description")}
+                            </label>
+                            <textarea
+                              id={`tplDesc-${tpl.id}`}
+                              value={editTplDesc}
+                              onChange={(e) => setEditTplDesc(e.target.value)}
+                              placeholder={t("descriptionPlaceholder")}
+                              rows={2}
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label htmlFor={`tplLocation-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                              {t("locationOptional")}
+                            </label>
+                            <input
+                              id={`tplLocation-${tpl.id}`}
+                              value={editTplLocation}
+                              onChange={(e) => setEditTplLocation(e.target.value)}
+                              placeholder={t("locationPlaceholder")}
+                            />
+                          </div>
+                          {/* Duration / Open-ended */}
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              fontSize: "0.82rem",
+                              cursor: "pointer",
+                            }}
+                          >
                             <input
                               type="checkbox"
-                              checked={editTplRecurrenceOngoing}
-                              onChange={(e) => {
-                                setEditTplRecurrenceOngoing(e.target.checked);
-                                if (e.target.checked) setEditTplRecurrenceEnd("");
-                              }}
+                              checked={editTplOpenEnded}
+                              onChange={(e) => setEditTplOpenEnded(e.target.checked)}
                             />
-                            {t("recurrenceOngoing")}
+                            {t("openEnded")}
                           </label>
-                        )}
-                        {/* Actions */}
-                        <div className="list inline" style={{ marginTop: 4, flexWrap: "wrap" }}>
-                          <button
-                            className="button primary"
-                            type="button"
-                            onClick={handleSaveEditedTemplate}
-                            disabled={isSavingTemplate}
-                            style={{ padding: "5px 12px", fontSize: "0.78rem" }}
-                          >
-                            {isSavingTemplate ? t("saving") : t("saveTemplate")}
-                          </button>
+                          {!editTplOpenEnded && (
+                            <div className="form-grid" style={{ gap: 8 }}>
+                              <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label htmlFor={`tplDurationH-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                                  {t("durationH")}
+                                </label>
+                                <input
+                                  id={`tplDurationH-${tpl.id}`}
+                                  type="number"
+                                  min="0"
+                                  max="72"
+                                  value={editTplDurationH}
+                                  onChange={(e) => setEditTplDurationH(e.target.value)}
+                                />
+                              </div>
+                              <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label htmlFor={`tplDurationM-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                                  {t("durationM")}
+                                </label>
+                                <input
+                                  id={`tplDurationM-${tpl.id}`}
+                                  type="number"
+                                  min="0"
+                                  max="59"
+                                  step="5"
+                                  value={editTplDurationM}
+                                  onChange={(e) => setEditTplDurationM(e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {/* Organizer */}
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label htmlFor={`tplOrganizer-${tpl.id}`} style={{ fontSize: "0.72rem" }}>
+                              {t("organizer")}
+                            </label>
+                            <input
+                              id={`tplOrganizer-${tpl.id}`}
+                              list="gameAccountsList"
+                              value={editTplOrganizer}
+                              onChange={(e) => setEditTplOrganizer(e.target.value)}
+                              placeholder={t("organizerPlaceholder")}
+                            />
+                          </div>
+                          {/* Recurrence */}
+                          <div className="form-grid" style={{ gap: 8 }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label style={{ fontSize: "0.72rem" }}>{t("recurrence")}</label>
+                              <RadixSelect
+                                id={`tplRecurrence-${tpl.id}`}
+                                ariaLabel={t("recurrence")}
+                                value={editTplRecurrence}
+                                onValueChange={(v) => setEditTplRecurrence(v as RecurrenceType)}
+                                options={[
+                                  { value: "none", label: t("recurrenceNone") },
+                                  { value: "daily", label: t("recurrenceDaily") },
+                                  { value: "weekly", label: t("recurrenceWeekly") },
+                                  { value: "biweekly", label: t("recurrenceBiweekly") },
+                                  { value: "monthly", label: t("recurrenceMonthly") },
+                                ]}
+                              />
+                            </div>
+                            {editTplRecurrence !== "none" && !editTplRecurrenceOngoing && (
+                              <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label style={{ fontSize: "0.72rem" }}>{t("recurrenceEndDate")}</label>
+                                <input
+                                  type="date"
+                                  value={editTplRecurrenceEnd}
+                                  onChange={(e) => setEditTplRecurrenceEnd(e.target.value)}
+                                />
+                              </div>
+                            )}
+                          </div>
+                          {editTplRecurrence !== "none" && (
+                            <label
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                fontSize: "0.82rem",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={editTplRecurrenceOngoing}
+                                onChange={(e) => {
+                                  setEditTplRecurrenceOngoing(e.target.checked);
+                                  if (e.target.checked) setEditTplRecurrenceEnd("");
+                                }}
+                              />
+                              {t("recurrenceOngoing")}
+                            </label>
+                          )}
+                          {/* Actions */}
+                          <div className="list inline" style={{ marginTop: 4, flexWrap: "wrap" }}>
+                            <button
+                              className="button primary"
+                              type="button"
+                              onClick={handleSaveEditedTemplate}
+                              disabled={isSavingTemplate}
+                              style={{ padding: "5px 12px", fontSize: "0.78rem" }}
+                            >
+                              {isSavingTemplate ? t("saving") : t("saveTemplate")}
+                            </button>
+                            <button
+                              className="button"
+                              type="button"
+                              onClick={handleCancelEditTemplate}
+                              style={{ padding: "5px 12px", fontSize: "0.78rem" }}
+                            >
+                              {t("cancel")}
+                            </button>
+                            <button
+                              className="button danger"
+                              type="button"
+                              onClick={() => {
+                                handleCancelEditTemplate();
+                                requestDeleteTemplate(tpl.id, tpl.title);
+                              }}
+                              style={{ padding: "5px 12px", fontSize: "0.78rem", marginLeft: "auto" }}
+                            >
+                              {t("deleteTemplate")}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* ── Read-only row ── */
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "8px 0",
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: "0.88rem", fontWeight: 600 }}>{tpl.title}</div>
+                            <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginTop: 2 }}>
+                              {tpl.description && tpl.description.length > 80
+                                ? tpl.description.slice(0, 80) + "…"
+                                : tpl.description}
+                              {tpl.location && <> &bull; {tpl.location}</>} &bull;{" "}
+                              {tpl.is_open_ended || tpl.duration_hours <= 0
+                                ? t("openEnded")
+                                : formatDurationFromHours(tpl.duration_hours)}
+                              {tpl.organizer && <> &bull; {tpl.organizer}</>}
+                              {tpl.recurrence_type && tpl.recurrence_type !== "none" && (
+                                <>
+                                  {" "}
+                                  &bull;{" "}
+                                  {t(
+                                    `recurrence${tpl.recurrence_type.charAt(0).toUpperCase()}${tpl.recurrence_type.slice(1)}`,
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
                           <button
                             className="button"
                             type="button"
-                            onClick={handleCancelEditTemplate}
-                            style={{ padding: "5px 12px", fontSize: "0.78rem" }}
+                            onClick={() => handleStartEditTemplate(tpl)}
+                            style={{ padding: "4px 10px", fontSize: "0.75rem", flexShrink: 0 }}
                           >
-                            {t("cancel")}
-                          </button>
-                          <button
-                            className="button danger"
-                            type="button"
-                            onClick={() => { handleCancelEditTemplate(); requestDeleteTemplate(tpl.id, tpl.title); }}
-                            style={{ padding: "5px 12px", fontSize: "0.78rem", marginLeft: "auto" }}
-                          >
-                            {t("deleteTemplate")}
+                            {t("editEvent")}
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      /* ── Read-only row ── */
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "8px 0",
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "0.88rem", fontWeight: 600 }}>{tpl.title}</div>
-                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginTop: 2 }}>
-                            {tpl.description && tpl.description.length > 80 ? tpl.description.slice(0, 80) + "…" : tpl.description}
-                            {tpl.location && <> &bull; {tpl.location}</>}
-                            {" "}&bull; {(tpl.is_open_ended || tpl.duration_hours <= 0) ? t("openEnded") : formatDurationFromHours(tpl.duration_hours)}
-                            {tpl.organizer && <> &bull; {tpl.organizer}</>}
-                            {tpl.recurrence_type && tpl.recurrence_type !== "none" && <> &bull; {t(`recurrence${tpl.recurrence_type.charAt(0).toUpperCase()}${tpl.recurrence_type.slice(1)}`)}</>}
-                          </div>
-                        </div>
-                        <button
-                          className="button"
-                          type="button"
-                          onClick={() => handleStartEditTemplate(tpl)}
-                          style={{ padding: "4px 10px", fontSize: "0.75rem", flexShrink: 0 }}
-                        >
-                          {t("editEvent")}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Past events (collapsible) ── */}
-        {!isLoading && pastEvents.length > 0 && (
-          <>
-            <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 12 }}>
-              <span className="card-title" style={{ color: "var(--color-text-2)" }}>
-                {t("past")} ({pastEvents.length})
-              </span>
-              <button
-                className="button"
-                type="button"
-                onClick={() => setIsPastExpanded((prev) => !prev)}
-                style={{ padding: "6px 12px", fontSize: "0.8rem" }}
-              >
-                {isPastExpanded ? t("hide") : t("show")}
-              </button>
-            </div>
-            {isPastExpanded && pastEvents.map((entry) => renderEventCard(entry, true))}
-          </>
-        )}
-      </div>
+          {/* ── Past events (collapsible) ── */}
+          {!isLoading && pastEvents.length > 0 && (
+            <>
+              <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 12 }}>
+                <span className="card-title" style={{ color: "var(--color-text-2)" }}>
+                  {t("past")} ({pastEvents.length})
+                </span>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => setIsPastExpanded((prev) => !prev)}
+                  style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                >
+                  {isPastExpanded ? t("hide") : t("show")}
+                </button>
+              </div>
+              {isPastExpanded && pastEvents.map((entry) => renderEventCard(entry, true))}
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Event delete confirmation modal ── */}
@@ -1620,9 +1714,7 @@ function EventsClient(): JSX.Element {
               </div>
             </div>
             <div className="list">
-              <div className="alert danger">
-                {t("confirmDeleteEventMessage")}
-              </div>
+              <div className="alert danger">{t("confirmDeleteEventMessage")}</div>
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={confirmDeleteEvent}>
@@ -1648,9 +1740,7 @@ function EventsClient(): JSX.Element {
               </div>
             </div>
             <div className="list">
-              <div className="alert danger">
-                {t("confirmDeleteTemplateWarning", { name: deleteTemplateName })}
-              </div>
+              <div className="alert danger">{t("confirmDeleteTemplateWarning", { name: deleteTemplateName })}</div>
             </div>
             <div className="list inline">
               <button className="button danger" type="button" onClick={() => setIsDeleteTemplateStep2(true)}>
@@ -1675,9 +1765,7 @@ function EventsClient(): JSX.Element {
                 <div className="card-subtitle">{t("cannotBeUndone")}</div>
               </div>
             </div>
-            <div className="alert danger">
-              {t("confirmDeleteTemplateWarning", { name: deleteTemplateName })}
-            </div>
+            <div className="alert danger">{t("confirmDeleteTemplateWarning", { name: deleteTemplateName })}</div>
             <div className="form-group">
               <label htmlFor="deleteTemplateInput">{t("confirmDeleteTemplatePhrase")}</label>
               <input

@@ -1,0 +1,221 @@
+/**
+ * Shared types and utilities for the Admin panel.
+ *
+ * Extracted from admin-client.tsx to enable future tab splitting.
+ * Each tab component (e.g. admin-clans-tab.tsx) should import from here.
+ */
+
+import { ROLES } from "@/lib/permissions";
+
+/* ── Types ── */
+
+export interface ClanRow {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly is_unassigned?: boolean | null;
+}
+
+export interface GameAccountRow {
+  readonly id: string;
+  readonly user_id: string;
+  readonly game_username: string;
+  readonly approval_status?: string;
+}
+
+export interface MembershipRow {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly game_account_id: string;
+  readonly is_active: boolean;
+  readonly rank: string | null;
+  readonly game_accounts: GameAccountRow | null;
+}
+
+export type MembershipQueryRow = Omit<MembershipRow, "game_accounts"> & {
+  readonly game_accounts: GameAccountRow | readonly GameAccountRow[] | null;
+};
+
+export interface MembershipEditState {
+  readonly is_active?: boolean;
+  readonly rank?: string | null;
+  readonly clan_id?: string;
+}
+
+export interface GameAccountEditState {
+  readonly game_username?: string;
+}
+
+export interface AssignableGameAccount {
+  readonly id: string;
+  readonly user_id: string;
+  readonly game_username: string;
+  readonly clan_id: string | null;
+  readonly user_email: string;
+  readonly user_display: string;
+}
+
+export interface ProfileRow {
+  readonly id: string;
+  readonly email: string;
+  readonly display_name: string | null;
+  readonly username: string | null;
+}
+
+export interface PendingApprovalRow {
+  readonly id: string;
+  readonly user_id: string;
+  readonly game_username: string;
+  readonly approval_status: string;
+  readonly created_at: string;
+  readonly profiles: {
+    readonly email: string;
+    readonly username: string | null;
+    readonly display_name: string | null;
+  } | null;
+}
+
+export type MemberSortKey = "game" | "user" | "clan" | "rank" | "status";
+export type UserSortKey = "username" | "email" | "nickname" | "role" | "accounts";
+
+export interface UserRow {
+  readonly id: string;
+  readonly email: string;
+  readonly display_name: string | null;
+  readonly username: string | null;
+  readonly user_db: string | null;
+}
+
+export interface UserEditState {
+  readonly display_name?: string | null;
+  readonly username?: string | null;
+  readonly role?: string | null;
+}
+
+export interface RuleRow {
+  readonly id: string;
+  readonly field?: string;
+  readonly match_value?: string;
+  readonly replacement_value?: string;
+  readonly status?: string;
+  readonly chest_match?: string;
+  readonly source_match?: string;
+  readonly min_level?: number | null;
+  readonly max_level?: number | null;
+  readonly score?: number;
+  readonly rule_order?: number;
+}
+
+export interface ValidationFieldCount {
+  total: number;
+  active: number;
+}
+
+export interface AuditLogRow {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly actor_id: string;
+  readonly action: string;
+  readonly entity: string;
+  readonly entity_id: string;
+  readonly diff: Record<string, unknown> | null;
+  readonly created_at: string;
+}
+
+export type ValidationSortValue = "field" | "status" | "match_value";
+export type CorrectionSortValue = "field" | "match_value" | "replacement_value" | "status";
+export type ScoringSortValue = "rule_order" | "score" | "chest_match" | "source_match";
+
+export type AdminSection = "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum";
+
+/* ── Constants ── */
+
+export const roleOptions: readonly string[] = ROLES.filter((r) => r !== "guest");
+export const rankOptions: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier"];
+export const ruleFieldOptions: readonly string[] = ["player", "source", "chest", "clan"];
+export const correctionFieldOptions: readonly string[] = ["all", ...ruleFieldOptions];
+export const NEW_VALIDATION_ID = "validation-new";
+export const NEW_CORRECTION_ID = "correction-new";
+
+/* ── Utility functions ── */
+
+export function getValidationSortOptions(
+  t: (key: string) => string,
+): readonly { value: ValidationSortValue; label: string }[] {
+  return [
+    { value: "field", label: t("sortOptions.field") },
+    { value: "status", label: t("common.status") },
+    { value: "match_value", label: t("sortOptions.matchValue") },
+  ];
+}
+
+export function getCorrectionSortOptions(
+  t: (key: string) => string,
+): readonly { value: CorrectionSortValue; label: string }[] {
+  return [
+    { value: "field", label: t("sortOptions.field") },
+    { value: "match_value", label: t("sortOptions.matchValue") },
+    { value: "replacement_value", label: t("sortOptions.replacementValue") },
+    { value: "status", label: t("common.status") },
+  ];
+}
+
+export function getScoringSortOptions(
+  t: (key: string) => string,
+): readonly { value: ScoringSortValue; label: string }[] {
+  return [
+    { value: "rule_order", label: t("sortOptions.order") },
+    { value: "score", label: t("sortOptions.score") },
+    { value: "chest_match", label: t("sortOptions.chest") },
+    { value: "source_match", label: t("sortOptions.source") },
+  ];
+}
+
+/** Localised display names for ranks. */
+export const RANK_LABELS: Record<string, Record<string, string>> = {
+  de: { leader: "Anführer", superior: "Vorgesetzter", officer: "Offizier", veteran: "Veteran", soldier: "Soldat" },
+  en: { leader: "Leader", superior: "Superior", officer: "Officer", veteran: "Veteran", soldier: "Soldier" },
+};
+
+/** Localised display names for user roles. */
+export const ROLE_LABELS: Record<string, Record<string, string>> = {
+  de: { owner: "Eigentümer", admin: "Administrator", moderator: "Moderator", editor: "Editor", member: "Mitglied" },
+  en: { owner: "Owner", admin: "Admin", moderator: "Moderator", editor: "Editor", member: "Member" },
+};
+
+export function formatLabel(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+export function formatRank(rank: string, locale: string): string {
+  return RANK_LABELS[locale]?.[rank] ?? RANK_LABELS.en[rank] ?? formatLabel(rank);
+}
+
+export function formatRole(role: string, locale: string): string {
+  return ROLE_LABELS[locale]?.[role] ?? ROLE_LABELS.en[role] ?? formatLabel(role);
+}
+
+export function buildFallbackUserDb(email: string, userId: string): string {
+  const prefix = email.split("@")[0] || "user";
+  const suffix = userId.replace(/-/g, "").slice(-6);
+  return `${prefix}_${suffix}`.toLowerCase();
+}
+
+export function normalizeMembershipRow(row: MembershipQueryRow): MembershipRow {
+  const gameAccount = Array.isArray(row.game_accounts) ? (row.game_accounts[0] ?? null) : row.game_accounts;
+  return { ...row, game_accounts: gameAccount ?? null };
+}
+
+export function normalizeMembershipRows(
+  rows: readonly MembershipQueryRow[] | null | undefined,
+): readonly MembershipRow[] {
+  return (rows ?? []).map(normalizeMembershipRow);
+}
+
+export function resolveSection(raw: string | null): AdminSection {
+  if (!raw) return "clans";
+  if (raw === "rules") return "validation";
+  const valid: readonly AdminSection[] = ["clans", "validation", "corrections", "logs", "users", "approvals", "forum"];
+  return valid.includes(raw as AdminSection) ? (raw as AdminSection) : "clans";
+}

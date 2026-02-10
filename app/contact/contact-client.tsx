@@ -4,179 +4,161 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
-import PageTopBar from "../components/page-top-bar";
-import { LoadingSkeleton, ErrorBanner } from "../components/cms-shared";
+import CmsPageShell from "../components/cms-page-shell";
 
 function ContactClient(): JSX.Element {
   const t = useTranslations("contact");
   const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, saveField } = useSiteContent("contact");
 
-  if (!isLoaded) {
-    return (
-      <>
-        <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} />
-        <div className="content-inner">
-          <LoadingSkeleton rows={4} />
-        </div>
-      </>
-    );
-  }
-
   return (
-    <>
-      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} />
-      <div className="content-inner">
-        {error && <ErrorBanner message={error} />}
-        <div className="grid">
-          {/* ═══ Contact Methods ═══ */}
-          <section className="card col-span-2">
-            <div className="card-header">
-              <EditableText
-                as="h3"
-                className="card-title"
-                value={c("getInTouch", "title", t("getInTouchTitle"))}
-                valueEn={cEn("getInTouch", "title")}
-                canEdit={canEdit}
-                locale={locale}
-                singleLine
-                onSave={(de, en) => saveField("getInTouch", "title", de, en)}
-              />
-            </div>
-            <div className="card-body">
-              <EditableText
-                as="div"
-                value={c("getInTouch", "intro", t("introText"))}
-                valueEn={cEn("getInTouch", "intro")}
-                canEdit={canEdit}
-                locale={locale}
-                markdown
-                supabase={supabase}
-                userId={userId}
-                onSave={(de, en) => saveField("getInTouch", "intro", de, en)}
-              />
-              <EditableText
-                as="div"
-                value={c(
-                  "getInTouch",
-                  "methods",
-                  `**${t("discord")}**\n${t("discordDesc")}\n\n**${t("emailTitle")}**\n${t("emailDesc")}\n\n**${t("inGame")}**\n${t("inGameDesc")}`,
-                )}
-                valueEn={cEn("getInTouch", "methods")}
-                canEdit={canEdit}
-                locale={locale}
-                markdown
-                supabase={supabase}
-                userId={userId}
-                onSave={(de, en) => saveField("getInTouch", "methods", de, en)}
-              />
-            </div>
-          </section>
-
-          {/* ═══ Recruitment ═══ */}
-          <section className="card">
-            <div className="card-header">
-              <EditableText
-                as="h3"
-                className="card-title"
-                value={c("join", "title", t("joinTitle"))}
-                valueEn={cEn("join", "title")}
-                canEdit={canEdit}
-                locale={locale}
-                singleLine
-                onSave={(de, en) => saveField("join", "title", de, en)}
-              />
-            </div>
-            <div className="card-body">
-              <EditableText
-                as="div"
-                value={c("join", "text", t("joinText"))}
-                valueEn={cEn("join", "text")}
-                canEdit={canEdit}
-                locale={locale}
-                markdown
-                supabase={supabase}
-                userId={userId}
-                onSave={(de, en) => saveField("join", "text", de, en)}
-              />
-              <div className="flex gap-3 mt-4">
-                <Link className="button primary" href="/auth/register">
-                  {t("applyForMembership")}
-                </Link>
-                <Link className="button" href="/auth/login">
-                  {t("existingMemberSignIn")}
-                </Link>
-              </div>
-            </div>
-          </section>
-
-          {/* ═══ Response Times ═══ */}
-          <section className="card col-span-full">
-            <div className="card-header">
-              <EditableText
-                as="h3"
-                className="card-title"
-                value={c("response", "title", t("responseTitle"))}
-                valueEn={cEn("response", "title")}
-                canEdit={canEdit}
-                locale={locale}
-                singleLine
-                onSave={(de, en) => saveField("response", "title", de, en)}
-              />
-            </div>
-            <div className="card-body">
-              <EditableText
-                as="div"
-                value={c(
-                  "response",
-                  "text",
-                  `${t("responseIntro")}\n\n- ${t("responseDiscord")} — ${t("responseDiscordBadge")}\n- ${t("responseEmail")} — ${t("responseEmailBadge")}\n- ${t("responseRecruitment")} — ${t("responseRecruitmentBadge")}\n- ${t("responsePrivacy")} — ${t("responsePrivacyBadge")}`,
-                )}
-                valueEn={cEn("response", "text")}
-                canEdit={canEdit}
-                locale={locale}
-                markdown
-                supabase={supabase}
-                userId={userId}
-                onSave={(de, en) => saveField("response", "text", de, en)}
-              />
-            </div>
-          </section>
-
-          {/* ═══ FAQ ═══ */}
-          <section className="card col-span-full">
-            <div className="card-header">
-              <EditableText
-                as="h3"
-                className="card-title"
-                value={c("faq", "title", t("faqTitle"))}
-                valueEn={cEn("faq", "title")}
-                canEdit={canEdit}
-                locale={locale}
-                singleLine
-                onSave={(de, en) => saveField("faq", "title", de, en)}
-              />
-            </div>
-            <div className="card-body">
-              <EditableText
-                as="div"
-                value={c(
-                  "faq",
-                  "text",
-                  `**${t("faq1Question")}** ${t("faq1Start")} [${t("faq1Link")}](/auth/register). ${t("faq1End")}\n\n**${t("faq2Question")}** ${t("faq2Start")} [${t("faq2Link")}](/auth/forgot) ${t("faq2End")}\n\n**${t("faq3Question")}** ${t("faq3Start")} [${t("faq3AboutLink")}](/about) ${t("faq3Mid")} [${t("faq3HomeLink")}](/home).`,
-                )}
-                valueEn={cEn("faq", "text")}
-                canEdit={canEdit}
-                locale={locale}
-                markdown
-                supabase={supabase}
-                userId={userId}
-                onSave={(de, en) => saveField("faq", "text", de, en)}
-              />
-            </div>
-          </section>
+    <CmsPageShell breadcrumb={t("breadcrumb")} title={t("title")} isLoaded={isLoaded} error={error}>
+      {/* ═══ Contact Methods ═══ */}
+      <section className="card col-span-2">
+        <div className="card-header">
+          <EditableText
+            as="h3"
+            className="card-title"
+            value={c("getInTouch", "title", t("getInTouchTitle"))}
+            valueEn={cEn("getInTouch", "title")}
+            canEdit={canEdit}
+            locale={locale}
+            singleLine
+            onSave={(de, en) => saveField("getInTouch", "title", de, en)}
+          />
         </div>
-      </div>
-    </>
+        <div className="card-body">
+          <EditableText
+            as="div"
+            value={c("getInTouch", "intro", t("introText"))}
+            valueEn={cEn("getInTouch", "intro")}
+            canEdit={canEdit}
+            locale={locale}
+            markdown
+            supabase={supabase}
+            userId={userId}
+            onSave={(de, en) => saveField("getInTouch", "intro", de, en)}
+          />
+          <EditableText
+            as="div"
+            value={c(
+              "getInTouch",
+              "methods",
+              `**${t("discord")}**\n${t("discordDesc")}\n\n**${t("emailTitle")}**\n${t("emailDesc")}\n\n**${t("inGame")}**\n${t("inGameDesc")}`,
+            )}
+            valueEn={cEn("getInTouch", "methods")}
+            canEdit={canEdit}
+            locale={locale}
+            markdown
+            supabase={supabase}
+            userId={userId}
+            onSave={(de, en) => saveField("getInTouch", "methods", de, en)}
+          />
+        </div>
+      </section>
+
+      {/* ═══ Recruitment ═══ */}
+      <section className="card">
+        <div className="card-header">
+          <EditableText
+            as="h3"
+            className="card-title"
+            value={c("join", "title", t("joinTitle"))}
+            valueEn={cEn("join", "title")}
+            canEdit={canEdit}
+            locale={locale}
+            singleLine
+            onSave={(de, en) => saveField("join", "title", de, en)}
+          />
+        </div>
+        <div className="card-body">
+          <EditableText
+            as="div"
+            value={c("join", "text", t("joinText"))}
+            valueEn={cEn("join", "text")}
+            canEdit={canEdit}
+            locale={locale}
+            markdown
+            supabase={supabase}
+            userId={userId}
+            onSave={(de, en) => saveField("join", "text", de, en)}
+          />
+          <div className="flex gap-3 mt-4">
+            <Link className="button primary" href="/auth/register">
+              {t("applyForMembership")}
+            </Link>
+            <Link className="button" href="/auth/login">
+              {t("existingMemberSignIn")}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Response Times ═══ */}
+      <section className="card col-span-full">
+        <div className="card-header">
+          <EditableText
+            as="h3"
+            className="card-title"
+            value={c("response", "title", t("responseTitle"))}
+            valueEn={cEn("response", "title")}
+            canEdit={canEdit}
+            locale={locale}
+            singleLine
+            onSave={(de, en) => saveField("response", "title", de, en)}
+          />
+        </div>
+        <div className="card-body">
+          <EditableText
+            as="div"
+            value={c(
+              "response",
+              "text",
+              `${t("responseIntro")}\n\n- ${t("responseDiscord")} — ${t("responseDiscordBadge")}\n- ${t("responseEmail")} — ${t("responseEmailBadge")}\n- ${t("responseRecruitment")} — ${t("responseRecruitmentBadge")}\n- ${t("responsePrivacy")} — ${t("responsePrivacyBadge")}`,
+            )}
+            valueEn={cEn("response", "text")}
+            canEdit={canEdit}
+            locale={locale}
+            markdown
+            supabase={supabase}
+            userId={userId}
+            onSave={(de, en) => saveField("response", "text", de, en)}
+          />
+        </div>
+      </section>
+
+      {/* ═══ FAQ ═══ */}
+      <section className="card col-span-full">
+        <div className="card-header">
+          <EditableText
+            as="h3"
+            className="card-title"
+            value={c("faq", "title", t("faqTitle"))}
+            valueEn={cEn("faq", "title")}
+            canEdit={canEdit}
+            locale={locale}
+            singleLine
+            onSave={(de, en) => saveField("faq", "title", de, en)}
+          />
+        </div>
+        <div className="card-body">
+          <EditableText
+            as="div"
+            value={c(
+              "faq",
+              "text",
+              `**${t("faq1Question")}** ${t("faq1Start")} [${t("faq1Link")}](/auth/register). ${t("faq1End")}\n\n**${t("faq2Question")}** ${t("faq2Start")} [${t("faq2Link")}](/auth/forgot) ${t("faq2End")}\n\n**${t("faq3Question")}** ${t("faq3Start")} [${t("faq3AboutLink")}](/about) ${t("faq3Mid")} [${t("faq3HomeLink")}](/home).`,
+            )}
+            valueEn={cEn("faq", "text")}
+            canEdit={canEdit}
+            locale={locale}
+            markdown
+            supabase={supabase}
+            userId={userId}
+            onSave={(de, en) => saveField("faq", "text", de, en)}
+          />
+        </div>
+      </section>
+    </CmsPageShell>
   );
 }
 

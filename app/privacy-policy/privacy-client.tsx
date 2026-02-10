@@ -3,23 +3,11 @@
 import { useTranslations } from "next-intl";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
-import PageTopBar from "../components/page-top-bar";
-import { LoadingSkeleton, ErrorBanner } from "../components/cms-shared";
+import CmsPageShell from "../components/cms-page-shell";
 
 function PrivacyClient(): JSX.Element {
   const t = useTranslations("privacyPolicy");
   const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, saveField } = useSiteContent("privacy");
-
-  if (!isLoaded) {
-    return (
-      <>
-        <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} />
-        <div className="content-inner">
-          <LoadingSkeleton rows={4} />
-        </div>
-      </>
-    );
-  }
 
   /* Build fallback from translation keys — all sections as one markdown block */
   const fallbackContent = [
@@ -36,51 +24,45 @@ function PrivacyClient(): JSX.Element {
   ].join("\n\n");
 
   return (
-    <>
-      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} />
-      <div className="content-inner">
-        {error && <ErrorBanner message={error} />}
-        <div className="grid">
-          <section className="card col-span-full">
-            <div className="card-header">
-              <EditableText
-                as="h3"
-                className="card-title"
-                value={c("policy", "title", t("cardTitle"))}
-                valueEn={cEn("policy", "title")}
-                canEdit={canEdit}
-                locale={locale}
-                singleLine
-                onSave={(de, en) => saveField("policy", "title", de, en)}
-              />
-            </div>
-            <div className="card-body">
-              <EditableText
-                as="div"
-                className="card-text-muted"
-                value={c("policy", "byline", t("byline"))}
-                valueEn={cEn("policy", "byline")}
-                canEdit={canEdit}
-                locale={locale}
-                singleLine
-                onSave={(de, en) => saveField("policy", "byline", de, en)}
-              />
-              <EditableText
-                as="div"
-                value={c("policy", "content", fallbackContent)}
-                valueEn={cEn("policy", "content")}
-                canEdit={canEdit}
-                locale={locale}
-                markdown
-                supabase={supabase}
-                userId={userId}
-                onSave={(de, en) => saveField("policy", "content", de, en)}
-              />
-            </div>
-          </section>
+    <CmsPageShell breadcrumb={t("breadcrumb")} title={t("title")} isLoaded={isLoaded} error={error}>
+      <section className="card col-span-full">
+        <div className="card-header">
+          <EditableText
+            as="h3"
+            className="card-title"
+            value={c("policy", "title", t("cardTitle"))}
+            valueEn={cEn("policy", "title")}
+            canEdit={canEdit}
+            locale={locale}
+            singleLine
+            onSave={(de, en) => saveField("policy", "title", de, en)}
+          />
         </div>
-      </div>
-    </>
+        <div className="card-body">
+          <EditableText
+            as="div"
+            className="card-text-muted"
+            value={c("policy", "byline", t("byline"))}
+            valueEn={cEn("policy", "byline")}
+            canEdit={canEdit}
+            locale={locale}
+            singleLine
+            onSave={(de, en) => saveField("policy", "byline", de, en)}
+          />
+          <EditableText
+            as="div"
+            value={c("policy", "content", fallbackContent)}
+            valueEn={cEn("policy", "content")}
+            canEdit={canEdit}
+            locale={locale}
+            markdown
+            supabase={supabase}
+            userId={userId}
+            onSave={(de, en) => saveField("policy", "content", de, en)}
+          />
+        </div>
+      </section>
+    </CmsPageShell>
   );
 }
 

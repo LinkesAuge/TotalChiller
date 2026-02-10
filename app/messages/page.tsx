@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import createSupabaseServerClient from "../../lib/supabase/server-client";
 import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
+import PageSkeleton from "../components/page-skeleton";
 import SectionHero from "../components/section-hero";
 import MessagesClient from "./messages-client";
 
@@ -39,19 +40,7 @@ async function MessagesContent(): Promise<JSX.Element> {
  */
 function MessagesPage(): JSX.Element {
   return (
-    <Suspense
-      fallback={
-        <div className="content-inner">
-          <div className="grid">
-            <div className="col-span-full flex flex-col gap-4">
-              <div className="skeleton h-14 rounded-lg" />
-              <div className="skeleton h-[200px] rounded-lg" />
-              <div className="skeleton h-[120px] rounded-lg" />
-            </div>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageSkeleton />}>
       <MessagesContent />
     </Suspense>
   );

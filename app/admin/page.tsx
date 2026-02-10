@@ -5,6 +5,7 @@ import AdminClient from "./admin-client";
 import AuthActions from "../components/auth-actions";
 import AdminSectionBadge from "./admin-section-badge";
 import PageTopBar from "../components/page-top-bar";
+import PageSkeleton from "../components/page-skeleton";
 import SectionHero from "../components/section-hero";
 
 export const metadata: Metadata = {
@@ -44,19 +45,7 @@ async function AdminContent(): Promise<JSX.Element> {
  */
 function AdminPage(): JSX.Element {
   return (
-    <Suspense
-      fallback={
-        <div className="content-inner">
-          <div className="grid">
-            <div className="col-span-full flex flex-col gap-4">
-              <div className="skeleton h-14 rounded-lg" />
-              <div className="skeleton h-[200px] rounded-lg" />
-              <div className="skeleton h-[400px] rounded-lg" />
-            </div>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<PageSkeleton variant="admin" />}>
       <AdminContent />
     </Suspense>
   );

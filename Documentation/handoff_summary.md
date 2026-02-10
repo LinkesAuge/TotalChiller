@@ -412,31 +412,38 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 Comprehensive Playwright test suite covering all page functionality, organized by feature area.
 
-- **290 tests passing** (10 skipped) across 22 spec files in `tests/`.
-- **Shared auth helper** at `tests/helpers/auth.ts` — `loginAs(page, role)` logs in as one of 6 test users (owner, admin, moderator, editor, member, guest).
+- **~240 tests** across **27 spec files** in `tests/`, running on 4 browser projects (chromium, firefox, webkit, mobile-chrome).
+- **Pre-authenticated storageState**: `tests/auth.setup.ts` runs once before all projects, logging in as all 6 test roles and saving browser state to `tests/.auth/{role}.json`. Tests declare their role via `test.use({ storageState: storageStatePath("role") })` — no per-test login overhead.
+- **Auth helper** at `tests/helpers/auth.ts` — exports `storageStatePath(role)` (preferred), `loginAs(page, role)` (fallback for per-test role overrides), `TEST_USERS`, `TEST_PASSWORD`, `TestRole`.
 - **Test user setup**: `Documentation/test-user-setup.sql` — creates roles for the pre-provisioned test users.
 - **Design document**: `Documentation/plans/2026-02-09-test-suite-design.md`.
-- **Admin tests updated** for lazy-loaded tab architecture — uses Playwright's auto-retrying `toContainText` assertions with 15s timeouts to wait for `next/dynamic` chunks. Added tests for logs and forum tabs.
-- **Error path tests** verify API routes return proper JSON error responses (400/401) for invalid or unauthenticated requests.
+- **i18n-aware assertions**: All text assertions use regex alternation for German/English (`/erstellen|create/i`).
+- **Rate-limit tolerant**: API tests accept both expected status codes and 429 as valid responses.
+- **Lazy-load tolerant**: Admin tests use 10-15s timeouts for `next/dynamic` chunk loading.
 
-| Category                               | File                           | Auth  |
-| -------------------------------------- | ------------------------------ | ----- |
-| Smoke / page loads                     | `smoke.spec.ts`                | No    |
-| Auth forms                             | `auth.spec.ts`                 | No    |
-| Navigation / sidebar                   | `navigation.spec.ts`           | Mixed |
-| API contracts                          | `api-endpoints.spec.ts`        | No    |
-| CMS pages                              | `cms-pages.spec.ts`            | Mixed |
-| CMS API/components/responsive/markdown | `cms-*.spec.ts` (pre-existing) | No    |
-| News / Articles                        | `news.spec.ts`                 | Yes   |
-| Events / Calendar                      | `events.spec.ts`               | Yes   |
-| Forum                                  | `forum.spec.ts`                | Yes   |
-| Messages                               | `messages.spec.ts`             | Yes   |
-| Profile & Settings                     | `profile-settings.spec.ts`     | Yes   |
-| Charts                                 | `charts.spec.ts`               | Yes   |
-| Dashboard                              | `dashboard.spec.ts`            | Yes   |
-| Admin panel                            | `admin.spec.ts`                | Yes   |
-| Permissions unit                       | `permissions-unit.spec.ts`     | No    |
-| Role-based E2E                         | `roles-permissions.spec.ts`    | Yes   |
+| Category             | File(s)                     | Tests | Auth  |
+| -------------------- | --------------------------- | ----- | ----- |
+| Smoke / page loads   | `smoke.spec.ts`             | 3     | No    |
+| Auth forms           | `auth.spec.ts`              | 11    | No    |
+| Navigation / sidebar | `navigation.spec.ts`        | 6     | Mixed |
+| API contracts        | `api-endpoints.spec.ts`     | 18    | No    |
+| CMS (5 files)        | `cms-*.spec.ts`             | 36    | Mixed |
+| News / Articles      | `news.spec.ts`              | 6     | Yes   |
+| Events / Calendar    | `events.spec.ts`            | 6     | Yes   |
+| Forum                | `forum.spec.ts`             | 7     | Yes   |
+| Messages             | `messages.spec.ts`          | 6     | Yes   |
+| Profile & Settings   | `profile-settings.spec.ts`  | 13    | Yes   |
+| Charts               | `charts.spec.ts`            | 6     | Yes   |
+| Dashboard            | `dashboard.spec.ts`         | 3     | Yes   |
+| Admin panel          | `admin.spec.ts`             | 17    | Yes   |
+| Admin actions        | `admin-actions.spec.ts`     | 6     | Yes   |
+| CRUD flows           | `crud-flows.spec.ts`        | 16    | Yes   |
+| Data workflows       | `data-workflows.spec.ts`    | 10    | Yes   |
+| Notifications        | `notifications.spec.ts`     | 6     | Yes   |
+| i18n                 | `i18n.spec.ts`              | 5     | Yes   |
+| Accessibility        | `accessibility.spec.ts`     | 2     | Yes   |
+| Permissions unit     | `permissions-unit.spec.ts`  | 34    | No    |
+| Role-based E2E       | `roles-permissions.spec.ts` | 17    | Yes   |
 
 Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
 
@@ -446,30 +453,62 @@ Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
    - Add personal/clan stats summary cards to the member dashboard.
 2. **Member directory page**
    - Implement member directory with search, filter by clan/rank.
-3. **Website improvement plan**
-   - See `Documentation/plans/2026-02-07-website-improvement-plan.md` for SEO, security, accessibility, and legal compliance improvements.
-   - Batch 2 (Image optimization) and Batch 3 (Security hardening) are partially implemented — `next/image` migration, CSP headers, API rate limiting, Sentry error monitoring, Zod input validation are done.
-   - Remaining: SEO metadata (Batch 1), CAPTCHA (Batch 3b), E-E-A-T & Legal (Batch 5), UI/UX polish (Batch 6).
+3. **SEO content expansion**
+   - Increase word count on thin public pages (home, about, contact) if SEO ranking matters.
 
 ## Completed (Feb 2026)
 
 - **Admin panel architecture refactoring** — monolithic 6,286-line `admin-client.tsx` refactored into modular architecture with shared hooks, components, context, and lazy-loaded tabs. See "Admin UI" section above for full file listing.
 - **Proxy API route fix** — API routes no longer get redirected to `/home` for unauthenticated requests; each route returns proper JSON errors. Fixed duplicate variable declaration in `create-user/route.ts`.
-- **Website improvement plan — partial implementation**:
-  - API rate limiting (sliding-window, strict/standard/relaxed tiers) — `lib/rate-limit.ts`
-  - Zod input validation on all API routes
-  - Sentry error monitoring (client, server, edge) — `sentry.*.config.ts`
-  - `next/image` migration for decorative images across 18+ pages
-  - Content-Security-Policy headers in `next.config.js`
-  - `@next/bundle-analyzer` integration
-  - Custom error page (`app/error.tsx`) and 404 page (`app/not-found.tsx`)
-  - Route-level loading UI (`app/loading.tsx`)
-  - React Suspense streaming for admin, profile, messages pages
-  - Stricter TypeScript (`strict: true` in `tsconfig.json`)
-  - Developer tooling: Prettier, Husky pre-commit hooks, lint-staged, GitHub Actions CI
-  - Playwright E2E test suite (290 tests passing across 22 spec files)
-  - Accessibility tests with `@axe-core/playwright`
-  - Internationalization of hardcoded German strings in `editable-text.tsx` and `editable-list.tsx`
+- **Comprehensive website audit** (Feb 2026) — Full audit covering security, architecture, SEO, accessibility, legal compliance, UI/UX, and code quality. Production audit score: 84/100 (B), up from 68/100.
+  - **Security hardening**:
+    - API rate limiting (sliding-window, strict/standard/relaxed tiers) — `lib/rate-limit.ts`
+    - Zod input validation on all API routes
+    - Cloudflare Turnstile CAPTCHA on login, register, forgot password, and contact forms (`@marsidev/react-turnstile`)
+    - Sentry error monitoring with PII filtering (client, server, edge) — `sentry.*.config.ts`
+    - Content-Security-Policy headers in `next.config.js`
+  - **Architecture improvements**:
+    - Component extraction, shared layouts, domain types consolidation
+    - Server/client component splitting, Supabase client deduplication
+    - Tailwind CSS v4 migration (`@tailwindcss/postcss`, `@theme` directive)
+  - **SEO & metadata**:
+    - `metadataBase`, `alternates.canonical`, Open Graph, Twitter Cards on all pages
+    - JSON-LD structured data (WebSite + Organization schemas) in `app/layout.tsx`
+    - Dynamic `generateMetadata` for locale-aware titles/descriptions
+    - `sitemap.ts` and `robots.ts` generation
+  - **E-E-A-T & legal compliance**:
+    - Impressum (legal notice) page with required German business disclosures
+    - Cookie consent banner with granular category toggles (essential, analytics, functional)
+    - Privacy policy updated with GDPR-compliant sections (data retention, rights, DPO contact)
+    - Trust signals: "Über uns" section, team credentials, data handling transparency
+  - **UI/UX polish**:
+    - Animated sidebar collapse/expand transitions (CSS transitions on width, opacity, max-height)
+    - Mobile hamburger menu with overlay
+    - Skeleton loading states on all authenticated pages
+    - Focus-visible outlines for keyboard navigation (gold ring)
+    - Scroll-to-top button on long pages
+    - Toast notification animations (slide-in/fade-out)
+    - Empty states with illustrations for forum, messages, notifications
+    - Form field validation with inline error messages and focus management
+  - **Code quality & testing**:
+    - Playwright E2E test suite: ~240 tests across 27 spec files
+    - Pre-authenticated storageState pattern (6 roles, `auth.setup.ts`)
+    - Accessibility tests with `@axe-core/playwright`
+    - i18n tests for language switching and cookie handling
+    - CRUD flow tests, data workflow tests, notification tests
+    - Stricter TypeScript (`strict: true`, `noUncheckedIndexedAccess: true`)
+    - Stricter ESLint (`no-explicit-any`, `no-unused-vars`, `jsx-a11y/*`, `react/jsx-no-target-blank`)
+    - `next/image` migration and image optimization (Sharp compression)
+    - `@next/bundle-analyzer` integration
+    - Custom error page (`app/error.tsx`) and 404 page (`app/not-found.tsx`)
+    - Route-level loading UI (`app/loading.tsx`)
+    - React Suspense streaming for admin, profile, messages pages
+    - Developer tooling: Prettier, Husky pre-commit hooks, lint-staged, GitHub Actions CI
+    - Internationalization of hardcoded strings across CMS toolbar, dashboard hero, error banners
+  - **Performance**:
+    - LCP preload hints for hero images (logo, header, sidebar texture, decorative divider)
+    - `priority` prop on above-fold `next/image` components
+    - Image compression (logo: 2MB → 133KB via Sharp)
 
 ## Known Behaviors
 

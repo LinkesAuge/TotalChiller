@@ -17,12 +17,7 @@
  * They do NOT test RLS policies (that requires direct database assertions).
  */
 import { test, expect, type Page } from "@playwright/test";
-import { loginAs as sharedLoginAs, TEST_USERS, type TestRole } from "./helpers/auth";
-
-/* Re-export shared loginAs with the same call signature used in this file */
-async function loginAs(page: Page, role: TestRole): Promise<void> {
-  await sharedLoginAs(page, role);
-}
+import { storageStatePath } from "./helpers/auth";
 
 /* ── Helper: check if admin panel is accessible ── */
 
@@ -39,124 +34,150 @@ async function canAccessAdminPanel(page: Page): Promise<boolean> {
 /* ================================================================== */
 
 test.describe("Role-based access: Admin panel", () => {
-  test("owner can access /admin", async ({ page }) => {
-    await loginAs(page, "owner");
-    const hasAccess = await canAccessAdminPanel(page);
-    expect(hasAccess).toBe(true);
+  test.describe("owner", () => {
+    test.use({ storageState: storageStatePath("owner") });
+    test("owner can access /admin", async ({ page }) => {
+      const hasAccess = await canAccessAdminPanel(page);
+      expect(hasAccess).toBe(true);
+    });
   });
 
-  test("admin can access /admin", async ({ page }) => {
-    await loginAs(page, "admin");
-    const hasAccess = await canAccessAdminPanel(page);
-    expect(hasAccess).toBe(true);
+  test.describe("admin", () => {
+    test.use({ storageState: storageStatePath("admin") });
+    test("admin can access /admin", async ({ page }) => {
+      const hasAccess = await canAccessAdminPanel(page);
+      expect(hasAccess).toBe(true);
+    });
   });
 
-  test("moderator is redirected from /admin", async ({ page }) => {
-    await loginAs(page, "moderator");
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-    /* Proxy should redirect non-admin roles */
-    const url = page.url();
-    expect(url).not.toContain("/admin");
+  test.describe("moderator", () => {
+    test.use({ storageState: storageStatePath("moderator") });
+    test("moderator is redirected from /admin", async ({ page }) => {
+      await page.goto("/admin");
+      await page.waitForLoadState("networkidle");
+      /* Proxy should redirect non-admin roles */
+      const url = page.url();
+      expect(url).not.toContain("/admin");
+    });
   });
 
-  test("editor is redirected from /admin", async ({ page }) => {
-    await loginAs(page, "editor");
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-    const url = page.url();
-    expect(url).not.toContain("/admin");
+  test.describe("editor", () => {
+    test.use({ storageState: storageStatePath("editor") });
+    test("editor is redirected from /admin", async ({ page }) => {
+      await page.goto("/admin");
+      await page.waitForLoadState("networkidle");
+      const url = page.url();
+      expect(url).not.toContain("/admin");
+    });
   });
 
-  test("member is redirected from /admin", async ({ page }) => {
-    await loginAs(page, "member");
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-    const url = page.url();
-    expect(url).not.toContain("/admin");
+  test.describe("member", () => {
+    test.use({ storageState: storageStatePath("member") });
+    test("member is redirected from /admin", async ({ page }) => {
+      await page.goto("/admin");
+      await page.waitForLoadState("networkidle");
+      const url = page.url();
+      expect(url).not.toContain("/admin");
+    });
   });
 
-  test("guest is redirected from /admin", async ({ page }) => {
-    await loginAs(page, "guest");
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-    const url = page.url();
-    expect(url).not.toContain("/admin");
+  test.describe("guest", () => {
+    test.use({ storageState: storageStatePath("guest") });
+    test("guest is redirected from /admin", async ({ page }) => {
+      await page.goto("/admin");
+      await page.waitForLoadState("networkidle");
+      const url = page.url();
+      expect(url).not.toContain("/admin");
+    });
   });
 });
 
 test.describe("Role-based access: Content management buttons", () => {
-  test("owner sees create article button or no-clan message on /news", async ({ page }) => {
-    await loginAs(page, "owner");
-    await page.goto("/news");
-    await page.waitForLoadState("networkidle");
-    /* Wait for page content to render */
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
-    expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
+  test.describe("owner", () => {
+    test.use({ storageState: storageStatePath("owner") });
+    test("owner sees create article button or no-clan message on /news", async ({ page }) => {
+      await page.goto("/news");
+      await page.waitForLoadState("networkidle");
+      /* Wait for page content to render */
+      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
+      const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+      expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
+    });
   });
 
-  test("moderator sees create article button or no-clan message on /news", async ({ page }) => {
-    await loginAs(page, "moderator");
-    await page.goto("/news");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
-    expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
+  test.describe("moderator", () => {
+    test.use({ storageState: storageStatePath("moderator") });
+    test("moderator sees create article button or no-clan message on /news", async ({ page }) => {
+      await page.goto("/news");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
+      const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+      expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
+    });
   });
 
-  test("guest does NOT see create article button on /news", async ({ page }) => {
-    await loginAs(page, "guest");
-    await page.goto("/news");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
-    expect(await createBtn.count()).toBe(0);
+  test.describe("guest", () => {
+    test.use({ storageState: storageStatePath("guest") });
+    test("guest does NOT see create article button on /news", async ({ page }) => {
+      await page.goto("/news");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
+      expect(await createBtn.count()).toBe(0);
+    });
   });
 });
 
 test.describe("Role-based access: Event management", () => {
-  test("editor sees create event button or no-clan message on /events", async ({ page }) => {
-    await loginAs(page, "editor");
-    await page.goto("/events");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
-    expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
+  test.describe("editor", () => {
+    test.use({ storageState: storageStatePath("editor") });
+    test("editor sees create event button or no-clan message on /events", async ({ page }) => {
+      await page.goto("/events");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
+      const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+      expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
+    });
   });
 
-  test("member does NOT see create event button on /events", async ({ page }) => {
-    await loginAs(page, "member");
-    await page.goto("/events");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
-    expect(await createBtn.count()).toBe(0);
+  test.describe("member", () => {
+    test.use({ storageState: storageStatePath("member") });
+    test("member does NOT see create event button on /events", async ({ page }) => {
+      await page.goto("/events");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
+      expect(await createBtn.count()).toBe(0);
+    });
   });
 });
 
 test.describe("Role-based access: Profile page", () => {
-  test("guest can access /profile", async ({ page }) => {
-    await loginAs(page, "guest");
-    await page.goto("/profile");
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/profile");
+  test.describe("guest", () => {
+    test.use({ storageState: storageStatePath("guest") });
+    test("guest can access /profile", async ({ page }) => {
+      await page.goto("/profile");
+      await page.waitForLoadState("networkidle");
+      expect(page.url()).toContain("/profile");
+    });
   });
 
-  test("member can access /profile", async ({ page }) => {
-    await loginAs(page, "member");
-    await page.goto("/profile");
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/profile");
+  test.describe("member", () => {
+    test.use({ storageState: storageStatePath("member") });
+    test("member can access /profile", async ({ page }) => {
+      await page.goto("/profile");
+      await page.waitForLoadState("networkidle");
+      expect(page.url()).toContain("/profile");
+    });
   });
 });
 
 test.describe("Role-based access: Broadcast messages", () => {
+  test.use({ storageState: storageStatePath("moderator") });
   test("moderator sees broadcast option in messages", async ({ page }) => {
-    await loginAs(page, "moderator");
     await page.goto("/messages");
     await page.waitForLoadState("networkidle");
     /* Check for clan broadcast selector or broadcast UI */

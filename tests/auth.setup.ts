@@ -14,7 +14,7 @@ import path from "path";
 
 const AUTH_DIR = path.join(__dirname, ".auth");
 
-const ROLES_TO_SETUP: TestRole[] = ["member", "admin", "editor", "moderator"];
+const ROLES_TO_SETUP: TestRole[] = ["member", "admin", "editor", "moderator", "owner", "guest"];
 
 for (const role of ROLES_TO_SETUP) {
   setup(`authenticate as ${role}`, async ({ page }) => {

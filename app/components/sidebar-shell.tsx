@@ -273,6 +273,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
             alt="Gold scepter divider"
             width={200}
             height={12}
+            priority
             style={{ width: isOpen ? "85%" : 38 }}
           />
         </div>

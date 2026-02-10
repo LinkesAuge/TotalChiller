@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
 
 /**
  * CMS Pages tests — home, about, contact, privacy policy.
@@ -40,9 +40,10 @@ test.describe("CMS Pages: Public rendering", () => {
 /* ── Admin editing ── */
 
 test.describe("CMS Pages: Admin edit controls", () => {
+  test.use({ storageState: storageStatePath("admin") });
+
   for (const { path, name } of CMS_PAGES) {
     test(`${name} shows edit buttons for admin`, async ({ page }) => {
-      await loginAs(page, "admin");
       await page.goto(path);
       await page.waitForLoadState("networkidle");
       await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -52,9 +53,12 @@ test.describe("CMS Pages: Admin edit controls", () => {
       expect(await editBtns.count()).toBeGreaterThan(0);
     });
   }
+});
+
+test.describe("CMS Pages: Member edit controls", () => {
+  test.use({ storageState: storageStatePath("member") });
 
   test("member does NOT see edit buttons on /home", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/home");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });

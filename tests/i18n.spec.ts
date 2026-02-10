@@ -1,10 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
 
 /**
  * i18n / Language switching tests.
  * Verifies that the language selector works and content updates accordingly.
  */
+
+test.use({ storageState: storageStatePath("member") });
 
 test.describe("i18n: Language switching", () => {
   test("language selector is visible on public pages", async ({ page }) => {
@@ -46,7 +48,6 @@ test.describe("i18n: Language switching", () => {
   });
 
   test("sidebar compact language toggle works for authenticated user", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
 

@@ -1,13 +1,14 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
 
 /**
  * Data Import and Data Table workflow tests.
  */
 
 test.describe("Data Import: Page structure", () => {
+  test.use({ storageState: storageStatePath("admin") });
+
   test("data import page shows upload area", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-import");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -18,7 +19,6 @@ test.describe("Data Import: Page structure", () => {
   });
 
   test("data import page has filter toggle", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-import");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -29,7 +29,6 @@ test.describe("Data Import: Page structure", () => {
   });
 
   test("data import accepts CSV file", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-import");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -46,15 +45,15 @@ test.describe("Data Import: Page structure", () => {
 });
 
 test.describe("Data Table: Page structure", () => {
+  test.use({ storageState: storageStatePath("admin") });
+
   test("data table page loads with content", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-table");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
   });
 
   test("data table has filter controls", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-table");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -65,7 +64,6 @@ test.describe("Data Table: Page structure", () => {
   });
 
   test("data table has pagination controls", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-table");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -76,7 +74,6 @@ test.describe("Data Table: Page structure", () => {
   });
 
   test("data table shows table or empty state", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-table");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -89,8 +86,9 @@ test.describe("Data Table: Page structure", () => {
 });
 
 test.describe("Data Table: Batch actions", () => {
+  test.use({ storageState: storageStatePath("admin") });
+
   test("batch action buttons exist", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-table");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -105,8 +103,9 @@ test.describe("Data Table: Batch actions", () => {
 });
 
 test.describe("Data Import/Table: Access control", () => {
+  test.use({ storageState: storageStatePath("member") });
+
   test("member cannot access data import", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/admin/data-import");
     await page.waitForLoadState("networkidle");
 
@@ -115,7 +114,6 @@ test.describe("Data Import/Table: Access control", () => {
   });
 
   test("member cannot access data table", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/admin/data-table");
     await page.waitForLoadState("networkidle");
 

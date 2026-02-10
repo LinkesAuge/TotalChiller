@@ -1,20 +1,19 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
 
 /**
  * Events page tests — calendar, create, templates.
  */
 
 test.describe("Events: Page loading", () => {
+  test.use({ storageState: storageStatePath("member") });
   test("events page loads for authenticated member", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/events");
   });
 
   test("events page shows calendar or event list", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
 
@@ -24,8 +23,8 @@ test.describe("Events: Page loading", () => {
 });
 
 test.describe("Events: Calendar navigation", () => {
+  test.use({ storageState: storageStatePath("member") });
   test("has month navigation buttons", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
 
@@ -35,9 +34,9 @@ test.describe("Events: Calendar navigation", () => {
   });
 });
 
-test.describe("Events: Content manager features", () => {
+test.describe("Events: Content manager features (editor)", () => {
+  test.use({ storageState: storageStatePath("editor") });
   test("editor sees create event button or no-clan message", async ({ page }) => {
-    await loginAs(page, "editor");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -48,9 +47,11 @@ test.describe("Events: Content manager features", () => {
     const hasExpected = (await createBtn.count()) > 0 || (await noClanMsg.count()) > 0;
     expect(hasExpected).toBe(true);
   });
+});
 
+test.describe("Events: Content manager features (member)", () => {
+  test.use({ storageState: storageStatePath("member") });
   test("member does NOT see create event button", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -61,8 +62,8 @@ test.describe("Events: Content manager features", () => {
 });
 
 test.describe("Events: Event form", () => {
+  test.use({ storageState: storageStatePath("editor") });
   test("clicking create opens event form with fields", async ({ page }) => {
-    await loginAs(page, "editor");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
 

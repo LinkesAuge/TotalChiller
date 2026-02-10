@@ -18,47 +18,91 @@ npx playwright test
 
 # Run specific test file for the area you changed
 npx playwright test tests/<area>.spec.ts
+
+# Run in Chromium only (fastest for dev)
+npx playwright test --project=chromium
 ```
+
+## Authentication in Tests
+
+### Preferred: storageState (fast, no login per test)
+
+Tests use pre-authenticated browser state from `tests/auth.setup.ts`. The setup project runs once before all test projects, saving cookies + localStorage for each of the 6 test roles to `tests/.auth/{role}.json`.
+
+```typescript
+import { storageStatePath } from "./helpers/auth";
+
+// File-level: all tests run as this role
+test.use({ storageState: storageStatePath("member") });
+
+// Or describe-level: different roles per describe block
+test.describe("Admin features", () => {
+  test.use({ storageState: storageStatePath("admin") });
+  test("can see admin tabs", async ({ page }) => {
+    await page.goto("/admin");
+    // ...
+  });
+});
+```
+
+### Fallback: loginAs (only for per-test role overrides)
+
+Use `loginAs(page, role)` only when a single test needs a different role than the parent describe's storageState:
+
+```typescript
+import { loginAs, storageStatePath } from "./helpers/auth";
+
+test.use({ storageState: storageStatePath("member") }); // file default
+
+test.describe("Admin-only field", () => {
+  test("admin can edit username", async ({ page }) => {
+    await loginAs(page, "admin"); // override for this one test
+    await page.goto("/profile");
+    // ...
+  });
+});
+```
+
+### Available roles
+
+`owner`, `admin`, `moderator`, `editor`, `member`, `guest` — all use password `TestPassword123!`.
 
 ## Test File Map — Which Tests Cover Which Features
 
-| If you changed... | Run this test file |
-|---|---|
-| `app/auth/**` | `tests/auth.spec.ts` |
-| `app/news/**` | `tests/news.spec.ts` |
-| `app/events/**` | `tests/events.spec.ts` |
-| `app/forum/**` | `tests/forum.spec.ts` |
-| `app/messages/**` | `tests/messages.spec.ts` |
-| `app/profile/**`, `app/settings/**` | `tests/profile-settings.spec.ts` |
-| `app/charts/**` | `tests/charts.spec.ts` |
-| `app/admin/**` | `tests/admin.spec.ts` |
-| `app/home/**`, `app/about/**`, `app/contact/**`, `app/privacy-policy/**` | `tests/cms-pages.spec.ts` |
-| `app/api/**` | `tests/api-endpoints.spec.ts` |
-| `app/components/sidebar-*` | `tests/navigation.spec.ts` |
-| `lib/permissions.ts` | `tests/permissions-unit.spec.ts` |
-| Any page layout or routing | `tests/smoke.spec.ts` |
-| CMS content components | `tests/cms-api.spec.ts`, `tests/cms-components.spec.ts`, `tests/cms-public-view.spec.ts` |
-
-## Test Users
-
-Six test users exist in Supabase for authenticated E2E tests (all use password `TestPassword123!`):
-
-- `test-owner@example.com` → owner
-- `test-admin@example.com` → admin
-- `test-mod@example.com` → moderator
-- `test-editor@example.com` → editor
-- `test-member@example.com` → member
-- `test-guest@example.com` → guest
-
-Login helper: `tests/helpers/auth.ts` → `loginAs(page, "member")`
+| If you changed...                                                        | Run this test file                                                       |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `app/auth/**`                                                            | `tests/auth.spec.ts`                                                     |
+| `app/news/**`                                                            | `tests/news.spec.ts`, `tests/crud-flows.spec.ts`                        |
+| `app/events/**`                                                          | `tests/events.spec.ts`, `tests/crud-flows.spec.ts`                      |
+| `app/forum/**`                                                           | `tests/forum.spec.ts`, `tests/crud-flows.spec.ts`                       |
+| `app/messages/**`                                                        | `tests/messages.spec.ts`, `tests/crud-flows.spec.ts`                    |
+| `app/profile/**`, `app/settings/**`                                      | `tests/profile-settings.spec.ts`                                         |
+| `app/charts/**`                                                          | `tests/charts.spec.ts`                                                   |
+| `app/admin/**`                                                           | `tests/admin.spec.ts`, `tests/admin-actions.spec.ts`                    |
+| `app/data-import/**`, `app/data-table/**`                                | `tests/data-workflows.spec.ts`                                           |
+| `app/home/**`, `app/about/**`, `app/contact/**`, `app/privacy-policy/**` | `tests/cms-pages.spec.ts`                                                |
+| `app/api/**`                                                             | `tests/api-endpoints.spec.ts`, `tests/cms-api.spec.ts`                  |
+| `app/components/sidebar-*`                                               | `tests/navigation.spec.ts`                                               |
+| `app/components/notification-bell*`                                      | `tests/notifications.spec.ts`                                             |
+| `lib/permissions.ts`                                                     | `tests/permissions-unit.spec.ts`, `tests/roles-permissions.spec.ts`     |
+| i18n keys (`messages/*.json`)                                            | `tests/i18n.spec.ts`                                                     |
+| Any page layout or routing                                               | `tests/smoke.spec.ts`                                                    |
+| CMS content components                                                   | `tests/cms-api.spec.ts`, `tests/cms-components.spec.ts`, `tests/cms-public-view.spec.ts` |
+| Accessibility / ARIA                                                     | `tests/accessibility.spec.ts`                                             |
 
 ## When Adding New Features
 
 1. Create a new spec file in `tests/` or add tests to the relevant existing file.
-2. Use the shared `loginAs()` helper from `tests/helpers/auth.ts` for authenticated tests.
-3. Follow existing patterns: use `page.waitForLoadState("networkidle")` after navigation, use `.first()` for ambiguous selectors, check both German and English text with regex alternation (`/erstellen|create/i`).
-4. Tests must be parallel-safe — never mutate shared state.
-5. Run the full suite before marking work as complete.
+2. Use `test.use({ storageState: storageStatePath("role") })` for authentication (prefer over `loginAs`).
+3. If a describe block needs a different role, nest it with its own `test.use()` — it must be the first statement in the describe callback.
+4. Follow existing patterns:
+   - `page.waitForLoadState("networkidle")` after navigation
+   - `.first()` for ambiguous selectors
+   - Regex alternation for i18n text: `/erstellen|create/i`
+   - Accept both expected status and 429 for API tests (rate limiting)
+   - Handle conditional UI (e.g. "no clan access") gracefully
+5. Tests must be parallel-safe — never mutate shared state.
+6. Run the full suite before marking work as complete.
 
 ## Dev Server Note (Windows UNC Path)
 

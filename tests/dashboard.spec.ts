@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
+
+test.use({ storageState: storageStatePath("member") });
 
 /**
  * Dashboard (root page) tests.
@@ -7,7 +9,6 @@ import { loginAs } from "./helpers/auth";
 
 test.describe("Dashboard: Page loading", () => {
   test("root page loads for authenticated member", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
@@ -16,7 +17,6 @@ test.describe("Dashboard: Page loading", () => {
   });
 
   test("dashboard shows announcements or news preview", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
@@ -30,7 +30,6 @@ test.describe("Dashboard: Page loading", () => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await loginAs(page, "member");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });

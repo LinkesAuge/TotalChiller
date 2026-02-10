@@ -166,7 +166,7 @@ In `/events`:
 
 ### Playwright E2E Tests
 
-**Current status (2026-02-10):** 290 tests passing, 10 skipped.
+**Current status (2026-02-10):** ~240 tests across 27 spec files. 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
 
 ```
 npx playwright test                          # Run all tests (all browsers)
@@ -175,9 +175,49 @@ npx playwright test tests/admin.spec.ts      # Run a specific spec file
 npx playwright test --ui                     # Open interactive test UI
 ```
 
+### Authentication: storageState
+
+Tests use **pre-authenticated browser state** for fast, login-free test execution:
+
+1. A global `tests/auth.setup.ts` runs once before all browser projects.
+2. It logs in as each of the 6 test roles (owner, admin, moderator, editor, member, guest) and saves browser state to `tests/.auth/{role}.json`.
+3. Test files declare their required role via `test.use({ storageState: storageStatePath("role") })` at the file or describe level.
+4. This eliminates the ~3-5 second login round-trip per test.
+
+The `loginAs(page, role)` helper is retained in `tests/helpers/auth.ts` as a fallback for per-test role overrides (currently used in 1 test).
+
 ### Test User Setup
 
-Before running tests for the first time, create test users by running `Documentation/test-user-setup.sql` in the Supabase SQL Editor. This creates roles for 6 pre-provisioned test users (owner, admin, moderator, editor, member, guest).
+Before running tests for the first time, create test users by running `Documentation/test-user-setup.sql` in the Supabase SQL Editor. This creates roles for 6 pre-provisioned test users (owner, admin, moderator, editor, member, guest). All use password `TestPassword123!`.
+
+### Test Suite Structure
+
+```
+tests/
+├── auth.setup.ts             # Global setup: pre-authenticate all 6 roles
+├── helpers/auth.ts            # storageStatePath(), loginAs(), TEST_USERS
+├── smoke.spec.ts              # Page load & redirect checks
+├── auth.spec.ts               # Login, register, forgot password forms
+├── navigation.spec.ts         # Sidebar links, access control
+├── api-endpoints.spec.ts      # API contracts (status codes, response shapes)
+├── cms-*.spec.ts (5 files)    # CMS pages, API, components, markdown, responsive
+├── news.spec.ts               # News/articles functionality
+├── events.spec.ts             # Events/calendar functionality
+├── forum.spec.ts              # Forum posts, comments, moderation
+├── messages.spec.ts           # Messaging system
+├── profile-settings.spec.ts   # Profile & settings forms
+├── charts.spec.ts             # Data visualization
+├── dashboard.spec.ts          # Authenticated landing page
+├── admin.spec.ts              # Admin access control & section rendering
+├── admin-actions.spec.ts      # Admin interactive tab actions
+├── crud-flows.spec.ts         # CRUD workflows (news, events, forum, messages)
+├── data-workflows.spec.ts     # Data import & table workflows
+├── notifications.spec.ts      # Notification bell, dropdown, API
+├── i18n.spec.ts               # Language switching, cookies
+├── accessibility.spec.ts      # axe-core accessibility audits
+├── permissions-unit.spec.ts   # Permission system unit tests
+└── roles-permissions.spec.ts  # E2E role-based access control
+```
 
 ### CI / Pre-commit
 
@@ -186,10 +226,14 @@ Before running tests for the first time, create test users by running `Documenta
 
 ### Notes
 
-- Admin panel tests use 15s timeouts for lazy-loaded tab content — `toContainText` and `toBeVisible` assertions auto-retry until the `next/dynamic` chunks load.
+- Admin panel tests use 10-15s timeouts for lazy-loaded tab content — `toContainText` and `toBeVisible` assertions auto-retry until the `next/dynamic` chunks load.
 - Firefox and WebKit require separate browser installations (`npx playwright install`). Chromium is the primary test target.
+- API tests accept both expected status codes and 429 (rate-limited) as valid responses.
+- Tests use regex alternation for i18n-aware text matching (`/erstellen|create/i`).
+- Tests handle conditional UI gracefully (e.g. "no clan access" messages).
+- Full design document: `Documentation/plans/2026-02-09-test-suite-design.md`.
 
-## 17) Troubleshooting
+## 16) Troubleshooting
 
 - If data insert fails: check RLS policies and membership
 - If user lookup fails: verify `profiles` trigger ran on signup

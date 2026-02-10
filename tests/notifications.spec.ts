@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
 
 /**
  * Notification bell and notification flow tests.
  */
 
 test.describe("Notifications: Bell icon", () => {
+  test.use({ storageState: storageStatePath("member") });
   test("notification bell is visible for authenticated user", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
@@ -25,7 +25,6 @@ test.describe("Notifications: Bell icon", () => {
   });
 
   test("clicking bell opens notification dropdown", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -43,7 +42,6 @@ test.describe("Notifications: Bell icon", () => {
   });
 
   test("notification panel has mark-all-read button", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -63,14 +61,12 @@ test.describe("Notifications: Bell icon", () => {
 });
 
 test.describe("Notifications: API endpoints", () => {
+  test.use({ storageState: storageStatePath("member") });
   test("GET /api/notifications returns valid response for authenticated user", async ({ page, request }) => {
-    await loginAs(page, "member");
-
-    const cookies = await page.context().cookies();
+    const cookies = await page.context().cookies("http://localhost:3000");
     const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-    const baseUrl = page.url().replace(/\/[^/]*$/, "");
 
-    const res = await request.get(`${baseUrl}/api/notifications`, {
+    const res = await request.get("/api/notifications", {
       headers: { Cookie: cookieHeader },
     });
     expect([200, 401, 429]).toContain(res.status());
@@ -84,26 +80,20 @@ test.describe("Notifications: API endpoints", () => {
   });
 
   test("POST /api/notifications/mark-all-read works for authenticated user", async ({ page, request }) => {
-    await loginAs(page, "member");
-
-    const cookies = await page.context().cookies();
+    const cookies = await page.context().cookies("http://localhost:3000");
     const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-    const baseUrl = page.url().replace(/\/[^/]*$/, "");
 
-    const res = await request.post(`${baseUrl}/api/notifications/mark-all-read`, {
+    const res = await request.post("/api/notifications/mark-all-read", {
       headers: { Cookie: cookieHeader },
     });
     expect([200, 401, 429]).toContain(res.status());
   });
 
   test("GET /api/notification-settings returns valid response", async ({ page, request }) => {
-    await loginAs(page, "member");
-
-    const cookies = await page.context().cookies();
+    const cookies = await page.context().cookies("http://localhost:3000");
     const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-    const baseUrl = page.url().replace(/\/[^/]*$/, "");
 
-    const res = await request.get(`${baseUrl}/api/notification-settings`, {
+    const res = await request.get("/api/notification-settings", {
       headers: { Cookie: cookieHeader },
     });
     expect([200, 401, 429]).toContain(res.status());

@@ -1,20 +1,19 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
 
 /**
  * Forum tests — posts, categories, comments, voting, moderation.
  */
 
 test.describe("Forum: Page loading", () => {
+  test.use({ storageState: storageStatePath("member") });
   test("forum page loads for authenticated member", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/forum");
   });
 
   test("forum page shows content", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
 
@@ -23,8 +22,8 @@ test.describe("Forum: Page loading", () => {
 });
 
 test.describe("Forum: Post list", () => {
+  test.use({ storageState: storageStatePath("member") });
   test("shows sort controls (hot/new/top)", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
 
@@ -34,7 +33,6 @@ test.describe("Forum: Post list", () => {
   });
 
   test("has search input", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
 
@@ -43,9 +41,9 @@ test.describe("Forum: Post list", () => {
   });
 });
 
-test.describe("Forum: Create post", () => {
+test.describe("Forum: Create post (member)", () => {
+  test.use({ storageState: storageStatePath("member") });
   test("member sees new post button or no-clan message", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -56,9 +54,11 @@ test.describe("Forum: Create post", () => {
     const hasExpected = (await createBtn.count()) > 0 || (await noClanMsg.count()) > 0;
     expect(hasExpected).toBe(true);
   });
+});
 
+test.describe("Forum: Create post (guest)", () => {
+  test.use({ storageState: storageStatePath("guest") });
   test("guest sees new post button or no-clan message", async ({ page }) => {
-    await loginAs(page, "guest");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -71,8 +71,8 @@ test.describe("Forum: Create post", () => {
 });
 
 test.describe("Forum: Moderation", () => {
+  test.use({ storageState: storageStatePath("moderator") });
   test("moderator sees pin/lock controls", async ({ page }) => {
-    await loginAs(page, "moderator");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
 

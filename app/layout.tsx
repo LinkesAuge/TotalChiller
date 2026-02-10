@@ -58,8 +58,10 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
       <head>
         <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="preload" href="/assets/vip/back_left.png" as="image" />
+        <link rel="preload" href="/assets/ui/chillerkiller_logo.webp" as="image" type="image/webp" />
         <link rel="preload" href="/assets/ui/components_shield_4.png" as="image" />
         <link rel="preload" href="/assets/vip/components_decor_7.png" as="image" />
+        <link rel="preload" href="/assets/vip/header_3.png" as="image" />
         {/* JSON-LD structured data — WebSite + Organization */}
         <script
           type="application/ld+json"

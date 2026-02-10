@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
 
 /**
  * CRUD flow tests — actually create, edit, and delete content.
@@ -11,13 +11,13 @@ const UNIQUE = `e2e-${Date.now()}`;
 /* ── News CRUD ─────────────────────────────────────────────── */
 
 test.describe("News: CRUD flow", () => {
+  test.use({ storageState: storageStatePath("editor") });
   test.describe.configure({ mode: "serial" });
 
   const articleTitle = `Test Article ${UNIQUE}`;
   const editedTitle = `Edited Article ${UNIQUE}`;
 
   test("editor can create an article", async ({ page }) => {
-    await loginAs(page, "editor");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -43,7 +43,6 @@ test.describe("News: CRUD flow", () => {
   });
 
   test("editor can edit the article", async ({ page }) => {
-    await loginAs(page, "editor");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -72,7 +71,6 @@ test.describe("News: CRUD flow", () => {
   });
 
   test("editor can delete the article", async ({ page }) => {
-    await loginAs(page, "editor");
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -100,13 +98,13 @@ test.describe("News: CRUD flow", () => {
 /* ── Events CRUD ───────────────────────────────────────────── */
 
 test.describe("Events: CRUD flow", () => {
+  test.use({ storageState: storageStatePath("editor") });
   test.describe.configure({ mode: "serial" });
 
   const eventTitle = `Test Event ${UNIQUE}`;
   const editedEventTitle = `Edited Event ${UNIQUE}`;
 
   test("editor can create an event", async ({ page }) => {
-    await loginAs(page, "editor");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -132,7 +130,6 @@ test.describe("Events: CRUD flow", () => {
   });
 
   test("editor can edit the event", async ({ page }) => {
-    await loginAs(page, "editor");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -159,7 +156,6 @@ test.describe("Events: CRUD flow", () => {
   });
 
   test("editor can delete the event", async ({ page }) => {
-    await loginAs(page, "editor");
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -190,12 +186,12 @@ test.describe("Events: CRUD flow", () => {
 /* ── Forum CRUD ────────────────────────────────────────────── */
 
 test.describe("Forum: Post and comment CRUD", () => {
+  test.use({ storageState: storageStatePath("member") });
   test.describe.configure({ mode: "serial" });
 
   const postTitle = `Test Post ${UNIQUE}`;
 
   test("member can create a forum post", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -229,7 +225,6 @@ test.describe("Forum: Post and comment CRUD", () => {
   });
 
   test("member can add a comment", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -257,7 +252,6 @@ test.describe("Forum: Post and comment CRUD", () => {
   });
 
   test("member can vote on a post", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -283,8 +277,9 @@ test.describe("Forum: Post and comment CRUD", () => {
 /* ── Messages: Compose and send ───────────────────────────── */
 
 test.describe("Messages: Send flow", () => {
+  test.use({ storageState: storageStatePath("member") });
+
   test("member can compose and send a private message", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/messages");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -331,41 +326,34 @@ test.describe("Messages: Send flow", () => {
 /* ── Authenticated API tests ──────────────────────────────── */
 
 test.describe("Authenticated API: core endpoints", () => {
-  test("GET /api/messages returns data for authenticated user", async ({ page, request }) => {
-    await loginAs(page, "member");
+  test.use({ storageState: storageStatePath("member") });
 
+  test("GET /api/messages returns data for authenticated user", async ({ page, request }) => {
     /* Grab the cookies from the authenticated browser context */
     const cookies = await page.context().cookies();
     const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
 
-    const baseUrl = page.url().replace(/\/[^/]*$/, "");
-    const res = await request.get(`${baseUrl}/api/messages`, {
+    const res = await request.get("/api/messages", {
       headers: { Cookie: cookieHeader },
     });
     expect([200, 401]).toContain(res.status());
   });
 
   test("GET /api/notifications returns data for authenticated user", async ({ page, request }) => {
-    await loginAs(page, "member");
-
     const cookies = await page.context().cookies();
     const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
 
-    const baseUrl = page.url().replace(/\/[^/]*$/, "");
-    const res = await request.get(`${baseUrl}/api/notifications`, {
+    const res = await request.get("/api/notifications", {
       headers: { Cookie: cookieHeader },
     });
     expect([200, 401]).toContain(res.status());
   });
 
   test("GET /api/game-accounts returns data for authenticated user", async ({ page, request }) => {
-    await loginAs(page, "member");
-
     const cookies = await page.context().cookies();
     const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
 
-    const baseUrl = page.url().replace(/\/[^/]*$/, "");
-    const res = await request.get(`${baseUrl}/api/game-accounts`, {
+    const res = await request.get("/api/game-accounts", {
       headers: { Cookie: cookieHeader },
     });
     expect([200, 400, 401]).toContain(res.status());

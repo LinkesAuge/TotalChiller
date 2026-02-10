@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
+
+test.use({ storageState: storageStatePath("admin") });
 
 /**
  * Admin actions tests — covers key interactive workflows in admin tabs.
@@ -7,7 +9,6 @@ import { loginAs } from "./helpers/auth";
 
 test.describe("Admin Actions: Approvals tab", () => {
   test("approvals tab renders pending list or empty state", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=approvals");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -20,7 +21,6 @@ test.describe("Admin Actions: Approvals tab", () => {
 
 test.describe("Admin Actions: Users tab", () => {
   test("users tab shows create user button", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=users");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toContainText(/user|benutzer/i, { timeout: 15000 });
@@ -30,7 +30,6 @@ test.describe("Admin Actions: Users tab", () => {
   });
 
   test("clicking create user opens a modal", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=users");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toContainText(/user|benutzer/i, { timeout: 15000 });
@@ -46,7 +45,6 @@ test.describe("Admin Actions: Users tab", () => {
   });
 
   test("users tab search filters results", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=users");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toContainText(/user|benutzer/i, { timeout: 15000 });
@@ -62,7 +60,6 @@ test.describe("Admin Actions: Users tab", () => {
 
 test.describe("Admin Actions: Clans tab", () => {
   test("clans tab shows clan table", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=clans");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -73,7 +70,6 @@ test.describe("Admin Actions: Clans tab", () => {
   });
 
   test("clans tab has create clan button", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=clans");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
@@ -88,7 +84,6 @@ test.describe("Admin Actions: Clans tab", () => {
 
 test.describe("Admin Actions: Validation tab", () => {
   test("validation tab shows field tabs (player, source, chest, clan)", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=validation");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toContainText(/validation|validierung|rule|regel/i, {
@@ -101,7 +96,6 @@ test.describe("Admin Actions: Validation tab", () => {
   });
 
   test("validation tab has add rule button", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=validation");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toContainText(/validation|validierung/i, { timeout: 15000 });
@@ -116,7 +110,6 @@ test.describe("Admin Actions: Validation tab", () => {
 
 test.describe("Admin Actions: Forum management", () => {
   test("forum tab shows category management", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=forum");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toContainText(/forum|kategor/i, { timeout: 15000 });
@@ -132,7 +125,6 @@ test.describe("Admin Actions: Forum management", () => {
 
 test.describe("Admin Actions: Logs tab", () => {
   test("logs tab shows filter controls", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=logs");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toContainText(/log|protokoll|audit/i, { timeout: 15000 });

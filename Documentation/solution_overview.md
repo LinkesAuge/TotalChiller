@@ -134,9 +134,15 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 
 - See `Documentation/data_model_and_permissions.md` for schema outline and permission matrix.
 
-## Testing Plan
+## Testing
 
-- See `Documentation/testing_plan.md` for parsing, RBAC, and edit test coverage.
+- **Test suite design**: `Documentation/plans/2026-02-09-test-suite-design.md` — full architecture, file listing, coverage summary, design decisions.
+- **~240 Playwright E2E tests** across 27 spec files covering all features.
+- **Pre-authenticated storageState**: `tests/auth.setup.ts` pre-authenticates 6 roles; tests use `test.use({ storageState: storageStatePath("role") })` — no per-test login overhead.
+- **Accessibility**: `@axe-core/playwright` audits on public and authenticated pages.
+- **i18n**: Language switching, cookie handling, URL stability tests.
+- **Code quality**: Stricter TypeScript (`noUncheckedIndexedAccess`), stricter ESLint (`no-explicit-any`, `jsx-a11y/*`), Prettier, Husky pre-commit hooks.
+- Run: `npx playwright test` (see `Documentation/runbook.md` section 15 for details).
 
 ## Supabase SQL
 
@@ -376,10 +382,22 @@ app/admin/
 
 - Clicking a day in the calendar auto-scrolls the detail panel into view via `scrollIntoView({ behavior: "smooth", block: "nearest" })`.
 
+## Website Audit (Feb 2026) — Completed
+
+A comprehensive audit was performed covering security, architecture, SEO, accessibility, legal compliance, UI/UX, and code quality. Production audit score: **84/100 (B)**, up from 68/100. Key improvements:
+
+- **Security**: API rate limiting, Zod validation, Cloudflare Turnstile CAPTCHA, Sentry with PII filtering, CSP headers.
+- **Architecture**: Component extraction, Tailwind CSS v4 migration, server/client splits, Supabase client dedup.
+- **SEO**: `metadataBase`, canonical URLs, Open Graph, Twitter Cards, JSON-LD (WebSite + Organization), sitemap, robots.txt.
+- **Legal**: Impressum page, cookie consent banner, GDPR-compliant privacy policy.
+- **UI/UX**: Animated sidebar, mobile hamburger menu, skeleton loaders, focus-visible outlines, scroll-to-top, toast animations, empty states, form validation.
+- **Code quality**: ~240 Playwright E2E tests with storageState auth, stricter TS/ESLint, image optimization, i18n coverage.
+- **Performance**: LCP preload hints, `priority` on above-fold images, image compression.
+
 ## Outstanding/Follow-up
 
-- Admin gating is enforced; review if permissions need tightening.
 - Dashboard widgets (personal/clan stats summary cards).
-- Website improvement plan: SEO, security, accessibility, legal compliance (see `Documentation/plans/2026-02-07-website-improvement-plan.md`).
+- Member directory page (search, filter by clan/rank).
+- SEO content expansion (increase word count on thin public pages if ranking matters).
 - Consider adding FK constraint from `events.created_by` → `profiles.id` and `articles.created_by` → `profiles.id` to enable PostgREST joins (currently resolved client-side).
 - Admin panel refactoring is complete (Feb 2026). All 7 tabs extracted, shared hooks and components created. See "Admin Panel Architecture" section above.

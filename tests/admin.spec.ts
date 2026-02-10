@@ -1,43 +1,51 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
 
 /**
  * Admin panel tests — tabs, sections, user/clan management.
  */
 
 test.describe("Admin: Access control", () => {
-  test("owner can access /admin", async ({ page }) => {
-    await loginAs(page, "owner");
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/admin");
+  test.describe("owner", () => {
+    test.use({ storageState: storageStatePath("owner") });
+    test("owner can access /admin", async ({ page }) => {
+      await page.goto("/admin");
+      await page.waitForLoadState("networkidle");
+      expect(page.url()).toContain("/admin");
+    });
   });
 
-  test("admin can access /admin", async ({ page }) => {
-    await loginAs(page, "admin");
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/admin");
+  test.describe("admin", () => {
+    test.use({ storageState: storageStatePath("admin") });
+    test("admin can access /admin", async ({ page }) => {
+      await page.goto("/admin");
+      await page.waitForLoadState("networkidle");
+      expect(page.url()).toContain("/admin");
+    });
   });
 
-  test("moderator is redirected from /admin", async ({ page }) => {
-    await loginAs(page, "moderator");
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).not.toContain("/admin");
+  test.describe("moderator", () => {
+    test.use({ storageState: storageStatePath("moderator") });
+    test("moderator is redirected from /admin", async ({ page }) => {
+      await page.goto("/admin");
+      await page.waitForLoadState("networkidle");
+      expect(page.url()).not.toContain("/admin");
+    });
   });
 
-  test("member is redirected from /admin", async ({ page }) => {
-    await loginAs(page, "member");
-    await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).not.toContain("/admin");
+  test.describe("member", () => {
+    test.use({ storageState: storageStatePath("member") });
+    test("member is redirected from /admin", async ({ page }) => {
+      await page.goto("/admin");
+      await page.waitForLoadState("networkidle");
+      expect(page.url()).not.toContain("/admin");
+    });
   });
 });
 
 test.describe("Admin: Tab navigation", () => {
+  test.use({ storageState: storageStatePath("admin") });
   test("admin panel shows tab navigation", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin");
     await page.waitForLoadState("networkidle");
 
@@ -47,7 +55,6 @@ test.describe("Admin: Tab navigation", () => {
   });
 
   test("can switch to users tab", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=users");
     await page.waitForLoadState("networkidle");
 
@@ -56,7 +63,6 @@ test.describe("Admin: Tab navigation", () => {
   });
 
   test("can switch to approvals tab", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=approvals");
     await page.waitForLoadState("networkidle");
 
@@ -64,7 +70,6 @@ test.describe("Admin: Tab navigation", () => {
   });
 
   test("can switch to validation tab", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=validation");
     await page.waitForLoadState("networkidle");
 
@@ -74,7 +79,6 @@ test.describe("Admin: Tab navigation", () => {
   });
 
   test("can switch to corrections tab", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=corrections");
     await page.waitForLoadState("networkidle");
 
@@ -82,7 +86,6 @@ test.describe("Admin: Tab navigation", () => {
   });
 
   test("can switch to logs tab", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=logs");
     await page.waitForLoadState("networkidle");
 
@@ -90,7 +93,6 @@ test.describe("Admin: Tab navigation", () => {
   });
 
   test("can switch to forum tab", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=forum");
     await page.waitForLoadState("networkidle");
 
@@ -99,8 +101,8 @@ test.describe("Admin: Tab navigation", () => {
 });
 
 test.describe("Admin: Clans section", () => {
+  test.use({ storageState: storageStatePath("admin") });
   test("shows clan list with table", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=clans");
     await page.waitForLoadState("networkidle");
 
@@ -110,8 +112,8 @@ test.describe("Admin: Clans section", () => {
 });
 
 test.describe("Admin: Users section", () => {
+  test.use({ storageState: storageStatePath("admin") });
   test("shows user list with search", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=users");
     await page.waitForLoadState("networkidle");
 
@@ -124,7 +126,6 @@ test.describe("Admin: Users section", () => {
   });
 
   test("shows role dropdown for users", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin?tab=users");
     await page.waitForLoadState("networkidle");
 
@@ -139,15 +140,14 @@ test.describe("Admin: Users section", () => {
 });
 
 test.describe("Admin: Data Import", () => {
+  test.use({ storageState: storageStatePath("admin") });
   test("data import page loads for admin", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-import");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/data-import");
   });
 
   test("has file upload area", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-import");
     await page.waitForLoadState("networkidle");
 
@@ -157,8 +157,8 @@ test.describe("Admin: Data Import", () => {
 });
 
 test.describe("Admin: Data Table", () => {
+  test.use({ storageState: storageStatePath("admin") });
   test("data table page loads for admin", async ({ page }) => {
-    await loginAs(page, "admin");
     await page.goto("/admin/data-table");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/data-table");

@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { storageStatePath } from "./helpers/auth";
+
+test.use({ storageState: storageStatePath("member") });
 
 /**
  * Charts / Data visualization page tests.
@@ -7,14 +9,12 @@ import { loginAs } from "./helpers/auth";
 
 test.describe("Charts: Page loading", () => {
   test("charts page loads for authenticated member", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/charts");
   });
 
   test("charts page shows filter area", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
 
@@ -28,7 +28,6 @@ test.describe("Charts: Page loading", () => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await loginAs(page, "member");
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
@@ -39,7 +38,6 @@ test.describe("Charts: Page loading", () => {
 
 test.describe("Charts: Filters", () => {
   test("has date range inputs or selectors", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
 
@@ -48,7 +46,6 @@ test.describe("Charts: Filters", () => {
   });
 
   test("has clear filters button", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
 
@@ -59,7 +56,6 @@ test.describe("Charts: Filters", () => {
 
 test.describe("Charts: Visualization", () => {
   test("renders chart containers (canvas or svg)", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });

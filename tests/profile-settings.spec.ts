@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { loginAs } from "./helpers/auth";
+import { loginAs, storageStatePath } from "./helpers/auth";
+
+test.use({ storageState: storageStatePath("member") });
 
 /**
  * Profile & Settings page tests.
@@ -7,14 +9,12 @@ import { loginAs } from "./helpers/auth";
 
 test.describe("Profile: Page loading", () => {
   test("profile page loads for authenticated member", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/profile");
   });
 
   test("profile page shows user info", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
 
@@ -24,7 +24,6 @@ test.describe("Profile: Page loading", () => {
   });
 
   test("profile shows role badge", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
 
@@ -35,7 +34,6 @@ test.describe("Profile: Page loading", () => {
 
 test.describe("Profile: Game accounts section", () => {
   test("profile displays game accounts area", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/profile");
     await page.waitForLoadState("networkidle");
 
@@ -46,14 +44,12 @@ test.describe("Profile: Game accounts section", () => {
 
 test.describe("Settings: Page loading", () => {
   test("settings page loads for authenticated member", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/settings");
   });
 
   test("settings page shows form fields", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -64,7 +60,6 @@ test.describe("Settings: Page loading", () => {
 
 test.describe("Settings: Sections", () => {
   test("has email section", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -73,7 +68,6 @@ test.describe("Settings: Sections", () => {
   });
 
   test("has password section", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -82,7 +76,6 @@ test.describe("Settings: Sections", () => {
   });
 
   test("has display name field", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -90,7 +83,6 @@ test.describe("Settings: Sections", () => {
   });
 
   test("has notification toggles", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -100,7 +92,6 @@ test.describe("Settings: Sections", () => {
   });
 
   test("has language selector", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
@@ -122,7 +113,6 @@ test.describe("Settings: Username (admin only)", () => {
   });
 
   test("member has disabled username field", async ({ page }) => {
-    await loginAs(page, "member");
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 

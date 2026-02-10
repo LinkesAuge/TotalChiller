@@ -92,7 +92,7 @@ function LoginPage(): JSX.Element {
               <a href="/auth/forgot" className="text-text-2 no-underline">
                 {t("forgotPassword")}
               </a>
-              <span className="my-0 mx-2 text-text-muted">&bull;</span>
+              <span className="my-0 mx-2 text-text-2">&bull;</span>
               <a href="/auth/register" className="text-gold no-underline">
                 {t("createAccount")}
               </a>

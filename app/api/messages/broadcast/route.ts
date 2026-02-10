@@ -85,10 +85,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   /* All rows share a single broadcast_group_id for grouped display */
   const broadcastGroupId = crypto.randomUUID();
 
+  const isClanBroadcast = body.clan_id !== "all";
   const messageRows = recipientIds.map((recipientId) => ({
     sender_id: senderId,
     recipient_id: recipientId,
-    message_type: "broadcast",
+    message_type: isClanBroadcast ? "clan" : "broadcast",
     subject: body.subject?.trim() || null,
     content: body.content.trim(),
     broadcast_group_id: broadcastGroupId,

@@ -285,7 +285,7 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - sender_id (uuid, fk users)
 - recipient_id (uuid, fk users, nullable for broadcast)
 - content (text)
-- message_type (text, enum: private, broadcast, system)
+- message_type (text, enum: private, broadcast, system, clan)
 - created_at (timestamp)
 
 ## Permission Matrix (Baseline)

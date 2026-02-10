@@ -2843,7 +2843,7 @@ select:disabled,
 .messages-layout {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 420px 1fr;
   gap: 16px;
   min-height: 500px;
   max-height: calc(100vh - 200px);

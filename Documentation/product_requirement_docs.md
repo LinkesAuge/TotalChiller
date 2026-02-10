@@ -70,7 +70,7 @@ This document outlines the requirements for a new web application designed to se
 - Forum system (categories, posts, comments, voting, markdown, thumbnails, pinned posts).
 - Events with recurring events, templates, organizer, calendar view with scroll-to-day.
 - Charts & Stats with Recharts (line, bar, pie, summary panel).
-- Messaging system (private, broadcast, system messages).
+- Messaging system (private, broadcast, clan, system messages).
 - Notification system (bell icon, fan-out, per-type preferences).
 - Full i18n (German/English) via `next-intl` with `messages/de.json` and `messages/en.json`.
 - Content Security Policy for YouTube embeds and media sources.
@@ -427,7 +427,8 @@ Enables communication between members and system alerts.
   - Users with `message:send:private` permission can send direct messages to other individual users within their clan(s).
   - A simple inbox/messaging interface is required.
   - Basic text messaging is sufficient for MVP.
-- **Admin Broadcasts:** Users with `message:send:broadcast` permission (e.g., Admin+) can send messages to all members of a specific Clan.
+- **Admin Broadcasts:** Users with `message:send:broadcast` permission (e.g., Admin+) can send messages to all users globally (`message_type: broadcast`) or to all active members of a specific clan (`message_type: clan`).
+- **Message Types:** `private` (direct), `broadcast` (global), `clan` (clan-specific), `system` (automated, e.g. game account approval/rejection). In the UI, system and broadcast messages are merged under a single "Broadcast" filter tab.
 - **Notifications System:**
   - A mechanism to display notifications to users (e.g., a notification icon in the header/navbar).
   - **Notification Triggers (Examples):**

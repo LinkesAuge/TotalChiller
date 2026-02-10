@@ -40,7 +40,8 @@ function deduplicateOutgoing<T extends { broadcast_group_id: string | null }>(ro
  * Returns the inbox for the authenticated user.
  * Fetches incoming (recipient) and outgoing (sender) messages separately.
  * Outgoing broadcast/multi-recipient messages are deduplicated by broadcast_group_id.
- * Supports ?type=all|private|broadcast|system filtering.
+ * Supports ?type=all|private|broadcast|clan filtering.
+ * The "broadcast" filter includes both broadcast and legacy system messages.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
@@ -61,7 +62,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .eq("recipient_id", userId)
     .order("created_at", { ascending: false })
     .limit(INCOMING_LIMIT);
-  if (typeFilter !== "all") {
+  if (typeFilter === "broadcast") {
+    incomingQuery = incomingQuery.in("message_type", ["broadcast", "system"]);
+  } else if (typeFilter !== "all") {
     incomingQuery = incomingQuery.eq("message_type", typeFilter);
   }
 
@@ -72,7 +75,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .eq("sender_id", userId)
     .order("created_at", { ascending: false })
     .limit(OUTGOING_LIMIT);
-  if (typeFilter !== "all") {
+  if (typeFilter === "broadcast") {
+    outgoingQuery = outgoingQuery.in("message_type", ["broadcast", "system"]);
+  } else if (typeFilter !== "all") {
     outgoingQuery = outgoingQuery.eq("message_type", typeFilter);
   }
 

@@ -121,7 +121,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Auth callback: `app/auth/callback/route.ts` — exchanges PKCE code for session, redirects to `next` query parameter.
 - Registration success panel shows 4-step onboarding guide (confirm email → log in → create game account → wait for clan assignment).
 - Login page first-login detection: queries `game_accounts` for the authenticated user; redirects to `/profile` if none exist, otherwise to `/`.
-- Proxy guard: `proxy.ts` redirects unauthenticated users to `/home` for page routes, enforces admin access for admin routes with `/not-authorized` fallback. API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns JSON error responses.
+- Proxy guard: `proxy.ts` redirects unauthenticated users to `/home` for page routes, enforces admin access for admin routes with `/not-authorized?reason=admin` redirect (context-specific access denied message). API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns JSON error responses.
 - Added `app/auth/update` for reset flows and `app/components/auth-actions.tsx` for sign-out (restyled with Sanctum dropdown panel, icons, and dividers).
 - Protected example: `app/profile` (middleware enforces auth).
 - Bilingual email templates (DE/EN) with dual-theme design (light for Outlook, dark for modern clients) for Supabase Dashboard: `Documentation/supabase-email-templates.md`.
@@ -312,12 +312,14 @@ app/admin/
 
 ## Messaging System
 
-- Flat message model: `messages` table with `message_type` (`private`, `broadcast`, `system`).
+- Flat message model: `messages` table with `message_type` (`private`, `broadcast`, `system`, `clan`).
 - Private messages: sender_id = user, recipient_id = user.
-- Broadcasts: sender_id = admin, one row per clan member, message_type = `broadcast`.
-- System notifications: sender_id = null, recipient_id = user, message_type = `system`. Sent on game account approval/rejection.
+- Global broadcasts: sender_id = admin, one row per user, message_type = `broadcast`. Sent when `clan_id: "all"`.
+- Clan broadcasts: sender_id = admin, one row per clan member, message_type = `clan`. Sent when targeting a specific clan.
+- System notifications: sender_id = null, recipient_id = user, message_type = `system`. Sent on game account approval/rejection. Displayed under the "Broadcast" filter in the UI (merged with broadcasts).
+- UI filter tabs: All, Private, Broadcast, Clan. The "Broadcast" filter includes both `broadcast` and legacy `system` messages. The "Clan" filter shows only `clan`-type messages.
 - Conversations derived by grouping messages between two users (no separate conversation table).
-- Two-column UI: conversation list with search/filter, thread view with compose.
+- Two-column UI: conversation list (420px) with search/filter, thread view with compose.
 - Compose recipient and broadcast clan dropdowns use themed `RadixSelect` (no native `<select>`). Recipient dropdown includes search support.
 - Messages layout uses `max-height: calc(100vh - 200px)` for proper inbox/thread scrolling with many messages.
 - No real-time updates (messages load on page visit / manual refresh).
@@ -353,7 +355,7 @@ app/admin/
 
 ## Navigation (i18n keys)
 
-- Main nav items: Dashboard, Ankündigungen, Forum, Truhenauswertung (formerly "Diagramme"), Event-Kalender (formerly "Ereignisse"), Verwaltung section (with sub-items).
+- Main nav items: Dashboard, Ankündigungen, Forum, Truhenauswertung (formerly "Diagramme"), Event-Kalender (formerly "Ereignisse"), Verwaltung section (with sub-items, visible to all authenticated users — non-admins are redirected to `/not-authorized?reason=admin` with an admin-specific access denied message).
 - Sidebar: Title `[THC]`, subtitle `Chiller & Killer`, logo `/assets/ui/chillerkiller_logo.png`.
 - Navbar text size: `1.0rem`, icon size: `18px`.
 

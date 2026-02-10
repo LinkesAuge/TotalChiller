@@ -352,9 +352,6 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     setReplySubject("");
     setReplyStatus("");
     setIsReplyOpen(false);
-    if (mode === "sent" && typeFilter === "system") {
-      setTypeFilter("all");
-    }
   }
 
   async function handleSelectConversation(partnerId: string): Promise<void> {
@@ -497,8 +494,8 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
   }
 
   function getMessageTypeLabel(messageType: string): string {
-    if (messageType === "broadcast") return t("broadcast");
-    if (messageType === "system") return t("systemPartner");
+    if (messageType === "broadcast" || messageType === "system") return t("broadcast");
+    if (messageType === "clan") return t("clan");
     return "";
   }
 
@@ -813,10 +810,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
               placeholder={t("searchPlaceholder")}
             />
             <div className="tabs text-[0.8rem]">
-              {(viewMode === "inbox"
-                ? (["all", "private", "system", "broadcast"] as const)
-                : (["all", "private", "broadcast"] as const)
-              ).map((tab) => (
+              {(["all", "private", "broadcast", "clan"] as const).map((tab) => (
                 <button
                   key={tab}
                   className={`tab ${typeFilter === tab ? "active" : ""}`}
@@ -827,9 +821,9 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                     ? t("all")
                     : tab === "private"
                       ? t("private")
-                      : tab === "system"
-                        ? t("system")
-                        : t("broadcast")}
+                      : tab === "broadcast"
+                        ? t("broadcast")
+                        : t("clan")}
                 </button>
               ))}
             </div>

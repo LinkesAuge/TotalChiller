@@ -63,7 +63,8 @@ This file is a compact context transfer for a new chat.
   - Stored in `localStorage`; active clan/account selection is visible in the sidebar.
   - Files: `app/components/sidebar-shell.tsx`, `app/components/use-clan-context.ts`
 - **Admin gating**
-  - Admin page routes protected by `proxy.ts` with `/not-authorized` fallback.
+  - "Verwaltung" (Administration) nav section visible to all authenticated users. Non-admins who click admin links are redirected to `/not-authorized?reason=admin` with a context-specific access denied message.
+  - Admin page routes protected by `proxy.ts` middleware (`is_any_admin` RPC check).
   - API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns proper JSON error responses (401/403).
   - Admin toggle + safeguard to keep at least one admin.
   - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
@@ -188,11 +189,12 @@ This file is a compact context transfer for a new chat.
   - API route `/api/charts` fetches and aggregates `chest_entries` server-side (RLS-enforced).
   - Files: `app/charts/charts-client.tsx`, `app/charts/chart-components.tsx`, `app/charts/chart-types.ts`, `app/api/charts/route.ts`
 - **Messaging System**
-  - Full inbox with private messages, admin clan broadcasts, and system notifications.
-  - Flat message model: `messages` table with `sender_id`, `recipient_id`, `message_type` (`private`/`broadcast`/`system`).
-  - Two-column layout: conversation list (left) with search/filter, thread view (right) with compose.
-  - Admin-only "Broadcast" button sends to all active clan members.
-  - System messages sent automatically on game account approval/rejection.
+  - Full inbox with private messages, global/clan broadcasts, and system notifications.
+  - Flat message model: `messages` table with `sender_id`, `recipient_id`, `message_type` (`private`/`broadcast`/`system`/`clan`).
+  - Two-column layout: conversation list (420px, left) with search/filter, thread view (right) with compose.
+  - Filter tabs: All, Private, Broadcast, Clan. "Broadcast" filter includes both global broadcasts and legacy system messages. "Clan" filter shows clan-specific broadcasts.
+  - Content manager "Broadcast" button sends to all users (global, `message_type: broadcast`) or all active clan members (clan-specific, `message_type: clan`).
+  - System messages sent automatically on game account approval/rejection (`message_type: system`, grouped under Broadcast filter).
   - RLS enforces users can only see their own messages; service role inserts system messages.
   - Migration: `Documentation/migrations/messages.sql`
   - Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/broadcast/route.ts`

@@ -19,7 +19,7 @@ alter table public.messages
   drop constraint if exists messages_type_check;
 alter table public.messages
   add constraint messages_type_check
-  check (message_type in ('private', 'broadcast', 'system'));
+  check (message_type in ('private', 'broadcast', 'system', 'clan'));
 
 -- 3. Indexes for fast inbox queries
 create index if not exists messages_recipient_id_idx

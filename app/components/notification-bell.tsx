@@ -1,10 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 
 import type { NotificationRow, NotificationPrefs } from "@/lib/types/domain";
+
+interface NotificationBellProps {
+  readonly isOpen: boolean;
+  readonly onToggle: () => void;
+  readonly onClose: () => void;
+}
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -83,12 +89,11 @@ function getTypeIcon(type: string): JSX.Element {
 /**
  * Bell icon with unread count badge and a dropdown panel showing recent notifications.
  */
-function NotificationBell(): JSX.Element {
+function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps): JSX.Element {
   const t = useTranslations("notificationBell");
   const locale = useLocale();
   const router = useRouter();
   const [notifications, setNotifications] = useState<readonly NotificationRow[]>([]);
-  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [prefs, setPrefs] = useState<NotificationPrefs>({
     messages_enabled: true,
@@ -96,8 +101,6 @@ function NotificationBell(): JSX.Element {
     events_enabled: true,
     system_enabled: true,
   });
-  const panelRef = useRef<HTMLDivElement>(null);
-
   const loadNotifications = useCallback(async (): Promise<void> => {
     const response = await fetch("/api/notifications");
     if (response.ok) {
@@ -144,18 +147,6 @@ function NotificationBell(): JSX.Element {
     void loadNotifications();
   }
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent): void {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
-
   const unreadCount = useMemo(
     () => notifications.filter((notification) => !notification.is_read).length,
     [notifications],
@@ -173,17 +164,17 @@ function NotificationBell(): JSX.Element {
         current.map((item) => (item.id === notification.id ? { ...item, is_read: true } : item)),
       );
     }
-    setIsOpen(false);
+    onClose();
     const route = TYPE_ROUTES[notification.type] ?? "/messages";
     router.push(route);
   }
 
   return (
-    <div className="notification-bell" ref={panelRef}>
+    <div className="notification-bell">
       <button
         type="button"
         className="notification-bell__trigger"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={onToggle}
         aria-label={unreadCount > 0 ? t("ariaLabelUnread", { count: unreadCount }) : t("ariaLabel")}
       >
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none">

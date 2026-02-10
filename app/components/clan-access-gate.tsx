@@ -119,8 +119,11 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
       <div className="content-inner">
         <div className="grid">
           <div className="alert warn col-span-full">{t("noAccessMessage")}</div>
-          <div className="col-span-full">
-            <a className="button primary" href="/home">
+          <div className="col-span-full flex gap-3">
+            <a className="button primary" href="/profile">
+              {t("goProfile")}
+            </a>
+            <a className="button" href="/home">
               {t("goHome")}
             </a>
           </div>

@@ -21,8 +21,11 @@ async function NotAuthorizedPage(): Promise<JSX.Element> {
         <div className="grid">
           <div className="alert warn col-span-full">{t("message")}</div>
           <section className="card">
-            <div className="list">
-              <Link className="button primary" href="/home">
+            <div className="list flex gap-3">
+              <Link className="button primary" href="/profile">
+                {t("goProfile")}
+              </Link>
+              <Link className="button" href="/home">
                 {t("goHome")}
               </Link>
             </div>

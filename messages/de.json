@@ -1105,14 +1105,16 @@
   },
   "notAuthorized": {
     "title": "Nicht autorisiert",
-    "message": "Du hast noch keinen Zugang zu Clan-Bereichen. Bitte kontaktiere einen Administrator, um einem Clan zugewiesen zu werden.",
-    "goHome": "Zur Startseite"
+    "message": "Du hast noch keinen Zugang zu Clan-Bereichen. Erstelle zuerst einen Game-Account in deinem Profil. Nach Freischaltung und Clan-Zuweisung durch einen Admin erhältst du Zugang.",
+    "goHome": "Zur Startseite",
+    "goProfile": "Zum Profil"
   },
   "clanAccessGate": {
     "loadingTitle": "Zugang wird geladen",
     "loadingMessage": "Clan-Mitgliedschaft wird überprüft…",
-    "noAccessMessage": "Du hast noch keinen Zugang zu Clan-Bereichen. Bitte kontaktiere einen Administrator, um einem Clan zugewiesen zu werden.",
-    "goHome": "Zur Startseite"
+    "noAccessMessage": "Du hast noch keinen Zugang zu Clan-Bereichen. Erstelle zuerst einen Game-Account in deinem Profil. Nach Freischaltung und Clan-Zuweisung durch einen Admin erhältst du Zugang.",
+    "goHome": "Zur Startseite",
+    "goProfile": "Zum Profil"
   },
   "userMenu": {
     "profile": "Profil",

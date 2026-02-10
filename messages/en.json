@@ -1105,14 +1105,16 @@
   },
   "notAuthorized": {
     "title": "Not Authorized",
-    "message": "You do not have access to clan areas yet. Please contact an admin to assign a clan.",
-    "goHome": "Go to Home"
+    "message": "You do not have access to clan areas yet. Please create a game account in your profile first. Once an admin activates and assigns you to a clan, you will get access.",
+    "goHome": "Go to Home",
+    "goProfile": "Go to Profile"
   },
   "clanAccessGate": {
     "loadingTitle": "Loading access",
     "loadingMessage": "Checking your clan membership…",
-    "noAccessMessage": "You do not have access to clan areas yet. Please contact an admin to assign a clan.",
-    "goHome": "Go to Home"
+    "noAccessMessage": "You do not have access to clan areas yet. Please create a game account in your profile first. Once an admin activates and assigns you to a clan, you will get access.",
+    "goHome": "Go to Home",
+    "goProfile": "Go to Profile"
   },
   "userMenu": {
     "profile": "Profile",

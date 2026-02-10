@@ -43,16 +43,10 @@ function isPublicPath(pathname: string): boolean {
 }
 
 function isAdminPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/data-import") ||
-    pathname.startsWith("/data-table")
-  );
+  return pathname.startsWith("/admin") || pathname.startsWith("/data-import") || pathname.startsWith("/data-table");
 }
 
-async function isUserAdmin(
-  supabase: ReturnType<typeof createServerClient>,
-): Promise<boolean> {
+async function isUserAdmin(supabase: ReturnType<typeof createServerClient>): Promise<boolean> {
   const { data, error } = await supabase.rpc("is_any_admin");
   if (!error && Boolean(data)) {
     return true;
@@ -67,7 +61,7 @@ async function isUserAdmin(
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.next();
   const existingLocale = request.cookies.get(LOCALE_COOKIE)?.value;
-  if (!existingLocale || !routing.locales.includes(existingLocale as typeof routing.locales[number])) {
+  if (!existingLocale || !routing.locales.includes(existingLocale as (typeof routing.locales)[number])) {
     response.cookies.set(LOCALE_COOKIE, routing.defaultLocale, {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
@@ -98,7 +92,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (!user && !isPublicPath(request.nextUrl.pathname)) {
+  if (!user && !isPublicPath(request.nextUrl.pathname) && !request.nextUrl.pathname.startsWith("/api/")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/home";
     return NextResponse.redirect(redirectUrl);

@@ -88,11 +88,11 @@ export async function POST(request: Request): Promise<Response> {
       return NextResponse.json({ error: "Nickname already exists." }, { status: 409 });
     }
   }
-  const { data: userData, error: userError } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail);
-  if (userError || !userData.user) {
-    return NextResponse.json({ error: userError?.message ?? "Failed to create user." }, { status: 500 });
+  const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail);
+  if (inviteError || !inviteData.user) {
+    return NextResponse.json({ error: inviteError?.message ?? "Failed to create user." }, { status: 500 });
   }
-  const userId = userData.user.id;
+  const userId = inviteData.user.id;
   const nextUsername = normalizedUsername;
   const nextDisplayName = normalizedDisplayName ?? nextUsername;
   const { error: profileError } = await supabase.from("profiles").upsert(

@@ -423,7 +423,9 @@ A comprehensive audit was performed covering security, architecture, SEO, access
 - **Scanner scripts**: `scan-design-assets.ts` (auto-categorizes ~2,359 game PNGs) and `scan-ui-elements.ts` (classifies UI patterns with render types and preview HTML).
 - **Three-tab UI**: Asset Library (size picker, filters), UI Inventory (cards with live CSS previews, render_type badges/filter, conditional Assign button), Assignments (assignable elements only, paginated assets).
 - **API routes**: `/api/design-system/assets`, `/api/design-system/ui-elements`, `/api/design-system/assignments`, `/api/design-system/preview-upload`.
+- **i18n**: Full DE/EN translations under `designSystem` namespace. All components use `useTranslations` / `getTranslations`.
 - Protected via `proxy.ts` admin path check. Nav link in sidebar admin section.
+- `public/design-assets/` committed to git for production deployment. `public/design-system-previews/` gitignored (runtime uploads).
 
 ## Outstanding/Follow-up
 

@@ -511,8 +511,9 @@ The `NavItemIcon` component automatically renders `<Image>` when `vipIcon` is se
 - **Screenshot upload** API (`/api/design-system/preview-upload`): accepts image file + element_id, stores to `public/design-system-previews/`, updates DB.
 - **API routes**: `/api/design-system/assets`, `/api/design-system/ui-elements`, `/api/design-system/assignments`, `/api/design-system/preview-upload` — all admin-protected with Zod validation.
 - **Migrations**: `design_system_tables.sql` (base tables), `design_system_render_type.sql` (adds render_type, preview_html, preview_image columns).
+- **i18n**: Full German/English translations under `designSystem` namespace in `messages/en.json` and `messages/de.json`. All client components use `useTranslations("designSystem")`, server page uses `getTranslations`.
 - **Files**: `app/design-system/page.tsx`, `design-system-client.tsx`, `asset-library-tab.tsx`, `ui-inventory-tab.tsx`, `assignment-tab.tsx`, `assignment-modal.tsx`, `thumbnail-size-picker.tsx`, `design-system-types.ts`.
-- `public/design-assets/` and `public/design-system-previews/` are in `.gitignore`.
+- `public/design-assets/` is committed to git (serves game asset thumbnails in production). `public/design-system-previews/` is in `.gitignore` (runtime uploads).
 
 ## Important SQL Notes
 

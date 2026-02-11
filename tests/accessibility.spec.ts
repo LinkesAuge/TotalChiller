@@ -10,7 +10,7 @@ test.use({ storageState: storageStatePath("member") });
  */
 
 const PUBLIC_PAGES = ["/", "/auth/login", "/auth/register", "/auth/forgot"];
-const PROTECTED_PAGES = ["/home", "/news", "/events", "/forum", "/messages", "/profile"];
+const PROTECTED_PAGES = ["/home", "/news", "/events", "/forum", "/messages", "/members", "/profile"];
 
 test.describe("Accessibility: Public pages", () => {
   for (const path of PUBLIC_PAGES) {

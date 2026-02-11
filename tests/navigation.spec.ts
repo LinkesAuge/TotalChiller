@@ -49,6 +49,14 @@ test.describe("Navigation: Authenticated sidebar (member)", () => {
     expect(await nav.count()).toBeGreaterThan(0);
   });
 
+  test("sidebar shows Members link for authenticated member", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator(".sidebar, aside")).toBeVisible({ timeout: 10000 });
+    const membersLink = page.locator('nav a[href="/members"], aside a[href="/members"]');
+    expect(await membersLink.count()).toBeGreaterThan(0);
+  });
+
   test("member does NOT see admin link in sidebar", async ({ page }) => {
     await page.goto("/news");
     await page.waitForLoadState("networkidle");

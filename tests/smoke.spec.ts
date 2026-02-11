@@ -39,7 +39,7 @@ test.describe("Smoke: Public pages load", () => {
 
 /* ── Protected pages redirect to /home when unauthenticated ── */
 
-const PROTECTED_PAGES = ["/news", "/events", "/forum", "/messages", "/profile", "/settings", "/charts"];
+const PROTECTED_PAGES = ["/news", "/events", "/forum", "/messages", "/members", "/profile", "/settings", "/charts"];
 
 test.describe("Smoke: Protected pages redirect unauthenticated users", () => {
   for (const path of PROTECTED_PAGES) {

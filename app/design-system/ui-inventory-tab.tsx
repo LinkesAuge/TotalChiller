@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef, type ReactElement } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import type { UiElement, AssetAssignment, RenderType } from "./design-system-types";
 import {
   UI_ELEMENT_CATEGORIES,
   RENDER_TYPES,
   ASSIGNABLE_RENDER_TYPES,
-  RENDER_TYPE_LABELS,
   RENDER_TYPE_COLORS,
 } from "./design-system-types";
 import ThumbnailSizePicker, { UI_ELEMENT_SIZES } from "./thumbnail-size-picker";
@@ -39,8 +39,9 @@ function InlinePreview({ html }: { readonly html: string }): ReactElement {
 /* ------------------------------------------------------------------ */
 
 function RenderTypeBadge({ renderType }: { readonly renderType: RenderType }): ReactElement {
+  const t = useTranslations("designSystem");
   const color = RENDER_TYPE_COLORS[renderType] ?? "";
-  const label = RENDER_TYPE_LABELS[renderType] ?? renderType;
+  const label = t(`renderType.${renderType}`);
   const cls = color ? `badge ${color}` : "badge";
   return (
     <span className={cls} style={{ fontSize: "0.6rem", padding: "0 6px" }}>
@@ -54,6 +55,7 @@ function RenderTypeBadge({ renderType }: { readonly renderType: RenderType }): R
 /* ------------------------------------------------------------------ */
 
 function UiInventoryTab(): ReactElement {
+  const t = useTranslations("designSystem");
   const [elements, setElements] = useState<UiElement[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -229,7 +231,7 @@ function UiInventoryTab(): ReactElement {
   /* ── Delete element ── */
 
   async function handleDelete(id: string): Promise<void> {
-    if (!confirm("Delete this UI element?")) return;
+    if (!confirm(t("uiInventory.deleteConfirm"))) return;
     try {
       await fetch("/api/design-system/ui-elements", {
         method: "DELETE",
@@ -406,9 +408,9 @@ function UiInventoryTab(): ReactElement {
       <section className="card">
         <div className="card-header">
           <div>
-            <div className="card-title">UI Element Inventory</div>
+            <div className="card-title">{t("uiInventory.title")}</div>
             <div className="card-subtitle">
-              {totalCount} UI elements across {Object.keys(grouped).length} categories
+              {t("uiInventory.subtitle", { count: totalCount, categories: Object.keys(grouped).length })}
             </div>
           </div>
           <button
@@ -416,7 +418,7 @@ function UiInventoryTab(): ReactElement {
             style={{ fontSize: "0.85rem", padding: "6px 16px" }}
             onClick={() => setIsAdding(!isAdding)}
           >
-            {isAdding ? "Cancel" : "+ Add Element"}
+            {isAdding ? t("common.cancel") : t("uiInventory.addElement")}
           </button>
         </div>
 
@@ -432,7 +434,7 @@ function UiInventoryTab(): ReactElement {
           }}
         >
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ minWidth: 140 }}>
-            <option value="all">All Categories</option>
+            <option value="all">{t("common.allCategories")}</option>
             {UI_ELEMENT_CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
@@ -440,26 +442,26 @@ function UiInventoryTab(): ReactElement {
             ))}
           </select>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ minWidth: 100 }}>
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="planned">Planned</option>
-            <option value="deprecated">Deprecated</option>
+            <option value="all">{t("common.allStatus")}</option>
+            <option value="active">{t("status.active")}</option>
+            <option value="planned">{t("status.planned")}</option>
+            <option value="deprecated">{t("status.deprecated")}</option>
           </select>
           <select
             value={renderTypeFilter}
             onChange={(e) => setRenderTypeFilter(e.target.value)}
             style={{ minWidth: 120 }}
           >
-            <option value="all">All Types</option>
+            <option value="all">{t("common.allTypes")}</option>
             {RENDER_TYPES.map((rt) => (
               <option key={rt} value={rt}>
-                {RENDER_TYPE_LABELS[rt] ?? rt}
+                {t(`renderType.${rt}`)}
               </option>
             ))}
           </select>
           <input
             type="text"
-            placeholder="Search elements..."
+            placeholder={t("uiInventory.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ flex: 1, minWidth: 160 }}
@@ -468,7 +470,7 @@ function UiInventoryTab(): ReactElement {
             sizes={UI_ELEMENT_SIZES}
             value={previewSize}
             onChange={setPreviewSize}
-            label="Preview:"
+            label={t("common.preview")}
           />
         </div>
 
@@ -485,7 +487,7 @@ function UiInventoryTab(): ReactElement {
           >
             <input
               type="text"
-              placeholder="Name *"
+              placeholder={t("uiInventory.namePlaceholder")}
               value={addForm.name}
               onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
             />
@@ -644,14 +646,14 @@ function UiInventoryTab(): ReactElement {
                                 <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{el.name}</div>
                                 <input
                                   type="text"
-                                  placeholder="Description"
+                                  placeholder={t("uiInventory.descriptionPlaceholder")}
                                   value={editForm.description ?? ""}
                                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                                   style={{ fontSize: "0.8rem" }}
                                 />
                                 <input
                                   type="text"
-                                  placeholder="Notes"
+                                  placeholder={t("uiInventory.notesPlaceholder")}
                                   value={editForm.notes ?? ""}
                                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                                   style={{ fontSize: "0.8rem" }}
@@ -664,9 +666,9 @@ function UiInventoryTab(): ReactElement {
                                     }
                                     style={{ fontSize: "0.8rem" }}
                                   >
-                                    <option value="active">Active</option>
-                                    <option value="planned">Planned</option>
-                                    <option value="deprecated">Deprecated</option>
+                                    <option value="active">{t("status.active")}</option>
+                                    <option value="planned">{t("status.planned")}</option>
+                                    <option value="deprecated">{t("status.deprecated")}</option>
                                   </select>
                                   <select
                                     value={
@@ -679,7 +681,7 @@ function UiInventoryTab(): ReactElement {
                                   >
                                     {RENDER_TYPES.map((rt) => (
                                       <option key={rt} value={rt}>
-                                        {RENDER_TYPE_LABELS[rt] ?? rt}
+                                        {t(`renderType.${rt}`)}
                                       </option>
                                     ))}
                                   </select>
@@ -690,14 +692,14 @@ function UiInventoryTab(): ReactElement {
                                     style={{ fontSize: "0.75rem", padding: "3px 10px" }}
                                     onClick={saveEdit}
                                   >
-                                    Save
+                                    {t("common.save")}
                                   </button>
                                   <button
                                     className="button"
                                     style={{ fontSize: "0.75rem", padding: "3px 10px" }}
                                     onClick={() => setEditingId(null)}
                                   >
-                                    Cancel
+                                    {t("common.cancel")}
                                   </button>
                                 </div>
                               </div>
@@ -732,10 +734,14 @@ function UiInventoryTab(): ReactElement {
                                     flexWrap: "wrap",
                                   }}
                                 >
-                                  {el.component_file && <span>File: {el.component_file}</span>}
+                                  {el.component_file && (
+                                    <span>
+                                      {t("uiInventory.file")} {el.component_file}
+                                    </span>
+                                  )}
                                   {el.current_css && (
                                     <span>
-                                      CSS: <code>{el.current_css}</code>
+                                      {t("uiInventory.css")} <code>{el.current_css}</code>
                                     </span>
                                   )}
                                 </div>
@@ -772,7 +778,7 @@ function UiInventoryTab(): ReactElement {
                                   style={{ fontSize: "0.72rem", padding: "3px 10px", flex: 1, minWidth: 80 }}
                                   onClick={() => setAssignElement(el)}
                                 >
-                                  Assign Assets ({(previewMap[el.id] ?? []).length})
+                                  {t("uiInventory.assignAssets", { count: (previewMap[el.id] ?? []).length })}
                                 </button>
                               )}
                               {(el.render_type === "composite" || (!el.preview_html && !el.preview_image)) && (
@@ -781,7 +787,7 @@ function UiInventoryTab(): ReactElement {
                                   style={{ fontSize: "0.72rem", padding: "3px 10px" }}
                                   onClick={() => triggerUpload(el.id)}
                                 >
-                                  Screenshot
+                                  {t("uiInventory.screenshot")}
                                 </button>
                               )}
                               <button
@@ -789,14 +795,14 @@ function UiInventoryTab(): ReactElement {
                                 style={{ fontSize: "0.72rem", padding: "3px 10px" }}
                                 onClick={() => startEdit(el)}
                               >
-                                Edit
+                                {t("common.edit")}
                               </button>
                               <button
                                 className="button danger"
                                 style={{ fontSize: "0.72rem", padding: "3px 10px" }}
                                 onClick={() => handleDelete(el.id)}
                               >
-                                Del
+                                {t("common.delete")}
                               </button>
                             </div>
                           )}
@@ -812,7 +818,7 @@ function UiInventoryTab(): ReactElement {
         {/* Empty */}
         {!isLoading && elements.length === 0 && !error && (
           <div style={{ padding: 32, textAlign: "center", color: "var(--color-text-muted)" }}>
-            No UI elements found. Run the scanner script first:
+            {t("uiInventory.emptyMessage")}
             <br />
             <code
               style={{

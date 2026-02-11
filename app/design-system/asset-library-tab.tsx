@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, type ReactElement } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import type { DesignAsset } from "./design-system-types";
 import { ASSET_CATEGORIES, formatFileSize } from "./design-system-types";
 import ThumbnailSizePicker, { ASSET_SIZES } from "./thumbnail-size-picker";
@@ -17,6 +18,7 @@ const PAGE_SIZE = 200;
 /* ------------------------------------------------------------------ */
 
 function AssetLibraryTab(): ReactElement {
+  const t = useTranslations("designSystem");
   const [assets, setAssets] = useState<DesignAsset[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -127,10 +129,15 @@ function AssetLibraryTab(): ReactElement {
     <section className="card">
       <div className="card-header">
         <div>
-          <div className="card-title">Asset Library</div>
+          <div className="card-title">{t("assetLibrary.title")}</div>
           <div className="card-subtitle">
-            {totalCount} assets{category !== "all" ? ` in "${category}"` : ""}
-            {search ? ` matching "${search}"` : ""}
+            {category !== "all" && search
+              ? t("assetLibrary.assetsInCategoryMatching", { count: totalCount, category, query: search })
+              : category !== "all"
+                ? t("assetLibrary.assetsInCategory", { count: totalCount, category })
+                : search
+                  ? t("assetLibrary.assetsMatching", { count: totalCount, query: search })
+                  : t("assetLibrary.assetsTotal", { count: totalCount })}
           </div>
         </div>
       </div>
@@ -154,7 +161,9 @@ function AssetLibraryTab(): ReactElement {
           }}
           style={{ minWidth: 160 }}
         >
-          <option value="all">All Categories ({totalCount})</option>
+          <option value="all">
+            {t("common.allCategories")} ({totalCount})
+          </option>
           {ASSET_CATEGORIES.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
@@ -164,12 +173,12 @@ function AssetLibraryTab(): ReactElement {
 
         <input
           type="text"
-          placeholder="Search by filename..."
+          placeholder={t("assetLibrary.searchPlaceholder")}
           onChange={(e) => handleSearchChange(e.target.value)}
           style={{ flex: 1, minWidth: 200 }}
         />
 
-        <ThumbnailSizePicker sizes={ASSET_SIZES} value={thumbSize} onChange={setThumbSize} label="Size:" />
+        <ThumbnailSizePicker sizes={ASSET_SIZES} value={thumbSize} onChange={setThumbSize} label={t("common.size")} />
 
         <label
           style={{
@@ -183,7 +192,7 @@ function AssetLibraryTab(): ReactElement {
           }}
         >
           <input type="checkbox" checked={!darkBg} onChange={(e) => setDarkBg(!e.target.checked)} />
-          Light bg
+          {t("common.lightBg")}
         </label>
 
         {totalPages > 1 && (
@@ -196,18 +205,16 @@ function AssetLibraryTab(): ReactElement {
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
             >
-              Prev
+              {t("common.prev")}
             </button>
-            <span>
-              Page {currentPage}/{totalPages}
-            </span>
+            <span>{t("common.pageOf", { current: currentPage, total: totalPages })}</span>
             <button
               className="button"
               style={{ padding: "4px 10px", fontSize: "0.8rem" }}
               disabled={currentPage >= totalPages}
               onClick={() => setOffset(offset + PAGE_SIZE)}
             >
-              Next
+              {t("common.next")}
             </button>
           </div>
         )}
@@ -216,9 +223,9 @@ function AssetLibraryTab(): ReactElement {
       {/* Error */}
       {error && (
         <div style={{ padding: 16, color: "var(--color-accent-red)" }}>
-          Error: {error}
+          {t("common.error", { message: error })}
           <button className="button" style={{ marginLeft: 12 }} onClick={() => fetchAssets(category, search, offset)}>
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       )}
@@ -313,7 +320,7 @@ function AssetLibraryTab(): ReactElement {
       {/* Empty */}
       {!isLoading && assets.length === 0 && !error && (
         <div style={{ padding: 32, textAlign: "center", color: "var(--color-text-muted)" }}>
-          No assets found. Run the scanner script first:
+          {t("assetLibrary.emptyMessage")}
           <br />
           <code
             style={{
@@ -366,17 +373,17 @@ function AssetLibraryTab(): ReactElement {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <h3 style={{ margin: 0, fontSize: "1.1rem" }}>{selectedAsset.filename}</h3>
             <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "4px 12px", fontSize: "0.85rem" }}>
-              <span style={{ color: "var(--color-text-muted)" }}>Dimensions:</span>
+              <span style={{ color: "var(--color-text-muted)" }}>{t("assetLibrary.dimensions")}</span>
               <span>
                 {selectedAsset.width ?? "?"}x{selectedAsset.height ?? "?"}
               </span>
-              <span style={{ color: "var(--color-text-muted)" }}>File size:</span>
+              <span style={{ color: "var(--color-text-muted)" }}>{t("assetLibrary.fileSize")}</span>
               <span>{formatFileSize(selectedAsset.file_size_bytes)}</span>
-              <span style={{ color: "var(--color-text-muted)" }}>Original path:</span>
+              <span style={{ color: "var(--color-text-muted)" }}>{t("assetLibrary.originalPath")}</span>
               <span style={{ fontSize: "0.75rem", wordBreak: "break-all" }}>{selectedAsset.original_path}</span>
-              <span style={{ color: "var(--color-text-muted)" }}>Public path:</span>
+              <span style={{ color: "var(--color-text-muted)" }}>{t("assetLibrary.publicPath")}</span>
               <span style={{ fontSize: "0.75rem" }}>{selectedAsset.public_path}</span>
-              <span style={{ color: "var(--color-text-muted)" }}>Category:</span>
+              <span style={{ color: "var(--color-text-muted)" }}>{t("assetLibrary.category")}</span>
               <select
                 value={selectedAsset.category ?? "uncategorized"}
                 onChange={(e) => handleChangeCategory(selectedAsset.id, e.target.value)}
@@ -393,14 +400,14 @@ function AssetLibraryTab(): ReactElement {
               <label
                 style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", display: "block", marginBottom: 4 }}
               >
-                Tags (comma-separated):
+                {t("assetLibrary.tagsLabel")}
               </label>
               <div style={{ display: "flex", gap: 8 }}>
                 <input
                   type="text"
                   value={editTags}
                   onChange={(e) => setEditTags(e.target.value)}
-                  placeholder="e.g. ui, button, gold"
+                  placeholder={t("assetLibrary.tagsPlaceholder")}
                   style={{ flex: 1, fontSize: "0.85rem" }}
                 />
                 <button
@@ -408,7 +415,7 @@ function AssetLibraryTab(): ReactElement {
                   style={{ padding: "4px 12px", fontSize: "0.85rem" }}
                   onClick={handleSaveTags}
                 >
-                  Save Tags
+                  {t("assetLibrary.saveTags")}
                 </button>
               </div>
               {(selectedAsset.tags?.length ?? 0) > 0 && (
@@ -426,7 +433,7 @@ function AssetLibraryTab(): ReactElement {
               style={{ padding: "4px 12px", fontSize: "0.85rem", alignSelf: "flex-start", marginTop: 8 }}
               onClick={() => setSelectedAsset(null)}
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
         </div>

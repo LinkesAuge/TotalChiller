@@ -360,6 +360,18 @@
     "loading": "Mitglieder werden geladen\u2026",
     "totalMembers": "{count} Mitglieder"
   },
+  "bannerPicker": {
+    "noBanner": "Kein Banner",
+    "customBanner": "Eigenes hochladen",
+    "uploadingImage": "Bild wird hochgeladen\u2026"
+  },
+  "markdownEditor": {
+    "write": "Schreiben",
+    "preview": "Vorschau",
+    "previewEmpty": "Vorschau wird angezeigt, sobald Inhalt vorhanden ist.",
+    "markdownHint": "Markdown wird unterstützt. Bilder per Einfügen oder Drag & Drop hinzufügen.",
+    "uploadingImage": "Bild wird hochgeladen\u2026"
+  },
   "news": {
     "breadcrumb": "TotalChiller \u2022 Clan-Plattform",
     "title": "Ankündigungen",
@@ -1581,5 +1593,108 @@
     "previewEmpty": "Noch nichts zum Anzeigen.",
     "markdownHint": "Unterstützt Markdown: **fett**, _kursiv_, [Links](url), ![Bilder](url), YouTube-Links, Code-Blöcke, Listen und mehr.",
     "emptyTitle": "Willkommen im Forum"
+  },
+  "designSystem": {
+    "title": "Design-System Asset-Manager",
+    "subtitle": "Spiel-Assets, UI-Muster und Zuweisungen verwalten",
+    "pageTitle": "Asset-Manager",
+    "breadcrumb": "Design-System",
+    "tabs": {
+      "assetLibrary": "Asset-Bibliothek",
+      "assetLibraryDesc": "Alle Spiel-Assets durchsuchen und taggen",
+      "uiInventory": "UI-Inventar",
+      "uiInventoryDesc": "Website-UI-Elemente und Muster",
+      "assignments": "Zuweisungen",
+      "assignmentsDesc": "Assets zu UI-Elementen zuordnen"
+    },
+    "renderType": {
+      "css": "Nur CSS",
+      "asset": "Asset-basiert",
+      "hybrid": "Hybrid",
+      "icon": "Symbol",
+      "typography": "Typografie",
+      "composite": "Zusammengesetzt"
+    },
+    "status": {
+      "active": "Aktiv",
+      "planned": "Geplant",
+      "deprecated": "Veraltet"
+    },
+    "common": {
+      "size": "Größe:",
+      "preview": "Vorschau:",
+      "prev": "Zurück",
+      "next": "Weiter",
+      "role": "Rolle:",
+      "allCategories": "Alle Kategorien",
+      "allStatus": "Alle Status",
+      "allTypes": "Alle Typen",
+      "search": "Suchen...",
+      "error": "Fehler: {message}",
+      "retry": "Erneut versuchen",
+      "assigned": "zugewiesen",
+      "unknown": "Unbekannt",
+      "remove": "Entfernen",
+      "lightBg": "Heller Hintergrund",
+      "pageOf": "{current}/{total}",
+      "close": "Schließen",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "assetLibrary": {
+      "title": "Asset-Bibliothek",
+      "assetsInCategory": "{count} Assets in \"{category}\"",
+      "assetsMatching": "{count} Assets passend zu \"{query}\"",
+      "assetsInCategoryMatching": "{count} Assets in \"{category}\" passend zu \"{query}\"",
+      "assetsTotal": "{count} Assets",
+      "searchPlaceholder": "Nach Dateiname suchen...",
+      "emptyMessage": "Keine Assets gefunden. Führen Sie zuerst das Scanner-Skript aus:",
+      "dimensions": "Abmessungen:",
+      "fileSize": "Dateigröße:",
+      "originalPath": "Originalpfad:",
+      "publicPath": "Öffentlicher Pfad:",
+      "category": "Kategorie:",
+      "tagsLabel": "Tags (kommagetrennt):",
+      "tagsPlaceholder": "z.B. ui, button, gold",
+      "saveTags": "Tags speichern"
+    },
+    "uiInventory": {
+      "title": "UI-Element-Inventar",
+      "subtitle": "{count} UI-Elemente in {categories} Kategorien",
+      "addElement": "+ Element hinzufügen",
+      "searchPlaceholder": "Elemente suchen...",
+      "namePlaceholder": "Name *",
+      "descriptionPlaceholder": "Beschreibung",
+      "subcategoryPlaceholder": "Unterkategorie",
+      "componentFilePlaceholder": "Komponentendatei",
+      "cssClassPlaceholder": "CSS-Klasse",
+      "notesPlaceholder": "Notizen",
+      "addButton": "Element hinzufügen",
+      "emptyMessage": "Keine UI-Elemente gefunden. Führen Sie zuerst das Scanner-Skript aus:",
+      "uploadScreenshot": "Screenshot hochladen",
+      "noPreview": "Keine Vorschau",
+      "file": "Datei:",
+      "css": "CSS:",
+      "assignAssets": "Assets zuweisen ({count})",
+      "screenshot": "Screenshot",
+      "deleteConfirm": "Dieses UI-Element löschen?"
+    },
+    "assignments": {
+      "title": "Asset-Zuweisungen",
+      "subtitle": "Nur asset-basierte, hybride und zusammengesetzte Elemente werden angezeigt. Wählen Sie eines aus und klicken Sie auf ein Asset.",
+      "assignedAssets": "Zugewiesene Assets ({count}):",
+      "noAssetsAssigned": "Keine Assets zugewiesen. Klicken Sie rechts auf ein Asset.",
+      "searchAssets": "Assets suchen...",
+      "selectPrompt": "Wählen Sie links ein UI-Element, um mit der Zuweisung zu beginnen",
+      "alreadyAssigned": "(Bereits zugewiesen)",
+      "removeAssignment": "Zuweisung entfernen"
+    },
+    "modal": {
+      "assignTitle": "Assets zuweisen: {name}",
+      "currentAssignments": "Aktuelle Zuweisungen ({count})",
+      "emptyMessage": "Keine Assets zugewiesen. Klicken Sie rechts auf ein Asset, um es zuzuweisen."
+    }
   }
 }

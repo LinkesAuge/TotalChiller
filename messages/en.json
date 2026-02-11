@@ -360,6 +360,18 @@
     "loading": "Loading members\u2026",
     "totalMembers": "{count} members"
   },
+  "bannerPicker": {
+    "noBanner": "No Banner",
+    "customBanner": "Upload custom",
+    "uploadingImage": "Uploading image\u2026"
+  },
+  "markdownEditor": {
+    "write": "Write",
+    "preview": "Preview",
+    "previewEmpty": "Preview will appear once you add content.",
+    "markdownHint": "Markdown supported. Add images via paste or drag & drop.",
+    "uploadingImage": "Uploading image\u2026"
+  },
   "news": {
     "breadcrumb": "TotalChiller \u2022 Clan Platform",
     "title": "Announcements",
@@ -1581,5 +1593,108 @@
     "previewEmpty": "Nothing to preview yet.",
     "markdownHint": "Supports Markdown: **bold**, _italic_, [links](url), ![images](url), YouTube links, code blocks, lists, and more.",
     "emptyTitle": "Welcome to the Forum"
+  },
+  "designSystem": {
+    "title": "Design System Asset Manager",
+    "subtitle": "Manage game assets, UI patterns, and assignments",
+    "pageTitle": "Asset Manager",
+    "breadcrumb": "Design System",
+    "tabs": {
+      "assetLibrary": "Asset Library",
+      "assetLibraryDesc": "Browse and tag all game assets",
+      "uiInventory": "UI Inventory",
+      "uiInventoryDesc": "Website UI elements and patterns",
+      "assignments": "Assignments",
+      "assignmentsDesc": "Map assets to UI elements"
+    },
+    "renderType": {
+      "css": "CSS Only",
+      "asset": "Asset-Based",
+      "hybrid": "Hybrid",
+      "icon": "Icon",
+      "typography": "Typography",
+      "composite": "Composite"
+    },
+    "status": {
+      "active": "Active",
+      "planned": "Planned",
+      "deprecated": "Deprecated"
+    },
+    "common": {
+      "size": "Size:",
+      "preview": "Preview:",
+      "prev": "Prev",
+      "next": "Next",
+      "role": "Role:",
+      "allCategories": "All Categories",
+      "allStatus": "All Status",
+      "allTypes": "All Types",
+      "search": "Search...",
+      "error": "Error: {message}",
+      "retry": "Retry",
+      "assigned": "assigned",
+      "unknown": "Unknown",
+      "remove": "Remove",
+      "lightBg": "Light bg",
+      "pageOf": "{current}/{total}",
+      "close": "Close",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "delete": "Del"
+    },
+    "assetLibrary": {
+      "title": "Asset Library",
+      "assetsInCategory": "{count} assets in \"{category}\"",
+      "assetsMatching": "{count} assets matching \"{query}\"",
+      "assetsInCategoryMatching": "{count} assets in \"{category}\" matching \"{query}\"",
+      "assetsTotal": "{count} assets",
+      "searchPlaceholder": "Search by filename...",
+      "emptyMessage": "No assets found. Run the scanner script first:",
+      "dimensions": "Dimensions:",
+      "fileSize": "File size:",
+      "originalPath": "Original path:",
+      "publicPath": "Public path:",
+      "category": "Category:",
+      "tagsLabel": "Tags (comma-separated):",
+      "tagsPlaceholder": "e.g. ui, button, gold",
+      "saveTags": "Save Tags"
+    },
+    "uiInventory": {
+      "title": "UI Element Inventory",
+      "subtitle": "{count} UI elements across {categories} categories",
+      "addElement": "+ Add Element",
+      "searchPlaceholder": "Search elements...",
+      "namePlaceholder": "Name *",
+      "descriptionPlaceholder": "Description",
+      "subcategoryPlaceholder": "Subcategory",
+      "componentFilePlaceholder": "Component file",
+      "cssClassPlaceholder": "CSS class",
+      "notesPlaceholder": "Notes",
+      "addButton": "Add Element",
+      "emptyMessage": "No UI elements found. Run the scanner script first:",
+      "uploadScreenshot": "Upload screenshot",
+      "noPreview": "No preview",
+      "file": "File:",
+      "css": "CSS:",
+      "assignAssets": "Assign Assets ({count})",
+      "screenshot": "Screenshot",
+      "deleteConfirm": "Delete this UI element?"
+    },
+    "assignments": {
+      "title": "Asset Assignments",
+      "subtitle": "Only asset-based, hybrid, and composite elements are shown. Select one, then click an asset to assign.",
+      "assignedAssets": "Assigned assets ({count}):",
+      "noAssetsAssigned": "No assets assigned. Click an asset on the right.",
+      "searchAssets": "Search assets...",
+      "selectPrompt": "Select a UI element on the left to start assigning assets",
+      "alreadyAssigned": "(Already assigned)",
+      "removeAssignment": "Remove assignment"
+    },
+    "modal": {
+      "assignTitle": "Assign Assets: {name}",
+      "currentAssignments": "Current Assignments ({count})",
+      "emptyMessage": "No assets assigned. Click an asset on the right to assign it."
+    }
   }
 }

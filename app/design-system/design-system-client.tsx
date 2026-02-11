@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useMemo, useState, type ReactElement } from "react";
+import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import type { DesignSystemTab } from "./design-system-types";
 
@@ -41,12 +42,6 @@ interface TabDef {
   readonly description: string;
 }
 
-const TABS: TabDef[] = [
-  { key: "assets", label: "Asset Library", description: "Browse and tag all game assets" },
-  { key: "inventory", label: "UI Inventory", description: "Website UI elements and patterns" },
-  { key: "assignments", label: "Assignments", description: "Map assets to UI elements" },
-];
-
 const TAB_MAP: Record<DesignSystemTab, React.ComponentType> = {
   assets: AssetLibraryTab,
   inventory: UiInventoryTab,
@@ -56,8 +51,17 @@ const TAB_MAP: Record<DesignSystemTab, React.ComponentType> = {
 /* ── Main component ── */
 
 function DesignSystemClient(): ReactElement {
+  const t = useTranslations("designSystem");
   const [activeTab, setActiveTab] = useState<DesignSystemTab>("assets");
   const ActiveComponent = TAB_MAP[activeTab] ?? TabSkeleton;
+  const tabs = useMemo<TabDef[]>(
+    () => [
+      { key: "assets", label: t("tabs.assetLibrary"), description: t("tabs.assetLibraryDesc") },
+      { key: "inventory", label: t("tabs.uiInventory"), description: t("tabs.uiInventoryDesc") },
+      { key: "assignments", label: t("tabs.assignments"), description: t("tabs.assignmentsDesc") },
+    ],
+    [t],
+  );
 
   return (
     <div className="admin-grid">
@@ -65,12 +69,12 @@ function DesignSystemClient(): ReactElement {
       <section className="card">
         <div className="card-header">
           <div>
-            <div className="card-title">Design System Asset Manager</div>
-            <div className="card-subtitle">Manage game assets, UI patterns, and assignments</div>
+            <div className="card-title">{t("title")}</div>
+            <div className="card-subtitle">{t("subtitle")}</div>
           </div>
         </div>
         <div className="tabs">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.key}
               className={`tab ${activeTab === tab.key ? "active" : ""}`}

@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback, type ReactElement } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import type { DesignAsset, UiElement, AssetAssignment } from "./design-system-types";
 import {
   UI_ELEMENT_CATEGORIES,
   ASSET_CATEGORIES,
   ASSIGNMENT_ROLES,
   ASSIGNABLE_RENDER_TYPES,
-  RENDER_TYPE_LABELS,
   RENDER_TYPE_COLORS,
   formatFileSize,
 } from "./design-system-types";
@@ -25,6 +25,7 @@ const PAGE_SIZE = 200;
 /* ------------------------------------------------------------------ */
 
 function AssignmentTab(): ReactElement {
+  const t = useTranslations("designSystem");
   /* ── UI Elements (left panel) ── */
   const [uiElements, setUiElements] = useState<UiElement[]>([]);
   const [selectedElement, setSelectedElement] = useState<UiElement | null>(null);
@@ -196,13 +197,11 @@ function AssignmentTab(): ReactElement {
     <section className="card">
       <div className="card-header">
         <div>
-          <div className="card-title">Asset Assignments</div>
-          <div className="card-subtitle">
-            Only asset-based, hybrid, and composite elements are shown. Select one, then click an asset to assign.
-          </div>
+          <div className="card-title">{t("assignments.title")}</div>
+          <div className="card-subtitle">{t("assignments.subtitle")}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <label style={{ fontSize: "0.85rem", color: "var(--color-text-2)" }}>Role:</label>
+          <label style={{ fontSize: "0.85rem", color: "var(--color-text-2)" }}>{t("common.role")}</label>
           <select
             value={assignRole}
             onChange={(e) => setAssignRole(e.target.value)}
@@ -243,7 +242,7 @@ function AssignmentTab(): ReactElement {
               onChange={(e) => setElementFilter(e.target.value)}
               style={{ fontSize: "0.8rem", flex: 1, minWidth: 80 }}
             >
-              <option value="all">All</option>
+              <option value="all">{t("common.allCategories")}</option>
               {UI_ELEMENT_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
@@ -252,7 +251,7 @@ function AssignmentTab(): ReactElement {
             </select>
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t("common.search")}
               value={elementSearch}
               onChange={(e) => setElementSearch(e.target.value)}
               style={{ fontSize: "0.8rem", flex: 1, minWidth: 80 }}
@@ -363,7 +362,7 @@ function AssignmentTab(): ReactElement {
                             className={rtColor ? `badge ${rtColor}` : "badge"}
                             style={{ fontSize: "0.5rem", padding: "0 4px" }}
                           >
-                            {RENDER_TYPE_LABELS[el.render_type] ?? el.render_type}
+                            {t("renderType." + el.render_type)}
                           </span>
                           {elAssignments.length > 0 && (
                             <span className="badge info" style={{ fontSize: "0.55rem", padding: "0 5px" }}>
@@ -404,7 +403,7 @@ function AssignmentTab(): ReactElement {
                 </div>
               )}
               <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", marginBottom: 4 }}>
-                Assigned assets ({assignments.length}):
+                {t("assignments.assignedAssets", { count: assignments.length })}
               </div>
               {isLoadingAssignments ? (
                 <div className="skeleton" style={{ width: "100%", height: 40, borderRadius: 6 }} />
@@ -442,9 +441,11 @@ function AssignmentTab(): ReactElement {
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {a.design_assets?.filename ?? "Unknown"}
+                          {a.design_assets?.filename ?? t("common.unknown")}
                         </div>
-                        <div style={{ fontSize: "0.65rem", color: "var(--color-text-muted)" }}>Role: {a.role}</div>
+                        <div style={{ fontSize: "0.65rem", color: "var(--color-text-muted)" }}>
+                          {t("common.role")} {a.role}
+                        </div>
                       </div>
                       <button
                         type="button"
@@ -457,7 +458,7 @@ function AssignmentTab(): ReactElement {
                           fontSize: "1rem",
                           padding: "2px 6px",
                         }}
-                        title="Remove assignment"
+                        title={t("assignments.removeAssignment")}
                       >
                         ×
                       </button>
@@ -466,7 +467,7 @@ function AssignmentTab(): ReactElement {
                 </div>
               ) : (
                 <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", fontStyle: "italic" }}>
-                  No assets assigned. Click an asset on the right.
+                  {t("assignments.noAssetsAssigned")}
                 </div>
               )}
             </div>
@@ -494,7 +495,9 @@ function AssignmentTab(): ReactElement {
               }}
               style={{ fontSize: "0.8rem", minWidth: 130 }}
             >
-              <option value="all">All Categories ({totalAssets})</option>
+              <option value="all">
+                {t("common.allCategories")} ({totalAssets})
+              </option>
               {ASSET_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
@@ -503,7 +506,7 @@ function AssignmentTab(): ReactElement {
             </select>
             <input
               type="text"
-              placeholder="Search assets..."
+              placeholder={t("assignments.searchAssets")}
               value={assetSearch}
               onChange={(e) => {
                 setAssetSearch(e.target.value);
@@ -515,7 +518,7 @@ function AssignmentTab(): ReactElement {
               sizes={ASSET_SIZES}
               value={assetThumbSize}
               onChange={setAssetThumbSize}
-              label="Size:"
+              label={t("common.size")}
             />
             {totalPages > 1 && (
               <div
@@ -534,18 +537,16 @@ function AssignmentTab(): ReactElement {
                   disabled={assetOffset === 0}
                   onClick={() => setAssetOffset(Math.max(0, assetOffset - PAGE_SIZE))}
                 >
-                  Prev
+                  {t("common.prev")}
                 </button>
-                <span>
-                  {currentPage}/{totalPages}
-                </span>
+                <span>{t("common.pageOf", { current: currentPage, total: totalPages })}</span>
                 <button
                   className="button"
                   style={{ padding: "3px 8px", fontSize: "0.75rem" }}
                   disabled={currentPage >= totalPages}
                   onClick={() => setAssetOffset(assetOffset + PAGE_SIZE)}
                 >
-                  Next
+                  {t("common.next")}
                 </button>
               </div>
             )}
@@ -571,7 +572,7 @@ function AssignmentTab(): ReactElement {
                   <div
                     style={{ padding: 20, textAlign: "center", color: "var(--color-text-muted)", fontSize: "0.9rem" }}
                   >
-                    Select a UI element on the left to start assigning assets
+                    {t("assignments.selectPrompt")}
                   </div>
                 )}
                 <div
@@ -602,7 +603,7 @@ function AssignmentTab(): ReactElement {
                           opacity: selectedElement ? 1 : 0.5,
                           transition: "border-color 0.15s",
                         }}
-                        title={`${asset.filename}\n${asset.width ?? "?"}x${asset.height ?? "?"} | ${formatFileSize(asset.file_size_bytes)}${isAssigned ? "\n(Already assigned)" : ""}`}
+                        title={`${asset.filename}\n${asset.width ?? "?"}x${asset.height ?? "?"} | ${formatFileSize(asset.file_size_bytes)}${isAssigned ? "\n" + t("assignments.alreadyAssigned") : ""}`}
                       >
                         <div
                           style={{
@@ -636,7 +637,9 @@ function AssignmentTab(): ReactElement {
                           {asset.filename}
                         </span>
                         {isAssigned && (
-                          <span style={{ fontSize: "0.55rem", color: "var(--color-accent-green)" }}>assigned</span>
+                          <span style={{ fontSize: "0.55rem", color: "var(--color-accent-green)" }}>
+                            {t("common.assigned")}
+                          </span>
                         )}
                       </button>
                     );

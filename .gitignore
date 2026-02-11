@@ -20,8 +20,7 @@ squirrel.toml
 test-results/
 playwright-report/
 
-# Design system (copied assets from Design/Resources/Assets)
-public/design-assets/
+# Design system preview screenshots (uploaded at runtime)
 public/design-system-previews/
 
 # Misc

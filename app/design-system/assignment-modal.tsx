@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, type ReactElement } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import type { DesignAsset, UiElement, AssetAssignment } from "./design-system-types";
-import { ASSET_CATEGORIES, ASSIGNMENT_ROLES, RENDER_TYPE_LABELS, formatFileSize } from "./design-system-types";
+import { ASSET_CATEGORIES, ASSIGNMENT_ROLES, formatFileSize } from "./design-system-types";
 import ThumbnailSizePicker, { ASSET_SIZES } from "./thumbnail-size-picker";
 
 /* ------------------------------------------------------------------ */
@@ -19,6 +20,7 @@ interface AssignmentModalProps {
 const PAGE_SIZE = 200;
 
 function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentModalProps): ReactElement {
+  const t = useTranslations("designSystem");
   /* ── Assets ── */
   const [assets, setAssets] = useState<DesignAsset[]>([]);
   const [totalAssets, setTotalAssets] = useState(0);
@@ -168,9 +170,9 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
                 gap: 8,
               }}
             >
-              Assign Assets: {element.name}
+              {t("modal.assignTitle", { name: element.name })}
               <span className="badge" style={{ fontSize: "0.6rem", padding: "0 6px" }}>
-                {RENDER_TYPE_LABELS[element.render_type] ?? element.render_type}
+                {t("renderType." + element.render_type)}
               </span>
             </div>
             <div style={{ fontSize: "0.8rem", color: "var(--color-text-2)" }}>
@@ -180,7 +182,7 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <label style={{ fontSize: "0.8rem", color: "var(--color-text-2)" }}>Role:</label>
+          <label style={{ fontSize: "0.8rem", color: "var(--color-text-2)" }}>{t("common.role")}</label>
           <select value={assignRole} onChange={(e) => setAssignRole(e.target.value)} style={{ fontSize: "0.8rem" }}>
             {ASSIGNMENT_ROLES.map((r) => (
               <option key={r} value={r}>
@@ -189,7 +191,7 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
             ))}
           </select>
           <button className="button" style={{ padding: "5px 16px", fontSize: "0.85rem" }} onClick={onClose}>
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>
@@ -282,7 +284,7 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
                       fontSize: "1.2rem",
                       padding: "4px 8px",
                     }}
-                    title="Remove"
+                    title={t("common.remove")}
                   >
                     ×
                   </button>
@@ -314,7 +316,9 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
               }}
               style={{ fontSize: "0.8rem", minWidth: 130 }}
             >
-              <option value="all">All Categories ({totalAssets})</option>
+              <option value="all">
+                {t("common.allCategories")} ({totalAssets})
+              </option>
               {ASSET_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -323,7 +327,7 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
             </select>
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t("common.search")}
               value={assetSearch}
               onChange={(e) => {
                 setAssetSearch(e.target.value);
@@ -335,7 +339,7 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
               sizes={ASSET_SIZES}
               value={assetThumbSize}
               onChange={setAssetThumbSize}
-              label="Size:"
+              label={t("common.size")}
             />
             {totalPages > 1 && (
               <div
@@ -354,18 +358,16 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
                   disabled={assetOffset === 0}
                   onClick={() => setAssetOffset(Math.max(0, assetOffset - PAGE_SIZE))}
                 >
-                  Prev
+                  {t("common.prev")}
                 </button>
-                <span>
-                  {currentPage}/{totalPages}
-                </span>
+                <span>{t("common.pageOf", { current: currentPage, total: totalPages })}</span>
                 <button
                   className="button"
                   style={{ padding: "3px 8px", fontSize: "0.75rem" }}
                   disabled={currentPage >= totalPages}
                   onClick={() => setAssetOffset(assetOffset + PAGE_SIZE)}
                 >
-                  Next
+                  {t("common.next")}
                 </button>
               </div>
             )}
@@ -446,7 +448,9 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
                         {asset.filename}
                       </span>
                       {isAssigned && (
-                        <span style={{ fontSize: "0.55rem", color: "var(--color-accent-green)" }}>assigned</span>
+                        <span style={{ fontSize: "0.55rem", color: "var(--color-accent-green)" }}>
+                          {t("common.assigned")}
+                        </span>
                       )}
                     </button>
                   );

@@ -267,7 +267,7 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {a.design_assets?.filename ?? "Unknown"}
+                      {a.design_assets?.filename ?? t("common.unknown")}
                     </div>
                     <div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)" }}>
                       Role: {a.role} | {a.design_assets?.category ?? ""}

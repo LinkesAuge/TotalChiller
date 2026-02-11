@@ -387,7 +387,7 @@ function UiInventoryTab(): ReactElement {
           fontSize: "0.72rem",
         }}
       >
-        {el.render_type === "composite" ? "Upload screenshot" : "No preview"}
+        {el.render_type === "composite" ? t("uiInventory.uploadScreenshot") : t("uiInventory.noPreview")}
       </div>
     );
   }
@@ -504,25 +504,25 @@ function UiInventoryTab(): ReactElement {
             >
               {RENDER_TYPES.map((rt) => (
                 <option key={rt} value={rt}>
-                  {RENDER_TYPE_LABELS[rt] ?? rt}
+                  {t(`renderType.${rt}`)}
                 </option>
               ))}
             </select>
             <input
               type="text"
-              placeholder="Description"
+              placeholder={t("uiInventory.descriptionPlaceholder")}
               value={addForm.description}
               onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
             />
             <input
               type="text"
-              placeholder="Subcategory"
+              placeholder={t("uiInventory.subcategoryPlaceholder")}
               value={addForm.subcategory}
               onChange={(e) => setAddForm({ ...addForm, subcategory: e.target.value })}
             />
             <input
               type="text"
-              placeholder="Component file"
+              placeholder={t("uiInventory.componentFilePlaceholder")}
               value={addForm.component_file}
               onChange={(e) => setAddForm({ ...addForm, component_file: e.target.value })}
             />

@@ -101,6 +101,7 @@ function EventsClient(): JSX.Element {
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>("none");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>("");
   const [recurrenceOngoing, setRecurrenceOngoing] = useState<boolean>(false);
+  const [endsAt, setEndsAt] = useState<string>("");
   const [bannerUrl, setBannerUrl] = useState<string>("");
   const [isBannerUploading, setIsBannerUploading] = useState<boolean>(false);
   const bannerFileRef = useRef<HTMLInputElement>(null);
@@ -240,6 +241,7 @@ function EventsClient(): JSX.Element {
     now.setHours(now.getHours() + 1);
     setStartsAt(toLocalDateTimeString(now));
     setIsOpenEnded(tpl.is_open_ended ?? tpl.duration_hours <= 0);
+    setEndsAt("");
     const totalMin = Math.round(tpl.duration_hours * 60);
     setDurationH(String(Math.floor(totalMin / 60)));
     setDurationM(String(totalMin % 60));
@@ -258,6 +260,7 @@ function EventsClient(): JSX.Element {
     setDurationH("0");
     setDurationM("0");
     setIsOpenEnded(true);
+    setEndsAt("");
     setOrganizer("");
     setRecurrenceType("none");
     setRecurrenceEndDate("");
@@ -288,11 +291,19 @@ function EventsClient(): JSX.Element {
     const durationMs = new Date(source.ends_at).getTime() - new Date(source.starts_at).getTime();
     const openEnded = durationMs <= 0;
     setIsOpenEnded(openEnded);
-    if (!openEnded) {
+    /* Detect multi-day events: if duration > 24h, use explicit end date mode */
+    const isMultiDay = durationMs > 24 * 60 * 60 * 1000;
+    if (isMultiDay) {
+      setEndsAt(toLocalDateTimeString(source.ends_at));
+      setDurationH("0");
+      setDurationM("0");
+    } else if (!openEnded) {
+      setEndsAt("");
       const totalMin = Math.round(durationMs / 60000);
       setDurationH(String(Math.floor(totalMin / 60)));
       setDurationM(String(totalMin % 60));
     } else {
+      setEndsAt("");
       setDurationH("0");
       setDurationM("0");
     }
@@ -325,11 +336,18 @@ function EventsClient(): JSX.Element {
       return;
     }
     const parsedStartsAt = new Date(startsAt).toISOString();
-    const totalMin = (parseInt(durationH, 10) || 0) * 60 + (parseInt(durationM, 10) || 0);
-    const parsedEndsAt =
-      isOpenEnded || totalMin <= 0
-        ? parsedStartsAt
-        : new Date(new Date(startsAt).getTime() + totalMin * 60000).toISOString();
+    let parsedEndsAt: string;
+    if (isOpenEnded) {
+      parsedEndsAt = parsedStartsAt;
+    } else if (endsAt) {
+      /* Explicit end date/time (multi-day mode) */
+      parsedEndsAt = new Date(endsAt).toISOString();
+    } else {
+      /* Duration-based end */
+      const totalMin = (parseInt(durationH, 10) || 0) * 60 + (parseInt(durationM, 10) || 0);
+      parsedEndsAt =
+        totalMin <= 0 ? parsedStartsAt : new Date(new Date(startsAt).getTime() + totalMin * 60000).toISOString();
+    }
     if (recurrenceType !== "none" && !recurrenceOngoing && !recurrenceEndDate) {
       pushToast(t("recurrenceRequired"));
       return;
@@ -559,12 +577,17 @@ function EventsClient(): JSX.Element {
     }
   }
 
-  /** Navigate the calendar to the day of a given event and select it. */
+  /** Navigate the calendar to the day of a given event, select it, and scroll into view. */
   function handleSelectUpcomingEvent(event: DisplayEvent): void {
     const eventDate = new Date(event.starts_at);
     const dateKey = toDateKey(eventDate);
     setSelectedDateKey(dateKey);
     setCalendarMonth(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
+    /* Give React one tick to re-render with the new selectedDateKey, then scroll the
+       day-panel into view so the user immediately sees the selected day details. */
+    requestAnimationFrame(() => {
+      document.querySelector(".calendar-day-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   return (
@@ -651,6 +674,7 @@ function EventsClient(): JSX.Element {
             durationH={durationH}
             durationM={durationM}
             isOpenEnded={isOpenEnded}
+            endsAt={endsAt}
             organizer={organizer}
             recurrenceType={recurrenceType}
             recurrenceEndDate={recurrenceEndDate}
@@ -668,6 +692,7 @@ function EventsClient(): JSX.Element {
             onDurationHChange={setDurationH}
             onDurationMChange={setDurationM}
             onOpenEndedChange={setIsOpenEnded}
+            onEndsAtChange={setEndsAt}
             onOrganizerChange={setOrganizer}
             onRecurrenceTypeChange={setRecurrenceType}
             onRecurrenceEndDateChange={setRecurrenceEndDate}

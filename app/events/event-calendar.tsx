@@ -313,7 +313,15 @@ export function EventCalendar({
                         </div>
                       )}
                       {entry.author_name && (
-                        <div className="calendar-day-event-author">{t("createdBy", { name: entry.author_name })}</div>
+                        <div className="calendar-day-event-author">
+                          {t("createdBy", { name: entry.author_name })}
+                          {entry.created_at && (
+                            <span className="calendar-day-event-date">
+                              {" · "}
+                              {formatLocalDateTime(entry.created_at, locale)}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </article>
                   ))}

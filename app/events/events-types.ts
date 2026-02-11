@@ -30,6 +30,7 @@ export interface DisplayEvent {
   readonly location: string | null;
   readonly starts_at: string;
   readonly ends_at: string;
+  readonly created_at: string;
   readonly organizer: string | null;
   readonly author_name: string | null;
   readonly recurrence_type: RecurrenceType;

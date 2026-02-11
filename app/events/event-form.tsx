@@ -20,6 +20,8 @@ export interface EventFormProps {
   readonly durationH: string;
   readonly durationM: string;
   readonly isOpenEnded: boolean;
+  /** Explicit end date/time for multi-day events (empty = use duration). */
+  readonly endsAt: string;
   readonly organizer: string;
   readonly recurrenceType: RecurrenceType;
   readonly recurrenceEndDate: string;
@@ -37,6 +39,7 @@ export interface EventFormProps {
   readonly onDurationHChange: (value: string) => void;
   readonly onDurationMChange: (value: string) => void;
   readonly onOpenEndedChange: (value: boolean) => void;
+  readonly onEndsAtChange: (value: string) => void;
   readonly onOrganizerChange: (value: string) => void;
   readonly onRecurrenceTypeChange: (value: RecurrenceType) => void;
   readonly onRecurrenceEndDateChange: (value: string) => void;
@@ -70,6 +73,7 @@ export function EventForm({
   durationH,
   durationM,
   isOpenEnded,
+  endsAt,
   organizer,
   recurrenceType,
   recurrenceEndDate,
@@ -87,6 +91,7 @@ export function EventForm({
   onDurationHChange,
   onDurationMChange,
   onOpenEndedChange,
+  onEndsAtChange,
   onOrganizerChange,
   onRecurrenceTypeChange,
   onRecurrenceEndDateChange,
@@ -162,8 +167,8 @@ export function EventForm({
             supabase={supabase}
             userId={userId}
             placeholder={t("descriptionPlaceholder")}
-            rows={6}
-            minHeight={200}
+            rows={12}
+            minHeight={320}
           />
         </div>
         <div className="form-group">
@@ -179,37 +184,72 @@ export function EventForm({
           <label htmlFor="eventStartsAt">{t("dateAndTime")}</label>
           <DatePicker value={startsAt} onChange={onStartsAtChange} enableTime />
         </div>
-        {/* Duration or open-ended */}
+        {/* Duration mode selector */}
         <label className="flex items-center gap-2 mb-2 text-[0.82rem] cursor-pointer">
           <input type="checkbox" checked={isOpenEnded} onChange={(e) => onOpenEndedChange(e.target.checked)} />
           {t("openEnded")}
         </label>
         {!isOpenEnded && (
-          <div className="form-grid">
-            <div className="form-group mb-0">
-              <label htmlFor="eventDurationH">{t("durationH")}</label>
-              <input
-                id="eventDurationH"
-                type="number"
-                min="0"
-                max="72"
-                value={durationH}
-                onChange={(e) => onDurationHChange(e.target.value)}
-              />
+          <>
+            <div className="flex items-center gap-3 mb-2">
+              <label className="flex items-center gap-2 text-[0.82rem] cursor-pointer">
+                <input type="radio" name="durationMode" checked={!endsAt} onChange={() => onEndsAtChange("")} />
+                {t("durationMode")}
+              </label>
+              <label className="flex items-center gap-2 text-[0.82rem] cursor-pointer">
+                <input
+                  type="radio"
+                  name="durationMode"
+                  checked={Boolean(endsAt)}
+                  onChange={() => {
+                    /* Default end to start + 1 day when switching to range mode */
+                    if (startsAt) {
+                      const start = new Date(startsAt);
+                      start.setDate(start.getDate() + 1);
+                      onEndsAtChange(
+                        `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}T${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
+                      );
+                    } else {
+                      onEndsAtChange("2026-01-01T00:00");
+                    }
+                  }}
+                />
+                {t("endDateMode")}
+              </label>
             </div>
-            <div className="form-group mb-0">
-              <label htmlFor="eventDurationM">{t("durationM")}</label>
-              <input
-                id="eventDurationM"
-                type="number"
-                min="0"
-                max="59"
-                step="5"
-                value={durationM}
-                onChange={(e) => onDurationMChange(e.target.value)}
-              />
-            </div>
-          </div>
+            {endsAt ? (
+              <div className="form-group">
+                <label htmlFor="eventEndsAt">{t("endDateAndTime")}</label>
+                <DatePicker value={endsAt} onChange={onEndsAtChange} enableTime />
+              </div>
+            ) : (
+              <div className="form-grid">
+                <div className="form-group mb-0">
+                  <label htmlFor="eventDurationH">{t("durationH")}</label>
+                  <input
+                    id="eventDurationH"
+                    type="number"
+                    min="0"
+                    max="72"
+                    value={durationH}
+                    onChange={(e) => onDurationHChange(e.target.value)}
+                  />
+                </div>
+                <div className="form-group mb-0">
+                  <label htmlFor="eventDurationM">{t("durationM")}</label>
+                  <input
+                    id="eventDurationM"
+                    type="number"
+                    min="0"
+                    max="59"
+                    step="5"
+                    value={durationM}
+                    onChange={(e) => onDurationMChange(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         )}
         {/* Organizer */}
         <div className="form-group">

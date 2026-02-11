@@ -115,7 +115,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - `app/components/sidebar-context.tsx` and `app/components/sidebar-shell.tsx` for sidebar state and rendering.
 - `app/components/sidebar-nav.tsx` for navigation links with icons.
 - `package.json` scripts for Next.js (`dev`, `build`, `start`, `lint`).
-- Route pages: `news`, `forum`, `charts`, `events`, `messages`, `admin`, `admin/data-import`, `admin/data-table`.
+- Route pages: `news`, `forum`, `charts`, `events`, `messages`, `admin`, `admin/data-import`, `admin/data-table`, `design-system`.
 - Supabase Auth wiring in `lib/supabase/` and `app/auth/login`. Error classification utility in `lib/supabase/error-utils.ts` (maps RLS/auth/network errors to i18n keys).
 - Auth pages: `app/auth/register`, `app/auth/login`, `app/auth/forgot`, `app/auth/update`.
 - Auth callback: `app/auth/callback/route.ts` — exchanges PKCE code for session, redirects to `next` query parameter.
@@ -165,6 +165,8 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Profile default game account: `Documentation/migrations/profile_default_game_account.sql` — adds `default_game_account_id` column to profiles.
 - Article banner: `Documentation/migrations/article_banner.sql` — adds `banner_url` column to articles.
 - Article edit tracking: `Documentation/migrations/article_updated_by.sql` — adds `updated_by` column to articles.
+- Design system base tables: `Documentation/migrations/design_system_tables.sql` — creates `design_assets`, `ui_elements`, `asset_assignments` tables with admin-only RLS policies.
+- Design system render types: `Documentation/migrations/design_system_render_type.sql` — adds `render_type`, `preview_html`, `preview_image` columns to `ui_elements`.
 
 ## Data Import & Chest Database
 
@@ -368,7 +370,7 @@ app/admin/
 
 ## Navigation (i18n keys)
 
-- Main nav items: Dashboard, Ankündigungen, Forum, Truhenauswertung (formerly "Diagramme"), Event-Kalender (formerly "Ereignisse"), Verwaltung section (with sub-items, visible to all authenticated users — non-admins are redirected to `/not-authorized?reason=admin` with an admin-specific access denied message).
+- Main nav items: Dashboard, Ankündigungen, Forum, Truhenauswertung (formerly "Diagramme"), Event-Kalender (formerly "Ereignisse"), Verwaltung section (with sub-items, visible to all authenticated users — non-admins are redirected to `/not-authorized?reason=admin` with an admin-specific access denied message). Design System link added to the admin section.
 - Sidebar: Title `[THC]`, subtitle `Chiller & Killer`, logo `/assets/ui/chillerkiller_logo.png`.
 - Navbar text size: `1.0rem`, icon size: `18px`.
 

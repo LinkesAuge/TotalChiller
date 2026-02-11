@@ -32,6 +32,7 @@ This runbook explains how to set up, run, and use the [THC] Chiller & Killer com
    - `Documentation/migrations/forum_rls_permissions.sql`
    - `Documentation/migrations/event_banner_url.sql`
    - `Documentation/migrations/design_system_tables.sql`
+   - `Documentation/migrations/design_system_render_type.sql`
 
 ## 2) Local Environment
 
@@ -76,7 +77,7 @@ Email templates (dual-theme: light for Outlook, dark for modern clients) are doc
 - **API routes** (`/api/`) are **not** redirected by the proxy — they handle their own auth and return JSON error responses (e.g. 401, 403)
 - **PKCE catch-all:** Stray auth codes (when Supabase ignores redirectTo) are caught by the proxy and redirected to `/auth/callback`. Registration, email change, and forgot-password set `auth_redirect_next` fallback cookie.
 - Non-API, non-public page routes redirect unauthenticated users to `/home`
-- Admin page routes (`/admin`, `/data-import`, `/data-table`) require admin role; non-admins redirected to `/not-authorized?reason=admin` (admin-specific access denied message). "Verwaltung" nav section is visible to all authenticated users.
+- Admin page routes (`/admin`, `/data-import`, `/data-table`, `/design-system`) require admin role; non-admins redirected to `/not-authorized?reason=admin` (admin-specific access denied message). "Verwaltung" nav section is visible to all authenticated users.
 
 ## 6) Core Pages
 
@@ -93,6 +94,7 @@ Email templates (dual-theme: light for Outlook, dark for modern clients) are doc
 - Admin: `/admin`
 - Data Import: `/admin/data-import`
 - Chest Database: `/admin/data-table`
+- Design System: `/design-system` (admin only)
 
 ## 7) Data Import Workflow
 

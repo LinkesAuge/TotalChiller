@@ -288,6 +288,51 @@ This document defines the core data model (Supabase/Postgres) and the permission
 - message_type (text, enum: private, broadcast, system, clan)
 - created_at (timestamp)
 
+### design_assets
+
+- id (uuid, pk)
+- filename (text, unique)
+- original_path (text) — path in `Design/Resources/Assets`
+- public_path (text) — served path in `public/design-assets/{category}/`
+- category (text, nullable) — auto-classified from filename patterns (~25 categories)
+- tags (text[], default: '{}')
+- width (integer, nullable)
+- height (integer, nullable)
+- file_size_bytes (integer, nullable)
+- notes (text, nullable)
+- created_at (timestamptz)
+
+> Indexes on `category`, `tags` (GIN), `filename`. RLS: authenticated read, admin-only write.
+
+### ui_elements
+
+- id (uuid, pk)
+- name (text)
+- description (text, nullable)
+- category (text)
+- subcategory (text, nullable)
+- component_file (text, nullable) — source file if applicable
+- current_css (text, nullable) — reference CSS class/rule
+- status (text, enum: active, planned, deprecated)
+- render_type (text, default: 'css') — css | asset | hybrid | icon | typography | composite
+- preview_html (text, nullable) — inline HTML snippet for CSS-based previews
+- preview_image (text, nullable) — path to uploaded screenshot
+- notes (text, nullable)
+- created_at (timestamptz)
+
+> Unique constraint on `(name, category)`. Indexes on `category`, `status`, `render_type`. RLS: authenticated read, admin-only write.
+
+### asset_assignments
+
+- id (uuid, pk)
+- ui_element_id (uuid, fk ui_elements, ON DELETE CASCADE)
+- asset_id (uuid, fk design_assets, ON DELETE CASCADE)
+- role (text, default: 'default') — semantic role (e.g. default, hover, active, disabled, icon, background)
+- notes (text, nullable)
+- created_at (timestamptz)
+
+> Unique constraint on `(ui_element_id, asset_id, role)`. Indexes on `ui_element_id`, `asset_id`. RLS: authenticated read, admin-only write.
+
 ## Permission Matrix (Baseline)
 
 Permissions are additive: Role + Rank + Cross‑Clan overrides.
@@ -361,3 +406,4 @@ Ranks on `game_account_clan_memberships` are **cosmetic only** — they reflect 
 - `ClanScopeBanner` and `QuickActions` components have been removed from all pages.
 - Default game account: `profiles.default_game_account_id` prioritized in sidebar selector over localStorage.
 - Project branding: "[THC] Chiller & Killer" throughout all pages, sidebar title "[THC]" with subtitle "Chiller & Killer".
+- Design system tables (`design_assets`, `ui_elements`, `asset_assignments`) are admin-only for writes, readable by all authenticated users. The `render_type` column on `ui_elements` determines preview behavior and whether game assets can be assigned (`asset`, `hybrid`, `composite` types only).

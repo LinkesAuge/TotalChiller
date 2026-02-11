@@ -153,8 +153,12 @@ function UiInventoryTab(): ReactElement {
   function groupByCategory(items: UiElement[]): Record<string, UiElement[]> {
     const groups: Record<string, UiElement[]> = {};
     for (const item of items) {
-      if (!groups[item.category]) groups[item.category] = [];
-      groups[item.category].push(item);
+      const existing = groups[item.category];
+      if (existing) {
+        existing.push(item);
+      } else {
+        groups[item.category] = [item];
+      }
     }
     return groups;
   }

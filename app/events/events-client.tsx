@@ -417,6 +417,15 @@ function EventsClient(): JSX.Element {
     pushToast(t("eventDeleted"));
   }
 
+  async function handleTogglePin(eventId: string, isPinned: boolean): Promise<void> {
+    const { error } = await supabase.from("events").update({ is_pinned: !isPinned }).eq("id", eventId);
+    if (error) {
+      pushToast(t("pinFailed"));
+      return;
+    }
+    await reloadEvents();
+  }
+
   async function handleSaveFormAsTemplate(): Promise<void> {
     if (!clanContext?.clanId) return;
     if (!title.trim()) {
@@ -615,8 +624,8 @@ function EventsClient(): JSX.Element {
           )}
 
           {!isLoading && (
-            <>
-              <div className="events-two-col col-span-full">
+            <div className="events-two-col col-span-full">
+              <div className="events-calendar-column">
                 <EventCalendar
                   calendarMonth={calendarMonth}
                   calendarDays={calendarDays}
@@ -630,31 +639,32 @@ function EventsClient(): JSX.Element {
                   locale={locale}
                   t={t}
                 />
-
-                <UpcomingEventsSidebar
-                  upcomingEvents={upcomingEvents}
-                  pageSize={UPCOMING_PAGE_SIZE}
-                  currentPage={upcomingPage}
-                  onPageChange={setUpcomingPage}
-                  onSelectEvent={handleSelectUpcomingEvent}
-                  onEditEvent={handleEditEventById}
-                  canManage={canManage}
-                  locale={locale}
-                  t={t}
-                />
-              </div>
-
-              <div className="col-span-full">
                 <EventDayPanel
                   selectedDateLabel={selectedDateLabel}
                   selectedDayEvents={selectedDayEvents}
                   onEditEvent={handleEditEventById}
+                  onDeleteEvent={requestDeleteEvent}
+                  onTogglePin={handleTogglePin}
                   canManage={canManage}
                   locale={locale}
                   t={t}
                 />
               </div>
-            </>
+
+              <UpcomingEventsSidebar
+                upcomingEvents={upcomingEvents}
+                pageSize={UPCOMING_PAGE_SIZE}
+                currentPage={upcomingPage}
+                onPageChange={setUpcomingPage}
+                onSelectEvent={handleSelectUpcomingEvent}
+                onEditEvent={handleEditEventById}
+                onDeleteEvent={requestDeleteEvent}
+                onTogglePin={handleTogglePin}
+                canManage={canManage}
+                locale={locale}
+                t={t}
+              />
+            </div>
           )}
 
           {canManage && (

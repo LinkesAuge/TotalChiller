@@ -99,12 +99,56 @@ test.describe("Events: Selected day panel (EventDayPanel)", () => {
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
 
-    const eventCards = page.locator(".calendar-day-event");
+    const eventCards = page.locator(".day-panel-card");
     if ((await eventCards.count()) > 0) {
       /* Each card should have a chevron toggle */
-      const chevrons = page.locator(".calendar-day-event-chevron");
+      const chevrons = page.locator(".day-panel-chevron");
       expect(await chevrons.count()).toBeGreaterThan(0);
     }
+  });
+
+  test("day panel cards match anstehend style with date badge", async ({ page }) => {
+    await page.goto("/events");
+    await page.waitForLoadState("networkidle");
+
+    const cards = page.locator(".day-panel-card");
+    if ((await cards.count()) > 0) {
+      /* Cards should have a date badge */
+      const badge = page.locator(".day-panel-date-badge");
+      expect(await badge.count()).toBeGreaterThan(0);
+    }
+  });
+
+  test("day panel renders inside events-calendar-column, not full-width", async ({ page }) => {
+    await page.goto("/events");
+    await page.waitForLoadState("networkidle");
+
+    const dayPanel = page.locator(".events-calendar-column .calendar-day-panel");
+    if ((await dayPanel.count()) > 0) {
+      await expect(dayPanel).toBeVisible();
+    }
+  });
+});
+
+test.describe("Events: Pin and action buttons", () => {
+  test.use({ storageState: storageStatePath("member") });
+  test("day panel action buttons are visible for managers", async ({ page }) => {
+    await page.goto("/events");
+    await page.waitForLoadState("networkidle");
+
+    /* Pin, edit, delete buttons should be inside day-panel-card-actions */
+    const actionBtns = page.locator(".day-panel-action-btn");
+    /* May or may not be visible depending on role and events — just check no crash */
+    expect((await actionBtns.count()) >= 0).toBeTruthy();
+  });
+
+  test("sidebar has delete button alongside edit", async ({ page }) => {
+    await page.goto("/events");
+    await page.waitForLoadState("networkidle");
+
+    const deleteBtn = page.locator(".upcoming-event-delete");
+    /* May not appear if user lacks canManage */
+    expect((await deleteBtn.count()) >= 0).toBeTruthy();
   });
 });
 

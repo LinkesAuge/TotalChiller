@@ -172,9 +172,11 @@ This file is a compact context transfer for a new chat.
     - **Event banner fills entire day cell**: days with banner events use the banner as a CSS `background-image` covering the full cell, with a gradient overlay for text readability.
     - **Event title snippet**: the first event's title appears at the bottom of each day cell (truncated with ellipsis), with a "+N" indicator when multiple events exist.
     - **Hover tooltip**: hovering over a day with events shows a floating info box. Single events display title, time, duration, location, and organizer. Multiple events display a compact list with colored dots, titles, and times.
-    - **Selected day panel** (`EventDayPanel`): extracted from `EventCalendar` into its own component, rendered below the two-column grid (so the sidebar only aligns with the calendar grid, not the day panel). Event cards are **expand/collapse** — header + time are always visible; description, banner, organizer, location, and author are revealed on click with a chevron toggle. A "show more" button appears when > 3 events on a day.
-    - Upcoming events sidebar: complete redesign with date badge column (weekday/day/month), structured event cards with icon-prefixed metadata (time, location, organizer), recurrence pills, hover-reveal edit buttons. Clicking an upcoming event navigates the calendar to that day, selects it in the "Selected Day" panel, and **scrolls the day panel into view**. **Pagination** replaces the old "show more" approach — events are shown in fixed-size pages with prev/next controls. Sidebar uses `align-items: start` so it matches the calendar grid height only.
-    - **Calendar hover**: day cells use a gold glow outline on hover (no zoom/move). Transitions are limited to `border-color` and `box-shadow` only to avoid background-image animation on banner cells. Tooltip is rendered outside `event-calendar-body` to avoid `position: relative` offset issues.
+    - **Selected day panel** (`EventDayPanel`): extracted from `EventCalendar` into its own component, now rendered inside `.events-calendar-column` wrapper (stacked below the calendar card, within the left column of the two-column grid). Card design matches "anstehend" style: banner strip, date badge (weekday/day/month), structured meta with icons, expand/collapse chevron. First event auto-expands on day change. Expanded view shows full banner, markdown description, and author/date footer. **Pin/edit/delete action buttons** (role-gated via `canManage`). A "show more" button appears when > 3 events on a day.
+    - Upcoming events sidebar: complete redesign with date badge column (weekday/day/month), structured event cards with icon-prefixed metadata (time, location, organizer), recurrence pills, hover-reveal edit + **delete** buttons (role-gated). Clicking an upcoming event navigates the calendar to that day, selects it in the "Selected Day" panel, and **scrolls the day panel into view**. **Pagination** replaces the old "show more" approach — events are shown in fixed-size pages with prev/next controls. Sidebar uses `align-items: start` so it matches the calendar grid height only.
+    - **Calendar hover**: day cells use a gold glow outline on hover (no zoom/move). Transitions are limited to `border-color` and `box-shadow` only to avoid background-image animation on banner cells. Tooltip is rendered outside `event-calendar-body` to avoid `position: relative` offset issues. `.event-calendar-card:hover { transform: none }` prevents parent transform from breaking `position: fixed` tooltip.
+    - **Event time in calendar cells**: each day cell shows the primary event's time below the title snippet.
+    - **Pinned events**: new `is_pinned` boolean column on `events` table. Pinned events sort first in day panel and upcoming sidebar. Calendar cells prefer pinned event's banner/title. Pin toggle button (star icon) in day panel, visible when `canManage`. Migration: `Documentation/migrations/event_is_pinned.sql`.
     - Calendar toolbar: added bottom border separator, improved spacing and visual hierarchy.
     - Files: `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/events/events-client.tsx`, `app/globals.css`.
   - **Multi-day events (Feb 2026)**:
@@ -302,6 +304,9 @@ This file is a compact context transfer for a new chat.
 - **Password update page**: Redirects to dashboard after 2 seconds on success.
 - **Create-user route**: Fixed duplicate variable declaration in `app/api/admin/create-user/route.ts`.
 - **RLS**: `clans` table was missing `enable row level security`.
+- **Modal positioning fix** (two rounds):
+  - **Round 1**: Removed `transform: translateY(-1px)` from `.card:hover` in `globals.css`. The transform created a new CSS containing block that broke `position: fixed` on descendant modal backdrops (e.g. the "add game account" modal in the admin Users tab). With the transform active, modals appeared offset by the card's position on the page instead of centered in the viewport, and jumped when interacting with Radix Select dropdowns (hover state toggling removed/re-applied the transform).
+  - **Round 2**: Raised `.select-content` z-index from 200 to 400 (above `.modal-backdrop` at 300) so Radix Select dropdown portals render above modals, not behind them. Simplified the "add game account" modal in `users-tab.tsx`: collapsed 7 `useState` calls into 3 (single `createGameAccountUser` gate + form-state object + message), removed redundant `isCreateGameAccountModalOpen` boolean and unused `createGameAccountStatus`. Added backdrop-click-to-close. Regression tests in `tests/debug-game-account-modal.spec.ts` (3 tests: no card transform, fixed positioning probe, z-index ordering).
 - **UI Cleanup**: Removed `QuickActions` and `ClanScopeBanner` components. Added gold divider below top bar. Messages link moved to user menu dropdown. Removed standalone "Einstellungen" button from profile top bar (settings accessible via user menu). Profile user menu replaced native `<details>` with React-controlled panel.
 - **Autofill CSS**: Added `:-webkit-autofill` overrides to prevent browsers from forcing white backgrounds on input fields (especially password) in the dark theme.
 - **Unified markdown system** (Feb 2026): Consolidated 3 separate sanitizers, 2 renderer components, and 2 toolbar components into a single system under `lib/markdown/`. Created `AppMarkdown` (unified renderer with `variant` prop), `AppMarkdownToolbar` (unified toolbar with full feature set + i18n), `sanitizeMarkdown()` (merged sanitizer), and relocated `renderers.tsx`. Migrated all 7 consumer files (editable-text, editable-list, forum-post-detail, forum-post-list, forum-post-form, news-client, messages-client). Deleted 5 old files (cms-markdown.tsx, cms-markdown-toolbar.tsx, forum-markdown.tsx, forum/markdown-toolbar.tsx, app/components/markdown-renderers.tsx). Added 3 new i18n keys (strikethrough, codeBlock, video) to both locale files.
@@ -351,29 +356,30 @@ Comprehensive Playwright test suite covering all page functionality, organized b
 - **Rate-limit tolerant**: API tests accept both expected status codes and 429 as valid responses.
 - **Lazy-load tolerant**: Admin tests use 10-15s timeouts for `next/dynamic` chunk loading.
 
-| Category             | File(s)                     | Tests | Auth  |
-| -------------------- | --------------------------- | ----- | ----- |
-| Smoke / page loads   | `smoke.spec.ts`             | 3     | No    |
-| Auth forms           | `auth.spec.ts`              | 11    | No    |
-| Navigation / sidebar | `navigation.spec.ts`        | 6     | Mixed |
-| API contracts        | `api-endpoints.spec.ts`     | 28    | No    |
-| CMS (5 files)        | `cms-*.spec.ts`             | 36    | Mixed |
-| News / Articles      | `news.spec.ts`              | 6     | Yes   |
-| Events / Calendar    | `events.spec.ts`            | 6     | Yes   |
-| Forum                | `forum.spec.ts`             | 7     | Yes   |
-| Messages             | `messages.spec.ts`          | 6     | Yes   |
-| Profile & Settings   | `profile-settings.spec.ts`  | 13    | Yes   |
-| Charts               | `charts.spec.ts`            | 6     | Yes   |
-| Dashboard            | `dashboard.spec.ts`         | 3     | Yes   |
-| Admin panel          | `admin.spec.ts`             | 17    | Yes   |
-| Admin actions        | `admin-actions.spec.ts`     | 6     | Yes   |
-| CRUD flows           | `crud-flows.spec.ts`        | 16    | Yes   |
-| Data workflows       | `data-workflows.spec.ts`    | 10    | Yes   |
-| Notifications        | `notifications.spec.ts`     | 6     | Yes   |
-| i18n                 | `i18n.spec.ts`              | 5     | Yes   |
-| Accessibility        | `accessibility.spec.ts`     | 2     | Yes   |
-| Permissions unit     | `permissions-unit.spec.ts`  | 34    | No    |
-| Role-based E2E       | `roles-permissions.spec.ts` | 17    | Yes   |
+| Category             | File(s)                            | Tests | Auth  |
+| -------------------- | ---------------------------------- | ----- | ----- |
+| Smoke / page loads   | `smoke.spec.ts`                    | 3     | No    |
+| Auth forms           | `auth.spec.ts`                     | 11    | No    |
+| Navigation / sidebar | `navigation.spec.ts`               | 6     | Mixed |
+| API contracts        | `api-endpoints.spec.ts`            | 28    | No    |
+| CMS (5 files)        | `cms-*.spec.ts`                    | 36    | Mixed |
+| News / Articles      | `news.spec.ts`                     | 6     | Yes   |
+| Events / Calendar    | `events.spec.ts`                   | 6     | Yes   |
+| Forum                | `forum.spec.ts`                    | 7     | Yes   |
+| Messages             | `messages.spec.ts`                 | 6     | Yes   |
+| Profile & Settings   | `profile-settings.spec.ts`         | 13    | Yes   |
+| Charts               | `charts.spec.ts`                   | 6     | Yes   |
+| Dashboard            | `dashboard.spec.ts`                | 3     | Yes   |
+| Admin panel          | `admin.spec.ts`                    | 17    | Yes   |
+| Admin actions        | `admin-actions.spec.ts`            | 6     | Yes   |
+| CRUD flows           | `crud-flows.spec.ts`               | 16    | Yes   |
+| Data workflows       | `data-workflows.spec.ts`           | 10    | Yes   |
+| Notifications        | `notifications.spec.ts`            | 6     | Yes   |
+| i18n                 | `i18n.spec.ts`                     | 5     | Yes   |
+| Accessibility        | `accessibility.spec.ts`            | 2     | Yes   |
+| Permissions unit     | `permissions-unit.spec.ts`         | 34    | No    |
+| CSS regression       | `debug-game-account-modal.spec.ts` | 3     | No    |
+| Role-based E2E       | `roles-permissions.spec.ts`        | 17    | Yes   |
 
 Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
 

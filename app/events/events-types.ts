@@ -17,6 +17,7 @@ export interface EventRow {
   readonly recurrence_type: RecurrenceType;
   readonly recurrence_end_date: string | null;
   readonly banner_url: string | null;
+  readonly is_pinned: boolean;
   /* Joined author info */
   readonly author_name: string | null;
 }
@@ -36,6 +37,7 @@ export interface DisplayEvent {
   readonly recurrence_type: RecurrenceType;
   readonly recurrence_end_date: string | null;
   readonly banner_url: string | null;
+  readonly is_pinned: boolean;
   readonly isVirtual: boolean;
 }
 

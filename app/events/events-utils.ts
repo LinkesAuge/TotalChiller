@@ -117,6 +117,7 @@ export function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon
       recurrence_type: ev.recurrence_type,
       recurrence_end_date: ev.recurrence_end_date,
       banner_url: ev.banner_url,
+      is_pinned: ev.is_pinned,
       isVirtual: false,
     });
     if (ev.recurrence_type === "none") continue;
@@ -143,6 +144,7 @@ export function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon
         recurrence_type: ev.recurrence_type,
         recurrence_end_date: ev.recurrence_end_date,
         banner_url: ev.banner_url,
+        is_pinned: ev.is_pinned,
         isVirtual: true,
       });
       advanceCursorDate(cursor, ev.recurrence_type);
@@ -150,4 +152,13 @@ export function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon
     }
   }
   return results.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+}
+
+/** Sort an array of DisplayEvents so pinned events appear first, preserving relative order otherwise. */
+export function sortPinnedFirst<T extends { readonly is_pinned: boolean }>(events: readonly T[]): T[] {
+  return [...events].sort((a, b) => {
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    return 0;
+  });
 }

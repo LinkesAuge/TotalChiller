@@ -8,6 +8,7 @@ import {
   getDateRangeKeys,
   advanceCursorDate,
   expandRecurringEvents,
+  sortPinnedFirst,
 } from "./events-utils";
 import type { EventRow } from "./events-types";
 
@@ -181,12 +182,13 @@ describe("expandRecurringEvents", () => {
     recurrence_type: "none",
     recurrence_end_date: null,
     banner_url: null,
+    is_pinned: false,
   };
 
   it("passes non-recurring events through as-is", () => {
     const result = expandRecurringEvents([baseEvent], new Date("2026-12-31"));
     expect(result).toHaveLength(1);
-    expect(result[0].isVirtual).toBe(false);
+    expect(result[0]!.isVirtual).toBe(false);
   });
 
   it("expands weekly events into virtual occurrences", () => {
@@ -211,7 +213,7 @@ describe("expandRecurringEvents", () => {
     const horizon = new Date("2026-12-31T00:00:00Z");
     const result = expandRecurringEvents([weeklyEvent], horizon);
     // Should stop at Feb 15
-    const lastDate = new Date(result[result.length - 1].starts_at);
+    const lastDate = new Date(result[result.length - 1]!.starts_at);
     expect(lastDate.getTime()).toBeLessThanOrEqual(new Date("2026-02-15T23:59:59Z").getTime());
   });
 
@@ -235,7 +237,53 @@ describe("expandRecurringEvents", () => {
     const result = expandRecurringEvents(events, new Date("2026-04-01"));
     const dates = result.map((e) => new Date(e.starts_at).getTime());
     for (let i = 1; i < dates.length; i++) {
-      expect(dates[i]).toBeGreaterThanOrEqual(dates[i - 1]);
+      expect(dates[i]!).toBeGreaterThanOrEqual(dates[i - 1]!);
     }
+  });
+
+  it("propagates is_pinned to virtual occurrences", () => {
+    const pinned: EventRow = { ...baseEvent, is_pinned: true, recurrence_type: "weekly" };
+    const result = expandRecurringEvents([pinned], new Date("2026-03-01"));
+    for (const evt of result) {
+      expect(evt.is_pinned).toBe(true);
+    }
+  });
+});
+
+/* ── sortPinnedFirst ── */
+
+describe("sortPinnedFirst", () => {
+  it("returns empty array for empty input", () => {
+    expect(sortPinnedFirst([])).toEqual([]);
+  });
+
+  it("moves pinned events before unpinned", () => {
+    const items = [
+      { id: "a", is_pinned: false },
+      { id: "b", is_pinned: true },
+      { id: "c", is_pinned: false },
+    ];
+    const result = sortPinnedFirst(items);
+    expect(result[0]!.id).toBe("b");
+  });
+
+  it("preserves relative order among same-pin-state items", () => {
+    const items = [
+      { id: "a", is_pinned: false },
+      { id: "b", is_pinned: false },
+      { id: "c", is_pinned: true },
+      { id: "d", is_pinned: true },
+    ];
+    const result = sortPinnedFirst(items);
+    expect(result.map((x) => x.id)).toEqual(["c", "d", "a", "b"]);
+  });
+
+  it("does not mutate the original array", () => {
+    const items = [
+      { id: "a", is_pinned: false },
+      { id: "b", is_pinned: true },
+    ];
+    sortPinnedFirst(items);
+    expect(items[0]!.id).toBe("a");
   });
 });

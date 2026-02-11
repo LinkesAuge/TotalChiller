@@ -572,7 +572,12 @@
     "templateDeleteFailed": "Vorlage konnte nicht gelöscht werden.",
     "sessionExpired": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
     "networkError": "Verbindungsfehler — überprüfe deine Internetverbindung und versuche es erneut.",
-    "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut."
+    "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
+    "pinEvent": "Event anheften",
+    "unpinEvent": "Event lösen",
+    "pinned": "Angeheftet",
+    "pinFailed": "Pin-Status konnte nicht aktualisiert werden.",
+    "confirmDeleteSidebar": "Dieses Event löschen?"
   },
   "charts": {
     "breadcrumb": "TotalChiller \u2022 Analysen",
@@ -973,7 +978,10 @@
       "allClear": "Alles erledigt",
       "loading": "Lade ausstehende Genehmigungen...",
       "gameUsername": "Spiel-Benutzername",
+      "user": "Benutzer",
+      "email": "E-Mail",
       "requested": "Angefragt",
+      "actions": "Aktionen",
       "approveAll": "Alle genehmigen",
       "approveAllConfirm": "Alle ausstehenden Spielkonten genehmigen?",
       "approvingAll": "Alle werden genehmigt...",

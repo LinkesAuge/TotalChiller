@@ -572,7 +572,12 @@
     "templateDeleteFailed": "Failed to delete template.",
     "sessionExpired": "Your session has expired. Please sign in again.",
     "networkError": "Connection error — check your internet and try again.",
-    "unexpectedError": "An unexpected error occurred. Please try again."
+    "unexpectedError": "An unexpected error occurred. Please try again.",
+    "pinEvent": "Pin event",
+    "unpinEvent": "Unpin event",
+    "pinned": "Pinned",
+    "pinFailed": "Failed to update pin status.",
+    "confirmDeleteSidebar": "Delete this event?"
   },
   "charts": {
     "breadcrumb": "TotalChiller \u2022 Analytics",
@@ -973,7 +978,10 @@
       "allClear": "All clear",
       "loading": "Loading pending approvals...",
       "gameUsername": "Game Username",
+      "user": "User",
+      "email": "Email",
       "requested": "Requested",
+      "actions": "Actions",
       "approveAll": "Approve all",
       "approveAllConfirm": "Approve all pending game accounts?",
       "approvingAll": "Approving all...",

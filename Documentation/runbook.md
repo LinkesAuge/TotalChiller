@@ -28,6 +28,7 @@ This runbook explains how to set up, run, and use the [THC] Chiller & Killer com
    - `Documentation/migrations/cms_icons_bucket.sql` (manual bucket creation — see file)
    - `Documentation/migrations/fix_broken_markdown.sql`
    - `Documentation/migrations/roles_permissions_cleanup.sql`
+   - `Documentation/migrations/author_fk_constraints.sql`
 
 ## 2) Local Environment
 
@@ -84,6 +85,7 @@ Email templates (dual-theme: light for Outlook, dark for modern clients) are doc
 - Events (Event-Kalender): `/events`
 - Messages: `/messages`
 - Profile: `/profile`
+- Members: `/members`
 - Settings: `/settings`
 - Admin: `/admin`
 - Data Import: `/admin/data-import`

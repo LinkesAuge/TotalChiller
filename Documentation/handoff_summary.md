@@ -254,6 +254,9 @@ This file is a compact context transfer for a new chat.
 
 ## Notable Bug Fixes & Changes (Feb 2026)
 
+- **Dashboard widgets (live data)**: Quick Stats section now shows real data (personal score, clan score, chests, active members) fetched from `/api/charts` for the last 7 days, with week-over-week trend indicators. Week Highlights section replaced "Clan Progress" placeholder with top player, score change, and top chest type. "Coming Soon" badges removed.
+- **Member directory**: New `/members` page with searchable table of all active clan members. Filters: search by game username or display name, filter by clan, filter by rank. Shows game username, display name, clan, and rank badge. Defaults to selected clan from context. Added "Members" nav item in sidebar.
+- **Author FK constraints**: Migration `Documentation/migrations/author_fk_constraints.sql` adds FK constraints from `articles.created_by`, `articles.updated_by`, `events.created_by`, `event_templates.created_by`, `forum_posts.author_id`, and `forum_comments.author_id` to `profiles(id)`. Enables PostgREST embedded joins — dashboard, events, and news now resolve author names in a single query instead of separate `resolveAuthorNames()` calls.
 - **Events RLS fix**: Old events RLS policies used `is_clan_admin()` (owner/admin only). Updated to `has_permission('event:create')` etc., enabling moderators and editors to create/edit/delete events. Applied via the `roles_permissions_cleanup.sql` migration.
 - **Supabase error handling**: New `lib/supabase/error-utils.ts` classifies Supabase errors (RLS/permission, auth, network, unknown) and maps them to user-friendly i18n messages. Events page now shows "You don't have permission" instead of raw "row-level security policy" errors.
 - **Clan Management**: Fixed init effect re-running, game account deletion refreshing membership list, race condition guards for concurrent fetches.
@@ -333,14 +336,10 @@ Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
 
 ## Remaining TODOs (Suggested Next Steps)
 
-1. **Dashboard widgets**
-   - Add personal/clan stats summary cards to the member dashboard.
-2. **Member directory page**
-   - Implement member directory with search, filter by clan/rank.
-3. **SEO content expansion**
-   - Increase word count on thin public pages (home, about, contact) if SEO ranking matters.
-4. **Add Vitest to CI**
-   - Add `npm run test:unit` step to the GitHub Actions CI workflow for automated unit test coverage on push/PR.
+1. ~~**Dashboard widgets**~~ — Done (2026-02-11). Stats now live from `/api/charts` + member count queries.
+2. ~~**Member directory page**~~ — Done (2026-02-11). `/members` with search, clan/rank filters.
+3. ~~**Add Vitest to CI**~~ — Done (2026-02-11). Unit tests run in GitHub Actions.
+4. ~~**FK constraints**~~ — Done (2026-02-11). Author joins via PostgREST embedded select.
 
 ## Website Audit (Feb 2026) — Completed
 

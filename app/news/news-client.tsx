@@ -144,17 +144,10 @@ function NewsClient(): JSX.Element {
       .filter(Boolean);
   }, [tagsInput]);
 
-  /** Resolve user IDs to display names. */
-  async function resolveAuthorNames(userIds: readonly string[]): Promise<Map<string, string>> {
-    const unique = [...new Set(userIds)].filter(Boolean);
-    const map = new Map<string, string>();
-    if (unique.length === 0) return map;
-    const { data } = await supabase.from("profiles").select("id,display_name,username").in("id", unique);
-    for (const p of (data ?? []) as Array<{ id: string; display_name: string | null; username: string | null }>) {
-      const name = p.display_name || p.username || "";
-      if (name) map.set(p.id, name);
-    }
-    return map;
+  /** Extract a display name from a PostgREST profile join result. */
+  function extractName(profile: { display_name: string | null; username: string | null } | null): string | null {
+    if (!profile) return null;
+    return profile.display_name || profile.username || null;
   }
 
   /* ── Load articles ── */
@@ -169,45 +162,31 @@ function NewsClient(): JSX.Element {
     setIsLoading(true);
     const fromIndex = (pageNumber - 1) * pageSize;
     const toIndex = fromIndex + pageSize - 1;
-    /* Try to select all columns; fall back to base columns if new columns do not exist yet */
-    const baseCols = "id,title,content,type,is_pinned,status,tags,created_at,updated_at,created_by";
-    const extraCols = "banner_url,updated_by";
-    let query = supabase
-      .from("articles")
-      .select(`${baseCols},${extraCols}`, { count: "exact" })
-      .eq("clan_id", clanContext.clanId);
+    /* Select with embedded profile joins for author + editor names */
+    const selectCols =
+      "id,title,content,type,is_pinned,status,tags,created_at,updated_at,created_by,banner_url,updated_by," +
+      "author:profiles!articles_created_by_profiles_fkey(display_name,username)," +
+      "editor:profiles!articles_updated_by_profiles_fkey(display_name,username)";
+    let query = supabase.from("articles").select(selectCols, { count: "exact" }).eq("clan_id", clanContext.clanId);
     if (tagFilter !== "all") query = query.contains("tags", [tagFilter]);
     if (searchTerm.trim()) query = query.or(`title.ilike.%${searchTerm.trim()}%,content.ilike.%${searchTerm.trim()}%`);
     if (dateFrom) query = query.gte("created_at", dateFrom);
     if (dateTo) query = query.lte("created_at", `${dateTo}T23:59:59`);
-    let { data, error, count } = await query
+    const { data, error, count } = await query
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .range(fromIndex, toIndex);
-    /* Fallback: if new columns do not exist yet, retry without them */
-    if (error && (error.message.includes("banner_url") || error.message.includes("updated_by"))) {
-      const fallback = supabase.from("articles").select(baseCols, { count: "exact" }).eq("clan_id", clanContext.clanId);
-      const fb = await fallback
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false })
-        .range(fromIndex, toIndex);
-      data = fb.data as typeof data;
-      error = fb.error;
-      count = fb.count;
-    }
     setIsLoading(false);
     if (error) {
       pushToast(`${t("loadError")}: ${error.message}`);
       return;
     }
-    const rows = (data ?? []) as Array<Record<string, unknown>>;
-    const allUserIds = [...rows.map((r) => String(r.created_by ?? "")), ...rows.map((r) => String(r.updated_by ?? ""))];
-    const nameMap = await resolveAuthorNames(allUserIds);
+    const rows = (data ?? []) as unknown as Array<Record<string, unknown>>;
     setArticles(
       rows.map((row) => ({
         ...row,
-        author_name: nameMap.get(String(row.created_by ?? "")) ?? null,
-        editor_name: row.updated_by ? (nameMap.get(String(row.updated_by)) ?? null) : null,
+        author_name: extractName(row.author as { display_name: string | null; username: string | null } | null),
+        editor_name: extractName(row.editor as { display_name: string | null; username: string | null } | null),
       })) as ArticleRow[],
     );
     setTotalCount(count ?? 0);

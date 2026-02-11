@@ -396,11 +396,23 @@ A comprehensive audit was performed covering security, architecture, SEO, access
 - **Code quality**: ~250 Playwright E2E tests + 52 Vitest unit tests, Zod validation on all API routes, stricter TS/ESLint, image optimization, i18n coverage.
 - **Performance**: LCP preload hints, `priority` on above-fold images, image compression.
 
+## Member Directory
+
+- `/members` page: searchable table of all active clan members.
+- Filters: search by game username/display name, filter by clan (defaults to selected clan context), filter by rank.
+- Columns: Game Username, Display Name, Clan, Rank (with colored badge).
+- Data: `game_account_clan_memberships` joined with `game_accounts` and `clans`, profiles resolved via batch query.
+- Ranks displayed with color-coded badges: Leader (gold), Superior (dark gold), Officer (blue), Veteran (green), Soldier (muted).
+- Added "Members" nav item in sidebar (between Messages and Administration).
+- Files: `app/members/page.tsx`, `app/members/members-client.tsx`
+
+## Author FK Constraints & PostgREST Joins
+
+- Migration: `Documentation/migrations/author_fk_constraints.sql` — adds FK constraints to `profiles(id)` for: `articles.created_by`, `articles.updated_by`, `events.created_by`, `event_templates.created_by`, `forum_posts.author_id`, `forum_comments.author_id`.
+- Enables PostgREST embedded joins, eliminating the separate `resolveAuthorNames()` pattern.
+- Dashboard, events (`use-events-data.ts`), and news (`news-client.tsx`) now resolve author/editor names in a single query via `author:profiles!fk_name(display_name,username)`.
+
 ## Outstanding/Follow-up
 
-- Dashboard widgets (personal/clan stats summary cards).
-- Member directory page (search, filter by clan/rank).
-- SEO content expansion (increase word count on thin public pages if ranking matters).
-- Consider adding FK constraint from `events.created_by` → `profiles.id` and `articles.created_by` → `profiles.id` to enable PostgREST joins (currently resolved client-side).
 - Admin panel refactoring is complete (Feb 2026). All 7 tabs extracted, shared hooks and components created. See "Admin Panel Architecture" section above.
-- Add `npm run test:unit` step to GitHub Actions CI workflow for automated unit test coverage.
+- Forum could be refactored to use PostgREST joins for author names (FK constraints already added, code migration pending).

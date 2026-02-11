@@ -81,6 +81,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { href: "/events", labelKey: "events", iconKey: "events" },
       { href: "/forum", labelKey: "forum", iconKey: "forum" },
       { href: "/messages", labelKey: "messages", iconKey: "messages" },
+      { href: "/members", labelKey: "members", iconKey: "clanManagement" },
     ],
   },
   {

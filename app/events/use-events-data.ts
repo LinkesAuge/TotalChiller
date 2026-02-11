@@ -5,18 +5,21 @@ import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { classifySupabaseError, getErrorMessageKey } from "@/lib/supabase/error-utils";
 import type { EventRow, GameAccountOption, RecurrenceType, TemplateRow } from "./events-types";
 
-/** Resolve an array of user IDs to a Map<id, displayName>. */
-async function resolveAuthorNames(supabase: SupabaseClient, userIds: readonly string[]): Promise<Map<string, string>> {
-  const unique = [...new Set(userIds)].filter(Boolean);
-  const map = new Map<string, string>();
-  if (unique.length === 0) return map;
-  const { data } = await supabase.from("profiles").select("id,display_name,username").in("id", unique);
-  for (const p of (data ?? []) as Array<{ id: string; display_name: string | null; username: string | null }>) {
-    const name = p.display_name || p.username || "";
-    if (name) map.set(p.id, name);
-  }
-  return map;
+/** Profile join shape returned by PostgREST embedded select. */
+interface ProfileJoin {
+  readonly display_name: string | null;
+  readonly username: string | null;
 }
+
+/** Extract a display name from a PostgREST profile join result. */
+function extractAuthorName(profile: ProfileJoin | null): string | null {
+  if (!profile) return null;
+  return profile.display_name || profile.username || null;
+}
+
+/** Select columns for events, including author profile join. */
+const EVENTS_SELECT =
+  "id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date,author:profiles!events_created_by_profiles_fkey(display_name,username)";
 
 export interface UseEventsDataResult {
   readonly events: readonly EventRow[];
@@ -61,9 +64,7 @@ export function useEventsData(
       setIsLoading(true);
       const { data, error } = await supabase
         .from("events")
-        .select(
-          "id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date",
-        )
+        .select(EVENTS_SELECT)
         .eq("clan_id", clanId)
         .order("starts_at", { ascending: true });
       setIsLoading(false);
@@ -72,15 +73,11 @@ export function useEventsData(
         return;
       }
       const rows = (data ?? []) as Array<Record<string, unknown>>;
-      const authorMap = await resolveAuthorNames(
-        supabase,
-        rows.map((r) => String(r.created_by ?? "")),
-      );
       setEvents(
         rows.map((row) => ({
           ...row,
           organizer: (row.organizer as string) ?? null,
-          author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
+          author_name: extractAuthorName(row.author as ProfileJoin | null),
           recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
           recurrence_end_date: (row.recurrence_end_date as string) ?? null,
         })) as EventRow[],
@@ -147,9 +144,7 @@ export function useEventsData(
     if (!clanId) return;
     const { data, error } = await supabase
       .from("events")
-      .select(
-        "id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date",
-      )
+      .select(EVENTS_SELECT)
       .eq("clan_id", clanId)
       .order("starts_at", { ascending: true });
     if (error) {
@@ -157,15 +152,11 @@ export function useEventsData(
       return;
     }
     const rows = (data ?? []) as Array<Record<string, unknown>>;
-    const authorMap = await resolveAuthorNames(
-      supabase,
-      rows.map((r) => String(r.created_by ?? "")),
-    );
     setEvents(
       rows.map((row) => ({
         ...row,
         organizer: (row.organizer as string) ?? null,
-        author_name: authorMap.get(String(row.created_by ?? "")) ?? null,
+        author_name: extractAuthorName(row.author as ProfileJoin | null),
         recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
         recurrence_end_date: (row.recurrence_end_date as string) ?? null,
       })) as EventRow[],

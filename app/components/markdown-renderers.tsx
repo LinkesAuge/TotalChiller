@@ -7,6 +7,15 @@
 
 import type { Components } from "react-markdown";
 
+/* ─── Security helpers ─── */
+
+const DANGEROUS_PROTOCOL_REGEX = /^\s*(javascript|vbscript|data(?!:image\/))\s*:/i;
+
+/** Block dangerous URL protocols (javascript:, vbscript:, data: except data:image). */
+function isSafeUrl(url: string): boolean {
+  return !DANGEROUS_PROTOCOL_REGEX.test(url);
+}
+
 /* ─── Media detection helpers ─── */
 
 const YOUTUBE_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/;
@@ -64,7 +73,7 @@ export function buildMarkdownComponents(prefix: string, features: MarkdownFeatur
   return {
     /* Render images with constrained size and rounded corners */
     img: ({ src, alt, ...rest }) => {
-      if (!src) return null;
+      if (!src || !isSafeUrl(src)) return null;
       return (
         <span className={`${prefix}-media`}>
           <img src={src} alt={alt ?? ""} loading="lazy" className={`${prefix}-image`} {...rest} />
@@ -74,7 +83,7 @@ export function buildMarkdownComponents(prefix: string, features: MarkdownFeatur
 
     /* Render links — optionally auto-embed YouTube, images, and videos */
     a: ({ href, children, ...rest }) => {
-      if (!href) return <a {...rest}>{children}</a>;
+      if (!href || !isSafeUrl(href)) return <span {...rest}>{children}</span>;
 
       /* YouTube embed */
       if (f.youtubeEmbed) {

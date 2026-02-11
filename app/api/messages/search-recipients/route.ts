@@ -25,7 +25,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const serviceClient = createSupabaseServiceRoleClient();
-  const searchPattern = `%${query}%`;
+  const escapedQuery = query.replace(/[%_\\]/g, "\\$&");
+  const searchPattern = `%${escapedQuery}%`;
 
   /* Search profiles by username and display_name */
   const { data: profileMatches } = await serviceClient

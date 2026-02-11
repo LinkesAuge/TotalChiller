@@ -74,6 +74,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
     });
   }
   const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {

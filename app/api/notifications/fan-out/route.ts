@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+import { strictLimiter } from "../../../../lib/rate-limit";
+import { uuidSchema } from "../../../../lib/api/validation";
 
 interface FanOutBody {
   readonly type: "news" | "event";
@@ -16,6 +18,8 @@ interface FanOutBody {
  * Verifies the caller is the created_by of the referenced record.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const blocked = strictLimiter.check(request);
+  if (blocked) return blocked;
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user) {
@@ -32,6 +36,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
   if (body.type !== "news" && body.type !== "event") {
     return NextResponse.json({ error: "type must be 'news' or 'event'." }, { status: 400 });
+  }
+  if (!uuidSchema.safeParse(body.reference_id).success || !uuidSchema.safeParse(body.clan_id).success) {
+    return NextResponse.json({ error: "reference_id and clan_id must be valid UUIDs." }, { status: 400 });
   }
   const serviceClient = createSupabaseServiceRoleClient();
   const tableName = body.type === "news" ? "articles" : "events";
@@ -53,7 +60,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .eq("clan_id", body.clan_id)
     .eq("is_active", true);
   if (membershipError) {
-    return NextResponse.json({ error: membershipError.message }, { status: 500 });
+    console.error("[notifications/fan-out]", membershipError.message);
+    return NextResponse.json({ error: "Failed to load clan memberships." }, { status: 500 });
   }
   const recipientIds = Array.from(
     new Set(
@@ -77,7 +85,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }));
   const { error: insertError } = await serviceClient.from("notifications").insert(notificationRows);
   if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    console.error("[notifications/fan-out]", insertError.message);
+    return NextResponse.json({ error: "Failed to create notifications." }, { status: 500 });
   }
   return NextResponse.json({ data: { recipients: recipientIds.length } }, { status: 201 });
 }

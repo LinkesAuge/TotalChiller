@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import { uuidSchema } from "../../../../lib/api/validation";
+import { standardLimiter } from "../../../../lib/rate-limit";
 
 interface RouteContext {
   readonly params: Promise<{ readonly id: string }>;
@@ -11,6 +12,8 @@ interface RouteContext {
  * Marks a message as read. Only the recipient can mark it.
  */
 export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   try {
     const supabase = await createSupabaseServerClient();
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -28,7 +31,8 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       .eq("id", parsed.data)
       .eq("recipient_id", authData.user.id);
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+      console.error("[messages/[id] PATCH]", updateError.message);
+      return NextResponse.json({ error: "Failed to update message." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: parsed.data, is_read: true } });
   } catch {
@@ -41,6 +45,8 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
  * Deletes a message. Only the recipient can delete it.
  */
 export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   try {
     const supabase = await createSupabaseServerClient();
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -58,7 +64,8 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
       .eq("id", parsed.data)
       .eq("recipient_id", authData.user.id);
     if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      console.error("[messages/[id] DELETE]", deleteError.message);
+      return NextResponse.json({ error: "Failed to delete message." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: parsed.data, deleted: true } });
   } catch {

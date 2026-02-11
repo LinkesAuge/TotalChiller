@@ -5,15 +5,25 @@ import { getSupabaseUrl, getSupabaseAnonKey } from "../../../lib/supabase/config
 const AUTH_CODE_REDIRECT_COOKIE = "auth_redirect_next";
 
 /**
+ * Validates that a redirect path is safe (relative, no protocol-relative URLs).
+ * Blocks open redirect attacks via `//evil.com` or `https://evil.com`.
+ */
+function isSafeRedirectPath(path: string): boolean {
+  return path.startsWith("/") && !path.startsWith("//") && !path.includes(":");
+}
+
+/**
  * Resolves the post-callback destination from the `next` query parameter,
  * falling back to the `auth_redirect_next` cookie (set by forgot-password),
  * and finally to `/`.
+ *
+ * All values are validated to prevent open redirect attacks.
  */
 function resolveNextPath(request: NextRequest): string {
   const queryNext = new URL(request.url).searchParams.get("next");
-  if (queryNext) return queryNext;
+  if (queryNext && isSafeRedirectPath(queryNext)) return queryNext;
   const cookieNext = request.cookies.get(AUTH_CODE_REDIRECT_COOKIE)?.value;
-  if (cookieNext) return cookieNext;
+  if (cookieNext && isSafeRedirectPath(cookieNext)) return cookieNext;
   return "/";
 }
 

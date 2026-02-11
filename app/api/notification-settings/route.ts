@@ -1,13 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import createSupabaseServerClient from "../../../lib/supabase/server-client";
 import { notificationSettingsSchema } from "../../../lib/api/validation";
+import { standardLimiter } from "../../../lib/rate-limit";
 
 /**
  * GET /api/notification-settings
  * Returns the authenticated user's notification preferences.
  * Creates a default row if none exists.
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   try {
     const supabase = await createSupabaseServerClient();
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -36,7 +39,8 @@ export async function GET(): Promise<NextResponse> {
       .select("messages_enabled,news_enabled,events_enabled,system_enabled")
       .single();
     if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      console.error("[notification-settings GET]", insertError.message);
+      return NextResponse.json({ error: "Failed to load notification settings." }, { status: 500 });
     }
     return NextResponse.json({ data: created });
   } catch {
@@ -49,6 +53,8 @@ export async function GET(): Promise<NextResponse> {
  * Updates the authenticated user's notification preferences.
  */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
   try {
     const supabase = await createSupabaseServerClient();
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -89,7 +95,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .select("messages_enabled,news_enabled,events_enabled,system_enabled")
       .single();
     if (upsertError) {
-      return NextResponse.json({ error: upsertError.message }, { status: 500 });
+      console.error("[notification-settings PATCH]", upsertError.message);
+      return NextResponse.json({ error: "Failed to update notification settings." }, { status: 500 });
     }
     return NextResponse.json({ data: updated });
   } catch {

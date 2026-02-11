@@ -55,6 +55,7 @@ export function useEventsData(
   const [gameAccounts, setGameAccounts] = useState<readonly GameAccountOption[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadEvents(): Promise<void> {
       if (!clanId) {
         setEvents([]);
@@ -67,6 +68,7 @@ export function useEventsData(
         .select(EVENTS_SELECT)
         .eq("clan_id", clanId)
         .order("starts_at", { ascending: true });
+      if (cancelled) return;
       setIsLoading(false);
       if (error) {
         showError(error, "saveFailed");
@@ -84,9 +86,13 @@ export function useEventsData(
       );
     }
     void loadEvents();
+    return () => {
+      cancelled = true;
+    };
   }, [clanId, showError, supabase]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadTemplates(): Promise<void> {
       if (!clanId) {
         setTemplates([]);
@@ -97,7 +103,7 @@ export function useEventsData(
         .select("*")
         .eq("clan_id", clanId)
         .order("title", { ascending: true });
-      if (error) return;
+      if (cancelled || error) return;
       setTemplates(
         (data ?? []).map((row: Record<string, unknown>) => ({
           id: row.id as string,
@@ -113,9 +119,13 @@ export function useEventsData(
       );
     }
     void loadTemplates();
+    return () => {
+      cancelled = true;
+    };
   }, [clanId, supabase]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadGameAccounts(): Promise<void> {
       if (!clanId) {
         setGameAccounts([]);
@@ -126,7 +136,7 @@ export function useEventsData(
         .select("game_account_id, game_accounts!inner(id, game_username)")
         .eq("clan_id", clanId)
         .eq("is_active", true);
-      if (error || !data) return;
+      if (cancelled || error || !data) return;
       const accounts: GameAccountOption[] = [];
       for (const row of data as Record<string, unknown>[]) {
         const ga = row.game_accounts as Record<string, unknown> | null;
@@ -138,6 +148,9 @@ export function useEventsData(
       setGameAccounts(accounts);
     }
     void loadGameAccounts();
+    return () => {
+      cancelled = true;
+    };
   }, [clanId, supabase]);
 
   async function reloadEvents(): Promise<void> {

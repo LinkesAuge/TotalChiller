@@ -1,8 +1,62 @@
 # Code Quality & Optimization Plan
 
-**Date:** 2026-02-11
+**Date:** 2026-02-11 (updated 2026-02-11 — security audit fixes applied)
 **Scope:** Full codebase audit findings — error handling, performance, security, accessibility, code quality
 **Branches from:** `design-test` at `71a19bf`
+
+---
+
+## Security Audit — Applied Fixes (2026-02-11)
+
+Comprehensive audit via SquirrelScan (surface scan, score 51 → issues found) + deep code-level review of all 20 API routes, client-side code, and infrastructure config. The following fixes were applied:
+
+### High Priority — Fixed
+
+| Issue                                                                                                      | Severity | Fix                                                                                 | Files                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **XSS in markdown renderer** — `javascript:`, `vbscript:`, `data:` protocols in user-authored links/images | High     | Added `isSafeUrl()` gate blocking dangerous protocols in `<a href>` and `<img src>` | `app/components/markdown-renderers.tsx`                                                                                |
+| **Open redirect in auth callback** — `next` query param not validated, allows `//evil.com`                 | High     | Added `isSafeRedirectPath()` requiring `/` prefix, blocking `//` and `:`            | `app/auth/callback/route.ts`                                                                                           |
+| **Missing rate limiting on 7 API routes**                                                                  | High     | Added `standardLimiter` or `strictLimiter`                                          | `messages/[id]`, `notification-settings`, `notifications/[id]`, `notifications/fan-out`, `notifications/mark-all-read` |
+| **Information leakage in 500 responses** — Supabase `error.message` exposed to clients                     | High     | Replaced with generic messages, log originals server-side via `console.error`       | 5 API route files                                                                                                      |
+| **LIKE wildcard injection** — `%` and `_` in search input alter LIKE behavior                              | Medium   | Escape `%`, `_`, `\` before interpolation                                           | `messages/search-recipients/route.ts`                                                                                  |
+| **Missing input validation** — `reference_id` and `clan_id` not validated as UUID                          | Medium   | Added `uuidSchema` check                                                            | `notifications/fan-out/route.ts`                                                                                       |
+
+### Medium Priority — Fixed
+
+| Issue                                                                            | Severity | Fix                                                                       | Files                           |
+| -------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------- | ------------------------------- |
+| **CSP missing Turnstile domains** — Cloudflare Turnstile blocked by CSP          | Medium   | Added `https://challenges.cloudflare.com` to `script-src` and `frame-src` | `next.config.js`                |
+| **useEffect race conditions** — setState after unmount in 3 data-loading effects | Medium   | Added `cancelled` flag + cleanup return                                   | `app/events/use-events-data.ts` |
+| **Cookie missing Secure flag** — locale cookie set without `secure` in proxy     | Medium   | Added `secure: process.env.NODE_ENV === "production"`                     | `proxy.ts`                      |
+
+### Remaining (not yet fixed)
+
+| Issue                                                                   | Severity | Notes                                                                       |
+| ----------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------- |
+| **CSP `'unsafe-inline'`** in `script-src` and `style-src`               | Low      | Would require nonce/hash; breaks dev; track for production hardening        |
+| **ESLint security plugin** missing                                      | Low      | Add `eslint-plugin-security` for `no-eval`, `no-implied-eval`               |
+| **Sentry breadcrumbs** — no `beforeBreadcrumb` to redact sensitive URLs | Low      | Add callback to filter auth/token URLs from breadcrumbs                     |
+| **Client-set cookies** (`document.cookie`) cannot be `httpOnly`         | Info     | Expected browser limitation; non-sensitive cookies only                     |
+| **SquirrelScan a11y** — `<select>` without label on all pages           | Low      | Likely Radix Select hidden element; RadixSelect already passes `aria-label` |
+
+### SquirrelScan Report Summary (localhost, surface scan)
+
+| Category        | Score  |
+| --------------- | ------ |
+| Overall         | 51 (F) |
+| Accessibility   | 82     |
+| Security        | 70     |
+| Performance     | 74     |
+| Content         | 69     |
+| Images          | 95     |
+| Links           | 87     |
+| Crawlability    | 98     |
+| Core SEO        | 95     |
+| Structured Data | 100    |
+| Mobile          | 100    |
+| i18n            | 100    |
+
+Note: Many performance/security issues are dev-mode artifacts (no HTTPS, unminified JS, source maps). Production scores will be significantly higher.
 
 ---
 
@@ -212,11 +266,11 @@ useEffect(() => () => clearTimeout(timerRef.current), []);
 
 Review and restrict service role usage.
 
-| File                                     | Issue             | Fix                                   |
-| ---------------------------------------- | ----------------- | ------------------------------------- |
-| `app/api/site-content/route.ts` (GET)    | Uses service role | Switch to RLS-compliant server client |
-| `app/api/site-list-items/route.ts` (GET) | Uses service role | Same                                  |
-| `app/api/notification-settings/route.ts` | No rate limiting  | Add `standardLimiter`                 |
+| File                                     | Issue             | Fix                                                            |
+| ---------------------------------------- | ----------------- | -------------------------------------------------------------- |
+| `app/api/site-content/route.ts` (GET)    | Uses service role | Switch to RLS-compliant server client                          |
+| `app/api/site-list-items/route.ts` (GET) | Uses service role | Same                                                           |
+| `app/api/notification-settings/route.ts` | No rate limiting  | ~~Add `standardLimiter`~~ **DONE** (2026-02-11 security audit) |
 
 ### 3.5 Batch reorder endpoint
 

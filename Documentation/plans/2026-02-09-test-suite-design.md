@@ -1,13 +1,67 @@
 # Test Suite Design — TotalChiller
 
-**Date:** 2026-02-09 (updated 2026-02-10)  
+**Date:** 2026-02-09 (updated 2026-02-11)  
 **Status:** Implemented
 
 ## Overview
 
-Comprehensive Playwright test suite covering all functionality of the TotalChiller webapp. Tests are organized by feature area, following Vercel/Next.js best practices for testing React applications.
+Comprehensive test suite covering all functionality of the TotalChiller webapp. Tests are split into two tiers:
 
-## Architecture
+1. **Vitest unit tests** (`lib/**/*.test.ts`) — fast, isolated tests for pure utility logic, Zod schemas, and mocked Supabase helpers.
+2. **Playwright E2E tests** (`tests/*.spec.ts`) — browser-based tests covering UI flows, authentication, and integration.
+
+Tests are organized by feature area, following Vercel/Next.js best practices for testing React applications.
+
+## Unit Tests (Vitest)
+
+Unit tests validate pure logic in `lib/` using Vitest with a Node environment. Run via `npm run test:unit`.
+
+```
+lib/
+├── correction-applicator.test.ts    # Correction rule applicator — field matching, wildcard, status, edge cases
+├── dashboard-utils.test.ts          # Date formatting, trend calculation, number formatting, relative time
+├── date-format.test.ts              # German/locale datetime formatting
+├── messages-schemas.test.ts         # Message Zod schemas + broadcast deduplication logic
+├── permissions.test.ts              # Role definitions, permission matrix, hasPermission, canDo, isAdmin
+├── rate-limit.test.ts               # Sliding-window rate limiter — allow, block, per-IP, Retry-After
+├── api/
+│   └── validation.test.ts           # Zod schemas: uuidSchema, notificationSettingsSchema, chartQuerySchema
+└── supabase/
+    ├── admin-access.test.ts         # getIsAdminAccess — admin/owner gate with mocked role resolution
+    ├── check-role.test.ts           # resolveUserRole — auth check, RPC fast-path, user_roles fallback
+    ├── config.test.ts               # Env-var accessors — throws on missing, returns when present
+    ├── error-utils.test.ts          # Error classification — RLS, auth, network, unknown
+    └── role-access.test.ts          # getIsContentManager — content-manager gate with mocked role resolution
+```
+
+| File                            | Tests   | What it covers                                                                                              |
+| ------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `correction-applicator.test.ts` | 21      | Field-specific & wildcard rules, case-insensitive matching, status filtering, edge cases                    |
+| `dashboard-utils.test.ts`       | 25      | `toDateString`, `getMonday`, `calculateTrend`, `formatNumber`, `formatRelativeTime`, `extractAuthorName`    |
+| `date-format.test.ts`           | 5       | `formatLocalDateTime`, `formatGermanDateTime`                                                               |
+| `messages-schemas.test.ts`      | 20      | `SEND_MESSAGE_SCHEMA`, `BATCH_MARK_READ_SCHEMA`, `deduplicateOutgoing`                                      |
+| `permissions.test.ts`           | 30      | `ROLES`, `isValidRole`, `toRole`, `hasPermission`, `canDo`, `isAdmin`, `isContentManager`, `getPermissions` |
+| `rate-limit.test.ts`            | 5       | Rate limiter creation, blocking, per-IP isolation, Retry-After header                                       |
+| `api/validation.test.ts`        | 26      | `uuidSchema`, `notificationSettingsSchema`, `chartQuerySchema` — valid/invalid/edge inputs                  |
+| `supabase/admin-access.test.ts` | 7       | Returns true for owner/admin, false for all other roles and unauthenticated                                 |
+| `supabase/check-role.test.ts`   | 9       | Auth failure → null, admin RPC → "admin", fallback to user_roles, default "member"                          |
+| `supabase/config.test.ts`       | 6       | Each env-var getter returns value or throws with descriptive message                                        |
+| `supabase/error-utils.test.ts`  | 12      | Error classification by code/message, i18n key mapping                                                      |
+| `supabase/role-access.test.ts`  | 7       | Returns true for owner/admin/moderator/editor, false for member/guest/null                                  |
+| **Total**                       | **173** |                                                                                                             |
+
+### Files intentionally not unit-tested
+
+| File                                  | Reason                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------- |
+| `lib/hooks/use-user-role.ts`          | React hook — requires jsdom + React Testing Library (covered by E2E)      |
+| `lib/supabase/browser-client.ts`      | Thin factory calling `createBrowserClient` — no branching logic           |
+| `lib/supabase/server-client.ts`       | Thin factory depending on Next.js `cookies()` — covered by E2E            |
+| `lib/supabase/service-role-client.ts` | Thin factory calling `createClient` — no branching logic                  |
+| `lib/api/require-admin.ts`            | Thin guard composing Supabase auth + RPC — covered by E2E `admin.spec.ts` |
+| `lib/types/domain.ts`                 | TypeScript types only — no runtime logic                                  |
+
+## Playwright E2E Architecture
 
 ```
 tests/
@@ -318,7 +372,15 @@ PLAYWRIGHT_BASE_URL=http://localhost:3001 npx playwright test
 | Accessibility        | `accessibility.spec.ts`     | 2        | Yes   |
 | Permissions Unit     | `permissions-unit.spec.ts`  | 34       | No    |
 | Role-based E2E       | `roles-permissions.spec.ts` | 17       | Yes   |
-| **Total**            | **27 spec files**           | **~240** |       |
+| **E2E Total**        | **27 spec files**           | **~240** |       |
+
+### Combined Coverage (Unit + E2E)
+
+| Tier      | Framework  | Files  | Tests    |
+| --------- | ---------- | ------ | -------- |
+| Unit      | Vitest     | 12     | 173      |
+| E2E       | Playwright | 27     | ~240     |
+| **Total** |            | **39** | **~413** |
 
 ## Design Decisions
 
@@ -346,7 +408,9 @@ PLAYWRIGHT_BASE_URL=http://localhost:3001 npx playwright test
 
 ## npm Scripts
 
-| Script    | Command                |
-| --------- | ---------------------- |
-| `test`    | `playwright test`      |
-| `test:ui` | `playwright test --ui` |
+| Script            | Command                | Purpose                  |
+| ----------------- | ---------------------- | ------------------------ |
+| `test`            | `playwright test`      | Run all E2E tests        |
+| `test:ui`         | `playwright test --ui` | Interactive E2E UI mode  |
+| `test:unit`       | `vitest run`           | Run all unit tests once  |
+| `test:unit:watch` | `vitest`               | Unit tests in watch mode |

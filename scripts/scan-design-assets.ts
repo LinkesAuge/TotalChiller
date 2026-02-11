@@ -98,7 +98,8 @@ interface AssetRecord {
 
 function getImageDimensions(filePath: string): { width: number | null; height: number | null } {
   try {
-    const result = imageSize(filePath);
+    const buffer = fs.readFileSync(filePath);
+    const result = imageSize(new Uint8Array(buffer));
     return { width: result.width ?? null, height: result.height ?? null };
   } catch {
     return { width: null, height: null };

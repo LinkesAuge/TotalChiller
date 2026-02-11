@@ -8,7 +8,7 @@ interface SidebarContextValue {
   readonly width: number;
 }
 
-const EXPANDED_WIDTH = 280;
+const EXPANDED_WIDTH = 240;
 const COLLAPSED_WIDTH = 60;
 
 const SidebarContext = createContext<SidebarContextValue>({

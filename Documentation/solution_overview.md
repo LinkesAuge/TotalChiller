@@ -305,7 +305,7 @@ app/admin/
   - Confirmation modals: simple confirmation for event deletion, two-step confirmation for template deletion.
   - **Pinned events**: `is_pinned` boolean on `events` table. Pinned events sort first in day panel and calendar cells. Pin toggle UI in day panel (star icon, role-gated). Migration: `Documentation/migrations/event_is_pinned.sql`.
   - **Day panel** (`EventDayPanel`): collapsed card style matches "anstehend" sidebar (banner strip, date badge, structured meta). First event auto-expanded. Expanded view: full banner, markdown description, author/date. Pin/edit/delete action buttons (role-gated).
-  - **Calendar cells**: show event time below title. Prefer pinned event for banner/title display.
+  - **Calendar cells**: position-aware time label below title — first day of multi-day event shows start time, intermediate days show "Ganztägig"/"All day", last day shows "bis {time}"/"until {time}"; single-day events show start time. Prefer pinned event for banner/title display.
   - **Tooltip**: `position: fixed`, rendered outside calendar body. `.event-calendar-card:hover { transform: none }` prevents containing-block offset.
   - **Upcoming sidebar**: delete button alongside edit button. Both role-gated via `canManage`.
   - Files: `app/events/events-client.tsx`, `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/events/events-types.ts`, `app/events/events-utils.ts`, `app/events/use-events-data.ts`

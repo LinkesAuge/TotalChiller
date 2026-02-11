@@ -6,7 +6,7 @@ import { useRef, useState, useCallback } from "react";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { CalendarDay, DisplayEvent } from "./events-types";
 import { EVENT_COLORS, WEEKDAY_LABELS } from "./events-types";
-import { formatDuration, formatDateRange, isMultiDayEvent, sortPinnedFirst } from "./events-utils";
+import { formatDuration, formatDateRange, isMultiDayEvent, sortPinnedFirst, toDateKey } from "./events-utils";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-8 rounded" />,
@@ -121,11 +121,39 @@ function UserIcon(): JSX.Element {
   );
 }
 
-/* ── Tooltip helper ── */
+/* ── Time helpers ── */
 
 /** Format a short time string for tooltip display. */
 function shortTime(isoString: string, locale: string): string {
   return new Date(isoString).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Return the appropriate time label for a calendar cell based on the cell's
+ * position within a multi-day event:
+ *  - First day  → start time  (e.g. "12:00")
+ *  - Last day   → "bis 13:00" / "until 13:00"
+ *  - Middle day → "Ganztägig" / "All day"
+ *  - Single-day → start time
+ */
+function cellTimeLabel(
+  event: DisplayEvent,
+  cellDateKey: string,
+  locale: string,
+  t: (key: string, values?: Record<string, string>) => string,
+): string {
+  if (!isMultiDayEvent(event.starts_at, event.ends_at)) {
+    return shortTime(event.starts_at, locale);
+  }
+  const startKey = toDateKey(new Date(event.starts_at));
+  const endKey = toDateKey(new Date(event.ends_at));
+  if (cellDateKey === startKey) {
+    return t("fromTime", { time: shortTime(event.starts_at, locale) });
+  }
+  if (cellDateKey === endKey) {
+    return t("untilTime", { time: shortTime(event.ends_at, locale) });
+  }
+  return t("allDay");
 }
 
 /* ── Component ── */
@@ -257,7 +285,7 @@ export function EventCalendar({
                       </span>
                     )}
                     {primaryEvent && (
-                      <span className="calendar-day-time">{shortTime(primaryEvent.starts_at, locale)}</span>
+                      <span className="calendar-day-time">{cellTimeLabel(primaryEvent, day.key, locale, t)}</span>
                     )}
                     {/* Colored dots for events without banners */}
                     {!primaryBanner && hasEvents && (
@@ -317,7 +345,9 @@ export function EventCalendar({
                   <div key={entry.displayKey} className="calendar-tooltip-item">
                     <span className="calendar-tooltip-dot" style={{ background: EVENT_COLORS[0] }} />
                     <span className="calendar-tooltip-item-title">{entry.title}</span>
-                    <span className="calendar-tooltip-item-time">{shortTime(entry.starts_at, locale)}</span>
+                    <span className="calendar-tooltip-item-time">
+                      {cellTimeLabel(entry, tooltipDay.key, locale, t)}
+                    </span>
                   </div>
                 ))}
               </div>

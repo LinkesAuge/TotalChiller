@@ -24,7 +24,6 @@ interface SidebarUserData {
   readonly initials: string;
   readonly displayLabel: string;
   readonly isAdmin: boolean;
-  readonly isOnline: boolean;
   readonly highestRank: string;
   readonly clanOptions: readonly ClanOption[];
   readonly selectedKey: string;
@@ -37,7 +36,6 @@ const DEFAULT_USER: SidebarUserData = {
   initials: "",
   displayLabel: "",
   isAdmin: false,
-  isOnline: false,
   highestRank: "",
   clanOptions: [],
   selectedKey: "",
@@ -167,7 +165,6 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
       initials,
       displayLabel: name,
       isAdmin: false, // Will be overridden by hook-driven value
-      isOnline: true,
       highestRank: resolveHighestRank(options),
       clanOptions: options,
       selectedKey,
@@ -317,7 +314,6 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
             <div className={`sidebar-user${isOpen ? "" : " collapsed"}`}>
               <div className="sidebar-avatar-wrap">
                 <div className="sidebar-avatar">{userData.initials}</div>
-                {userData.isOnline && <span className="online-dot" />}
               </div>
               <div className={`sidebar-user-info${isOpen ? "" : " collapsed"}`}>
                 <div className="sidebar-user-name">
@@ -326,16 +322,13 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
                     <Image
                       src="/assets/vip/button_vip_crown_22x33.png"
                       alt="Admin"
-                      width={10}
-                      height={15}
-                      style={{ width: 10, height: "auto" }}
+                      width={12}
+                      height={18}
+                      style={{ width: 12, height: "auto" }}
                     />
                   )}
                 </div>
-                <div className="sidebar-user-status">
-                  <span className="sidebar-online-indicator" />
-                  {t("online")} &bull; {statusLine}
-                </div>
+                <div className="sidebar-user-status">{statusLine}</div>
               </div>
             </div>
           ) : null}

@@ -5,24 +5,11 @@ import { useRouter } from "next/navigation";
 import { routing, LOCALE_COOKIE } from "../../i18n/routing";
 import type { Locale } from "../../i18n/routing";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import RadixSelect from "./ui/radix-select";
 
 interface LanguageSelectorProps {
-  /** When true, only show the short locale code (collapsed sidebar). */
+  /** When true, only show a single compact button (collapsed sidebar). */
   readonly compact?: boolean;
-  /** When true, hides the label above the select (useful when an external label exists). */
-  readonly hideLabel?: boolean;
 }
-
-const LOCALE_FLAGS: Record<Locale, string> = {
-  de: "DE",
-  en: "EN",
-};
-
-const LOCALE_LABELS: Record<Locale, string> = {
-  de: "Deutsch",
-  en: "English",
-};
 
 /**
  * Reads the current locale from the NEXT_LOCALE cookie.
@@ -46,13 +33,19 @@ async function setLocale(locale: Locale): Promise<void> {
 }
 
 /**
- * Language selector dropdown for switching between DE and EN.
+ * DE/EN language toggle for the sidebar.
  * Sets the NEXT_LOCALE cookie and syncs to Supabase user_metadata if authenticated.
  */
-function LanguageSelector({ compact = false, hideLabel = false }: LanguageSelectorProps): JSX.Element {
+function LanguageSelector({ compact = false }: LanguageSelectorProps): JSX.Element {
   const t = useTranslations("languageSelector");
   const router = useRouter();
   const currentLocale = typeof document !== "undefined" ? readCurrentLocale() : routing.defaultLocale;
+
+  async function handleSwitch(locale: Locale): Promise<void> {
+    if (locale === currentLocale) return;
+    await setLocale(locale);
+    router.refresh();
+  }
 
   if (compact) {
     return (
@@ -60,43 +53,27 @@ function LanguageSelector({ compact = false, hideLabel = false }: LanguageSelect
         type="button"
         className="sidebar-lang-compact"
         aria-label={t("label")}
-        onClick={async () => {
-          const nextLocale = currentLocale === "de" ? "en" : "de";
-          await setLocale(nextLocale);
-          router.refresh();
-        }}
+        onClick={() => handleSwitch(currentLocale === "de" ? "en" : "de")}
       >
-        {LOCALE_FLAGS[currentLocale]}
+        {currentLocale.toUpperCase()}
       </button>
     );
   }
 
-  const localeOptions = routing.locales.map((locale) => ({
-    value: locale,
-    label: LOCALE_LABELS[locale],
-  }));
-
-  async function handleRadixChange(nextLocale: string): Promise<void> {
-    if (nextLocale === currentLocale) return;
-    await setLocale(nextLocale as Locale);
-    router.refresh();
-  }
-
   return (
-    <div className="language-selector">
-      {!hideLabel && (
-        <label htmlFor="language-select" className="sidebar-label text-[0.7rem] mb-0.5">
-          {t("label")}
-        </label>
-      )}
-      <RadixSelect
-        id="language-select"
-        ariaLabel={t("label")}
-        value={currentLocale}
-        onValueChange={handleRadixChange}
-        options={localeOptions}
-        triggerClassName="select-trigger"
-      />
+    <div className="lang-toggle" role="radiogroup" aria-label={t("label")}>
+      {routing.locales.map((locale) => (
+        <button
+          key={locale}
+          type="button"
+          role="radio"
+          aria-checked={locale === currentLocale}
+          className={`lang-toggle-btn${locale === currentLocale ? " active" : ""}`}
+          onClick={() => handleSwitch(locale)}
+        >
+          {locale.toUpperCase()}
+        </button>
+      ))}
     </div>
   );
 }

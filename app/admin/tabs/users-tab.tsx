@@ -77,12 +77,8 @@ export default function UsersTab(): ReactElement {
   const [createUserDisplayName, setCreateUserDisplayName] = useState("");
   const [createUserStatus, setCreateUserStatus] = useState("");
   const [userToDelete, setUserToDelete] = useState<UserRow | null>(null);
-  const [isCreateGameAccountModalOpen, setIsCreateGameAccountModalOpen] = useState(false);
   const [createGameAccountUser, setCreateGameAccountUser] = useState<UserRow | null>(null);
-  const [createGameAccountUsername, setCreateGameAccountUsername] = useState("");
-  const [createGameAccountClanId, setCreateGameAccountClanId] = useState("");
-  const [createGameAccountRank, setCreateGameAccountRank] = useState("soldier");
-  const [createGameAccountStatus, setCreateGameAccountStatus] = useState("active");
+  const [createGameAccountForm, setCreateGameAccountForm] = useState({ username: "", clanId: "", rank: "soldier" });
   const [createGameAccountMessage, setCreateGameAccountMessage] = useState("");
   const [gameAccountToDelete, setGameAccountToDelete] = useState<GameAccountRow | null>(null);
 
@@ -580,48 +576,37 @@ export default function UsersTab(): ReactElement {
   const openCreateGameAccountModal = useCallback(
     (user: UserRow) => {
       setCreateGameAccountUser(user);
-      setCreateGameAccountUsername("");
-      setCreateGameAccountClanId(unassignedClanId);
-      setCreateGameAccountRank("soldier");
-      setCreateGameAccountStatus("active");
+      setCreateGameAccountForm({ username: "", clanId: unassignedClanId, rank: "soldier" });
       setCreateGameAccountMessage("");
-      setIsCreateGameAccountModalOpen(true);
     },
     [unassignedClanId],
   );
 
   const closeCreateGameAccountModal = useCallback(() => {
-    setIsCreateGameAccountModalOpen(false);
     setCreateGameAccountUser(null);
-    setCreateGameAccountUsername("");
-    setCreateGameAccountClanId(unassignedClanId);
-    setCreateGameAccountRank("soldier");
-    setCreateGameAccountStatus("active");
     setCreateGameAccountMessage("");
-  }, [unassignedClanId]);
+  }, []);
 
   const handleCreateGameAccount = useCallback(async () => {
-    if (!createGameAccountUser) {
-      setCreateGameAccountMessage("Select a user first.");
-      return;
-    }
-    const nextUsername = createGameAccountUsername.trim();
-    if (!nextUsername) {
+    if (!createGameAccountUser) return;
+    const { username, clanId, rank } = createGameAccountForm;
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
       setCreateGameAccountMessage("Game username is required.");
       return;
     }
-    if (!createGameAccountClanId) {
+    if (!clanId) {
       setCreateGameAccountMessage("Select a clan for this account.");
       return;
     }
-    if (!createGameAccountRank.trim()) {
+    if (!rank.trim()) {
       setCreateGameAccountMessage("Select a rank for this account.");
       return;
     }
     setCreateGameAccountMessage("Creating game account...");
     const { data: accountData, error } = await supabase
       .from("game_accounts")
-      .insert({ user_id: createGameAccountUser.id, game_username: nextUsername })
+      .insert({ user_id: createGameAccountUser.id, game_username: trimmedUsername })
       .select("id")
       .single();
     if (error || !accountData) {
@@ -631,9 +616,9 @@ export default function UsersTab(): ReactElement {
     const { error: membershipError } = await supabase.from("game_account_clan_memberships").upsert(
       {
         game_account_id: accountData.id,
-        clan_id: createGameAccountClanId,
-        is_active: createGameAccountStatus === "active",
-        rank: createGameAccountRank.trim() || null,
+        clan_id: clanId,
+        is_active: true,
+        rank: rank.trim() || null,
       },
       { onConflict: "game_account_id" },
     );
@@ -641,19 +626,9 @@ export default function UsersTab(): ReactElement {
       setCreateGameAccountMessage(`Account created, but assignment failed: ${membershipError.message}`);
       return;
     }
-    setCreateGameAccountMessage("Game account added.");
     closeCreateGameAccountModal();
     await loadUsers();
-  }, [
-    createGameAccountUser,
-    createGameAccountUsername,
-    createGameAccountClanId,
-    createGameAccountRank,
-    createGameAccountStatus,
-    supabase,
-    closeCreateGameAccountModal,
-    loadUsers,
-  ]);
+  }, [createGameAccountUser, createGameAccountForm, supabase, closeCreateGameAccountModal, loadUsers]);
 
   const handleResendInvite = useCallback(async (email: string) => {
     if (!email) {
@@ -1387,9 +1362,9 @@ export default function UsersTab(): ReactElement {
       />
 
       {/* Create game account modal */}
-      {isCreateGameAccountModalOpen && createGameAccountUser ? (
-        <div className="modal-backdrop">
-          <div className="modal card">
+      {createGameAccountUser ? (
+        <div className="modal-backdrop" onClick={closeCreateGameAccountModal}>
+          <div className="modal card" onClick={(e) => e.stopPropagation()}>
             <div className="card-header">
               <div className="card-title">{tAdmin("users.addGameAccount")}</div>
               <div className="card-subtitle">
@@ -1408,8 +1383,10 @@ export default function UsersTab(): ReactElement {
                   <label htmlFor="createGameAccountUsername">{tAdmin("clans.gameUsername")}</label>
                   <input
                     id="createGameAccountUsername"
-                    value={createGameAccountUsername}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setCreateGameAccountUsername(e.target.value)}
+                    value={createGameAccountForm.username}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setCreateGameAccountForm((prev) => ({ ...prev, username: e.target.value }))
+                    }
                     placeholder={tAdmin("clans.gameUsername")}
                   />
                 </div>
@@ -1417,8 +1394,8 @@ export default function UsersTab(): ReactElement {
                   <LabeledSelect
                     id="createGameAccountClan"
                     label={tAdmin("common.clan")}
-                    value={createGameAccountClanId}
-                    onValueChange={setCreateGameAccountClanId}
+                    value={createGameAccountForm.clanId}
+                    onValueChange={(v) => setCreateGameAccountForm((prev) => ({ ...prev, clanId: v }))}
                     options={clanSelectOptions}
                   />
                 </div>
@@ -1426,8 +1403,8 @@ export default function UsersTab(): ReactElement {
                   <LabeledSelect
                     id="createGameAccountRank"
                     label={tAdmin("common.rank")}
-                    value={createGameAccountRank}
-                    onValueChange={setCreateGameAccountRank}
+                    value={createGameAccountForm.rank}
+                    onValueChange={(v) => setCreateGameAccountForm((prev) => ({ ...prev, rank: v }))}
                     options={[
                       { value: "", label: tAdmin("common.none") },
                       ...rankOptions.map((r) => ({ value: r, label: formatRank(r, locale) })),

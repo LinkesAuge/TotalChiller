@@ -8,6 +8,7 @@ import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
 import { formatLocalDateTime } from "../../lib/date-format";
+import { BANNER_PRESETS } from "@/lib/constants/banner-presets";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
@@ -16,24 +17,14 @@ import RadixSelect from "../components/ui/radix-select";
 import IconButton from "../components/ui/icon-button";
 import DatePicker from "../components/date-picker";
 import SearchInput from "../components/ui/search-input";
+import BannerPicker from "../components/banner-picker";
+import MarkdownEditor from "../components/markdown-editor";
 import dynamic from "next/dynamic";
 import SectionHero from "../components/section-hero";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
 });
-import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
-
-/* ─── Banner templates ─── */
-
-const BANNER_TEMPLATES: readonly { readonly src: string; readonly label: string }[] = [
-  { src: "/assets/banners/banner_gold_dragon.png", label: "Gold Dragon" },
-  { src: "/assets/banners/banner_chest.png", label: "Chest" },
-  { src: "/assets/banners/banner_captain.png", label: "Captain" },
-  { src: "/assets/banners/banner_doomsday_708.png", label: "Doomsday" },
-  { src: "/assets/banners/banner_ragnarok_clan_event_708x123.png", label: "Ragnarok" },
-  { src: "/assets/banners/banner_tournir_kvk.png", label: "KvK Turnier" },
-];
 
 const STORAGE_BUCKET = "forum-images";
 
@@ -114,10 +105,7 @@ function NewsClient(): JSX.Element {
   const [isPinned, setIsPinned] = useState<boolean>(false);
   const [tagsInput, setTagsInput] = useState<string>("");
   const [bannerUrl, setBannerUrl] = useState<string>("");
-  const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
-  const [isImageUploading, setIsImageUploading] = useState<boolean>(false);
   const [isBannerUploading, setIsBannerUploading] = useState<boolean>(false);
-  const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const bannerFileRef = useRef<HTMLInputElement>(null);
 
   /* ── Expanded article detail ── */
@@ -208,7 +196,6 @@ function NewsClient(): JSX.Element {
     setBannerUrl("");
     setEditingId("");
     setIsFormOpen(false);
-    setIsPreviewMode(false);
   }
 
   function handleOpenCreate(): void {
@@ -225,7 +212,6 @@ function NewsClient(): JSX.Element {
     setTagsInput(article.tags.join(", "));
     setBannerUrl(article.banner_url ?? "");
     setIsFormOpen(true);
-    setIsPreviewMode(false);
   }
 
   /* ── Banner upload ── */
@@ -382,137 +368,30 @@ function NewsClient(): JSX.Element {
                 {/* Banner selection */}
                 <div className="form-group">
                   <label id="newsBannerLabel">{t("bannerLabel")}</label>
-                  <div className="news-banner-picker" role="group" aria-labelledby="newsBannerLabel">
-                    {/* No banner option */}
-                    <button
-                      type="button"
-                      className={`news-banner-option flex items-center justify-center text-xs text-text-muted min-h-12${bannerUrl === "" ? " selected" : ""}`}
-                      onClick={() => setBannerUrl("")}
-                    >
-                      {t("noBanner")}
-                    </button>
-                    {/* Templates */}
-                    {BANNER_TEMPLATES.map((tmpl) => (
-                      <button
-                        key={tmpl.src}
-                        type="button"
-                        className={`news-banner-option${bannerUrl === tmpl.src ? " selected" : ""}`}
-                        onClick={() => setBannerUrl(tmpl.src)}
-                      >
-                        <Image src={tmpl.src} alt={tmpl.label} width={80} height={48} />
-                      </button>
-                    ))}
-                    {/* Custom upload */}
-                    <button
-                      type="button"
-                      className={`news-banner-option news-banner-upload flex flex-col items-center justify-center gap-1${bannerUrl && !BANNER_TEMPLATES.some((t) => t.src === bannerUrl) && bannerUrl !== "" ? " selected" : ""}`}
-                      onClick={() => bannerFileRef.current?.click()}
-                    >
-                      {bannerUrl && !BANNER_TEMPLATES.some((tmpl) => tmpl.src === bannerUrl) && bannerUrl !== "" ? (
-                        <img src={bannerUrl} alt="Custom" className="w-full h-full object-cover rounded-sm" />
-                      ) : (
-                        <>
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                          >
-                            <path d="M12 5v14M5 12h14" />
-                          </svg>
-                          <span className="text-[0.65rem]">{t("customBanner")}</span>
-                        </>
-                      )}
-                    </button>
-                    <input
-                      ref={bannerFileRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleBannerUpload}
-                    />
-                  </div>
-                  {isBannerUploading && (
-                    <p className="mt-1" style={{ fontSize: "0.75rem", color: "var(--color-gold)" }}>
-                      {t("uploadingImage")}
-                    </p>
-                  )}
+                  <BannerPicker
+                    presets={BANNER_PRESETS}
+                    value={bannerUrl}
+                    onChange={setBannerUrl}
+                    onUpload={handleBannerUpload}
+                    isUploading={isBannerUploading}
+                    fileRef={bannerFileRef}
+                    labelId="newsBannerLabel"
+                  />
                 </div>
 
                 {/* Content editor */}
                 <div className="form-group">
                   <label htmlFor="newsContent">{t("contentLabel")}</label>
-                  <div className="forum-editor-tabs">
-                    <button
-                      type="button"
-                      className={`forum-editor-tab${!isPreviewMode ? " active" : ""}`}
-                      onClick={() => setIsPreviewMode(false)}
-                    >
-                      {t("write")}
-                    </button>
-                    <button
-                      type="button"
-                      className={`forum-editor-tab${isPreviewMode ? " active" : ""}`}
-                      onClick={() => setIsPreviewMode(true)}
-                    >
-                      {t("preview")}
-                    </button>
-                  </div>
-                  {isPreviewMode ? (
-                    <div className="forum-editor-preview p-4" style={{ minHeight: 250 }}>
-                      {content.trim() ? (
-                        <AppMarkdown content={content} />
-                      ) : (
-                        <p style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>{t("previewEmpty")}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <AppMarkdownToolbar
-                        textareaRef={contentTextareaRef}
-                        value={content}
-                        onChange={setContent}
-                        supabase={supabase}
-                        userId={currentUserId}
-                      />
-                      <textarea
-                        id="newsContent"
-                        ref={contentTextareaRef}
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder={t("contentPlaceholder")}
-                        rows={14}
-                        className="text-[0.88rem] leading-relaxed"
-                        style={{ minHeight: 250, fontFamily: "var(--font-body)" }}
-                        onPaste={(e) =>
-                          handleImagePaste(
-                            e,
-                            supabase,
-                            currentUserId,
-                            (md) => setContent((p) => p + md),
-                            setIsImageUploading,
-                          )
-                        }
-                        onDrop={(e) =>
-                          handleImageDrop(
-                            e,
-                            supabase,
-                            currentUserId,
-                            (md) => setContent((p) => p + md),
-                            setIsImageUploading,
-                          )
-                        }
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                      />
-                      <p className="mt-1 text-[0.72rem] text-text-muted">{t("markdownHint")}</p>
-                    </>
-                  )}
-                  {isImageUploading && <p className="text-[0.78rem] text-gold">{t("uploadingImage")}</p>}
+                  <MarkdownEditor
+                    id="newsContent"
+                    value={content}
+                    onChange={setContent}
+                    supabase={supabase}
+                    userId={currentUserId}
+                    placeholder={t("contentPlaceholder")}
+                    rows={14}
+                    minHeight={250}
+                  />
                 </div>
 
                 {/* Status, Tags, Pin */}

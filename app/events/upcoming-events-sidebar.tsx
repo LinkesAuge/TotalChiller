@@ -8,6 +8,7 @@ export interface UpcomingEventsSidebarProps {
   readonly upcomingEvents: readonly DisplayEvent[];
   readonly upcomingLimit: number;
   readonly onShowMore: () => void;
+  readonly onSelectEvent: (event: DisplayEvent) => void;
   readonly onEditEvent: (eventId: string) => void;
   readonly canManage: boolean;
   readonly locale: string;
@@ -50,6 +51,7 @@ export function UpcomingEventsSidebar({
   upcomingEvents,
   upcomingLimit,
   onShowMore,
+  onSelectEvent,
   onEditEvent,
   canManage,
   locale,
@@ -71,6 +73,16 @@ export function UpcomingEventsSidebar({
               <article
                 key={`upcoming-${entry.displayKey}`}
                 className={`upcoming-event-card${entry.banner_url ? " has-banner" : ""}`}
+                onClick={() => onSelectEvent(entry)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectEvent(entry);
+                  }
+                }}
+                style={{ cursor: "pointer" }}
               >
                 {entry.banner_url && (
                   <div className="upcoming-event-banner">
@@ -160,7 +172,10 @@ export function UpcomingEventsSidebar({
                     <button
                       className="upcoming-event-edit"
                       type="button"
-                      onClick={() => onEditEvent(entry.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditEvent(entry.id);
+                      }}
                       aria-label={t("editEvent")}
                       title={t("editEvent")}
                     >

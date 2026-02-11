@@ -900,7 +900,9 @@
       "noUsersMatch": "No users match the filters",
       "searchPlaceholder": "Email, username, or nickname",
       "admin": "Admin",
-      "nonAdmin": "Non-admin"
+      "nonAdmin": "Non-admin",
+      "withGameAccount": "With game account",
+      "withoutGameAccount": "Without game account"
     },
     "validation": {
       "title": "Validation Rules",

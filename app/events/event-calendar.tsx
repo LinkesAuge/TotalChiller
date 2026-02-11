@@ -1,11 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useRef } from "react";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { CalendarDay, DisplayEvent } from "./events-types";
 import { EVENT_COLORS, WEEKDAY_LABELS } from "./events-types";
 import { formatDuration } from "./events-utils";
+
+const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
+  loading: () => <div className="skeleton h-8 rounded" />,
+});
 
 export interface EventCalendarProps {
   readonly calendarMonth: Date;
@@ -243,30 +248,43 @@ export function EventCalendar({
                       )}
                       <div className="calendar-day-event-header">
                         <div className="calendar-day-event-title">{entry.title}</div>
-                        {canManage && (
-                          <button
-                            className="calendar-day-event-edit"
-                            type="button"
-                            onClick={() => onEditEvent(entry.id)}
-                            aria-label={t("editEvent")}
-                            title={t("editEvent")}
-                          >
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {entry.recurrence_type && entry.recurrence_type !== "none" && (
+                            <span className="badge text-[0.6rem]">
+                              {entry.recurrence_type === "daily"
+                                ? t("recurrenceDailyLabel")
+                                : entry.recurrence_type === "weekly"
+                                  ? t("recurrenceWeeklyLabel")
+                                  : entry.recurrence_type === "biweekly"
+                                    ? t("recurrenceBiweeklyLabel")
+                                    : t("recurrenceMonthlyLabel")}
+                            </span>
+                          )}
+                          {canManage && (
+                            <button
+                              className="calendar-day-event-edit"
+                              type="button"
+                              onClick={() => onEditEvent(entry.id)}
+                              aria-label={t("editEvent")}
+                              title={t("editEvent")}
                             >
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </button>
-                        )}
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className="calendar-day-event-details">
                         <div className="calendar-day-event-detail">
@@ -289,6 +307,11 @@ export function EventCalendar({
                           </div>
                         )}
                       </div>
+                      {entry.description && (
+                        <div className="calendar-day-event-description">
+                          <AppMarkdown content={entry.description} />
+                        </div>
+                      )}
                       {entry.author_name && (
                         <div className="calendar-day-event-author">{t("createdBy", { name: entry.author_name })}</div>
                       )}

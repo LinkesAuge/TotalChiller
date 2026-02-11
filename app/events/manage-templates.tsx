@@ -1,6 +1,8 @@
 "use client";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import RadixSelect from "../components/ui/radix-select";
+import MarkdownEditor from "../components/markdown-editor";
 import type { RecurrenceType, TemplateRow } from "./events-types";
 import { formatDurationFromHours } from "./events-utils";
 
@@ -35,6 +37,10 @@ export interface ManageTemplatesProps {
   readonly isSavingTemplate: boolean;
   readonly canManage: boolean;
   readonly t: (key: string, values?: Record<string, string>) => string;
+  /** Supabase client for markdown image uploads. */
+  readonly supabase: SupabaseClient;
+  /** Current user ID for markdown image uploads. */
+  readonly userId: string;
 }
 
 export function ManageTemplates({
@@ -68,6 +74,8 @@ export function ManageTemplates({
   isSavingTemplate,
   canManage,
   t,
+  supabase,
+  userId,
 }: ManageTemplatesProps): JSX.Element | null {
   if (!canManage || !isTemplatesOpen) return null;
 
@@ -106,12 +114,15 @@ export function ManageTemplates({
                     <label htmlFor={`tplDesc-${tpl.id}`} className="text-[0.72rem]">
                       {t("description")}
                     </label>
-                    <textarea
+                    <MarkdownEditor
                       id={`tplDesc-${tpl.id}`}
                       value={editTplDescription}
-                      onChange={(e) => onEditTplDescChange(e.target.value)}
+                      onChange={onEditTplDescChange}
+                      supabase={supabase}
+                      userId={userId}
                       placeholder={t("descriptionPlaceholder")}
-                      rows={2}
+                      rows={3}
+                      minHeight={120}
                     />
                   </div>
                   <div className="form-group mb-0">

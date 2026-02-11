@@ -72,7 +72,7 @@ This file is a compact context transfer for a new chat.
 - **Admin UI** (refactored Feb 2026 — modular architecture)
   - Tabs: Clan Management, Users, Validation, Corrections, Audit Logs, Approvals, Data Import, Chest Database, Forum.
   - Clan Management manages **game accounts** (not users) and supports assign‑to‑clan modal.
-  - Users tab supports search/filters, inline edits, add game accounts, create users (invite), delete users. Game account status badges (pending/rejected) shown inline.
+  - Users tab supports search/filters (role, game account presence), inline edits, add game accounts, create users (invite), delete users. Game account status badges (pending/rejected) shown inline.
   - Approvals tab: review and approve/reject pending game account requests from users. Shows requester info, game username, and request date.
   - Global save/cancel applies to user + game account edits.
   - Validation + Correction rules are **global** (not clan-specific). Support: sorting, selection, batch delete, import/export, active/inactive status (corrections).
@@ -149,8 +149,8 @@ This file is a compact context transfer for a new chat.
   - Migrations: `forum_tables.sql`, `forum_storage.sql`, `forum_seed_categories.sql`, `forum_rls_permissions.sql`
 - **Announcements (redesigned with banners, rich editor, edit tracking)**
   - Visually rich cards with banner headers (160px), gold title overlay (1.5rem), expandable content preview (280px).
-  - Banner system: 6 templates from `/assets/banners/` + custom upload to Supabase Storage.
-  - Rich markdown editor (shared `AppMarkdownToolbar` + `AppMarkdown`).
+  - Banner system: uses shared `BannerPicker` component with 51 game-asset presets + custom upload to Supabase Storage.
+  - Rich markdown editor: uses shared `MarkdownEditor` component (write/preview tabs, toolbar, image paste/drop).
   - `sanitizeMarkdown()`: converts `•`/`–`/`—` to markdown lists, preserves single line breaks, fixes broken emphasis.
   - Author protection: editing never overwrites `created_by`; `updated_by` tracks last editor.
   - Edit tracking displayed: "bearbeitet von {name} am {date}".
@@ -169,8 +169,8 @@ This file is a compact context transfer for a new chat.
     - Calendar navigation: replaced "Zurück"/"Weiter" text buttons with circular chevron arrow buttons (inline SVG). Added dedicated pill-shaped "Today" button.
     - Calendar background: removed opaque `backs_21.png` background image. Now uses a subtle radial gradient with dark navy tones for a cleaner, more modern look.
     - Calendar grid: refined day cells with subtler borders, improved hover/selected/today states. Today's date gets a bold **gold circle badge** around the day number plus a radial glow background. Days with events get a **blue left accent bar** (inset border) and tinted background to stand out from empty days. Count badges on event days use a blue-tinted style; today's count badge switches to gold.
-    - Selected day panel: restructured with header separator, event cards featuring inline edit icon button, icon-prefixed detail rows (clock, map-pin, user SVG icons).
-    - Upcoming events sidebar: complete redesign with date badge column (weekday/day/month), structured event cards with icon-prefixed metadata (time, location, organizer), recurrence pills, hover-reveal edit buttons.
+    - Selected day panel: restructured with header separator, event cards featuring inline edit icon button, icon-prefixed detail rows (clock, map-pin, user SVG icons). Shows full event details including markdown-rendered description, recurrence badge, banner, organizer, location, and author.
+    - Upcoming events sidebar: complete redesign with date badge column (weekday/day/month), structured event cards with icon-prefixed metadata (time, location, organizer), recurrence pills, hover-reveal edit buttons. Clicking an upcoming event navigates the calendar to that day and selects it in the "Selected Day" panel.
     - Calendar toolbar: added bottom border separator, improved spacing and visual hierarchy.
     - Files: `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/globals.css`.
   - **Event banners (Feb 2026)**:
@@ -183,8 +183,9 @@ This file is a compact context transfer for a new chat.
     - Upcoming event cards show a full-width banner as a block element above the date-badge/content row (using a `.upcoming-event-body` wrapper for normal flow layout instead of absolute positioning, preventing overlap).
     - Templates carry `banner_url` through save/apply.
     - Migration: `Documentation/migrations/event_banner_url.sql`.
-    - Types: `EVENT_BANNER_PRESETS` constant in `events-types.ts`, `BannerPreset` interface.
-    - Files: `app/events/event-form.tsx`, `app/events/events-client.tsx`, `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/events/events-types.ts`, `app/events/use-events-data.ts`, `app/events/events-utils.ts`, `app/globals.css`.
+    - Types: `BANNER_PRESETS` and `BannerPreset` in shared `lib/constants/banner-presets.ts`.
+    - Shared components: `BannerPicker` (`app/components/banner-picker.tsx`), `MarkdownEditor` (`app/components/markdown-editor.tsx`).
+    - Files: `app/events/event-form.tsx`, `app/events/events-client.tsx`, `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/events/use-events-data.ts`, `app/events/events-utils.ts`, `app/globals.css`.
   - Events:
     - Past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers.
     - Date + time model with optional duration (hours + minutes) or "open-ended" (default).
@@ -246,6 +247,9 @@ This file is a compact context transfer for a new chat.
   - `app/components/table-scroll.tsx` (sync top/bottom horizontal scrollbars)
   - `app/components/ui/combobox-input.tsx` (text input with filterable suggestion dropdown)
   - `app/components/date-picker.tsx` (Flatpickr date/datetime picker with optional `enableTime` prop)
+  - `app/components/banner-picker.tsx` (shared banner image picker with presets, custom upload, live preview)
+  - `app/components/markdown-editor.tsx` (shared markdown editor with write/preview tabs, toolbar, image paste/drop)
+  - `lib/constants/banner-presets.ts` (shared `BANNER_PRESETS` array and `BannerPreset` type)
   - `app/components/sidebar-context.tsx` (SidebarProvider + useSidebar hook for collapse state)
   - `app/components/sidebar-shell.tsx` (sidebar layout: logo, toggle, nav, user status, clan selector)
   - `app/components/sidebar-nav.tsx` (navigation links with icons)
@@ -290,7 +294,10 @@ This file is a compact context transfer for a new chat.
 - **UI Cleanup**: Removed `QuickActions` and `ClanScopeBanner` components. Added gold divider below top bar. Messages link moved to user menu dropdown. Removed standalone "Einstellungen" button from profile top bar (settings accessible via user menu). Profile user menu replaced native `<details>` with React-controlled panel.
 - **Autofill CSS**: Added `:-webkit-autofill` overrides to prevent browsers from forcing white backgrounds on input fields (especially password) in the dark theme.
 - **Unified markdown system** (Feb 2026): Consolidated 3 separate sanitizers, 2 renderer components, and 2 toolbar components into a single system under `lib/markdown/`. Created `AppMarkdown` (unified renderer with `variant` prop), `AppMarkdownToolbar` (unified toolbar with full feature set + i18n), `sanitizeMarkdown()` (merged sanitizer), and relocated `renderers.tsx`. Migrated all 7 consumer files (editable-text, editable-list, forum-post-detail, forum-post-list, forum-post-form, news-client, messages-client). Deleted 5 old files (cms-markdown.tsx, cms-markdown-toolbar.tsx, forum-markdown.tsx, forum/markdown-toolbar.tsx, app/components/markdown-renderers.tsx). Added 3 new i18n keys (strikethrough, codeBlock, video) to both locale files.
-- **List item spacing fix**: The `sanitizeMarkdown()` steps that ensure blank lines before lists (steps 3–4) were firing between consecutive list items (e.g. `- item1\n- item2` became `- item1\n\n- item2`), creating "loose lists" where each `<li>` gets wrapped in `<p>` tags with excessive vertical spacing. Fixed by adding `^(?!- )(?!\d+\. )` guards so blank lines are only inserted for paragraph-to-list transitions, never between consecutive list items. Step 5 (hard break conversion) also gained `(?!- )(?!\d+\. )` negative lookaheads to avoid inserting hard breaks before list markers.
+- **Shared BannerPicker + MarkdownEditor components** (Feb 2026): Extracted banner image picker and markdown editor into reusable shared components (`app/components/banner-picker.tsx`, `app/components/markdown-editor.tsx`). Banner presets moved from `events-types.ts` to `lib/constants/banner-presets.ts` (shared `BANNER_PRESETS` constant with 51 game-asset banners). Announcements upgraded from 6 simple templates to the full 51-preset picker. Events upgraded from plain textarea to full markdown editor with write/preview tabs, formatting toolbar, and image paste/drop. Event template editing also uses the shared markdown editor. Event descriptions now rendered with `AppMarkdown` in past events list. CSS consolidated: `.event-banner-*` renamed to `.banner-picker-*`, `.news-banner-*` removed. New i18n namespaces: `bannerPicker`, `markdownEditor`. Both components use `useTranslations` internally for self-contained i18n.
+- **List item spacing fix** (two rounds):
+  - **Round 1**: Steps 3–4 in `sanitizeMarkdown()` were firing between consecutive list items (e.g. `- item1\n- item2` → `- item1\n\n- item2`), creating loose lists. Fixed by adding `^(?!- )(?!\d+\. )` guards.
+  - **Round 2**: Multi-line list items (marker on its own line, content on next: `1.\ncontent\n2.`) still triggered loose lists because step 3 treated the content line as a paragraph and inserted blank lines before the next marker. Fixed with: (a) new step 5 that collapses blank lines between consecutive numbered/dash list items using a regex that handles both bare markers (`1.`) and standard markers (`1. content`); (b) step 6 hard-break exclusion changed from `(?!\d+\. )` (literal space) to `(?!\d+\.\s)` (any whitespace) to also exclude bare markers like `2.\n`; (c) CSS safety net: `.forum-md li > p` and `.cms-md li > p` set to `margin: 0` to prevent excessive spacing even if loose lists slip through.
 
 ## Database Setup
 
@@ -405,7 +412,7 @@ Production audit score: **84/100 (B)**, up from 43/100. Key areas:
 - CMS edit controls (pencil buttons) are only visible to admins on hover. All content is publicly visible.
 - CMS API uses service role client for reads (bypasses RLS) and admin-checks for writes.
 - **API routes bypass proxy redirect**: All `/api/` routes bypass the proxy's auth redirect and handle their own authentication, returning proper JSON error responses. The CMS APIs (`/api/site-content`, `/api/site-list-items`) are also listed in `isPublicPath()` for historical reasons but this is now redundant.
-- **Unified markdown system** (Feb 2026): All markdown rendering uses `AppMarkdown` (`lib/markdown/app-markdown.tsx`) with a `variant` prop. `variant="cms"` uses `.cms-md` CSS (inherits parent styles), `variant="forum"` uses `.forum-md` CSS. All content goes through `sanitizeMarkdown()` (`lib/markdown/sanitize-markdown.ts`) which: (1) normalizes line endings, (2) converts fancy bullets to `- `, (3–4) ensures blank lines before lists when preceded by a non-list paragraph — using `^(?!- )(?!\d+\. )` guards so consecutive list items stay as a tight list, (5) converts remaining single newlines to hard breaks (`  \n`) but NOT before list markers (`(?!- )(?!\d+\. )`), (6–7) fixes broken bold/italic emphasis markers. **Critical**: the emphasis fix regexes use `[^\S\n]+` (horizontal whitespace only) instead of `\s+` to prevent matching across line boundaries. `remarkBreaks` plugin is always enabled. Both `.cms-md` and `.forum-md` use `white-space: pre-wrap` + `overflow-wrap: break-word` in CSS.
+- **Unified markdown system** (Feb 2026): All markdown rendering uses `AppMarkdown` (`lib/markdown/app-markdown.tsx`) with a `variant` prop. `variant="cms"` uses `.cms-md` CSS (inherits parent styles), `variant="forum"` uses `.forum-md` CSS. All content goes through `sanitizeMarkdown()` (`lib/markdown/sanitize-markdown.ts`) which: (1) normalizes line endings, (2) converts fancy bullets to `- `, (3–4) ensures blank lines before lists when preceded by a non-list paragraph — using `^(?!- )(?!\d+\. )` guards so consecutive list items stay as a tight list, (5) collapses blank lines between consecutive list items that steps 3–4 may have incorrectly created for multi-line list items (bare marker `1.` on own line with content below), (6) converts remaining single newlines to hard breaks (`  \n`) but NOT before list markers (`(?!- )(?!\d+\.\s)` — uses `\s` not literal space to also catch bare markers), (7–8) fixes broken bold/italic emphasis markers. **Critical**: the emphasis fix regexes use `[^\S\n]+` (horizontal whitespace only) instead of `\s+` to prevent matching across line boundaries. `remarkBreaks` plugin is always enabled. Both `.cms-md` and `.forum-md` use `white-space: pre-wrap` + `overflow-wrap: break-word` in CSS. Both variants have `li > p { margin: 0 }` CSS to prevent loose lists from adding excessive vertical spacing.
 - `AppMarkdownToolbar` (`lib/markdown/app-markdown-toolbar.tsx`) is the single toolbar for all markdown editing (CMS, forum, news, messages). Supports Bold, Italic, Strikethrough, Heading, Quote, Code, Code Block, Link, Image, Video, List, Numbered List, Divider, and image upload (file picker, paste, drag-and-drop). i18n via `next-intl` (`cmsToolbar` namespace).
 - Sidebar expanded width is 280px (CSS variable `--sidebar-width: 280px` and JS constant `EXPANDED_WIDTH = 280`). Collapsed width remains 60px.
 - Homepage hero background uses `thc_hero.png` at 32% opacity with no blur effect.

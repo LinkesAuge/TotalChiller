@@ -2,6 +2,25 @@ import type { DisplayEvent, EventRow, RecurrenceType } from "./events-types";
 
 /* ── Date helpers ── */
 
+/**
+ * Convert a Date (or UTC ISO string) to a local "YYYY-MM-DDTHH:mm" string
+ * suitable for datetime-local inputs and Flatpickr.
+ *
+ * Avoids the common pitfall of `.toISOString().slice(0,16)` which keeps
+ * UTC digits and drops the "Z", causing the value to be mis-interpreted
+ * as local time.
+ */
+export function toLocalDateTimeString(input: Date | string): string {
+  const d = typeof input === "string" ? new Date(input) : input;
+  if (Number.isNaN(d.getTime())) return "";
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+}
+
 /** Human-readable duration from a decimal hours value (e.g. 1.5 → "1h 30min"). */
 export function formatDurationFromHours(hours: number): string {
   if (hours <= 0) return "—";

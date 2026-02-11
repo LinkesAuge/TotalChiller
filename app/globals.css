@@ -1281,6 +1281,12 @@ body {
 .cms-md li {
   margin-bottom: 3px;
 }
+.cms-md li > p {
+  margin: 0;
+}
+.cms-md li > p + p {
+  margin-top: 4px;
+}
 .cms-md hr {
   border: none;
   border-top: 1px solid var(--color-edge);
@@ -2431,7 +2437,7 @@ option {
 .select-viewport {
   display: grid;
   gap: 4px;
-  max-height: 260px;
+  max-height: 340px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -4316,10 +4322,25 @@ input[type="checkbox"]:disabled {
   flex-shrink: 0;
 }
 
+.calendar-day-event-description {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(201, 163, 74, 0.08);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--color-text-2);
+}
+
+.calendar-day-event-description img {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+}
+
 .calendar-day-event-author {
   color: var(--color-text-muted);
   font-size: 0.7rem;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -4557,9 +4578,9 @@ input[type="checkbox"]:disabled {
    Event banner picker (form) + display styles
    ═══════════════════════════════════════════════════════ */
 
-/* ── Banner picker in event form ── */
+/* ── Shared banner picker ── */
 
-.event-banner-preview {
+.banner-picker-preview {
   width: 100%;
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -4567,14 +4588,14 @@ input[type="checkbox"]:disabled {
   border: 1px solid rgba(201, 163, 74, 0.15);
 }
 
-.event-banner-preview img {
+.banner-picker-preview img {
   width: 100%;
   height: auto;
   display: block;
   object-fit: cover;
 }
 
-.event-banner-picker {
+.banner-picker-grid {
   display: flex;
   align-items: stretch;
   gap: 6px;
@@ -4584,7 +4605,7 @@ input[type="checkbox"]:disabled {
   padding: 4px 2px 4px 0;
 }
 
-.event-banner-option {
+.banner-picker-option {
   width: 148px;
   height: 52px;
   border-radius: 4px;
@@ -4599,29 +4620,29 @@ input[type="checkbox"]:disabled {
   justify-content: center;
 }
 
-.event-banner-option:hover {
+.banner-picker-option:hover {
   border-color: rgba(201, 163, 74, 0.4);
 }
 
-.event-banner-option.selected {
+.banner-picker-option.selected {
   border-color: var(--color-gold);
   box-shadow: 0 0 8px rgba(201, 163, 74, 0.3);
 }
 
-.event-banner-option img {
+.banner-picker-option img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.event-banner-none {
+.banner-picker-none {
   font-size: 0.68rem;
   color: var(--color-text-muted);
   min-width: 80px;
 }
 
-.event-banner-upload {
+.banner-picker-upload {
   color: var(--color-text-muted);
   font-size: 0.7rem;
   min-width: 80px;
@@ -4629,16 +4650,16 @@ input[type="checkbox"]:disabled {
   gap: 2px;
 }
 
-.event-banner-upload:hover {
+.banner-picker-upload:hover {
   color: var(--color-gold);
 }
 
-.event-banner-upload-label {
+.banner-picker-upload-label {
   font-size: 0.58rem;
   line-height: 1;
 }
 
-.event-banner-custom-thumb {
+.banner-picker-custom-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -5394,6 +5415,13 @@ input[type="checkbox"]:disabled {
 .forum-md li {
   margin-bottom: 3px;
 }
+/* Prevent loose lists (li > p) from adding excessive vertical spacing */
+.forum-md li > p {
+  margin: 0;
+}
+.forum-md li > p + p {
+  margin-top: 4px;
+}
 .forum-md hr {
   border: none;
   border-top: 1px solid var(--color-edge);
@@ -5765,46 +5793,7 @@ input[type="checkbox"]:disabled {
   background: rgba(0, 0, 0, 0.1);
 }
 
-/* ─── Banner picker (form) ─── */
-.news-banner-picker {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-.news-banner-option {
-  width: 120px;
-  height: 52px;
-  border-radius: var(--radius-sm);
-  border: 2px solid var(--color-edge);
-  overflow: hidden;
-  cursor: pointer;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 0;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.news-banner-option:hover {
-  border-color: rgba(201, 163, 74, 0.4);
-}
-.news-banner-option.selected {
-  border-color: var(--color-gold);
-  box-shadow: 0 0 8px rgba(201, 163, 74, 0.3);
-}
-.news-banner-option img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.news-banner-upload {
-  color: var(--color-text-muted);
-  font-size: 0.7rem;
-}
-.news-banner-upload:hover {
-  color: var(--color-gold);
-}
+/* news-banner-* classes removed — use shared .banner-picker-* instead */
 
 @media (max-width: 640px) {
   .news-card-banner {
@@ -5823,8 +5812,8 @@ input[type="checkbox"]:disabled {
   .news-card-body {
     padding: 16px 18px;
   }
-  .news-banner-option {
-    width: 90px;
+  .banner-picker-option {
+    width: 110px;
     height: 40px;
   }
 }

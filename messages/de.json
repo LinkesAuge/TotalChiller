@@ -900,7 +900,9 @@
       "noUsersMatch": "Keine Benutzer entsprechen den Filtern",
       "searchPlaceholder": "E-Mail, Benutzername oder Spitzname",
       "admin": "Administrator",
-      "nonAdmin": "Kein Administrator"
+      "nonAdmin": "Kein Administrator",
+      "withGameAccount": "Mit Spielkonto",
+      "withoutGameAccount": "Ohne Spielkonto"
     },
     "validation": {
       "title": "Validierungsregeln",

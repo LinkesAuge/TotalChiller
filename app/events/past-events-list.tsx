@@ -1,8 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { DisplayEvent, EventRow } from "./events-types";
 import { formatDuration } from "./events-utils";
+
+const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
+  loading: () => <div className="skeleton h-8 rounded" />,
+});
 
 export interface PastEventsListProps {
   readonly pastEvents: readonly DisplayEvent[];
@@ -73,7 +78,7 @@ function EventCard({
           <span className="badge">{isPast ? t("past") : t("upcoming")}</span>
         </div>
       </div>
-      <p>{entry.description}</p>
+      {entry.description && <AppMarkdown content={entry.description} />}
       {entry.location && (
         <div className="list inline mt-3">
           <span className="badge">{entry.location}</span>

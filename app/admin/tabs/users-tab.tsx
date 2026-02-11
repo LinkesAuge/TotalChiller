@@ -60,6 +60,7 @@ export default function UsersTab(): ReactElement {
   const [userRows, setUserRows] = useState<readonly UserRow[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
+  const [userGameAccountFilter, setUserGameAccountFilter] = useState<"all" | "with" | "without">("all");
   const [userEdits, setUserEdits] = useState<Record<string, UserEditState>>({});
   const [userErrors, setUserErrors] = useState<Record<string, string>>({});
   const [userStatus, setUserStatus] = useState("");
@@ -192,9 +193,14 @@ export default function UsersTab(): ReactElement {
   const filteredUserRows = useMemo(() => {
     return userRows.filter((user) => {
       if (userRoleFilter !== "all" && (userRolesById[user.id] ?? "member") !== userRoleFilter) return false;
+      if (userGameAccountFilter !== "all") {
+        const hasAccounts = (gameAccountsByUserId[user.id]?.length ?? 0) > 0;
+        if (userGameAccountFilter === "with" && !hasAccounts) return false;
+        if (userGameAccountFilter === "without" && hasAccounts) return false;
+      }
       return true;
     });
-  }, [userRows, userRoleFilter, userRolesById]);
+  }, [userRows, userRoleFilter, userGameAccountFilter, userRolesById, gameAccountsByUserId]);
 
   const sortedUserRows = useMemo(() => {
     const sorted = [...filteredUserRows];
@@ -752,12 +758,24 @@ export default function UsersTab(): ReactElement {
             ...roleOptions.map((role) => ({ value: role, label: formatRole(role, locale) })),
           ]}
         />
+        <LabeledSelect
+          id="userGameAccountFilter"
+          label={tAdmin("users.gameAccounts")}
+          value={userGameAccountFilter}
+          onValueChange={(v) => setUserGameAccountFilter(v as "all" | "with" | "without")}
+          options={[
+            { value: "all", label: tAdmin("common.all") },
+            { value: "with", label: tAdmin("users.withGameAccount") },
+            { value: "without", label: tAdmin("users.withoutGameAccount") },
+          ]}
+        />
         <button
           className="button"
           type="button"
           onClick={() => {
             setUserSearch("");
             setUserRoleFilter("all");
+            setUserGameAccountFilter("all");
           }}
         >
           {tAdmin("common.clearFilters")}

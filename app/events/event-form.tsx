@@ -1,11 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { type FormEvent } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import DatePicker from "../components/date-picker";
 import RadixSelect from "../components/ui/radix-select";
-import type { BannerPreset, GameAccountOption, RecurrenceType } from "./events-types";
-import { EVENT_BANNER_PRESETS } from "./events-types";
+import BannerPicker from "../components/banner-picker";
+import MarkdownEditor from "../components/markdown-editor";
+import { BANNER_PRESETS } from "@/lib/constants/banner-presets";
+import type { GameAccountOption, RecurrenceType } from "./events-types";
 
 export interface EventFormProps {
   readonly isFormOpen: boolean;
@@ -51,11 +53,10 @@ export interface EventFormProps {
   readonly templateOptions: readonly { value: string; label: string }[];
   readonly locale: string;
   readonly t: (key: string, values?: Record<string, string>) => string;
-}
-
-/** Check whether a banner URL is a custom upload (not one of the presets). */
-function isCustomBanner(url: string): boolean {
-  return url !== "" && !EVENT_BANNER_PRESETS.some((preset: BannerPreset) => preset.src === url);
+  /** Supabase client for markdown image uploads. */
+  readonly supabase: SupabaseClient;
+  /** Current user ID for markdown image uploads. */
+  readonly userId: string;
 }
 
 export function EventForm({
@@ -102,6 +103,8 @@ export function EventForm({
   templateOptions,
   locale: _locale,
   t,
+  supabase,
+  userId,
 }: EventFormProps): JSX.Element | null {
   if (!isFormOpen || !canManage) return null;
 
@@ -139,74 +142,28 @@ export function EventForm({
         {/* Banner picker */}
         <div className="form-group">
           <label id="eventBannerLabel">{t("bannerLabel")}</label>
-          {/* Live preview */}
-          {bannerUrl && (
-            <div className="event-banner-preview">
-              <img src={bannerUrl} alt="" />
-            </div>
-          )}
-          <div className="event-banner-picker" role="group" aria-labelledby="eventBannerLabel">
-            {/* No banner option */}
-            <button
-              type="button"
-              className={`event-banner-option event-banner-none${bannerUrl === "" ? " selected" : ""}`}
-              onClick={() => onBannerUrlChange("")}
-            >
-              {t("noBanner")}
-            </button>
-            {/* Predefined presets */}
-            {EVENT_BANNER_PRESETS.map((preset) => (
-              <button
-                key={preset.src}
-                type="button"
-                className={`event-banner-option${bannerUrl === preset.src ? " selected" : ""}`}
-                onClick={() => onBannerUrlChange(preset.src)}
-                title={preset.label}
-              >
-                <Image src={preset.src} alt={preset.label} width={148} height={52} />
-              </button>
-            ))}
-            {/* Custom upload */}
-            <button
-              type="button"
-              className={`event-banner-option event-banner-upload${isCustomBanner(bannerUrl) ? " selected" : ""}`}
-              onClick={() => bannerFileRef.current?.click()}
-            >
-              {isCustomBanner(bannerUrl) ? (
-                <img src={bannerUrl} alt="Custom" className="event-banner-custom-thumb" />
-              ) : (
-                <>
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                  <span className="event-banner-upload-label">{t("customBanner")}</span>
-                </>
-              )}
-            </button>
-            <input ref={bannerFileRef} type="file" accept="image/*" className="hidden" onChange={onBannerUpload} />
-          </div>
-          {isBannerUploading && (
-            <p className="mt-1" style={{ fontSize: "0.75rem", color: "var(--color-gold)" }}>
-              {t("uploadingImage")}
-            </p>
-          )}
+          <BannerPicker
+            presets={BANNER_PRESETS}
+            value={bannerUrl}
+            onChange={onBannerUrlChange}
+            onUpload={onBannerUpload}
+            isUploading={isBannerUploading}
+            fileRef={bannerFileRef}
+            labelId="eventBannerLabel"
+          />
         </div>
+        {/* Description with markdown editor */}
         <div className="form-group">
           <label htmlFor="eventDescription">{t("description")}</label>
-          <textarea
+          <MarkdownEditor
             id="eventDescription"
             value={description}
-            onChange={(e) => onDescriptionChange(e.target.value)}
+            onChange={onDescriptionChange}
+            supabase={supabase}
+            userId={userId}
             placeholder={t("descriptionPlaceholder")}
-            rows={4}
+            rows={6}
+            minHeight={200}
           />
         </div>
         <div className="form-group">

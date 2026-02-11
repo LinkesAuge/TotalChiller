@@ -283,8 +283,8 @@ app/admin/
 ## Announcements & Events
 
 - **Announcements** (formerly "News"): redesigned with visually rich cards featuring banner headers, rich markdown content, and edit tracking.
-  - **Banner System**: Each announcement can have a banner image displayed as a card header (160px). 6 pre-built banner templates from `/assets/banners/` (Gold Dragon, Chest, Captain, Doomsday, Ragnarok, KvK). Custom banner upload to Supabase Storage. Default banner shown if none selected.
-  - **Rich Markdown Editor**: Same `MarkdownToolbar` + `ForumMarkdown` as Forum for content creation/editing. Supports images, videos, links, text formatting.
+  - **Banner System**: Uses shared `BannerPicker` component (`app/components/banner-picker.tsx`) with 51 game-asset presets from `BANNER_PRESETS` (`lib/constants/banner-presets.ts`) + custom upload to Supabase Storage. Default banner shown if none selected.
+  - **Rich Markdown Editor**: Uses shared `MarkdownEditor` component (`app/components/markdown-editor.tsx`) with write/preview tabs, `AppMarkdownToolbar`, image paste/drop. Supports images, videos, links, text formatting.
   - **Content Normalization**: `normalizeContent()` pre-processes plain text before markdown rendering — converts `•`/`–`/`—` bullets to markdown list items, preserves single line breaks as `<br>`, ensures proper paragraph spacing.
   - **Card Design**: Banner header with overlay gradient, gold title (1.5rem), author/date meta, pinned/status badges, expandable content preview (280px max-height) with fade gradient and centered "Weiterlesen" pill button. Full content view on click.
   - **Author Protection**: Editing a post no longer overwrites the original `created_by`. Instead, `updated_by` tracks the last editor.
@@ -299,6 +299,7 @@ app/admin/
   - Recurring events: daily, weekly, biweekly, monthly with optional end date or "ongoing". Single DB row per recurring event; occurrences computed client-side.
   - Upcoming events list de-duplicates recurring events (shows only next occurrence per event).
   - Calendar view (monthly overview) with day-detail panel. Side-by-side layout on wide screens.
+  - **Banner & Editor**: Uses shared `BannerPicker` (51 game-asset presets + custom upload) and `MarkdownEditor` (write/preview tabs, toolbar, image paste/drop) components. Event descriptions rendered with `AppMarkdown`.
   - Author display resolved client-side from `created_by` via profiles table.
   - Role-based access: only admins, moderators, and editors can create/edit/delete.
   - Confirmation modals: simple confirmation for event deletion, two-step confirmation for template deletion.
@@ -431,3 +432,11 @@ A comprehensive audit was performed covering security, architecture, SEO, access
 
 - Admin panel refactoring is complete (Feb 2026). All 7 tabs extracted, shared hooks and components created. See "Admin Panel Architecture" section above.
 - Forum could be refactored to use PostgREST joins for author names (FK constraints already added, code migration pending).
+
+## Shared Components (Feb 2026)
+
+- **BannerPicker** (`app/components/banner-picker.tsx`): Reusable banner image picker with live preview, scrollable preset grid, and custom upload. Props: `presets`, `value`, `onChange`, `onUpload`, `isUploading`, `fileRef`, `labelId`. Uses `useTranslations("bannerPicker")` for self-contained i18n. CSS classes: `.banner-picker-*`.
+- **MarkdownEditor** (`app/components/markdown-editor.tsx`): Reusable markdown editor with write/preview tabs, formatting toolbar (`AppMarkdownToolbar`), image paste/drop support. Props: `id`, `value`, `onChange`, `supabase`, `userId`, `placeholder`, `rows`, `minHeight`. Manages own `isPreviewMode` and `isImageUploading` state. Uses `useTranslations("markdownEditor")` for self-contained i18n. CSS classes: `.forum-editor-*` (shared with forum).
+- **BANNER_PRESETS** (`lib/constants/banner-presets.ts`): Shared constant with 51 game-asset banner presets and `BannerPreset` interface. `isCustomBanner()` utility exported.
+- **Consumers**: `EventForm`, `ManageTemplates` (events), `NewsClient` (announcements). Both events and announcements use the same 51-preset list.
+- **i18n namespaces**: `bannerPicker` and `markdownEditor` in both `messages/en.json` and `messages/de.json`.

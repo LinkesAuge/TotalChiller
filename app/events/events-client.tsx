@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from "next-intl";
 import type { PostgrestError } from "@supabase/supabase-js";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import { useAuth } from "@/app/hooks/use-auth";
 import { classifySupabaseError, getErrorMessageKey } from "@/lib/supabase/error-utils";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
@@ -20,7 +21,13 @@ import { EventDeleteModal, TemplateDeleteModal } from "./event-modals";
 import { useEventsData } from "./use-events-data";
 import type { CalendarDay, DisplayEvent, EventRow, RecurrenceType, TemplateRow } from "./events-types";
 import { EVENT_SCHEMA, UPCOMING_PAGE_SIZE } from "./events-types";
-import { expandRecurringEvents, getDateRangeKeys, parseDateKey, toDateKey } from "./events-utils";
+import {
+  expandRecurringEvents,
+  getDateRangeKeys,
+  parseDateKey,
+  toDateKey,
+  toLocalDateTimeString,
+} from "./events-utils";
 
 /**
  * Full events client component with CRUD, templates, role-gating, calendar, and past/upcoming.
@@ -36,6 +43,8 @@ function EventsClient(): JSX.Element {
 
   /* ── Permission & data ── */
   const { isContentManager: canManage } = useUserRole(supabase);
+  const { userId: authUserId } = useAuth();
+  const currentUserId = authUserId ?? "";
   const {
     events,
     setEvents,
@@ -229,7 +238,7 @@ function EventsClient(): JSX.Element {
     const now = new Date();
     now.setMinutes(0, 0, 0);
     now.setHours(now.getHours() + 1);
-    setStartsAt(now.toISOString().slice(0, 16));
+    setStartsAt(toLocalDateTimeString(now));
     setIsOpenEnded(tpl.is_open_ended ?? tpl.duration_hours <= 0);
     const totalMin = Math.round(tpl.duration_hours * 60);
     setDurationH(String(Math.floor(totalMin / 60)));
@@ -275,7 +284,7 @@ function EventsClient(): JSX.Element {
     setDescription(source.description);
     setLocation(source.location ?? "");
     setOrganizer(source.organizer ?? "");
-    setStartsAt(source.starts_at.slice(0, 16));
+    setStartsAt(toLocalDateTimeString(source.starts_at));
     const durationMs = new Date(source.ends_at).getTime() - new Date(source.starts_at).getTime();
     const openEnded = durationMs <= 0;
     setIsOpenEnded(openEnded);
@@ -550,6 +559,14 @@ function EventsClient(): JSX.Element {
     }
   }
 
+  /** Navigate the calendar to the day of a given event and select it. */
+  function handleSelectUpcomingEvent(event: DisplayEvent): void {
+    const eventDate = new Date(event.starts_at);
+    const dateKey = toDateKey(eventDate);
+    setSelectedDateKey(dateKey);
+    setCalendarMonth(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
+  }
+
   return (
     <>
       <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
@@ -597,6 +614,7 @@ function EventsClient(): JSX.Element {
                 upcomingEvents={upcomingEvents}
                 upcomingLimit={upcomingLimit}
                 onShowMore={() => setUpcomingLimit((prev) => prev + UPCOMING_PAGE_SIZE)}
+                onSelectEvent={handleSelectUpcomingEvent}
                 onEditEvent={handleEditEventById}
                 canManage={canManage}
                 locale={locale}
@@ -669,6 +687,8 @@ function EventsClient(): JSX.Element {
             templateOptions={templateOptions}
             locale={locale}
             t={t}
+            supabase={supabase}
+            userId={currentUserId}
           />
 
           <ManageTemplates
@@ -702,6 +722,8 @@ function EventsClient(): JSX.Element {
             isSavingTemplate={isSavingTemplate}
             canManage={canManage}
             t={t}
+            supabase={supabase}
+            userId={currentUserId}
           />
 
           {!isLoading && pastEvents.length > 0 && (

@@ -73,7 +73,7 @@ export function buildMarkdownComponents(prefix: string, features: MarkdownFeatur
   return {
     /* Render images with constrained size and rounded corners */
     img: ({ src, alt, ...rest }) => {
-      if (!src || !isSafeUrl(src)) return null;
+      if (!src || typeof src !== "string" || !isSafeUrl(src)) return null;
       return (
         <span className={`${prefix}-media`}>
           <img src={src} alt={alt ?? ""} loading="lazy" className={`${prefix}-image`} {...rest} />

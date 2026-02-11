@@ -41,7 +41,7 @@ This file is a compact context transfer for a new chat.
   - Bilingual (DE/EN) Supabase email templates for all auth emails: Confirm Signup, Reset Password, Change Email, Invite User, Magic Link. Dual-theme design: light theme for Outlook (via MSO conditional comments), dark/gold theme for modern clients (Gmail, Apple Mail, etc.). Templates documented in `Documentation/supabase-email-templates.md`.
   - Files: `app/auth/register/page.tsx`, `app/auth/login/page.tsx`, `Documentation/supabase-email-templates.md`
 - **Profile + Settings**
-  - `/profile` shows user info, game accounts (with approval status), and clan memberships. Compact layout (900px max-width). Primary clan resolved via `default_game_account_id` or first active membership. Membership query uses game account IDs directly (not PostgREST foreign-table filter). Clan memberships show clan names and game account usernames (not raw UUIDs).
+  - `/profile` shows user info, game accounts (with approval status badges), and clan memberships. Compact layout (900px max-width). Primary clan resolved via `default_game_account_id` or first active membership. Membership query uses game account IDs directly (not PostgREST foreign-table filter). Clan memberships show clan names and game account usernames (not raw UUIDs). Status badges ("Standard", "Genehmigt", etc.) use compact `text-[0.75em]` tag style.
   - Users can request new game accounts from the profile page (pending admin approval).
   - `/settings` allows email/password update and notification preference toggles. Compact layout (900px max-width). Language selector uses RadixSelect (same as admin area). Email change passes `emailRedirectTo` and sets fallback cookie.
 - **Core model shift**: `user → game_account → clan`.
@@ -200,7 +200,7 @@ This file is a compact context transfer for a new chat.
   - Migration: `Documentation/migrations/messages.sql`
   - Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/broadcast/route.ts`
 - **Notification System**
-  - Unified bell icon in the top-right header (next to user menu) with unread count badge and dropdown.
+  - Unified bell icon in the top-right header (next to user menu) with unread count badge and dropdown. Only one panel (bell or user menu) can be open at a time — coordinated via lifted `activePanel` state in `AuthActions`.
   - DB-stored notifications: `notifications` table with types `message`, `news`, `event`, `approval`.
   - Fan-out: news/event creation triggers notifications to all clan members via `/api/notifications/fan-out`.
   - Messages, broadcasts, and approval actions also generate notifications server-side.
@@ -242,7 +242,8 @@ This file is a compact context transfer for a new chat.
 - **Password update page**: Redirects to dashboard after 2 seconds on success.
 - **Create-user route**: Fixed duplicate variable declaration in `app/api/admin/create-user/route.ts`.
 - **RLS**: `clans` table was missing `enable row level security`.
-- **UI Cleanup**: Removed `QuickActions` and `ClanScopeBanner` components. Added gold divider below top bar. Messages link moved to user menu dropdown.
+- **UI Cleanup**: Removed `QuickActions` and `ClanScopeBanner` components. Added gold divider below top bar. Messages link moved to user menu dropdown. Removed standalone "Einstellungen" button from profile top bar (settings accessible via user menu). Profile user menu replaced native `<details>` with React-controlled panel.
+- **Autofill CSS**: Added `:-webkit-autofill` overrides to prevent browsers from forcing white backgrounds on input fields (especially password) in the dark theme.
 
 ## Database Setup
 

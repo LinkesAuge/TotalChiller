@@ -2337,6 +2337,15 @@ select:focus {
   background: linear-gradient(180deg, rgba(18, 30, 46, 0.95), rgba(10, 20, 32, 0.95));
 }
 
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px rgba(10, 18, 28, 0.98) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  caret-color: var(--color-text);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: var(--color-text-muted);

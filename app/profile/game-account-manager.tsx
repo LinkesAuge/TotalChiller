@@ -228,7 +228,7 @@ function GameAccountManager({
                       </IconButton>
                     )
                   ) : null}
-                  <span className={`badge ${STATUS_BADGE_CLASS[account.approval_status] ?? ""}`}>
+                  <span className={`badge ${STATUS_BADGE_CLASS[account.approval_status] ?? ""} text-[0.75em]`}>
                     {formatStatus(account.approval_status)}
                   </span>
                 </div>

@@ -135,18 +135,7 @@ async function ProfileContent(): Promise<JSX.Element> {
 
   return (
     <>
-      <PageTopBar
-        breadcrumb={t("breadcrumb")}
-        title={t("title")}
-        actions={
-          <>
-            <a className="button" href="/settings">
-              {t("settingsButton")}
-            </a>
-            <AuthActions />
-          </>
-        }
-      />
+      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
       <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_captain.png" />
       <div className="content-inner settings-layout">
         <div className="settings-grid">

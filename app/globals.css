@@ -1039,13 +1039,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-}
-
-.action-icons.action-icons-wrap {
   flex-wrap: wrap;
   row-gap: 6px;
+  justify-content: flex-start;
 }
 
 .table.users .row .user-actions {
@@ -2661,10 +2657,6 @@ select:disabled,
 }
 
 .list.inline.action-icons {
-  flex-wrap: nowrap;
-}
-
-.list.inline.action-icons.action-icons-wrap {
   flex-wrap: wrap;
   row-gap: 6px;
 }
@@ -4111,18 +4103,33 @@ input[type="checkbox"]:disabled {
 }
 
 .calendar-day-cell.today .calendar-day-number {
-  color: #080d14;
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
   background: var(--color-gold-2);
-  font-size: 0.74rem;
-  line-height: 1;
+  border-color: var(--color-gold);
+  color: #080d14;
+}
+
+.calendar-day-cell.selected .calendar-day-number {
+  background: rgba(201, 163, 74, 0.25);
+  border-color: rgba(201, 163, 74, 0.5);
+  color: var(--color-gold-2);
+}
+
+.calendar-day-cell.today.selected .calendar-day-number {
+  background: var(--color-gold-2);
+  border-color: var(--color-gold);
+  color: #080d14;
+}
+
+.calendar-day-cell.has-events .calendar-day-number {
+  background: rgba(74, 110, 160, 0.3);
+  border-color: rgba(74, 110, 160, 0.5);
+  color: rgba(180, 210, 240, 0.95);
+}
+
+.calendar-day-cell.today.has-events .calendar-day-number {
+  background: var(--color-gold-2);
+  border-color: var(--color-gold);
+  color: #080d14;
 }
 
 .calendar-day-cell.today.selected {
@@ -4166,11 +4173,22 @@ input[type="checkbox"]:disabled {
     0 0 16px rgba(201, 163, 74, 0.1);
 }
 
+/* Day number badge — always visible with circle background */
 .calendar-day-number {
-  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.76rem;
   font-weight: 700;
-  display: inline-block;
   line-height: 1;
+  background: rgba(12, 24, 38, 0.7);
+  border: 1px solid rgba(201, 163, 74, 0.12);
+  color: var(--color-text);
+  position: relative;
+  z-index: 2;
 }
 
 .calendar-day-count {
@@ -4199,12 +4217,54 @@ input[type="checkbox"]:disabled {
   box-shadow: 0 0 6px rgba(201, 163, 74, 0.2);
 }
 
+/* Banner as full day cell background */
+.calendar-day-cell.has-banner {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.calendar-day-cell.has-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 16, 26, 0.55) 0%, rgba(8, 16, 26, 0.3) 40%, rgba(8, 16, 26, 0.65) 100%);
+  border-radius: inherit;
+  z-index: 1;
+}
+
+/* Event title snippet at bottom of cell */
+.calendar-day-title {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 5px;
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.calendar-day-more {
+  color: var(--color-gold);
+  margin-left: 3px;
+  font-size: 0.54rem;
+  opacity: 0.8;
+}
+
 .calendar-day-dots {
   position: absolute;
   left: 8px;
-  bottom: 7px;
+  bottom: 18px;
   display: inline-flex;
   gap: 4px;
+  z-index: 2;
 }
 
 .calendar-dot {
@@ -4212,6 +4272,90 @@ input[type="checkbox"]:disabled {
   height: 6px;
   border-radius: 999px;
   box-shadow: 0 0 8px currentColor;
+}
+
+/* ── Hover tooltip ── */
+.calendar-tooltip {
+  position: fixed;
+  z-index: 100;
+  transform: translate(-50%, -100%);
+  margin-top: -8px;
+  pointer-events: auto;
+}
+
+.calendar-tooltip-inner {
+  background: linear-gradient(180deg, rgba(16, 30, 46, 0.98), rgba(10, 20, 32, 0.98));
+  border: 1px solid rgba(201, 163, 74, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 180px;
+  max-width: 280px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(201, 163, 74, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.calendar-tooltip-single {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendar-tooltip-title {
+  color: var(--color-gold-2);
+  font-weight: 700;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.calendar-tooltip-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--color-text-2);
+}
+
+.calendar-tooltip-location,
+.calendar-tooltip-organizer {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.calendar-tooltip-multi {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.calendar-tooltip-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+}
+
+.calendar-tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.calendar-tooltip-item-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.calendar-tooltip-item-time {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  flex-shrink: 0;
 }
 
 /* ── Selected day detail panel ── */

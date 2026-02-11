@@ -949,7 +949,7 @@ export default function UsersTab(): ReactElement {
                         {accounts.length}
                       </span>
                     </div>
-                    <div className="list inline user-actions action-icons action-icons-wrap">
+                    <div className="list inline user-actions action-icons">
                       <IconButton
                         ariaLabel={tAdmin("users.resendInvite")}
                         onClick={() => handleResendInvite(user.email)}

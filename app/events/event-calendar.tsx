@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { useRef } from "react";
+import { useRef, useState, useCallback } from "react";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { CalendarDay, DisplayEvent } from "./events-types";
 import { EVENT_COLORS, WEEKDAY_LABELS } from "./events-types";
@@ -29,7 +29,8 @@ export interface EventCalendarProps {
   readonly t: (key: string, values?: Record<string, string>) => string;
 }
 
-/** Inline SVG chevron arrow pointing left or right. */
+/* ── Inline SVG icons ── */
+
 function ChevronIcon({ direction }: { readonly direction: "left" | "right" }): JSX.Element {
   const isLeft = direction === "left";
   return (
@@ -49,7 +50,6 @@ function ChevronIcon({ direction }: { readonly direction: "left" | "right" }): J
   );
 }
 
-/** Small clock icon for event time display. */
 function ClockIcon(): JSX.Element {
   return (
     <svg
@@ -70,7 +70,6 @@ function ClockIcon(): JSX.Element {
   );
 }
 
-/** Small map-pin icon for location display. */
 function MapPinIcon(): JSX.Element {
   return (
     <svg
@@ -91,7 +90,6 @@ function MapPinIcon(): JSX.Element {
   );
 }
 
-/** Small user icon for organizer display. */
 function UserIcon(): JSX.Element {
   return (
     <svg
@@ -112,6 +110,15 @@ function UserIcon(): JSX.Element {
   );
 }
 
+/* ── Tooltip helper ── */
+
+/** Format a short time string for tooltip display. */
+function shortTime(isoString: string, locale: string): string {
+  return new Date(isoString).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+}
+
+/* ── Component ── */
+
 export function EventCalendar({
   calendarMonth,
   calendarDays,
@@ -130,8 +137,26 @@ export function EventCalendar({
 }: EventCalendarProps): JSX.Element {
   const dayPanelRef = useRef<HTMLElement>(null);
 
+  /* Hover tooltip state */
+  const [tooltipDay, setTooltipDay] = useState<CalendarDay | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDayMouseEnter = useCallback((event: React.MouseEvent, day: CalendarDay) => {
+    if (day.events.length === 0) return;
+    if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+    setTooltipDay(day);
+  }, []);
+
+  const handleDayMouseLeave = useCallback(() => {
+    tooltipTimeout.current = setTimeout(() => setTooltipDay(null), 120);
+  }, []);
+
   function handleDayClick(day: CalendarDay): void {
     onDateSelect(day.key, day);
+    setTooltipDay(null);
     setTimeout(() => {
       dayPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, 50);
@@ -190,6 +215,7 @@ export function EventCalendar({
               {calendarDays.map((day) => {
                 const hasEvents = day.events.length > 0;
                 const firstBanner = day.events.find((entry) => entry.banner_url)?.banner_url ?? null;
+                const firstName = hasEvents ? day.events[0].title : null;
                 return (
                   <button
                     key={day.key}
@@ -200,26 +226,35 @@ export function EventCalendar({
                       day.key === selectedDateKey ? "selected" : "",
                       day.isToday ? "today" : "",
                       hasEvents ? "has-events" : "",
+                      firstBanner ? "has-banner" : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
                     onClick={() => handleDayClick(day)}
+                    onMouseEnter={(e) => handleDayMouseEnter(e, day)}
+                    onMouseLeave={handleDayMouseLeave}
+                    style={
+                      firstBanner ? ({ backgroundImage: `url(${firstBanner})` } as React.CSSProperties) : undefined
+                    }
                   >
+                    {/* Day number badge — always has circle background for readability */}
                     <span className="calendar-day-number">{day.date.getDate()}</span>
                     {hasEvents && <span className="calendar-day-count">{day.events.length}</span>}
-                    {firstBanner ? (
-                      <span className="calendar-day-banner">
-                        <img src={firstBanner} alt="" />
+                    {/* Event title snippet at bottom of cell */}
+                    {firstName && (
+                      <span className="calendar-day-title">
+                        {firstName}
+                        {day.events.length > 1 && <span className="calendar-day-more">+{day.events.length - 1}</span>}
                       </span>
-                    ) : (
+                    )}
+                    {/* Colored dots for events without banners */}
+                    {!firstBanner && hasEvents && (
                       <span className="calendar-day-dots">
                         {day.events.slice(0, 3).map((entry, index) => (
                           <span
                             key={`${day.key}-${entry.id}`}
                             className="calendar-dot"
-                            style={{
-                              background: EVENT_COLORS[index % EVENT_COLORS.length],
-                            }}
+                            style={{ background: EVENT_COLORS[index % EVENT_COLORS.length] }}
                           />
                         ))}
                       </span>
@@ -228,6 +263,48 @@ export function EventCalendar({
                 );
               })}
             </div>
+
+            {/* Hover tooltip */}
+            {tooltipDay && tooltipDay.events.length > 0 && (
+              <div
+                className="calendar-tooltip"
+                style={{ left: tooltipPos.x, top: tooltipPos.y }}
+                onMouseEnter={() => {
+                  if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+                }}
+                onMouseLeave={handleDayMouseLeave}
+              >
+                <div className="calendar-tooltip-inner">
+                  {tooltipDay.events.length === 1 ? (
+                    /* Single event: show details */
+                    <div className="calendar-tooltip-single">
+                      <div className="calendar-tooltip-title">{tooltipDay.events[0].title}</div>
+                      <div className="calendar-tooltip-meta">
+                        <span>{shortTime(tooltipDay.events[0].starts_at, locale)}</span>
+                        <span>{formatDuration(tooltipDay.events[0].starts_at, tooltipDay.events[0].ends_at)}</span>
+                      </div>
+                      {tooltipDay.events[0].location && (
+                        <div className="calendar-tooltip-location">{tooltipDay.events[0].location}</div>
+                      )}
+                      {tooltipDay.events[0].organizer && (
+                        <div className="calendar-tooltip-organizer">{tooltipDay.events[0].organizer}</div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Multiple events: list titles */
+                    <div className="calendar-tooltip-multi">
+                      {tooltipDay.events.map((entry) => (
+                        <div key={entry.displayKey} className="calendar-tooltip-item">
+                          <span className="calendar-tooltip-dot" style={{ background: EVENT_COLORS[0] }} />
+                          <span className="calendar-tooltip-item-title">{entry.title}</span>
+                          <span className="calendar-tooltip-item-time">{shortTime(entry.starts_at, locale)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Selected day detail panel below calendar */}
             <aside ref={dayPanelRef} className="calendar-day-panel calendar-day-panel--inline">

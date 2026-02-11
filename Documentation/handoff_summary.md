@@ -168,11 +168,21 @@ This file is a compact context transfer for a new chat.
   - **Visual overhaul (Feb 2026)**:
     - Calendar navigation: replaced "Zurück"/"Weiter" text buttons with circular chevron arrow buttons (inline SVG). Added dedicated pill-shaped "Today" button.
     - Calendar background: removed opaque `backs_21.png` background image. Now uses a subtle radial gradient with dark navy tones for a cleaner, more modern look.
-    - Calendar grid: refined day cells with subtler borders, improved hover/selected/today states. Today's date gets a bold **gold circle badge** around the day number plus a radial glow background. Days with events get a **blue left accent bar** (inset border) and tinted background to stand out from empty days. Count badges on event days use a blue-tinted style; today's count badge switches to gold.
-    - Selected day panel: restructured with header separator, event cards featuring inline edit icon button, icon-prefixed detail rows (clock, map-pin, user SVG icons). Shows full event details including markdown-rendered description, recurrence badge, banner, organizer, location, and author.
-    - Upcoming events sidebar: complete redesign with date badge column (weekday/day/month), structured event cards with icon-prefixed metadata (time, location, organizer), recurrence pills, hover-reveal edit buttons. Clicking an upcoming event navigates the calendar to that day and selects it in the "Selected Day" panel.
+    - Calendar grid: refined day cells with subtler borders, improved hover/selected/today states. **All day numbers** now have a circle badge background (dark with subtle border) for readability against any background — today's is gold-filled, selected is gold-outlined, event days are blue-tinted.
+    - **Event banner fills entire day cell**: days with banner events use the banner as a CSS `background-image` covering the full cell, with a gradient overlay for text readability.
+    - **Event title snippet**: the first event's title appears at the bottom of each day cell (truncated with ellipsis), with a "+N" indicator when multiple events exist.
+    - **Hover tooltip**: hovering over a day with events shows a floating info box. Single events display title, time, duration, location, and organizer. Multiple events display a compact list with colored dots, titles, and times.
+    - Selected day panel: restructured with header separator, event cards featuring inline edit icon button, icon-prefixed detail rows (clock, map-pin, user SVG icons). Shows full event details including markdown-rendered description, recurrence badge, banner, organizer, location, and author with creation date.
+    - Upcoming events sidebar: complete redesign with date badge column (weekday/day/month), structured event cards with icon-prefixed metadata (time, location, organizer), recurrence pills, hover-reveal edit buttons. Clicking an upcoming event navigates the calendar to that day, selects it in the "Selected Day" panel, and **scrolls the day panel into view**. **Pagination** replaces the old "show more" approach — events are shown in fixed-size pages with prev/next controls. The sidebar height aligns with the calendar via `align-items: stretch` on the grid.
     - Calendar toolbar: added bottom border separator, improved spacing and visual hierarchy.
     - Files: `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/globals.css`.
+  - **Multi-day events (Feb 2026)**:
+    - Events can now optionally have an explicit end date/time instead of a duration, enabling multi-day events.
+    - Form offers radio toggle between "Duration" (hours/minutes) and "End date & time" (datetime picker) when not open-ended.
+    - Multi-day events (>24h) auto-detect explicit end date mode when editing.
+    - Multi-day events display on every calendar day they span (existing `getDateRangeKeys` logic).
+    - New i18n keys: `durationMode`, `endDateMode`, `endDateAndTime`.
+    - No DB migration needed — uses existing `ends_at` column.
   - **Event banners (Feb 2026)**:
     - Events and event templates now support an optional `banner_url` field.
     - 51 predefined banners from `/assets/game/banners/` available in a scrollable picker grid.

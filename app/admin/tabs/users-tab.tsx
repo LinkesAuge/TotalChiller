@@ -949,7 +949,11 @@ export default function UsersTab(): ReactElement {
                         {accounts.length}
                       </span>
                     </div>
-                    <div className="list inline user-actions action-icons">
+                    <div
+                      className="list inline user-actions action-icons"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
                       <IconButton
                         ariaLabel={tAdmin("users.resendInvite")}
                         onClick={() => handleResendInvite(user.email)}

@@ -105,7 +105,7 @@ function EventsClient(): JSX.Element {
   const [bannerUrl, setBannerUrl] = useState<string>("");
   const [isBannerUploading, setIsBannerUploading] = useState<boolean>(false);
   const bannerFileRef = useRef<HTMLInputElement>(null);
-  const [upcomingLimit, setUpcomingLimit] = useState<number>(UPCOMING_PAGE_SIZE);
+  const [upcomingPage, setUpcomingPage] = useState<number>(1);
 
   /* ── Computed data ── */
 
@@ -635,8 +635,9 @@ function EventsClient(): JSX.Element {
 
               <UpcomingEventsSidebar
                 upcomingEvents={upcomingEvents}
-                upcomingLimit={upcomingLimit}
-                onShowMore={() => setUpcomingLimit((prev) => prev + UPCOMING_PAGE_SIZE)}
+                pageSize={UPCOMING_PAGE_SIZE}
+                currentPage={upcomingPage}
+                onPageChange={setUpcomingPage}
                 onSelectEvent={handleSelectUpcomingEvent}
                 onEditEvent={handleEditEventById}
                 canManage={canManage}

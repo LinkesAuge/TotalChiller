@@ -215,7 +215,8 @@ export function EventCalendar({
               {calendarDays.map((day) => {
                 const hasEvents = day.events.length > 0;
                 const firstBanner = day.events.find((entry) => entry.banner_url)?.banner_url ?? null;
-                const firstName = hasEvents ? day.events[0].title : null;
+                const firstEvent = hasEvents ? day.events[0] : undefined;
+                const firstName = firstEvent?.title ?? null;
                 return (
                   <button
                     key={day.key}
@@ -275,21 +276,22 @@ export function EventCalendar({
                 onMouseLeave={handleDayMouseLeave}
               >
                 <div className="calendar-tooltip-inner">
-                  {tooltipDay.events.length === 1 ? (
+                  {tooltipDay.events.length === 1 && tooltipDay.events[0] ? (
                     /* Single event: show details */
-                    <div className="calendar-tooltip-single">
-                      <div className="calendar-tooltip-title">{tooltipDay.events[0].title}</div>
-                      <div className="calendar-tooltip-meta">
-                        <span>{shortTime(tooltipDay.events[0].starts_at, locale)}</span>
-                        <span>{formatDuration(tooltipDay.events[0].starts_at, tooltipDay.events[0].ends_at)}</span>
-                      </div>
-                      {tooltipDay.events[0].location && (
-                        <div className="calendar-tooltip-location">{tooltipDay.events[0].location}</div>
-                      )}
-                      {tooltipDay.events[0].organizer && (
-                        <div className="calendar-tooltip-organizer">{tooltipDay.events[0].organizer}</div>
-                      )}
-                    </div>
+                    (() => {
+                      const ev = tooltipDay.events[0];
+                      return (
+                        <div className="calendar-tooltip-single">
+                          <div className="calendar-tooltip-title">{ev.title}</div>
+                          <div className="calendar-tooltip-meta">
+                            <span>{shortTime(ev.starts_at, locale)}</span>
+                            <span>{formatDuration(ev.starts_at, ev.ends_at)}</span>
+                          </div>
+                          {ev.location && <div className="calendar-tooltip-location">{ev.location}</div>}
+                          {ev.organizer && <div className="calendar-tooltip-organizer">{ev.organizer}</div>}
+                        </div>
+                      );
+                    })()
                   ) : (
                     /* Multiple events: list titles */
                     <div className="calendar-tooltip-multi">

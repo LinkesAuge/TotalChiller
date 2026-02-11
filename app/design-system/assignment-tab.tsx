@@ -363,7 +363,7 @@ function AssignmentTab(): ReactElement {
                             className={rtColor ? `badge ${rtColor}` : "badge"}
                             style={{ fontSize: "0.5rem", padding: "0 4px" }}
                           >
-                            {RENDER_TYPE_LABELS[el.render_type]}
+                            {RENDER_TYPE_LABELS[el.render_type] ?? el.render_type}
                           </span>
                           {elAssignments.length > 0 && (
                             <span className="badge info" style={{ fontSize: "0.55rem", padding: "0 5px" }}>

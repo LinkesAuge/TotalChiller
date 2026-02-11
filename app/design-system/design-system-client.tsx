@@ -57,7 +57,7 @@ const TAB_MAP: Record<DesignSystemTab, React.ComponentType> = {
 
 function DesignSystemClient(): ReactElement {
   const [activeTab, setActiveTab] = useState<DesignSystemTab>("assets");
-  const ActiveComponent = TAB_MAP[activeTab];
+  const ActiveComponent = TAB_MAP[activeTab] ?? TabSkeleton;
 
   return (
     <div className="admin-grid">

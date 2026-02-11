@@ -170,7 +170,7 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
             >
               Assign Assets: {element.name}
               <span className="badge" style={{ fontSize: "0.6rem", padding: "0 6px" }}>
-                {RENDER_TYPE_LABELS[element.render_type]}
+                {RENDER_TYPE_LABELS[element.render_type] ?? element.render_type}
               </span>
             </div>
             <div style={{ fontSize: "0.8rem", color: "var(--color-text-2)" }}>

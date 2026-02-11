@@ -39,8 +39,8 @@ function InlinePreview({ html }: { readonly html: string }): ReactElement {
 /* ------------------------------------------------------------------ */
 
 function RenderTypeBadge({ renderType }: { readonly renderType: RenderType }): ReactElement {
-  const color = RENDER_TYPE_COLORS[renderType];
-  const label = RENDER_TYPE_LABELS[renderType];
+  const color = RENDER_TYPE_COLORS[renderType] ?? "";
+  const label = RENDER_TYPE_LABELS[renderType] ?? renderType;
   const cls = color ? `badge ${color}` : "badge";
   return (
     <span className={cls} style={{ fontSize: "0.6rem", padding: "0 6px" }}>
@@ -453,7 +453,7 @@ function UiInventoryTab(): ReactElement {
             <option value="all">All Types</option>
             {RENDER_TYPES.map((rt) => (
               <option key={rt} value={rt}>
-                {RENDER_TYPE_LABELS[rt]}
+                {RENDER_TYPE_LABELS[rt] ?? rt}
               </option>
             ))}
           </select>
@@ -502,7 +502,7 @@ function UiInventoryTab(): ReactElement {
             >
               {RENDER_TYPES.map((rt) => (
                 <option key={rt} value={rt}>
-                  {RENDER_TYPE_LABELS[rt]}
+                  {RENDER_TYPE_LABELS[rt] ?? rt}
                 </option>
               ))}
             </select>
@@ -679,7 +679,7 @@ function UiInventoryTab(): ReactElement {
                                   >
                                     {RENDER_TYPES.map((rt) => (
                                       <option key={rt} value={rt}>
-                                        {RENDER_TYPE_LABELS[rt]}
+                                        {RENDER_TYPE_LABELS[rt] ?? rt}
                                       </option>
                                     ))}
                                   </select>

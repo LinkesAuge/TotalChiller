@@ -88,8 +88,9 @@ function AssetLibraryTab(): ReactElement {
         body: JSON.stringify({ id: selectedAsset.id, tags }),
       });
       if (!res.ok) throw new Error("Failed to update tags");
-      const updated = await res.json();
-      setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      const updated = (await res.json()) as DesignAsset;
+      const updatedId = updated?.id;
+      setAssets((prev) => prev.map((a) => (updatedId != null && a.id === updatedId ? updated : a)));
       setSelectedAsset(updated);
     } catch {
       /* Silent */
@@ -106,8 +107,9 @@ function AssetLibraryTab(): ReactElement {
         body: JSON.stringify({ id: assetId, category: newCategory }),
       });
       if (!res.ok) throw new Error("Failed to update category");
-      const updated = await res.json();
-      setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      const updated = (await res.json()) as DesignAsset;
+      const updatedId = updated?.id;
+      setAssets((prev) => prev.map((a) => (updatedId != null && a.id === updatedId ? updated : a)));
       if (selectedAsset?.id === assetId) setSelectedAsset(updated);
     } catch {
       /* Silent */
@@ -255,7 +257,7 @@ function AssetLibraryTab(): ReactElement {
               type="button"
               onClick={() => {
                 setSelectedAsset(asset);
-                setEditTags(asset.tags.join(", "));
+                setEditTags((asset.tags ?? []).join(", "));
               }}
               style={{
                 display: "flex",
@@ -409,9 +411,9 @@ function AssetLibraryTab(): ReactElement {
                   Save Tags
                 </button>
               </div>
-              {selectedAsset.tags.length > 0 && (
+              {(selectedAsset.tags?.length ?? 0) > 0 && (
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
-                  {selectedAsset.tags.map((tag) => (
+                  {(selectedAsset.tags ?? []).map((tag) => (
                     <span key={tag} className="badge info" style={{ fontSize: "0.7rem", padding: "1px 8px" }}>
                       {tag}
                     </span>

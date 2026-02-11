@@ -170,7 +170,7 @@ async function main(): Promise<void> {
 
   // 3. Print stats
   console.log("\nCategory breakdown:");
-  const sorted = Object.entries(categoryStats).sort((a, b) => b[1] - a[1]);
+  const sorted = Object.entries(categoryStats).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
   for (const [cat, count] of sorted) {
     console.log(`  ${cat}: ${count}`);
   }

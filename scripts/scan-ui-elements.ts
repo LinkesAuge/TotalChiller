@@ -391,8 +391,9 @@ function scanComponentDir(dirPath: string, relBase: string): UiElementRecord[] {
 
     let description = `Component: ${name}`;
     const jsdocMatch = content.match(/\/\*\*\s*\n\s*\*\s*(.+)/);
-    if (jsdocMatch) {
-      description = jsdocMatch[1].trim();
+    const captured = jsdocMatch?.[1];
+    if (captured) {
+      description = captured.trim();
     }
 
     results.push({
@@ -1348,7 +1349,7 @@ async function main(): Promise<void> {
     categoryStats[el.category] = (categoryStats[el.category] ?? 0) + 1;
   }
   console.log("\nCategory breakdown:");
-  const sorted = Object.entries(categoryStats).sort((a, b) => b[1] - a[1]);
+  const sorted = Object.entries(categoryStats).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
   for (const [cat, count] of sorted) {
     console.log(`  ${cat}: ${count}`);
   }
@@ -1359,7 +1360,7 @@ async function main(): Promise<void> {
     renderStats[el.render_type] = (renderStats[el.render_type] ?? 0) + 1;
   }
   console.log("\nRender type breakdown:");
-  for (const [rt, count] of Object.entries(renderStats).sort((a, b) => b[1] - a[1])) {
+  for (const [rt, count] of Object.entries(renderStats).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))) {
     console.log(`  ${rt}: ${count}`);
   }
 

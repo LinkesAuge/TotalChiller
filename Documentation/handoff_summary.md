@@ -70,10 +70,10 @@ This file is a compact context transfer for a new chat.
   - Admin toggle + safeguard to keep at least one admin.
   - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
 - **Admin UI** (refactored Feb 2026 — modular architecture)
-  - Tabs: Clan Management, Users, Validation, Corrections, Audit Logs, Approvals, Data Import, Chest Database, Forum.
+  - Tabs: Clan Management, Users, Validation, Corrections, Logs, Approvals, Data Import, Chest Database, Forum, Design System.
   - Clan Management manages **game accounts** (not users) and supports assign‑to‑clan modal.
-  - Users tab supports search/filters (role, game account presence), inline edits, add game accounts, create users (invite), delete users. Game account status badges (pending/rejected) shown inline.
-  - Approvals tab: review and approve/reject pending game account requests from users. Shows requester info, game username, and request date.
+  - Users tab supports search/filters (role, game account presence), inline edits, per-row save/cancel (same pattern as clan management), add game accounts, create users (invite), delete users. Game account status badges (pending/rejected) shown inline.
+  - Approvals tab: review and approve/reject pending game account requests from users. Shows requester info, game username, and request date. "Approve All" button to batch-approve all pending requests with confirmation.
   - Global save/cancel applies to user + game account edits.
   - Validation + Correction rules are **global** (not clan-specific). Support: sorting, selection, batch delete, import/export, active/inactive status (corrections).
   - **Architecture**: Slim orchestrator (`admin-client.tsx`, ~140 lines) with `AdminProvider` context, lazy-loaded tabs via `next/dynamic`, and shared hooks/components that eliminate ~900 lines of duplicated patterns (delete modals, sort buttons, pagination, rule list management, import modals).

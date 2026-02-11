@@ -100,7 +100,7 @@
     "users": "Users",
     "validation": "Validation",
     "corrections": "Corrections",
-    "auditLogs": "Audit Logs",
+    "auditLogs": "Logs",
     "dataImport": "Data Import",
     "chestDb": "Chest DB",
     "forum": "Forum",
@@ -766,10 +766,11 @@
       "users": "Users",
       "validation": "Validation",
       "corrections": "Corrections",
-      "logs": "Audit Logs",
+      "logs": "Logs",
       "dataImport": "Data Import",
       "chestDb": "Chest Database",
-      "forum": "Forum Management"
+      "forum": "Forum Management",
+      "designSystem": "Design System"
     },
     "dataImport": {
       "title": "Data Import",
@@ -968,7 +969,11 @@
       "allClear": "All clear",
       "loading": "Loading pending approvals...",
       "gameUsername": "Game Username",
-      "requested": "Requested"
+      "requested": "Requested",
+      "approveAll": "Approve all",
+      "approveAllConfirm": "Approve all pending game accounts?",
+      "approvingAll": "Approving all...",
+      "allApproved": "All game accounts approved."
     },
     "danger": {
       "title": "Danger Zone",

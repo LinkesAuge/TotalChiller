@@ -100,11 +100,11 @@
     "users": "Benutzer",
     "validation": "Validierung",
     "corrections": "Korrekturen",
-    "auditLogs": "Prüfprotokolle",
+    "auditLogs": "Logs",
     "dataImport": "Datenimport",
     "chestDb": "Truhen-DB",
     "forum": "Forum",
-    "forumAdmin": "Forum-Verwaltung",
+    "forumAdmin": "Forenverwaltung",
     "designSystem": "Design-System"
   },
   "auth": {
@@ -766,10 +766,11 @@
       "users": "Benutzer",
       "validation": "Validierung",
       "corrections": "Korrekturen",
-      "logs": "Prüfprotokolle",
+      "logs": "Logs",
       "dataImport": "Datenimport",
       "chestDb": "Truhen-Datenbank",
-      "forum": "Forum-Verwaltung"
+      "forum": "Forenverwaltung",
+      "designSystem": "Design-System"
     },
     "dataImport": {
       "title": "Datenimport",
@@ -968,7 +969,11 @@
       "allClear": "Alles erledigt",
       "loading": "Lade ausstehende Genehmigungen...",
       "gameUsername": "Spiel-Benutzername",
-      "requested": "Angefragt"
+      "requested": "Angefragt",
+      "approveAll": "Alle genehmigen",
+      "approveAllConfirm": "Alle ausstehenden Spielkonten genehmigen?",
+      "approvingAll": "Alle werden genehmigt...",
+      "allApproved": "Alle Spielkonten genehmigt."
     },
     "danger": {
       "title": "Gefahrenzone",

@@ -992,40 +992,23 @@ export default function UsersTab(): ReactElement {
                           />
                         </svg>
                       </IconButton>
-                      {isEditing ? (
-                        <>
-                          <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={() => handleSaveUserEdit(user)}>
-                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                              <path
-                                d="M4 8.5L7 11.5L12 5"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </IconButton>
-                          <IconButton
-                            ariaLabel={tAdmin("common.cancelChanges")}
-                            onClick={() => cancelUserEdit(user.id)}
-                          >
-                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                              <path
-                                d="M4.5 4.5L11.5 11.5"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                              />
-                              <path
-                                d="M11.5 4.5L4.5 11.5"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                          </IconButton>
-                        </>
-                      ) : null}
+                      <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={() => handleSaveUserEdit(user)}>
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M4 8.5L7 11.5L12 5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </IconButton>
+                      <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={() => cancelUserEdit(user.id)}>
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </IconButton>
                       <IconButton
                         ariaLabel={tAdmin("users.deleteUser")}
                         onClick={() => openUserDeleteConfirm(user)}

@@ -185,7 +185,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 
 - Admin user lookup by email via `app/api/admin/user-lookup`.
 - Validation + Correction rules are **global** (not clan-specific). Support create, edit, delete, import/export, selection, and sorting.
-- Admin tabs include Clans & Members, Users, Validation, Corrections, Audit Logs, Approvals, Data Import, Chest Database, Forum.
+- Admin tabs include Clans & Members, Users, Validation, Corrections, Logs, Approvals, Data Import, Chest Database, Forum, Design System.
 - Membership table now manages game accounts (game username, clan, rank, status).
 - Roles are assigned globally via `user_roles`.
 - Clan Management supports assign‑to‑clan modal and batch save/cancel.

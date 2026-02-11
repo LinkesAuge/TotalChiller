@@ -1944,12 +1944,12 @@ img[loading="lazy"] {
 
 .table.members header,
 .table.members .row {
-  grid-template-columns: 60px 1.1fr 120px 1.4fr 1.2fr 120px minmax(180px, 220px);
+  grid-template-columns: 60px 1.1fr minmax(160px, 1.2fr) 1.4fr 1.2fr 120px minmax(180px, 220px);
 }
 
 .table.users .table.members header,
 .table.users .table.members .row {
-  grid-template-columns: 60px 1.1fr 120px 1.4fr 1.2fr 120px minmax(220px, 260px);
+  grid-template-columns: 60px 1.1fr minmax(160px, 1.2fr) 1.4fr 1.2fr 120px minmax(220px, 260px);
   min-width: 100%;
   width: 100%;
 }

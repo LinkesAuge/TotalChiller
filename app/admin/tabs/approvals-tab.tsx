@@ -65,6 +65,40 @@ export default function ApprovalsTab(): ReactElement {
     [setPendingApprovals, pushToast],
   );
 
+  /* ── Approve all ── */
+  const handleApproveAll = useCallback(async () => {
+    if (pendingApprovals.length === 0) return;
+    if (!window.confirm(tAdmin("approvals.approveAllConfirm"))) return;
+    setApprovalStatus(tAdmin("approvals.approvingAll"));
+    let failed = 0;
+    for (const approval of pendingApprovals) {
+      try {
+        const res = await fetch("/api/admin/game-account-approvals", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ game_account_id: approval.id, action: "approve" }),
+        });
+        if (!res.ok) failed++;
+      } catch {
+        failed++;
+      }
+    }
+    if (failed > 0) {
+      setApprovalStatus(`${failed} approval(s) failed.`);
+    } else {
+      setApprovalStatus(tAdmin("approvals.allApproved"));
+      pushToast(tAdmin("approvals.allApproved"));
+    }
+    setPendingApprovals((cur) => (failed > 0 ? cur : []));
+    if (failed > 0) {
+      const res = await fetch("/api/admin/game-account-approvals");
+      if (res.ok) {
+        const result = await res.json();
+        setPendingApprovals(result.data ?? []);
+      }
+    }
+  }, [pendingApprovals, setPendingApprovals, pushToast, tAdmin]);
+
   return (
     <section className="card">
       <div className="card-header">
@@ -72,9 +106,16 @@ export default function ApprovalsTab(): ReactElement {
           <div className="card-title">{tAdmin("approvals.title")}</div>
           <div className="card-subtitle">{tAdmin("approvals.subtitle")}</div>
         </div>
-        <span className="badge">
-          {pendingApprovals.length} {tAdmin("approvals.pending")}
-        </span>
+        <div className="list inline" style={{ alignItems: "center", gap: "10px" }}>
+          <span className="badge">
+            {pendingApprovals.length} {tAdmin("approvals.pending")}
+          </span>
+          {pendingApprovals.length > 0 ? (
+            <button className="button primary" type="button" onClick={handleApproveAll}>
+              {tAdmin("approvals.approveAll")}
+            </button>
+          ) : null}
+        </div>
       </div>
       {approvalStatus ? <div className="alert info">{approvalStatus}</div> : null}
       {isLoading ? (

@@ -1,8 +1,12 @@
 const nextConfig = require("eslint-config-next");
+const tseslint = require("typescript-eslint");
 
 module.exports = [
   ...nextConfig,
   {
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+    },
     rules: {
       /* ── Keep existing overrides ── */
       "react-hooks/set-state-in-effect": "off",

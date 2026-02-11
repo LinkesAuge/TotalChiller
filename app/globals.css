@@ -4848,8 +4848,8 @@ input[type="checkbox"]:disabled {
 /* Action buttons column */
 .day-panel-card-actions {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 3px;
   align-items: center;
   flex-shrink: 0;
   margin-left: auto;
@@ -4859,11 +4859,11 @@ input[type="checkbox"]:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   border: 1px solid rgba(201, 163, 74, 0.18);
-  background: transparent;
+  background: rgba(10, 20, 32, 0.85);
   color: var(--color-text-2);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -5180,16 +5180,22 @@ input[type="checkbox"]:disabled {
   font-size: 0.64rem;
 }
 
+.upcoming-event-author-date {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
 /* Action buttons container */
 .upcoming-event-actions {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 6px;
+  right: 4px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 3px;
   opacity: 0;
   transition: opacity var(--transition-fast);
+  z-index: 3;
 }
 .upcoming-event-card:hover .upcoming-event-actions {
   opacity: 1;
@@ -5200,11 +5206,11 @@ input[type="checkbox"]:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   border: 1px solid rgba(201, 163, 74, 0.15);
-  background: rgba(10, 20, 32, 0.6);
+  background: rgba(10, 20, 32, 0.85);
   color: var(--color-text-muted);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -5226,11 +5232,11 @@ input[type="checkbox"]:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   border: 1px solid rgba(201, 163, 74, 0.15);
-  background: rgba(10, 20, 32, 0.6);
+  background: rgba(10, 20, 32, 0.85);
   color: var(--color-text-muted);
   cursor: pointer;
   transition: all var(--transition-fast);

@@ -12,17 +12,26 @@ const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-8 rounded" />,
 });
 
+/** How many event cards to show before requiring "show more". */
+const DAY_PANEL_PAGE_SIZE = 3;
+
 export interface EventCalendarProps {
   readonly calendarMonth: Date;
   readonly calendarDays: readonly CalendarDay[];
   readonly selectedDateKey: string;
-  readonly selectedDateLabel: string;
-  readonly selectedDayEvents: readonly DisplayEvent[];
   readonly todayKey: string;
   readonly totalEventsCount: number;
   readonly onMonthShift: (offset: number) => void;
   readonly onDateSelect: (dayKey: string, day: CalendarDay) => void;
   readonly onJumpToToday: () => void;
+  readonly canManage: boolean;
+  readonly locale: string;
+  readonly t: (key: string, values?: Record<string, string>) => string;
+}
+
+export interface EventDayPanelProps {
+  readonly selectedDateLabel: string;
+  readonly selectedDayEvents: readonly DisplayEvent[];
   readonly onEditEvent: (eventId: string) => void;
   readonly canManage: boolean;
   readonly locale: string;
@@ -123,20 +132,15 @@ export function EventCalendar({
   calendarMonth,
   calendarDays,
   selectedDateKey,
-  selectedDateLabel,
-  selectedDayEvents,
   todayKey: _todayKey,
   totalEventsCount,
   onMonthShift,
   onDateSelect,
   onJumpToToday,
-  onEditEvent,
-  canManage,
+  canManage: _canManage,
   locale,
   t,
 }: EventCalendarProps): JSX.Element {
-  const dayPanelRef = useRef<HTMLElement>(null);
-
   /* Hover tooltip state */
   const [tooltipDay, setTooltipDay] = useState<CalendarDay | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -157,9 +161,6 @@ export function EventCalendar({
   function handleDayClick(day: CalendarDay): void {
     onDateSelect(day.key, day);
     setTooltipDay(null);
-    setTimeout(() => {
-      dayPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 50);
   }
 
   return (
@@ -264,152 +265,248 @@ export function EventCalendar({
                 );
               })}
             </div>
-
-            {/* Hover tooltip */}
-            {tooltipDay && tooltipDay.events.length > 0 && (
-              <div
-                className="calendar-tooltip"
-                style={{ left: tooltipPos.x, top: tooltipPos.y }}
-                onMouseEnter={() => {
-                  if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
-                }}
-                onMouseLeave={handleDayMouseLeave}
-              >
-                <div className="calendar-tooltip-inner">
-                  {tooltipDay.events.length === 1 && tooltipDay.events[0] ? (
-                    /* Single event: show details */
-                    (() => {
-                      const ev = tooltipDay.events[0];
-                      return (
-                        <div className="calendar-tooltip-single">
-                          <div className="calendar-tooltip-title">{ev.title}</div>
-                          <div className="calendar-tooltip-meta">
-                            <span>{shortTime(ev.starts_at, locale)}</span>
-                            <span>{formatDuration(ev.starts_at, ev.ends_at)}</span>
-                          </div>
-                          {ev.location && <div className="calendar-tooltip-location">{ev.location}</div>}
-                          {ev.organizer && <div className="calendar-tooltip-organizer">{ev.organizer}</div>}
-                        </div>
-                      );
-                    })()
-                  ) : (
-                    /* Multiple events: list titles */
-                    <div className="calendar-tooltip-multi">
-                      {tooltipDay.events.map((entry) => (
-                        <div key={entry.displayKey} className="calendar-tooltip-item">
-                          <span className="calendar-tooltip-dot" style={{ background: EVENT_COLORS[0] }} />
-                          <span className="calendar-tooltip-item-title">{entry.title}</span>
-                          <span className="calendar-tooltip-item-time">{shortTime(entry.starts_at, locale)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Selected day detail panel below calendar */}
-            <aside ref={dayPanelRef} className="calendar-day-panel calendar-day-panel--inline">
-              <div className="calendar-day-panel-header">
-                <div className="card-title mb-0">{t("selectedDay")}</div>
-                <div className="calendar-day-panel-date">{selectedDateLabel}</div>
-              </div>
-              {selectedDayEvents.length === 0 ? (
-                <div className="calendar-day-empty">{t("noEventsOnDay")}</div>
-              ) : (
-                <div className="calendar-day-events">
-                  {selectedDayEvents.map((entry) => (
-                    <article key={`calendar-${entry.displayKey}`} className="calendar-day-event">
-                      {entry.banner_url && (
-                        <div className="calendar-event-banner">
-                          <img src={entry.banner_url} alt="" />
-                        </div>
-                      )}
-                      <div className="calendar-day-event-header">
-                        <div className="calendar-day-event-title">{entry.title}</div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {entry.recurrence_type && entry.recurrence_type !== "none" && (
-                            <span className="badge text-[0.6rem]">
-                              {entry.recurrence_type === "daily"
-                                ? t("recurrenceDailyLabel")
-                                : entry.recurrence_type === "weekly"
-                                  ? t("recurrenceWeeklyLabel")
-                                  : entry.recurrence_type === "biweekly"
-                                    ? t("recurrenceBiweeklyLabel")
-                                    : t("recurrenceMonthlyLabel")}
-                            </span>
-                          )}
-                          {canManage && (
-                            <button
-                              className="calendar-day-event-edit"
-                              type="button"
-                              onClick={() => onEditEvent(entry.id)}
-                              aria-label={t("editEvent")}
-                              title={t("editEvent")}
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="calendar-day-event-details">
-                        <div className="calendar-day-event-detail">
-                          <ClockIcon />
-                          <span>
-                            {formatLocalDateTime(entry.starts_at, locale)} (
-                            {formatDuration(entry.starts_at, entry.ends_at)})
-                          </span>
-                        </div>
-                        {entry.organizer && (
-                          <div className="calendar-day-event-detail">
-                            <UserIcon />
-                            <span>{entry.organizer}</span>
-                          </div>
-                        )}
-                        {entry.location && (
-                          <div className="calendar-day-event-detail">
-                            <MapPinIcon />
-                            <span>{entry.location}</span>
-                          </div>
-                        )}
-                      </div>
-                      {entry.description && (
-                        <div className="calendar-day-event-description">
-                          <AppMarkdown content={entry.description} />
-                        </div>
-                      )}
-                      {entry.author_name && (
-                        <div className="calendar-day-event-author">
-                          {t("createdBy", { name: entry.author_name })}
-                          {entry.created_at && (
-                            <span className="calendar-day-event-date">
-                              {" · "}
-                              {formatLocalDateTime(entry.created_at, locale)}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              )}
-            </aside>
           </div>
         </div>
       </div>
+      {/* Hover tooltip — rendered outside calendar-body to avoid position:relative offset */}
+      {tooltipDay && tooltipDay.events.length > 0 && (
+        <div
+          className="calendar-tooltip"
+          role="tooltip"
+          style={{ left: tooltipPos.x, top: tooltipPos.y }}
+          onMouseEnter={() => {
+            if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+          }}
+          onMouseLeave={handleDayMouseLeave}
+        >
+          <div className="calendar-tooltip-inner">
+            {tooltipDay.events.length === 1 && tooltipDay.events[0] ? (
+              (() => {
+                const ev = tooltipDay.events[0];
+                return (
+                  <div className="calendar-tooltip-single">
+                    <div className="calendar-tooltip-title">{ev.title}</div>
+                    <div className="calendar-tooltip-meta">
+                      <span>{shortTime(ev.starts_at, locale)}</span>
+                      <span>{formatDuration(ev.starts_at, ev.ends_at)}</span>
+                    </div>
+                    {ev.location && <div className="calendar-tooltip-location">{ev.location}</div>}
+                    {ev.organizer && <div className="calendar-tooltip-organizer">{ev.organizer}</div>}
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="calendar-tooltip-multi">
+                {tooltipDay.events.map((entry) => (
+                  <div key={entry.displayKey} className="calendar-tooltip-item">
+                    <span className="calendar-tooltip-dot" style={{ background: EVENT_COLORS[0] }} />
+                    <span className="calendar-tooltip-item-title">{entry.title}</span>
+                    <span className="calendar-tooltip-item-time">{shortTime(entry.starts_at, locale)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   EventDayPanel — selected day detail (rendered separately)
+   ══════════════════════════════════════════════════════════ */
+
+export function EventDayPanel({
+  selectedDateLabel,
+  selectedDayEvents,
+  onEditEvent,
+  canManage,
+  locale,
+  t,
+}: EventDayPanelProps): JSX.Element {
+  const panelRef = useRef<HTMLElement>(null);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(DAY_PANEL_PAGE_SIZE);
+  const [prevDate, setPrevDate] = useState(selectedDateLabel);
+
+  /** Toggle expand/collapse for a single event card. */
+  function toggleExpand(displayKey: string): void {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(displayKey)) {
+        next.delete(displayKey);
+      } else {
+        next.add(displayKey);
+      }
+      return next;
+    });
+  }
+
+  /** Reset visible count and expansion when selected day changes. */
+  if (prevDate !== selectedDateLabel) {
+    setPrevDate(selectedDateLabel);
+    setVisibleCount(DAY_PANEL_PAGE_SIZE);
+    setExpandedKeys(new Set());
+  }
+
+  const visibleEvents = selectedDayEvents.slice(0, visibleCount);
+  const hasMore = selectedDayEvents.length > visibleCount;
+
+  return (
+    <aside ref={panelRef} className="calendar-day-panel">
+      <div className="calendar-day-panel-header">
+        <div className="card-title mb-0">{t("selectedDay")}</div>
+        <div className="calendar-day-panel-date">{selectedDateLabel}</div>
+      </div>
+      {selectedDayEvents.length === 0 ? (
+        <div className="calendar-day-empty">{t("noEventsOnDay")}</div>
+      ) : (
+        <div className="calendar-day-events">
+          {visibleEvents.map((entry) => {
+            const isExpanded = expandedKeys.has(entry.displayKey);
+            return (
+              <article
+                key={`calendar-${entry.displayKey}`}
+                className={`calendar-day-event${isExpanded ? " expanded" : ""}`}
+              >
+                {/* Clickable header — toggles expand/collapse */}
+                <div
+                  className="calendar-day-event-header"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleExpand(entry.displayKey)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleExpand(entry.displayKey);
+                    }
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div className="calendar-day-event-title">{entry.title}</div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {entry.recurrence_type && entry.recurrence_type !== "none" && (
+                      <span className="badge text-[0.6rem]">
+                        {entry.recurrence_type === "daily"
+                          ? t("recurrenceDailyLabel")
+                          : entry.recurrence_type === "weekly"
+                            ? t("recurrenceWeeklyLabel")
+                            : entry.recurrence_type === "biweekly"
+                              ? t("recurrenceBiweeklyLabel")
+                              : t("recurrenceMonthlyLabel")}
+                      </span>
+                    )}
+                    {canManage && (
+                      <button
+                        className="calendar-day-event-edit"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditEvent(entry.id);
+                        }}
+                        aria-label={t("editEvent")}
+                        title={t("editEvent")}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                    )}
+                    {/* Expand/collapse chevron */}
+                    <span className={`calendar-day-event-chevron${isExpanded ? " open" : ""}`}>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Always-visible summary line */}
+                <div className="calendar-day-event-summary">
+                  <ClockIcon />
+                  <span>
+                    {formatLocalDateTime(entry.starts_at, locale)} ({formatDuration(entry.starts_at, entry.ends_at)})
+                  </span>
+                </div>
+
+                {/* Expanded details */}
+                {isExpanded && (
+                  <div className="calendar-day-event-expanded">
+                    {entry.banner_url && (
+                      <div className="calendar-event-banner">
+                        <img src={entry.banner_url} alt="" />
+                      </div>
+                    )}
+                    <div className="calendar-day-event-details">
+                      {entry.organizer && (
+                        <div className="calendar-day-event-detail">
+                          <UserIcon />
+                          <span>{entry.organizer}</span>
+                        </div>
+                      )}
+                      {entry.location && (
+                        <div className="calendar-day-event-detail">
+                          <MapPinIcon />
+                          <span>{entry.location}</span>
+                        </div>
+                      )}
+                    </div>
+                    {entry.description && (
+                      <div className="calendar-day-event-description">
+                        <AppMarkdown content={entry.description} />
+                      </div>
+                    )}
+                    {entry.author_name && (
+                      <div className="calendar-day-event-author">
+                        {t("createdBy", { name: entry.author_name })}
+                        {entry.created_at && (
+                          <span className="calendar-day-event-date">
+                            {" · "}
+                            {formatLocalDateTime(entry.created_at, locale)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+
+          {/* Show more button */}
+          {hasMore && (
+            <button
+              className="calendar-day-show-more"
+              type="button"
+              onClick={() => setVisibleCount((prev) => prev + DAY_PANEL_PAGE_SIZE)}
+            >
+              {t("show")} ({selectedDayEvents.length - visibleCount} {t("more")})
+            </button>
+          )}
+        </div>
+      )}
+    </aside>
   );
 }

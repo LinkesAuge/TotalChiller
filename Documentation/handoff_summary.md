@@ -155,7 +155,7 @@ This file is a compact context transfer for a new chat.
   - Author protection: editing never overwrites `created_by`; `updated_by` tracks last editor.
   - Edit tracking displayed: "bearbeitet von {name} am {date}".
   - Type filter removed — all content is "announcement". Tags, search, date range filters remain.
-  - Centered "Weiterlesen" pill button with gold accent, backdrop-blur, hover effect.
+  - Centered "Weiterlesen" pill button with gold accent, backdrop-blur, hover effect. Expanded content includes a "Weniger anzeigen" / "Show less" collapse button at the bottom.
   - Migrations: `article_banner.sql` (`banner_url`), `article_updated_by.sql` (`updated_by`).
   - Files: `app/news/news-client.tsx`
 - **Default Game Account**
@@ -172,10 +172,11 @@ This file is a compact context transfer for a new chat.
     - **Event banner fills entire day cell**: days with banner events use the banner as a CSS `background-image` covering the full cell, with a gradient overlay for text readability.
     - **Event title snippet**: the first event's title appears at the bottom of each day cell (truncated with ellipsis), with a "+N" indicator when multiple events exist.
     - **Hover tooltip**: hovering over a day with events shows a floating info box. Single events display title, time, duration, location, and organizer. Multiple events display a compact list with colored dots, titles, and times.
-    - Selected day panel: restructured with header separator, event cards featuring inline edit icon button, icon-prefixed detail rows (clock, map-pin, user SVG icons). Shows full event details including markdown-rendered description, recurrence badge, banner, organizer, location, and author with creation date.
-    - Upcoming events sidebar: complete redesign with date badge column (weekday/day/month), structured event cards with icon-prefixed metadata (time, location, organizer), recurrence pills, hover-reveal edit buttons. Clicking an upcoming event navigates the calendar to that day, selects it in the "Selected Day" panel, and **scrolls the day panel into view**. **Pagination** replaces the old "show more" approach — events are shown in fixed-size pages with prev/next controls. The sidebar height aligns with the calendar via `align-items: stretch` on the grid.
+    - **Selected day panel** (`EventDayPanel`): extracted from `EventCalendar` into its own component, rendered below the two-column grid (so the sidebar only aligns with the calendar grid, not the day panel). Event cards are **expand/collapse** — header + time are always visible; description, banner, organizer, location, and author are revealed on click with a chevron toggle. A "show more" button appears when > 3 events on a day.
+    - Upcoming events sidebar: complete redesign with date badge column (weekday/day/month), structured event cards with icon-prefixed metadata (time, location, organizer), recurrence pills, hover-reveal edit buttons. Clicking an upcoming event navigates the calendar to that day, selects it in the "Selected Day" panel, and **scrolls the day panel into view**. **Pagination** replaces the old "show more" approach — events are shown in fixed-size pages with prev/next controls. Sidebar uses `align-items: start` so it matches the calendar grid height only.
+    - **Calendar hover**: day cells use a gold glow outline on hover (no zoom/move). Transitions are limited to `border-color` and `box-shadow` only to avoid background-image animation on banner cells. Tooltip is rendered outside `event-calendar-body` to avoid `position: relative` offset issues.
     - Calendar toolbar: added bottom border separator, improved spacing and visual hierarchy.
-    - Files: `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/globals.css`.
+    - Files: `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/events/events-client.tsx`, `app/globals.css`.
   - **Multi-day events (Feb 2026)**:
     - Events can now optionally have an explicit end date/time instead of a duration, enabling multi-day events.
     - Form offers radio toggle between "Duration" (hours/minutes) and "End date & time" (datetime picker) when not open-ended.

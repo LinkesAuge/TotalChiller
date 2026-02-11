@@ -440,6 +440,7 @@
     "noBanner": "Kein Banner",
     "customBanner": "Eigenes hochladen",
     "readMore": "Weiterlesen ›",
+    "showLess": "‹ Weniger anzeigen",
     "editedBy": "bearbeitet von {name} am {date}"
   },
   "events": {

@@ -3953,12 +3953,12 @@ input[type="checkbox"]:disabled {
   width: 100%;
 }
 
-/* Two-column layout: calendar + upcoming events — aligned in height */
+/* Two-column layout: calendar + upcoming events — sidebar matches calendar height */
 .events-two-col {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
   gap: 22px;
-  align-items: stretch;
+  align-items: start;
 }
 
 /* ── Calendar toolbar & navigation arrows ── */
@@ -4066,13 +4066,17 @@ input[type="checkbox"]:disabled {
   padding: 7px 8px 6px;
   position: relative;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  /* Only transition border, box-shadow — NOT background-size/position to prevent banner zoom */
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .calendar-day-cell:hover {
-  border-color: rgba(201, 163, 74, 0.35);
-  background: rgba(201, 163, 74, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(201, 163, 74, 0.08);
+  border-color: rgba(201, 163, 74, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(201, 163, 74, 0.18),
+    0 0 14px rgba(201, 163, 74, 0.12);
 }
 
 .calendar-day-cell.muted {
@@ -4145,9 +4149,10 @@ input[type="checkbox"]:disabled {
 }
 
 .calendar-day-cell.has-events:hover {
-  border-color: rgba(74, 110, 160, 0.55);
-  background: linear-gradient(180deg, rgba(74, 110, 160, 0.12), rgba(12, 24, 38, 0.5));
-  box-shadow: inset 3px 0 0 rgba(74, 110, 160, 0.7);
+  border-color: rgba(74, 110, 160, 0.65);
+  box-shadow:
+    inset 3px 0 0 rgba(74, 110, 160, 0.7),
+    0 0 14px rgba(74, 110, 160, 0.18);
 }
 
 .calendar-day-cell.has-events.selected {
@@ -4368,6 +4373,55 @@ input[type="checkbox"]:disabled {
 
 .calendar-day-panel--inline {
   margin-top: 16px;
+}
+
+/* Expand/collapse chevron on event cards */
+.calendar-day-event-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+}
+.calendar-day-event-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* Always-visible summary line (time) under the header */
+.calendar-day-event-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-2);
+  font-size: 0.76rem;
+}
+
+/* Expanded section animation-ready wrapper */
+.calendar-day-event-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Show more button inside the day panel */
+.calendar-day-show-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  margin-top: 4px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(201, 163, 74, 0.2);
+  background: linear-gradient(180deg, rgba(201, 163, 74, 0.06), rgba(201, 163, 74, 0.02));
+  color: var(--color-gold-2);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.calendar-day-show-more:hover {
+  border-color: rgba(201, 163, 74, 0.45);
+  background: linear-gradient(180deg, rgba(201, 163, 74, 0.12), rgba(201, 163, 74, 0.06));
 }
 
 .calendar-day-panel-header {
@@ -5929,10 +5983,40 @@ input[type="checkbox"]:disabled {
 
 /* Full content (expanded) */
 .news-card-body {
-  padding: 24px 28px;
+  padding: 24px 28px 16px;
   font-size: 0.9rem;
   color: var(--color-text-2);
   line-height: 1.75;
+}
+
+.news-card-collapse-row {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(201, 163, 74, 0.08);
+  margin-top: 16px;
+}
+
+.news-card-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 18px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(201, 163, 74, 0.2);
+  background: linear-gradient(180deg, rgba(201, 163, 74, 0.06), rgba(201, 163, 74, 0.02));
+  color: var(--color-gold-2);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.news-card-collapse-btn:hover {
+  border-color: rgba(201, 163, 74, 0.45);
+  background: linear-gradient(180deg, rgba(201, 163, 74, 0.12), rgba(201, 163, 74, 0.06));
+  box-shadow: 0 0 10px rgba(201, 163, 74, 0.1);
+
   border-top: 1px solid rgba(201, 163, 74, 0.1);
 }
 

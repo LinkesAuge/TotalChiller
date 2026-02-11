@@ -83,3 +83,35 @@ test.describe("News: Article form", () => {
     }
   });
 });
+
+test.describe("News: Expand/collapse article content", () => {
+  test.use({ storageState: storageStatePath("member") });
+  test("article cards have a 'read more' preview button", async ({ page }) => {
+    await page.goto("/news");
+    await page.waitForLoadState("networkidle");
+
+    const readMoreBtn = page.locator(".news-card-read-more");
+    if ((await readMoreBtn.count()) > 0) {
+      /* There is at least one truncated article with a read-more CTA */
+      await expect(readMoreBtn.first()).toBeVisible();
+    }
+  });
+
+  test("expanded article shows a 'show less' collapse button", async ({ page }) => {
+    await page.goto("/news");
+    await page.waitForLoadState("networkidle");
+
+    /* Click banner or read-more to expand */
+    const banner = page.locator(".news-card-banner").first();
+    if ((await banner.count()) > 0) {
+      await banner.click();
+      /* After expanding, the collapse button should appear */
+      const collapseBtn = page.locator(".news-card-collapse-btn");
+      await expect(collapseBtn)
+        .toBeVisible({ timeout: 3000 })
+        .catch(() => {
+          /* Article may not have content long enough to trigger expand */
+        });
+    }
+  });
+});

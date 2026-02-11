@@ -12,7 +12,7 @@ import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
 import SectionHero from "../components/section-hero";
 import { useToast } from "../components/toast-provider";
-import { EventCalendar } from "./event-calendar";
+import { EventCalendar, EventDayPanel } from "./event-calendar";
 import { EventForm } from "./event-form";
 import { ManageTemplates } from "./manage-templates";
 import { UpcomingEventsSidebar } from "./upcoming-events-sidebar";
@@ -615,36 +615,46 @@ function EventsClient(): JSX.Element {
           )}
 
           {!isLoading && (
-            <div className="events-two-col col-span-full">
-              <EventCalendar
-                calendarMonth={calendarMonth}
-                calendarDays={calendarDays}
-                selectedDateKey={selectedDateKey}
-                selectedDateLabel={selectedDateLabel}
-                selectedDayEvents={selectedDayEvents}
-                todayKey={todayKey}
-                totalEventsCount={events.length}
-                onMonthShift={shiftCalendarMonth}
-                onDateSelect={handleDateSelect}
-                onJumpToToday={jumpToToday}
-                onEditEvent={handleEditEventById}
-                canManage={canManage}
-                locale={locale}
-                t={t}
-              />
+            <>
+              <div className="events-two-col col-span-full">
+                <EventCalendar
+                  calendarMonth={calendarMonth}
+                  calendarDays={calendarDays}
+                  selectedDateKey={selectedDateKey}
+                  todayKey={todayKey}
+                  totalEventsCount={events.length}
+                  onMonthShift={shiftCalendarMonth}
+                  onDateSelect={handleDateSelect}
+                  onJumpToToday={jumpToToday}
+                  canManage={canManage}
+                  locale={locale}
+                  t={t}
+                />
 
-              <UpcomingEventsSidebar
-                upcomingEvents={upcomingEvents}
-                pageSize={UPCOMING_PAGE_SIZE}
-                currentPage={upcomingPage}
-                onPageChange={setUpcomingPage}
-                onSelectEvent={handleSelectUpcomingEvent}
-                onEditEvent={handleEditEventById}
-                canManage={canManage}
-                locale={locale}
-                t={t}
-              />
-            </div>
+                <UpcomingEventsSidebar
+                  upcomingEvents={upcomingEvents}
+                  pageSize={UPCOMING_PAGE_SIZE}
+                  currentPage={upcomingPage}
+                  onPageChange={setUpcomingPage}
+                  onSelectEvent={handleSelectUpcomingEvent}
+                  onEditEvent={handleEditEventById}
+                  canManage={canManage}
+                  locale={locale}
+                  t={t}
+                />
+              </div>
+
+              <div className="col-span-full">
+                <EventDayPanel
+                  selectedDateLabel={selectedDateLabel}
+                  selectedDayEvents={selectedDayEvents}
+                  onEditEvent={handleEditEventById}
+                  canManage={canManage}
+                  locale={locale}
+                  t={t}
+                />
+              </div>
+            </>
           )}
 
           {canManage && (

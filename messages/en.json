@@ -440,6 +440,7 @@
     "noBanner": "No Banner",
     "customBanner": "Upload custom",
     "readMore": "Read more ›",
+    "showLess": "‹ Show less",
     "editedBy": "edited by {name} on {date}"
   },
   "events": {

@@ -619,6 +619,15 @@ function NewsClient(): JSX.Element {
                   {isExpanded && (
                     <div className="news-card-body">
                       <AppMarkdown content={article.content} />
+                      <div className="news-card-collapse-row">
+                        <button
+                          className="news-card-collapse-btn"
+                          type="button"
+                          onClick={() => setExpandedArticleId("")}
+                        >
+                          {t("showLess")}
+                        </button>
+                      </div>
                     </div>
                   )}
 

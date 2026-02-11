@@ -133,12 +133,14 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 ## Testing
 
 - **Test suite design**: `Documentation/plans/2026-02-09-test-suite-design.md` — full architecture, file listing, coverage summary, design decisions.
-- **~240 Playwright E2E tests** across 27 spec files covering all features.
+- **Vitest unit tests** (added 2026-02-11): 52 tests across 4 files in `lib/` covering `error-utils`, `permissions`, `date-format`, and `rate-limit`. Config: `vitest.config.ts`. Run: `npm run test:unit`.
+- **~250 Playwright E2E tests** across 27 spec files covering all features.
 - **Pre-authenticated storageState**: `tests/auth.setup.ts` pre-authenticates 6 roles; tests use `test.use({ storageState: storageStatePath("role") })` — no per-test login overhead.
 - **Accessibility**: `@axe-core/playwright` audits on public and authenticated pages.
 - **i18n**: Language switching, cookie handling, URL stability tests.
 - **Code quality**: Stricter TypeScript (`noUncheckedIndexedAccess`), stricter ESLint (`no-explicit-any`, `jsx-a11y/*`), Prettier, Husky pre-commit hooks.
-- Run: `npx playwright test` (see `Documentation/runbook.md` section 15 for details).
+- **API input validation**: All API routes use Zod schemas for body/param validation (shared schemas in `lib/api/validation.ts`). All routes wrapped in try/catch for consistent error responses.
+- Run: `npx playwright test` (E2E) or `npm run test:unit` (unit). See `Documentation/runbook.md` section 15 for details.
 
 ## Supabase SQL
 
@@ -195,7 +197,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Removed `QuickActions` top-bar buttons from all pages. Deleted `app/components/quick-actions.tsx` and `app/components/clan-scope-banner.tsx`.
 - Decorative gold gradient divider line below `.top-bar` on all pages (CSS pseudo-element `::after`). Hero banner margin removed for seamless layout.
 - Settings language selector uses RadixSelect (same as admin area). Global `option` CSS styling ensures dark-themed native dropdown menus where `RadixSelect` is not used.
-- ESLint uses Next.js flat config (`eslint.config.js`); run `npx eslint .`.
+- ESLint uses Next.js flat config (`eslint.config.js`) with `@typescript-eslint` plugin; run `npm run lint` (which calls `eslint .`).
 
 ### Admin Panel Architecture (refactored Feb 2026)
 
@@ -338,6 +340,17 @@ app/admin/
 - Polls every 60s for updates (no WebSocket for MVP).
 - Files: `app/components/notification-bell.tsx`, `app/api/notifications/route.ts`, `app/api/notifications/[id]/route.ts`, `app/api/notifications/mark-all-read/route.ts`, `app/api/notifications/fan-out/route.ts`, `app/api/notification-settings/route.ts`.
 
+## API Validation & Error Handling (2026-02-11)
+
+- **Shared Zod schemas** in `lib/api/validation.ts`:
+  - `uuidSchema` — validates UUID format (used for route params like `[id]`)
+  - `notificationSettingsSchema` — validates notification settings PATCH body (at least one toggle required)
+  - `chartQuerySchema` — validates chart query params (clanId required, optional dateFrom/dateTo/player/source)
+- **Validated API routes**: `notification-settings`, `charts`, `messages/[id]`, `notifications/[id]`.
+- **Try/catch wrappers** on all API routes for consistent 500 error responses.
+- **Supabase error classification** (`lib/supabase/error-utils.ts`): Classifies `PostgrestError` into `SupabaseErrorKind` (rls, auth, network, validation, unknown) and maps to i18n keys. Used in `events-client.tsx` and `use-events-data.ts`.
+- **i18n error page**: `app/error.tsx` uses `next-intl` translations (keys under `errorPage`).
+
 ## Bug Fixes
 
 - **Clan Management**: Fixed init effect re-running on every clan selection change (caused the dropdown to snap back to the default clan). Removed `selectedClanId` from init deps so it runs once on mount.
@@ -380,7 +393,7 @@ A comprehensive audit was performed covering security, architecture, SEO, access
 - **SEO**: `metadataBase`, canonical URLs, Open Graph, Twitter Cards, JSON-LD (WebSite + Organization), sitemap, robots.txt.
 - **Legal**: Impressum page, cookie consent banner, GDPR-compliant privacy policy.
 - **UI/UX**: Animated sidebar, mobile hamburger menu, skeleton loaders, focus-visible outlines, scroll-to-top, toast animations, empty states, form validation.
-- **Code quality**: ~240 Playwright E2E tests with storageState auth, stricter TS/ESLint, image optimization, i18n coverage.
+- **Code quality**: ~250 Playwright E2E tests + 52 Vitest unit tests, Zod validation on all API routes, stricter TS/ESLint, image optimization, i18n coverage.
 - **Performance**: LCP preload hints, `priority` on above-fold images, image compression.
 
 ## Outstanding/Follow-up
@@ -390,3 +403,4 @@ A comprehensive audit was performed covering security, architecture, SEO, access
 - SEO content expansion (increase word count on thin public pages if ranking matters).
 - Consider adding FK constraint from `events.created_by` → `profiles.id` and `articles.created_by` → `profiles.id` to enable PostgREST joins (currently resolved client-side).
 - Admin panel refactoring is complete (Feb 2026). All 7 tabs extracted, shared hooks and components created. See "Admin Panel Architecture" section above.
+- Add `npm run test:unit` step to GitHub Actions CI workflow for automated unit test coverage.

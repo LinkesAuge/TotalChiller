@@ -175,9 +175,19 @@ In `/events`:
 
 ## 15) Running Tests
 
+### Vitest Unit Tests
+
+**Current status (2026-02-11):** 52 tests across 4 test files in `lib/`.
+
+```
+npm run test:unit                            # Run all unit tests once
+npm run test:unit:watch                      # Run in watch mode (re-runs on file change)
+npx vitest run lib/permissions.test.ts       # Run a specific test file
+```
+
 ### Playwright E2E Tests
 
-**Current status (2026-02-10):** ~240 tests across 27 spec files. 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
+**Current status (2026-02-11):** ~250 tests across 27 spec files. 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
 
 ```
 npx playwright test                          # Run all tests (all browsers)
@@ -233,7 +243,8 @@ tests/
 ### CI / Pre-commit
 
 - **Husky pre-commit hooks** run lint-staged (ESLint + Prettier) on staged files.
-- **GitHub Actions CI** runs `npm run lint`, `npm run build`, and Playwright tests on push/PR.
+- **GitHub Actions CI** runs `npm run lint`, `npm run type-check`, `npm run build`, and Playwright tests on push/PR.
+- **Unit tests** can be run locally via `npm run test:unit`. CI currently runs Playwright only; Vitest can be added to the workflow as needed.
 
 ### Notes
 

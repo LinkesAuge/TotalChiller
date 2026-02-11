@@ -45,7 +45,7 @@ function EventsClient(): JSX.Element {
     gameAccounts,
     reloadEvents,
     reloadTemplates,
-  } = useEventsData(supabase, clanContext?.clanId, pushToast);
+  } = useEventsData(supabase, clanContext?.clanId, pushToast, t);
 
   const [isPastExpanded, setIsPastExpanded] = useState<boolean>(false);
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {

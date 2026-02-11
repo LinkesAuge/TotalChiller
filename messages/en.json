@@ -1137,6 +1137,14 @@
     "section10Title": "10. Changes to This Policy",
     "section10Text": "We may update this policy from time to time. The \"Last updated\" date at the top of this page reflects the most recent revision. Continued use of the platform constitutes acceptance of any changes."
   },
+  "errorPage": {
+    "title": "Error",
+    "heading": "Something went wrong.",
+    "fallbackMessage": "An unexpected error occurred.",
+    "errorId": "Error ID: {digest}",
+    "retry": "Try again",
+    "goHome": "Go home"
+  },
   "notAuthorized": {
     "title": "Not Authorized",
     "message": "You do not have access to clan areas yet. Please create a game account in your profile first. Once an admin activates and assigns you to a clan, you will get access.",

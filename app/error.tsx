@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import * as Sentry from "@sentry/nextjs";
 import PageTopBar from "./components/page-top-bar";
 
@@ -14,27 +15,29 @@ export default function GlobalError({
   readonly error: Error & { digest?: string };
   readonly reset: () => void;
 }): JSX.Element {
+  const t = useTranslations("errorPage");
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
-
   return (
     <>
-      <PageTopBar title="Fehler / Error" />
+      <PageTopBar title={t("title")} />
       <div className="content-inner">
         <div className="grid">
-          <div className="alert warn col-span-full">Etwas ist schiefgelaufen. / Something went wrong.</div>
+          <div className="alert warn col-span-full">{t("heading")}</div>
           <section className="card">
             <div className="card-body leading-relaxed text-sm">
-              <p className="m-0">{error.message || "Ein unerwarteter Fehler ist aufgetreten."}</p>
-              {error.digest ? <p className="text-muted text-xs mt-2">Fehler-ID: {error.digest}</p> : null}
+              <p className="m-0">{error.message || t("fallbackMessage")}</p>
+              {error.digest ? (
+                <p className="text-muted text-xs mt-2">{t("errorId", { digest: error.digest })}</p>
+              ) : null}
             </div>
             <div className="list mt-4">
               <button className="button primary" type="button" onClick={reset}>
-                Erneut versuchen / Try again
+                {t("retry")}
               </button>
               <a className="button" href="/home">
-                Zur Startseite / Go home
+                {t("goHome")}
               </a>
             </div>
           </section>

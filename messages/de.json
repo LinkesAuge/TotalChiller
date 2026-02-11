@@ -1137,6 +1137,14 @@
     "section10Title": "10. Änderungen dieser Erklärung",
     "section10Text": "Wir können diese Erklärung von Zeit zu Zeit aktualisieren. Das Datum \"Zuletzt aktualisiert\" oben auf dieser Seite gibt die neueste Überarbeitung wieder. Die fortgesetzte Nutzung der Plattform gilt als Zustimmung zu etwaigen Änderungen."
   },
+  "errorPage": {
+    "title": "Fehler",
+    "heading": "Etwas ist schiefgelaufen.",
+    "fallbackMessage": "Ein unerwarteter Fehler ist aufgetreten.",
+    "errorId": "Fehler-ID: {digest}",
+    "retry": "Erneut versuchen",
+    "goHome": "Zur Startseite"
+  },
   "notAuthorized": {
     "title": "Nicht autorisiert",
     "message": "Du hast noch keinen Zugang zu Clan-Bereichen. Erstelle zuerst einen Game-Account in deinem Profil. Nach Freischaltung und Clan-Zuweisung durch einen Admin erhältst du Zugang.",

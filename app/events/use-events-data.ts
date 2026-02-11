@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { useCallback, useEffect, useState } from "react";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { classifySupabaseError, getErrorMessageKey } from "@/lib/supabase/error-utils";
 import type { EventRow, GameAccountOption, RecurrenceType, TemplateRow } from "./events-types";
 
 /** Resolve an array of user IDs to a Map<id, displayName>. */
@@ -32,7 +33,19 @@ export function useEventsData(
   supabase: SupabaseClient,
   clanId: string | undefined,
   pushToast: (msg: string) => void,
+  t?: (key: string) => string,
 ): UseEventsDataResult {
+  const showError = useCallback(
+    (error: PostgrestError, fallbackKey: string) => {
+      if (t) {
+        const kind = classifySupabaseError(error);
+        pushToast(kind === "unknown" ? t(fallbackKey) : t(getErrorMessageKey(kind)));
+      } else {
+        pushToast(fallbackKey);
+      }
+    },
+    [pushToast, t],
+  );
   const [events, setEvents] = useState<readonly EventRow[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [templates, setTemplates] = useState<readonly TemplateRow[]>([]);
@@ -55,7 +68,7 @@ export function useEventsData(
         .order("starts_at", { ascending: true });
       setIsLoading(false);
       if (error) {
-        pushToast(`Failed to load events: ${error.message}`);
+        showError(error, "saveFailed");
         return;
       }
       const rows = (data ?? []) as Array<Record<string, unknown>>;
@@ -74,7 +87,7 @@ export function useEventsData(
       );
     }
     void loadEvents();
-  }, [clanId, pushToast, supabase]);
+  }, [clanId, showError, supabase]);
 
   useEffect(() => {
     async function loadTemplates(): Promise<void> {
@@ -140,7 +153,7 @@ export function useEventsData(
       .eq("clan_id", clanId)
       .order("starts_at", { ascending: true });
     if (error) {
-      pushToast(`Failed to refresh events: ${error.message}`);
+      showError(error, "saveFailed");
       return;
     }
     const rows = (data ?? []) as Array<Record<string, unknown>>;

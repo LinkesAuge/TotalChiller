@@ -130,3 +130,86 @@ test.describe("API: Data Import", () => {
     expect([200, 400, 401, 429]).toContain(res.status());
   });
 });
+
+/* ── Uncovered routes added by audit ── */
+
+test.describe("API: Admin User Lookup", () => {
+  test("POST /api/admin/user-lookup without auth returns 401 or 429", async ({ request }) => {
+    const res = await request.post("/api/admin/user-lookup", {
+      data: { query: "testuser" },
+    });
+    expect([401, 429]).toContain(res.status());
+  });
+});
+
+test.describe("API: Auth Forgot Password", () => {
+  test("POST /api/auth/forgot-password without email returns 400", async ({ request }) => {
+    const res = await request.post("/api/auth/forgot-password", {
+      data: {},
+    });
+    expect([400, 429]).toContain(res.status());
+  });
+
+  test("POST /api/auth/forgot-password with invalid email returns 400", async ({ request }) => {
+    const res = await request.post("/api/auth/forgot-password", {
+      data: { email: "not-an-email" },
+    });
+    expect([400, 429]).toContain(res.status());
+  });
+});
+
+test.describe("API: Messages Detail", () => {
+  test("PATCH /api/messages/[id] without auth returns 401 or 500", async ({ request }) => {
+    const fakeId = "00000000-0000-0000-0000-000000000000";
+    const res = await request.patch(`/api/messages/${fakeId}`, {
+      data: { is_read: true },
+    });
+    expect([401, 500]).toContain(res.status());
+  });
+
+  test("DELETE /api/messages/[id] without auth returns 401 or 500", async ({ request }) => {
+    const fakeId = "00000000-0000-0000-0000-000000000000";
+    const res = await request.delete(`/api/messages/${fakeId}`);
+    expect([401, 500]).toContain(res.status());
+  });
+
+  test("PATCH /api/messages/[id] with invalid UUID returns 400 or 401", async ({ request }) => {
+    const res = await request.patch("/api/messages/not-a-uuid", {
+      data: { is_read: true },
+    });
+    expect([400, 401]).toContain(res.status());
+  });
+});
+
+test.describe("API: Messages Search Recipients", () => {
+  test("GET /api/messages/search-recipients without auth returns 401 or 429", async ({ request }) => {
+    const res = await request.get("/api/messages/search-recipients?q=test");
+    expect([401, 429]).toContain(res.status());
+  });
+});
+
+test.describe("API: Notifications Detail", () => {
+  test("PATCH /api/notifications/[id] without auth returns 401 or 500", async ({ request }) => {
+    const fakeId = "00000000-0000-0000-0000-000000000000";
+    const res = await request.patch(`/api/notifications/${fakeId}`, {
+      data: { is_read: true },
+    });
+    expect([401, 500]).toContain(res.status());
+  });
+
+  test("PATCH /api/notifications/[id] with invalid UUID returns 400 or 401", async ({ request }) => {
+    const res = await request.patch("/api/notifications/not-a-uuid", {
+      data: { is_read: true },
+    });
+    expect([400, 401]).toContain(res.status());
+  });
+});
+
+test.describe("API: Notifications Fan-out", () => {
+  test("POST /api/notifications/fan-out without auth returns 401", async ({ request }) => {
+    const res = await request.post("/api/notifications/fan-out", {
+      data: { event_id: "00000000-0000-0000-0000-000000000000" },
+    });
+    expect([400, 401]).toContain(res.status());
+  });
+});

@@ -233,6 +233,25 @@ This file is a compact context transfer for a new chat.
   - Validation evaluator no longer indexes by clan ID.
   - `app/components/validation-evaluator.ts`, `lib/correction-applicator.ts`
 
+## Project Audit & Test Coverage Improvement (2026-02-11)
+
+- **Vitest unit testing** added alongside Playwright. 52 unit tests across 4 test files:
+  - `lib/supabase/error-utils.test.ts` — all 4 error kinds + i18n key mapping (12 tests)
+  - `lib/permissions.test.ts` — roles, validation, permission checks, helpers (30 tests)
+  - `lib/date-format.test.ts` — formatting, locale, edge cases (5 tests)
+  - `lib/rate-limit.test.ts` — rate limiting, blocking, IP tracking (5 tests)
+- **Zod validation** added to 4 API routes:
+  - `app/api/notification-settings/route.ts` — Zod schema for PATCH body (replaces `as` cast)
+  - `app/api/charts/route.ts` — Zod schema for query params (clanId, dateFrom, dateTo, player, source)
+  - `app/api/messages/[id]/route.ts` — UUID validation for route param
+  - `app/api/notifications/[id]/route.ts` — UUID validation for route param
+- **Shared validation schemas**: `lib/api/validation.ts` — reusable `uuidSchema`, `notificationSettingsSchema`, `chartQuerySchema`.
+- **Try/catch wrappers** added to 5 API routes: charts, notifications, notification-settings, messages/[id], notifications/[id].
+- **Error consistency**: `use-events-data.ts` now uses `classifySupabaseError` instead of raw `error.message` (same pattern as `events-client.tsx`).
+- **i18n for error page**: `app/error.tsx` now uses `next-intl` translations instead of hardcoded German/English strings. New `errorPage` keys in both `messages/en.json` and `messages/de.json`.
+- **12 new Playwright API tests** for previously uncovered routes: admin/user-lookup, auth/forgot-password, messages/[id], messages/search-recipients, notifications/[id], notifications/fan-out.
+- **Config**: `vitest.config.ts`, `test:unit` / `test:unit:watch` scripts in `package.json`.
+
 ## Notable Bug Fixes & Changes (Feb 2026)
 
 - **Events RLS fix**: Old events RLS policies used `is_clan_admin()` (owner/admin only). Updated to `has_permission('event:create')` etc., enabling moderators and editors to create/edit/delete events. Applied via the `roles_permissions_cleanup.sql` migration.
@@ -259,11 +278,25 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-## Test Suite (2026-02-10)
+## Test Suite (2026-02-11)
+
+### Unit Tests (Vitest)
+
+- **52 tests** across **4 test files** in `lib/`. Runs via `npm run test:unit`.
+- Config: `vitest.config.ts` with `@/` path alias.
+
+| File                               | Tests | Description                             |
+| ---------------------------------- | ----- | --------------------------------------- |
+| `lib/supabase/error-utils.test.ts` | 12    | Error classification + i18n key mapping |
+| `lib/permissions.test.ts`          | 30    | Roles, validation, permission helpers   |
+| `lib/date-format.test.ts`          | 5     | Formatting, locale, edge cases          |
+| `lib/rate-limit.test.ts`           | 5     | Rate limiting, blocking, IP tracking    |
+
+### E2E Tests (Playwright)
 
 Comprehensive Playwright test suite covering all page functionality, organized by feature area.
 
-- **~240 tests** across **27 spec files** in `tests/`, running on 4 browser projects (chromium, firefox, webkit, mobile-chrome).
+- **~250 tests** across **27 spec files** in `tests/`, running on 4 browser projects (chromium, firefox, webkit, mobile-chrome).
 - **Pre-authenticated storageState**: `tests/auth.setup.ts` runs once before all projects, logging in as all 6 test roles and saving browser state to `tests/.auth/{role}.json`. Tests declare their role via `test.use({ storageState: storageStatePath("role") })` — no per-test login overhead.
 - **Auth helper** at `tests/helpers/auth.ts` — exports `storageStatePath(role)` (preferred), `loginAs(page, role)` (fallback for per-test role overrides), `TEST_USERS`, `TEST_PASSWORD`, `TestRole`.
 - **Test user setup**: `Documentation/test-user-setup.sql` — creates roles for the pre-provisioned test users.
@@ -277,7 +310,7 @@ Comprehensive Playwright test suite covering all page functionality, organized b
 | Smoke / page loads   | `smoke.spec.ts`             | 3     | No    |
 | Auth forms           | `auth.spec.ts`              | 11    | No    |
 | Navigation / sidebar | `navigation.spec.ts`        | 6     | Mixed |
-| API contracts        | `api-endpoints.spec.ts`     | 18    | No    |
+| API contracts        | `api-endpoints.spec.ts`     | 28    | No    |
 | CMS (5 files)        | `cms-*.spec.ts`             | 36    | Mixed |
 | News / Articles      | `news.spec.ts`              | 6     | Yes   |
 | Events / Calendar    | `events.spec.ts`            | 6     | Yes   |
@@ -306,6 +339,8 @@ Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
    - Implement member directory with search, filter by clan/rank.
 3. **SEO content expansion**
    - Increase word count on thin public pages (home, about, contact) if SEO ranking matters.
+4. **Add Vitest to CI**
+   - Add `npm run test:unit` step to the GitHub Actions CI workflow for automated unit test coverage on push/PR.
 
 ## Website Audit (Feb 2026) — Completed
 

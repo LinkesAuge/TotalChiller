@@ -75,9 +75,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     body: body.body?.trim() || null,
     reference_id: body.reference_id,
   }));
-  const { error: insertError } = await serviceClient
-    .from("notifications")
-    .insert(notificationRows);
+  const { error: insertError } = await serviceClient.from("notifications").insert(notificationRows);
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }

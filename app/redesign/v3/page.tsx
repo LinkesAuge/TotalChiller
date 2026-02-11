@@ -31,7 +31,9 @@ function RedesignV3Page(): JSX.Element {
           </div>
           <div style={styles.navPills}>
             {["Dashboard", "News", "Events", "Charts", "Admin"].map((label, i) => (
-              <a key={label} href="#" style={i === 0 ? styles.navPillActive : styles.navPill} className="v3-nav-link">{label}</a>
+              <a key={label} href="#" style={i === 0 ? styles.navPillActive : styles.navPill} className="v3-nav-link">
+                {label}
+              </a>
             ))}
           </div>
           <div style={styles.topBarRight}>
@@ -54,11 +56,19 @@ function RedesignV3Page(): JSX.Element {
             <div style={styles.heroOverlay} />
             <div style={styles.heroInner}>
               <div style={styles.heroTag}>Community Hub</div>
-              <h1 style={styles.heroTitle}>Welcome back,<br /><span style={styles.heroName}>DragonKnight</span></h1>
+              <h1 style={styles.heroTitle}>
+                Welcome back,
+                <br />
+                <span style={styles.heroName}>DragonKnight</span>
+              </h1>
               <p style={styles.heroDesc}>Your clan is performing well this week. 3 events coming up.</p>
               <div style={styles.heroActions}>
-                <button style={styles.heroPrimary} className="v3-action">Upload CSV</button>
-                <button style={styles.heroSecondary} className="v3-action">View Charts</button>
+                <button style={styles.heroPrimary} className="v3-action">
+                  Upload CSV
+                </button>
+                <button style={styles.heroSecondary} className="v3-action">
+                  View Charts
+                </button>
               </div>
             </div>
           </div>
@@ -67,7 +77,9 @@ function RedesignV3Page(): JSX.Element {
           <div style={styles.statBento} className="v3-bento">
             <div style={styles.statMini}>
               <span style={styles.statIcon}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9a34a" strokeWidth="2"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9a34a" strokeWidth="2">
+                  <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
               </span>
               <span style={styles.statTrend}>+8.2%</span>
             </div>
@@ -75,8 +87,16 @@ function RedesignV3Page(): JSX.Element {
             <div style={styles.statDesc}>Personal Score</div>
             <div style={styles.sparkline}>
               <svg viewBox="0 0 120 32" style={{ width: "100%", height: 32 }}>
-                <polyline points="0,28 15,24 30,26 45,18 60,20 75,12 90,14 105,6 120,8" fill="none" stroke="#c9a34a" strokeWidth="2" />
-                <polyline points="0,28 15,24 30,26 45,18 60,20 75,12 90,14 105,6 120,8 120,32 0,32" fill="url(#sparkGrad)" />
+                <polyline
+                  points="0,28 15,24 30,26 45,18 60,20 75,12 90,14 105,6 120,8"
+                  fill="none"
+                  stroke="#c9a34a"
+                  strokeWidth="2"
+                />
+                <polyline
+                  points="0,28 15,24 30,26 45,18 60,20 75,12 90,14 105,6 120,8 120,32 0,32"
+                  fill="url(#sparkGrad)"
+                />
                 <defs>
                   <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#c9a34a" stopOpacity="0.2" />
@@ -91,7 +111,10 @@ function RedesignV3Page(): JSX.Element {
           <div style={styles.statBento} className="v3-bento">
             <div style={styles.statMini}>
               <span style={styles.statIcon}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a6ea0" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" /><circle cx="9" cy="7" r="4" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a6ea0" strokeWidth="2">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
               </span>
               <span style={{ ...styles.statTrend, color: "#4a9960" }}>+12%</span>
             </div>
@@ -99,7 +122,12 @@ function RedesignV3Page(): JSX.Element {
             <div style={styles.statDesc}>Clan Score</div>
             <div style={styles.sparkline}>
               <svg viewBox="0 0 120 32" style={{ width: "100%", height: 32 }}>
-                <polyline points="0,26 20,22 40,24 60,16 80,14 100,10 120,6" fill="none" stroke="#4a6ea0" strokeWidth="2" />
+                <polyline
+                  points="0,26 20,22 40,24 60,16 80,14 100,10 120,6"
+                  fill="none"
+                  stroke="#4a6ea0"
+                  strokeWidth="2"
+                />
                 <polyline points="0,26 20,22 40,24 60,16 80,14 100,10 120,6 120,32 0,32" fill="url(#sparkGrad2)" />
                 <defs>
                   <linearGradient id="sparkGrad2" x1="0" y1="0" x2="0" y2="1">
@@ -138,9 +166,38 @@ function RedesignV3Page(): JSX.Element {
             <div style={styles.gaugeCenter}>
               <svg viewBox="0 0 120 120" style={{ width: 100, height: 100 }}>
                 <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="8" />
-                <circle cx="60" cy="60" r="52" fill="none" stroke="#c9a34a" strokeWidth="8" strokeDasharray={`${87 * 3.27} ${100 * 3.27}`} strokeLinecap="round" transform="rotate(-90 60 60)" />
-                <text x="60" y="56" textAnchor="middle" fill="#f2e6c9" fontSize="20" fontWeight="700" fontFamily="'JetBrains Mono', monospace">78</text>
-                <text x="60" y="72" textAnchor="middle" fill="#5c5040" fontSize="11" fontFamily="'JetBrains Mono', monospace">/90</text>
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="52"
+                  fill="none"
+                  stroke="#c9a34a"
+                  strokeWidth="8"
+                  strokeDasharray={`${87 * 3.27} ${100 * 3.27}`}
+                  strokeLinecap="round"
+                  transform="rotate(-90 60 60)"
+                />
+                <text
+                  x="60"
+                  y="56"
+                  textAnchor="middle"
+                  fill="#f2e6c9"
+                  fontSize="20"
+                  fontWeight="700"
+                  fontFamily="'JetBrains Mono', monospace"
+                >
+                  78
+                </text>
+                <text
+                  x="60"
+                  y="72"
+                  textAnchor="middle"
+                  fill="#5c5040"
+                  fontSize="11"
+                  fontFamily="'JetBrains Mono', monospace"
+                >
+                  /90
+                </text>
               </svg>
             </div>
             <div style={styles.gaugeFooter}>
@@ -215,7 +272,18 @@ function RedesignV3Page(): JSX.Element {
                 { name: "PhoenixRider", score: 2540, pct: 60 },
               ].map((player, i) => (
                 <div key={i} style={styles.lbRow}>
-                  <span style={{ ...styles.lbRank, ...(i === 0 ? styles.lbRankGold : i === 1 ? styles.lbRankSilver : i === 2 ? styles.lbRankBronze : {}) }}>
+                  <span
+                    style={{
+                      ...styles.lbRank,
+                      ...(i === 0
+                        ? styles.lbRankGold
+                        : i === 1
+                          ? styles.lbRankSilver
+                          : i === 2
+                            ? styles.lbRankBronze
+                            : {}),
+                    }}
+                  >
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span style={styles.lbName}>{player.name}</span>
@@ -270,7 +338,9 @@ function RedesignV3Page(): JSX.Element {
         </div>
       </footer>
 
-      <a href="/redesign" style={styles.backLink}>&larr; Back to versions</a>
+      <a href="/redesign" style={styles.backLink}>
+        &larr; Back to versions
+      </a>
     </div>
   );
 }

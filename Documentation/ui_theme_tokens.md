@@ -3,6 +3,7 @@
 This file captures the reusable theme tokens from the Fortress Sanctum design system. These tokens are defined as CSS variables in `app/globals.css`.
 
 ## CSS Variables
+
 ```css
 :root {
   /* Sidebar */

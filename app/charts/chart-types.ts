@@ -47,11 +47,4 @@ interface ChartsApiParams {
   readonly source?: string;
 }
 
-export type {
-  ScoreOverTimePoint,
-  TopPlayerPoint,
-  ChestTypePoint,
-  ChartSummary,
-  ChartsApiResponse,
-  ChartsApiParams,
-};
+export type { ScoreOverTimePoint, TopPlayerPoint, ChestTypePoint, ChartSummary, ChartsApiResponse, ChartsApiParams };

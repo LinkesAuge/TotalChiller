@@ -27,34 +27,35 @@ The current CMS has 6 core problems:
 
 **Existing table** — `site_content` (text fields, bilingual DE/EN):
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| page | text | Page identifier (e.g. "home", "about") |
+| Column      | Type | Purpose                                         |
+| ----------- | ---- | ----------------------------------------------- |
+| page        | text | Page identifier (e.g. "home", "about")          |
 | section_key | text | Section within page (e.g. "aboutUs", "mission") |
-| field_key | text | Specific field (e.g. "title", "text") |
-| content_de | text | German content |
-| content_en | text | English content |
+| field_key   | text | Specific field (e.g. "title", "text")           |
+| content_de  | text | German content                                  |
+| content_en  | text | English content                                 |
 
 **New table** — `site_list_items` (structured list items with icons, badges, links):
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | uuid | Primary key |
-| page | text | Page identifier |
-| section_key | text | Section (e.g. "whyJoin", "publicNews") |
-| sort_order | integer | Display order |
-| text_de | text | German text (Markdown supported) |
-| text_en | text | English text (Markdown supported) |
-| badge_de | text | German badge text (optional) |
-| badge_en | text | English badge text (optional) |
-| link_url | text | Link URL (optional) |
-| icon | text | Preset identifier or custom SVG storage URL |
-| icon_type | text | "preset" or "custom" |
+| Column      | Type    | Purpose                                     |
+| ----------- | ------- | ------------------------------------------- |
+| id          | uuid    | Primary key                                 |
+| page        | text    | Page identifier                             |
+| section_key | text    | Section (e.g. "whyJoin", "publicNews")      |
+| sort_order  | integer | Display order                               |
+| text_de     | text    | German text (Markdown supported)            |
+| text_en     | text    | English text (Markdown supported)           |
+| badge_de    | text    | German badge text (optional)                |
+| badge_en    | text    | English badge text (optional)               |
+| link_url    | text    | Link URL (optional)                         |
+| icon        | text    | Preset identifier or custom SVG storage URL |
+| icon_type   | text    | "preset" or "custom"                        |
 
 Composite index on `(page, section_key, sort_order)`.
 RLS: Public read, admin-only write via `is_any_admin()`.
 
 **New storage bucket** — `cms-icons`:
+
 - SVG files only, max 50KB
 - Public read, admin-only upload
 - Naming: `{page}_{section}_{uuid}.svg`
@@ -129,17 +130,17 @@ Playwright tests (5 scenarios):
 
 ## Design Decisions Log
 
-| Decision | Choice | Reasoning |
-|----------|--------|-----------|
-| Markdown component | New CmsMarkdown (configurable) | ForumMarkdown has forum-specific features (thumbnails, preview truncation) that interfere with CMS |
-| Embeds in CMS | YouTube/Image/Video supported | User confirmed CMS should support embeds for Clan-News etc. |
-| Permission model | Admin-only (is_admin) | Simpler, more secure; eliminates client/server mismatch |
-| List storage | Separate `site_list_items` table | Most flexible; proper sort_order, icons, badges, links per item |
-| List item text | Markdown supported | User confirmed list items should support formatting |
-| List item icons | Preset + Custom SVG upload | User confirmed custom SVGs should be supported from Phase 1 |
-| Drag-and-drop | Native HTML Drag API | No extra package dependency |
-| Custom SVG timing | Phase 1 (immediate) | User chose "direkt in Phase 1 einbauen" |
-| normalizeContent | Remove completely | Root cause of Markdown rendering issues |
+| Decision           | Choice                           | Reasoning                                                                                          |
+| ------------------ | -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Markdown component | New CmsMarkdown (configurable)   | ForumMarkdown has forum-specific features (thumbnails, preview truncation) that interfere with CMS |
+| Embeds in CMS      | YouTube/Image/Video supported    | User confirmed CMS should support embeds for Clan-News etc.                                        |
+| Permission model   | Admin-only (is_admin)            | Simpler, more secure; eliminates client/server mismatch                                            |
+| List storage       | Separate `site_list_items` table | Most flexible; proper sort_order, icons, badges, links per item                                    |
+| List item text     | Markdown supported               | User confirmed list items should support formatting                                                |
+| List item icons    | Preset + Custom SVG upload       | User confirmed custom SVGs should be supported from Phase 1                                        |
+| Drag-and-drop      | Native HTML Drag API             | No extra package dependency                                                                        |
+| Custom SVG timing  | Phase 1 (immediate)              | User chose "direkt in Phase 1 einbauen"                                                            |
+| normalizeContent   | Remove completely                | Root cause of Markdown rendering issues                                                            |
 
 ## Implementation Phases
 

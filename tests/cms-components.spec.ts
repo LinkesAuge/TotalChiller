@@ -6,7 +6,6 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("CMS Components", () => {
-
   test("EditableText displays content (not raw markdown)", async ({ page }) => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle");

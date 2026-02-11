@@ -33,16 +33,9 @@ function SidebarProvider({ children }: SidebarProviderProps): JSX.Element {
 
   const width = isOpen ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
 
-  const value = useMemo<SidebarContextValue>(
-    () => ({ isOpen, toggle, width }),
-    [isOpen, toggle, width],
-  );
+  const value = useMemo<SidebarContextValue>(() => ({ isOpen, toggle, width }), [isOpen, toggle, width]);
 
-  return (
-    <SidebarContext.Provider value={value}>
-      {children}
-    </SidebarContext.Provider>
-  );
+  return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
 }
 
 /**

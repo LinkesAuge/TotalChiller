@@ -108,14 +108,9 @@ export default function RadixSelect({
               <div className="select-empty">No matches</div>
             ) : (
               filteredOptions.map((option) => {
-              const optionValue = option.value === "" ? emptyValue : option.value;
-              return (
-                  <Select.Item
-                    key={optionValue}
-                    value={optionValue}
-                    className="select-item"
-                    disabled={option.disabled}
-                  >
+                const optionValue = option.value === "" ? emptyValue : option.value;
+                return (
+                  <Select.Item key={optionValue} value={optionValue} className="select-item" disabled={option.disabled}>
                     <Select.ItemText>
                       {renderOptionContent ? renderOptionContent(option) : option.label}
                     </Select.ItemText>

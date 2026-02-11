@@ -32,23 +32,36 @@ function RedesignV2Page(): JSX.Element {
         <div style={styles.navInner}>
           <div style={styles.brand}>
             <div style={styles.brandIcon}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e4c778" strokeWidth="2.5"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" /><line x1="12" y1="22" x2="12" y2="15.5" /><line x1="22" y1="8.5" x2="12" y2="15.5" /><line x1="2" y1="8.5" x2="12" y2="15.5" /></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e4c778" strokeWidth="2.5">
+                <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
+                <line x1="12" y1="22" x2="12" y2="15.5" />
+                <line x1="22" y1="8.5" x2="12" y2="15.5" />
+                <line x1="2" y1="8.5" x2="12" y2="15.5" />
+              </svg>
             </div>
             <span style={styles.brandName}>TotalChiller</span>
           </div>
           <div style={styles.navCenter}>
             {["Dashboard", "News", "Events", "Charts", "Messages"].map((label) => (
-              <a key={label} href="#" style={styles.navLinkStyle} className="v2-nav-link">{label}</a>
+              <a key={label} href="#" style={styles.navLinkStyle} className="v2-nav-link">
+                {label}
+              </a>
             ))}
           </div>
           <div style={styles.navEnd}>
             <div style={styles.searchBox}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5c5040" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5c5040" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
               <span style={styles.searchPlaceholder}>Search...</span>
               <span style={styles.searchKbd}>&#8984;K</span>
             </div>
             <button style={styles.bellBtn} aria-label="Notifications">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+              </svg>
               <span style={styles.bellDot} />
             </button>
             <div style={styles.avatar}>
@@ -68,11 +81,16 @@ function RedesignV2Page(): JSX.Element {
           </div>
           <div style={styles.headerActions}>
             <button style={styles.outlineBtn} className="v2-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+              </svg>
               Upload CSV
             </button>
             <button style={styles.goldBtn} className="v2-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
               New Post
             </button>
           </div>
@@ -82,13 +100,30 @@ function RedesignV2Page(): JSX.Element {
         <div style={styles.statsRow}>
           {[
             { label: "Personal Score", value: "12,450", change: "+8%", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
-            { label: "Clan Score", value: "210,980", change: "+12%", icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2M9 7a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" },
-            { label: "Chest Submissions", value: "78 / 90", change: "87%", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
-            { label: "Active Members", value: "42", change: "+3", icon: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2M9 7a4 4 0 100-8 4 4 0 000 8z" },
+            {
+              label: "Clan Score",
+              value: "210,980",
+              change: "+12%",
+              icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2M9 7a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+            },
+            {
+              label: "Chest Submissions",
+              value: "78 / 90",
+              change: "87%",
+              icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+            },
+            {
+              label: "Active Members",
+              value: "42",
+              change: "+3",
+              icon: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2M9 7a4 4 0 100-8 4 4 0 000 8z",
+            },
           ].map((stat, i) => (
             <div key={i} style={styles.statCard} className="v2-glass v2-stat-card">
               <div style={styles.statIconBox}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9a34a" strokeWidth="1.5"><path d={stat.icon} /></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9a34a" strokeWidth="1.5">
+                  <path d={stat.icon} />
+                </svg>
               </div>
               <div>
                 <div style={styles.statLabel}>{stat.label}</div>
@@ -118,7 +153,9 @@ function RedesignV2Page(): JSX.Element {
                   <div key={i} style={styles.listRow}>
                     <div style={{ ...styles.listDot, background: item.tagColor }} />
                     <span style={styles.listText}>{item.text}</span>
-                    <span style={{ ...styles.listTag, color: item.tagColor, borderColor: `${item.tagColor}44` }}>{item.tag}</span>
+                    <span style={{ ...styles.listTag, color: item.tagColor, borderColor: `${item.tagColor}44` }}>
+                      {item.tag}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -144,7 +181,9 @@ function RedesignV2Page(): JSX.Element {
                     <div style={styles.newsAvatar}>{item.author[0]}</div>
                     <div style={styles.newsInfo}>
                       <div style={styles.newsTitle}>{item.title}</div>
-                      <div style={styles.newsMeta}>{item.author} &bull; {item.time}</div>
+                      <div style={styles.newsMeta}>
+                        {item.author} &bull; {item.time}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -168,7 +207,13 @@ function RedesignV2Page(): JSX.Element {
                       <span style={{ ...styles.progressValue, color: bar.color }}>{bar.value}%</span>
                     </div>
                     <div style={styles.progressTrack}>
-                      <div style={{ ...styles.progressFill, width: `${bar.value}%`, background: `linear-gradient(90deg, ${bar.color}66, ${bar.color})` }} />
+                      <div
+                        style={{
+                          ...styles.progressFill,
+                          width: `${bar.value}%`,
+                          background: `linear-gradient(90deg, ${bar.color}66, ${bar.color})`,
+                        }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -194,7 +239,9 @@ function RedesignV2Page(): JSX.Element {
                     <div style={{ ...styles.eventLine, background: ev.color }} />
                     <div style={styles.eventInfo}>
                       <div style={styles.eventName}>{ev.name}</div>
-                      <div style={styles.eventDate}>{ev.date}, {ev.time}</div>
+                      <div style={styles.eventDate}>
+                        {ev.date}, {ev.time}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -209,12 +256,20 @@ function RedesignV2Page(): JSX.Element {
               <div style={styles.actionGrid}>
                 {[
                   { label: "Upload CSV", icon: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" },
-                  { label: "Review Rules", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+                  {
+                    label: "Review Rules",
+                    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+                  },
                   { label: "Charts", icon: "M18 20V10M12 20V4M6 20v-6" },
-                  { label: "Calendar", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+                  {
+                    label: "Calendar",
+                    icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+                  },
                 ].map((action, i) => (
                   <button key={i} style={styles.actionBtn} className="v2-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9a34a" strokeWidth="1.5"><path d={action.icon} /></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9a34a" strokeWidth="1.5">
+                      <path d={action.icon} />
+                    </svg>
                     <span>{action.label}</span>
                   </button>
                 ))}
@@ -235,7 +290,12 @@ function RedesignV2Page(): JSX.Element {
                   { name: "StormBreaker", score: "2,980", rank: 4 },
                 ].map((player, i) => (
                   <div key={i} style={styles.playerRow}>
-                    <span style={{ ...styles.rankBadge, ...(i === 0 ? styles.rankGold : i === 1 ? styles.rankSilver : i === 2 ? styles.rankBronze : {}) }}>
+                    <span
+                      style={{
+                        ...styles.rankBadge,
+                        ...(i === 0 ? styles.rankGold : i === 1 ? styles.rankSilver : i === 2 ? styles.rankBronze : {}),
+                      }}
+                    >
                       {player.rank}
                     </span>
                     <span style={styles.playerName}>{player.name}</span>
@@ -254,7 +314,9 @@ function RedesignV2Page(): JSX.Element {
         <span>Total Battle Clan Platform</span>
       </footer>
 
-      <a href="/redesign" style={styles.backLink}>&larr; Back to versions</a>
+      <a href="/redesign" style={styles.backLink}>
+        &larr; Back to versions
+      </a>
     </div>
   );
 }

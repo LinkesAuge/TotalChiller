@@ -7,7 +7,6 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("CMS Public View (no login)", () => {
-
   test("homepage loads all sections", async ({ page }) => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle");

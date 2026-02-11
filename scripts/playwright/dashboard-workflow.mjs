@@ -28,7 +28,7 @@ const outputDir = resolve(repoRoot, "output", "playwright");
 mkdirSync(outputDir, { recursive: true });
 const outputDirPosix = outputDir.replace(/\\/g, "/");
 const npmCliPath = resolve(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
-const npmRunner = existsSync(npmCliPath) ? process.execPath : (process.platform === "win32" ? "npm.cmd" : "npm");
+const npmRunner = existsSync(npmCliPath) ? process.execPath : process.platform === "win32" ? "npm.cmd" : "npm";
 
 function runPwcli(args) {
   const fullArgs = [

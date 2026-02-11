@@ -15,9 +15,9 @@ function AdminSectionBadge(): JSX.Element {
         ? t("validation")
         : tab === "corrections"
           ? t("corrections")
-        : tab === "logs"
-          ? t("logs")
-          : t("clans");
+          : tab === "logs"
+            ? t("logs")
+            : t("clans");
   return <span className="badge">{badgeLabel}</span>;
 }
 

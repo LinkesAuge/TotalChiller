@@ -12,14 +12,7 @@ interface SearchInputProps {
 /**
  * Renders a standardized labeled search input.
  */
-function SearchInput({
-  id,
-  label,
-  value,
-  onChange,
-  placeholder,
-  inputClassName,
-}: SearchInputProps): JSX.Element {
+function SearchInput({ id, label, value, onChange, placeholder, inputClassName }: SearchInputProps): JSX.Element {
   return (
     <>
       <label htmlFor={id} className="text-muted">

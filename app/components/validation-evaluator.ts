@@ -61,10 +61,7 @@ function buildRuleIndex(rules: readonly ValidationRuleEntry[]): ValidationFieldG
   return groups;
 }
 
-function evaluateField(
-  rules: ValidationRuleGroup | undefined,
-  value: string,
-): "valid" | "invalid" | "neutral" {
+function evaluateField(rules: ValidationRuleGroup | undefined, value: string): "valid" | "invalid" | "neutral" {
   if (!rules) {
     return "neutral";
   }

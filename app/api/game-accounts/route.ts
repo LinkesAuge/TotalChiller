@@ -82,6 +82,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
+  /* Auto-set as default if the user has no default game account yet */
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("default_game_account_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!profile?.default_game_account_id && insertedAccount) {
+    await supabase.from("profiles").update({ default_game_account_id: insertedAccount.id }).eq("id", userId);
+  }
   return NextResponse.json({ data: insertedAccount }, { status: 201 });
 }
 

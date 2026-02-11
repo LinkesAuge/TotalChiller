@@ -16,8 +16,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+interface MessagesPageProps {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
 /** Async content that requires auth — streamed via Suspense. */
-async function MessagesContent(): Promise<JSX.Element> {
+async function MessagesContent({ initialRecipientId }: { readonly initialRecipientId?: string }): Promise<JSX.Element> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
@@ -29,7 +33,7 @@ async function MessagesContent(): Promise<JSX.Element> {
       <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
       <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_captain.png" />
       <div className="content-inner">
-        <MessagesClient userId={data.user.id} />
+        <MessagesClient userId={data.user.id} initialRecipientId={initialRecipientId} />
       </div>
     </>
   );
@@ -37,11 +41,14 @@ async function MessagesContent(): Promise<JSX.Element> {
 
 /**
  * Renders the messaging page with Suspense streaming.
+ * Supports ?to=USER_ID to pre-fill the compose form with a recipient.
  */
-function MessagesPage(): JSX.Element {
+async function MessagesPage({ searchParams }: MessagesPageProps): Promise<JSX.Element> {
+  const params = await searchParams;
+  const toParam = typeof params.to === "string" ? params.to : undefined;
   return (
     <Suspense fallback={<PageSkeleton />}>
-      <MessagesContent />
+      <MessagesContent initialRecipientId={toParam} />
     </Suspense>
   );
 }

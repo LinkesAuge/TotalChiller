@@ -1,9 +1,9 @@
 /**
  * Lightweight thumbnail extraction for forum posts.
- * Extracted from forum-markdown to allow dynamic import of the heavy ForumMarkdown component.
+ * Extracted to allow dynamic import of the heavy AppMarkdown component.
  */
 
-import { extractYouTubeId, isImageUrl, isVideoUrl } from "../components/markdown-renderers";
+import { extractYouTubeId, isImageUrl, isVideoUrl } from "@/lib/markdown/renderers";
 
 export interface PostThumbnail {
   /** "image" | "youtube" | "video" | "link" */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import type { PostgrestError } from "@supabase/supabase-js";
 import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
@@ -92,6 +92,9 @@ function EventsClient(): JSX.Element {
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>("none");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>("");
   const [recurrenceOngoing, setRecurrenceOngoing] = useState<boolean>(false);
+  const [bannerUrl, setBannerUrl] = useState<string>("");
+  const [isBannerUploading, setIsBannerUploading] = useState<boolean>(false);
+  const bannerFileRef = useRef<HTMLInputElement>(null);
   const [upcomingLimit, setUpcomingLimit] = useState<number>(UPCOMING_PAGE_SIZE);
 
   /* ── Computed data ── */
@@ -190,6 +193,28 @@ function EventsClient(): JSX.Element {
     [pushToast, t],
   );
 
+  /* ── Banner upload ── */
+
+  const STORAGE_BUCKET = "forum-images";
+
+  async function handleBannerUpload(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.target.files?.[0];
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!file || !userId) return;
+    setIsBannerUploading(true);
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${userId}/${Date.now()}_event_banner_${safeName}`;
+    const { error: uploadErr } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file);
+    setIsBannerUploading(false);
+    if (uploadErr) {
+      pushToast(`${t("saveFailed")}: ${uploadErr.message}`);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    setBannerUrl(urlData.publicUrl);
+  }
+
   /* ── Event handlers ── */
 
   function applyTemplate(templateValue: string): void {
@@ -213,6 +238,7 @@ function EventsClient(): JSX.Element {
     const hasEnd = Boolean(tpl.recurrence_end_date);
     setRecurrenceEndDate(tpl.recurrence_end_date ?? "");
     setRecurrenceOngoing(tpl.recurrence_type !== "none" && !hasEnd);
+    setBannerUrl(tpl.banner_url ?? "");
   }
 
   function resetForm(): void {
@@ -227,6 +253,7 @@ function EventsClient(): JSX.Element {
     setRecurrenceType("none");
     setRecurrenceEndDate("");
     setRecurrenceOngoing(false);
+    setBannerUrl("");
     setEditingId("");
     setSelectedTemplate("none");
     setIsFormOpen(false);
@@ -264,6 +291,7 @@ function EventsClient(): JSX.Element {
     const hasEndDate = Boolean(source.recurrence_end_date);
     setRecurrenceEndDate(source.recurrence_end_date ?? "");
     setRecurrenceOngoing(source.recurrence_type !== "none" && !hasEndDate);
+    setBannerUrl(source.banner_url ?? "");
     setSelectedTemplate("none");
     setIsFormOpen(true);
     requestAnimationFrame(() => {
@@ -315,6 +343,7 @@ function EventsClient(): JSX.Element {
       created_by: userId,
       recurrence_type: recurrenceType,
       recurrence_end_date: recurrenceType !== "none" ? effectiveEndDate : null,
+      banner_url: bannerUrl || null,
     };
     setIsSaving(true);
     const isNewEvent = !editingId;
@@ -382,6 +411,7 @@ function EventsClient(): JSX.Element {
       organizer: organizer.trim() || null,
       recurrence_type: recurrenceType,
       recurrence_end_date: recurrenceType !== "none" ? effectiveRecurrenceEnd : null,
+      banner_url: bannerUrl || null,
     });
     setIsSavingTemplate(false);
     if (error) {
@@ -409,6 +439,7 @@ function EventsClient(): JSX.Element {
       organizer: entry.organizer,
       recurrence_type: entry.recurrence_type ?? "none",
       recurrence_end_date: entry.recurrence_end_date,
+      banner_url: entry.banner_url ?? null,
     });
     setIsSavingTemplate(false);
     if (error) {
@@ -607,6 +638,11 @@ function EventsClient(): JSX.Element {
             recurrenceEndDate={recurrenceEndDate}
             recurrenceOngoing={recurrenceOngoing}
             selectedTemplate={selectedTemplate}
+            bannerUrl={bannerUrl}
+            isBannerUploading={isBannerUploading}
+            bannerFileRef={bannerFileRef}
+            onBannerUrlChange={setBannerUrl}
+            onBannerUpload={handleBannerUpload}
             onTitleChange={setTitle}
             onDescriptionChange={setDescription}
             onLocationChange={setLocation}

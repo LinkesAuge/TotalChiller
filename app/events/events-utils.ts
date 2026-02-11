@@ -96,6 +96,7 @@ export function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon
       author_name: ev.author_name,
       recurrence_type: ev.recurrence_type,
       recurrence_end_date: ev.recurrence_end_date,
+      banner_url: ev.banner_url,
       isVirtual: false,
     });
     if (ev.recurrence_type === "none") continue;
@@ -120,6 +121,7 @@ export function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon
         author_name: ev.author_name,
         recurrence_type: ev.recurrence_type,
         recurrence_end_date: ev.recurrence_end_date,
+        banner_url: ev.banner_url,
         isVirtual: true,
       });
       advanceCursorDate(cursor, ev.recurrence_type);

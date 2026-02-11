@@ -7,7 +7,7 @@
  * - Drag-and-drop reordering (native HTML Drag API)
  * - Add / remove items
  * - Inline edit modal for text (DE/EN), badge, link, icon
- * - Markdown rendering for list item text via CmsMarkdown
+ * - Markdown rendering for list item text via AppMarkdown
  * - Preset icon selection + custom SVG upload (cms-icons bucket)
  * - Badge display per item
  */
@@ -16,7 +16,7 @@ import dynamic from "next/dynamic";
 import { useState, useRef, useCallback, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
 
-const CmsMarkdown = dynamic(() => import("./cms-markdown"), {
+const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-20 rounded" />,
 });
 import type { ListItem } from "./use-site-content";
@@ -326,7 +326,7 @@ function EditableList({
 
           {/* Content */}
           <div className="editable-list-content">
-            <CmsMarkdown content={getText(item)} />
+            <AppMarkdown content={getText(item)} variant="cms" />
           </div>
 
           {/* Badge */}

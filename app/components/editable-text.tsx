@@ -9,7 +9,7 @@
  * Rendering paths (explicit, no implicit behavior):
  * 1. `children` provided → renders children in original Tag (no CMS text)
  * 2. `singleLine` → plain text in original Tag, simple DE/EN inputs for editing
- * 3. `markdown={true}` → CmsMarkdown in <div>, CmsMarkdownToolbar for editing
+ * 3. `markdown={true}` → AppMarkdown in <div>, AppMarkdownToolbar for editing
  * 4. `markdown={false}` (default) → plain text with <br> in <div>
  */
 
@@ -17,10 +17,10 @@ import dynamic from "next/dynamic";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
-const CmsMarkdown = dynamic(() => import("./cms-markdown"), {
+const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-20 rounded" />,
 });
-import CmsMarkdownToolbar from "./cms-markdown-toolbar";
+import AppMarkdownToolbar from "@/lib/markdown/app-markdown-toolbar";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /* ─── Types ─── */
@@ -36,7 +36,7 @@ interface EditableTextProps {
   readonly locale: string;
   /** The English content (for bilingual editing) */
   readonly valueEn?: string;
-  /** Render as markdown via CmsMarkdown (default: false) */
+  /** Render as markdown via AppMarkdown (default: false) */
   readonly markdown?: boolean;
   /** Use a single-line input instead of textarea */
   readonly singleLine?: boolean;
@@ -159,7 +159,7 @@ function EditableText({
 
             {/* Markdown toolbar (only for markdown-enabled fields) */}
             {useMarkdownEditor && (
-              <CmsMarkdownToolbar
+              <AppMarkdownToolbar
                 textareaRef={currentRef}
                 value={currentValue}
                 onChange={currentSetter}
@@ -170,7 +170,7 @@ function EditableText({
 
             {showPreview && useMarkdownEditor ? (
               <div className="editable-text-preview">
-                <CmsMarkdown content={currentValue} />
+                <AppMarkdown content={currentValue} variant="cms" />
               </div>
             ) : (
               <textarea
@@ -272,11 +272,11 @@ function EditableText({
     );
   }
 
-  /* Path 3: markdown={true} → CmsMarkdown in <div> */
+  /* Path 3: markdown={true} → AppMarkdown in <div> */
   if (markdown) {
     return (
       <div className={`editable-text-wrap${canEdit ? " editable" : ""} ${className}`.trim()}>
-        <CmsMarkdown content={value} />
+        <AppMarkdown content={value} variant="cms" />
         {pencilBtn}
       </div>
     );

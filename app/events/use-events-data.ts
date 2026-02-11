@@ -19,7 +19,7 @@ function extractAuthorName(profile: ProfileJoin | null): string | null {
 
 /** Select columns for events, including author profile join. */
 const EVENTS_SELECT =
-  "id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date,author:profiles!events_created_by_profiles_fkey(display_name,username)";
+  "id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date,banner_url,author:profiles!events_created_by_profiles_fkey(display_name,username)";
 
 export interface UseEventsDataResult {
   readonly events: readonly EventRow[];
@@ -82,6 +82,7 @@ export function useEventsData(
           author_name: extractAuthorName(row.author as ProfileJoin | null),
           recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
           recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+          banner_url: (row.banner_url as string) ?? null,
         })) as EventRow[],
       );
     }
@@ -115,6 +116,7 @@ export function useEventsData(
           organizer: (row.organizer as string) ?? null,
           recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
           recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+          banner_url: (row.banner_url as string) ?? null,
         })),
       );
     }
@@ -172,6 +174,7 @@ export function useEventsData(
         author_name: extractAuthorName(row.author as ProfileJoin | null),
         recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
         recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+        banner_url: (row.banner_url as string) ?? null,
       })) as EventRow[],
     );
   }
@@ -195,6 +198,7 @@ export function useEventsData(
         organizer: (row.organizer as string) ?? null,
         recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
         recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+        banner_url: (row.banner_url as string) ?? null,
       })),
     );
   }

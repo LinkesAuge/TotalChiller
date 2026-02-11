@@ -14,6 +14,38 @@ export interface UpcomingEventsSidebarProps {
   readonly t: (key: string, values?: Record<string, string>) => string;
 }
 
+/** Returns a short weekday abbreviation and day number from a date string. */
+function getDateParts(dateString: string, locale: string): { weekday: string; day: string; month: string } {
+  const date = new Date(dateString);
+  return {
+    weekday: date.toLocaleDateString(locale, { weekday: "short" }),
+    day: String(date.getDate()),
+    month: date.toLocaleDateString(locale, { month: "short" }),
+  };
+}
+
+/** Returns a short time string (HH:MM) from a date string. */
+function getTimeString(dateString: string, locale: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+}
+
+/** Recurrence type label helper. */
+function getRecurrenceLabel(recurrenceType: string, t: (key: string) => string): string {
+  switch (recurrenceType) {
+    case "daily":
+      return t("recurrenceDailyLabel");
+    case "weekly":
+      return t("recurrenceWeeklyLabel");
+    case "biweekly":
+      return t("recurrenceBiweeklyLabel");
+    case "monthly":
+      return t("recurrenceMonthlyLabel");
+    default:
+      return "";
+  }
+}
+
 export function UpcomingEventsSidebar({
   upcomingEvents,
   upcomingLimit,
@@ -25,48 +57,135 @@ export function UpcomingEventsSidebar({
 }: UpcomingEventsSidebarProps): JSX.Element {
   return (
     <section className="events-upcoming-sidebar">
-      <div className="card-title mb-2.5">
-        {t("upcoming")} ({upcomingEvents.length})
+      <div className="upcoming-sidebar-header">
+        <h3 className="upcoming-sidebar-title">{t("upcoming")}</h3>
+        <span className="upcoming-sidebar-count">{upcomingEvents.length}</span>
       </div>
       {upcomingEvents.length === 0 ? (
-        <div className="text-muted text-sm">{t("noEvents")}</div>
+        <div className="upcoming-empty">{t("noEvents")}</div>
       ) : (
         <div className="events-upcoming-list">
-          {upcomingEvents.slice(0, upcomingLimit).map((entry) => (
-            <div key={`upcoming-${entry.displayKey}`} className="events-upcoming-row">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-semibold text-[0.84rem]">{entry.title}</span>
-                  {entry.recurrence_type !== "none" && (
-                    <span className="badge text-[0.58rem]">
-                      {entry.recurrence_type === "daily"
-                        ? t("recurrenceDailyLabel")
-                        : entry.recurrence_type === "weekly"
-                          ? t("recurrenceWeeklyLabel")
-                          : entry.recurrence_type === "biweekly"
-                            ? t("recurrenceBiweeklyLabel")
-                            : t("recurrenceMonthlyLabel")}
-                    </span>
+          {upcomingEvents.slice(0, upcomingLimit).map((entry) => {
+            const dateParts = getDateParts(entry.starts_at, locale);
+            return (
+              <article
+                key={`upcoming-${entry.displayKey}`}
+                className={`upcoming-event-card${entry.banner_url ? " has-banner" : ""}`}
+              >
+                {entry.banner_url && (
+                  <div className="upcoming-event-banner">
+                    <img src={entry.banner_url} alt="" />
+                  </div>
+                )}
+                <div className="upcoming-event-body">
+                  <div className="upcoming-event-date-badge">
+                    <span className="upcoming-event-date-weekday">{dateParts.weekday}</span>
+                    <span className="upcoming-event-date-day">{dateParts.day}</span>
+                    <span className="upcoming-event-date-month">{dateParts.month}</span>
+                  </div>
+                  <div className="upcoming-event-content">
+                    <div className="upcoming-event-top-row">
+                      <span className="upcoming-event-title">{entry.title}</span>
+                      {entry.recurrence_type !== "none" && (
+                        <span className="upcoming-event-recurrence">
+                          {getRecurrenceLabel(entry.recurrence_type, t)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="upcoming-event-meta">
+                      <span className="upcoming-event-meta-item">
+                        <svg
+                          width="11"
+                          height="11"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        {getTimeString(entry.starts_at, locale)}
+                        <span className="upcoming-event-duration">
+                          ({formatDuration(entry.starts_at, entry.ends_at)})
+                        </span>
+                      </span>
+                      {entry.location && (
+                        <span className="upcoming-event-meta-item">
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                          {entry.location}
+                        </span>
+                      )}
+                      {entry.organizer && (
+                        <span className="upcoming-event-meta-item">
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                          {entry.organizer}
+                        </span>
+                      )}
+                    </div>
+                    {entry.author_name && (
+                      <div className="upcoming-event-author">{t("createdBy", { name: entry.author_name })}</div>
+                    )}
+                  </div>
+                  {canManage && (
+                    <button
+                      className="upcoming-event-edit"
+                      type="button"
+                      onClick={() => onEditEvent(entry.id)}
+                      aria-label={t("editEvent")}
+                      title={t("editEvent")}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
                   )}
                 </div>
-                <div className="mt-0.5 text-[0.72rem] text-text-2">
-                  {formatLocalDateTime(entry.starts_at, locale)} ({formatDuration(entry.starts_at, entry.ends_at)})
-                  {entry.location && <> &bull; {entry.location}</>}
-                  {entry.organizer && <> &bull; {entry.organizer}</>}
-                </div>
-                {entry.author_name && (
-                  <div className="mt-0.5 text-[0.66rem] text-text-2">{t("createdBy", { name: entry.author_name })}</div>
-                )}
-              </div>
-              {canManage && (
-                <button className="button py-0.5 px-2" type="button" onClick={() => onEditEvent(entry.id)}>
-                  {t("editEvent")}
-                </button>
-              )}
-            </div>
-          ))}
+              </article>
+            );
+          })}
           {upcomingEvents.length > upcomingLimit && (
-            <button className="button mt-1 self-center" type="button" onClick={onShowMore}>
+            <button className="upcoming-show-more" type="button" onClick={onShowMore}>
               {t("show")} ({upcomingEvents.length - upcomingLimit} {t("more")})
             </button>
           )}

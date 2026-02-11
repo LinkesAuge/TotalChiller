@@ -1,8 +1,11 @@
 "use client";
 
 /**
- * Shared markdown renderer utilities used by both CmsMarkdown and ForumMarkdown.
+ * Shared markdown renderer utilities for AppMarkdown.
  * Provides media detection helpers and configurable react-markdown component overrides.
+ *
+ * The `buildMarkdownComponents(prefix, features)` function generates react-markdown
+ * component overrides using the given CSS class prefix (e.g. "forum-md" or "cms-md").
  */
 
 import type { Components } from "react-markdown";
@@ -178,5 +181,27 @@ export function buildMarkdownComponents(prefix: string, features: MarkdownFeatur
           </div>
         )
       : () => null,
+  };
+}
+
+/**
+ * Build simplified renderers for preview mode — no media embeds, placeholders instead.
+ * Uses the given CSS prefix for class names.
+ */
+export function buildPreviewComponents(prefix: string): Components {
+  return {
+    img: () => <span className={`${prefix}-media-placeholder`}>[Image]</span>,
+    a: ({ href, children }) => {
+      if (!href) return <>{children}</>;
+      const ytId = extractYouTubeId(href);
+      if (ytId) return <span className={`${prefix}-media-placeholder`}>[Video]</span>;
+      if (isImageUrl(href)) return <span className={`${prefix}-media-placeholder`}>[Image]</span>;
+      if (isVideoUrl(href)) return <span className={`${prefix}-media-placeholder`}>[Video]</span>;
+      return <span className={`${prefix}-link`}>{children}</span>;
+    },
+    code: ({ children }) => <code className={`${prefix}-code-inline`}>{children}</code>,
+    pre: ({ children }) => <>{children}</>,
+    blockquote: ({ children }) => <span className="italic text-text-muted">{children}</span>,
+    table: () => <span className={`${prefix}-media-placeholder`}>[Table]</span>,
   };
 }

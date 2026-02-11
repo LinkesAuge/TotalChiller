@@ -29,6 +29,7 @@ This runbook explains how to set up, run, and use the [THC] Chiller & Killer com
    - `Documentation/migrations/fix_broken_markdown.sql`
    - `Documentation/migrations/roles_permissions_cleanup.sql`
    - `Documentation/migrations/author_fk_constraints.sql`
+   - `Documentation/migrations/forum_rls_permissions.sql`
 
 ## 2) Local Environment
 
@@ -257,7 +258,20 @@ tests/
 - Tests handle conditional UI gracefully (e.g. "no clan access" messages).
 - Full design document: `Documentation/plans/2026-02-09-test-suite-design.md`.
 
-## 16) Troubleshooting
+## 16) Navigation Icon Preview (Design Tool)
+
+A standalone icon preview page is available at `public/icon-preview.html` for browsing game assets and choosing medieval-themed replacements for sidebar navigation icons.
+
+```
+npm run dev
+# Open: http://localhost:3000/icon-preview.html
+```
+
+See **handoff_summary.md → "Navigation Icons — Medieval Theme Overhaul"** for the full task list and suggested icon mapping.
+
+**Note**: Remove `icon-preview.html` before production deployment.
+
+## 17) Troubleshooting
 
 - If data insert fails: check RLS policies and membership
 - If user lookup fails: verify `profiles` trigger ran on signup

@@ -27,6 +27,7 @@ export interface ForumComment {
   readonly content: string;
   readonly score: number;
   readonly created_at: string;
+  readonly updated_at: string;
   readonly authorName?: string;
   readonly userVote?: number;
   readonly replies?: ForumComment[];

@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { RefObject } from "react";
 
-const ForumMarkdown = dynamic(() => import("./forum-markdown"), {
+const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
 });
 import { UpArrow, DownArrow, CommentIcon } from "./forum-icons";
@@ -34,17 +35,76 @@ export interface ForumPostDetailProps {
   readonly onCancelDelete: () => void;
   readonly onTogglePin: (post: ForumPost) => void;
   readonly onToggleLock: (post: ForumPost) => void;
+  readonly onEditComment: (commentId: string, newContent: string) => void;
+  readonly onDeleteComment: (commentId: string) => void;
   readonly detailRef?: RefObject<HTMLElement | null>;
 }
 
-function renderComment(
-  comment: ForumComment,
-  isReply: boolean,
-  selectedPost: ForumPost,
-  t: TFunction,
-  onVoteComment: (commentId: string, voteType: number) => void,
-  onReplyClick: (commentId: string) => void,
-): JSX.Element {
+/**
+ * Returns true if the given comment has been edited (updated_at differs from created_at).
+ */
+function isCommentEdited(comment: ForumComment): boolean {
+  if (!comment.updated_at || !comment.created_at) return false;
+  return new Date(comment.updated_at).getTime() - new Date(comment.created_at).getTime() > 2000;
+}
+
+/**
+ * Renders a single comment with vote column, body, actions, and inline edit/delete UI.
+ */
+function CommentItem({
+  comment,
+  isReply,
+  selectedPost,
+  currentUserId,
+  canManage,
+  t,
+  onVoteComment,
+  onReplyClick,
+  onEditComment,
+  onDeleteComment,
+}: {
+  readonly comment: ForumComment;
+  readonly isReply: boolean;
+  readonly selectedPost: ForumPost;
+  readonly currentUserId: string;
+  readonly canManage: boolean;
+  readonly t: TFunction;
+  readonly onVoteComment: (commentId: string, voteType: number) => void;
+  readonly onReplyClick: (commentId: string) => void;
+  readonly onEditComment: (commentId: string, newContent: string) => void;
+  readonly onDeleteComment: (commentId: string) => void;
+}): JSX.Element {
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editContent, setEditContent] = useState<string>("");
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
+
+  const isAuthor = currentUserId === comment.author_id;
+  const canEditThis = canManage || isAuthor;
+  const canDeleteThis = canManage || isAuthor;
+
+  function handleStartEdit(): void {
+    setEditContent(comment.content);
+    setIsEditing(true);
+    setIsConfirmingDelete(false);
+  }
+
+  function handleSaveEdit(): void {
+    if (!editContent.trim()) return;
+    onEditComment(comment.id, editContent.trim());
+    setIsEditing(false);
+    setEditContent("");
+  }
+
+  function handleCancelEdit(): void {
+    setIsEditing(false);
+    setEditContent("");
+  }
+
+  function handleConfirmDelete(): void {
+    onDeleteComment(comment.id);
+    setIsConfirmingDelete(false);
+  }
+
   return (
     <div className="forum-comment">
       <div className="forum-comment-vote">
@@ -68,18 +128,71 @@ function renderComment(
       </div>
       <div className="forum-comment-body">
         <div className="forum-comment-meta">
-          <strong>{comment.authorName}</strong> · {formatTimeAgo(comment.created_at, t)}
+          <strong>{comment.authorName}</strong>
+          <span>&middot;</span>
+          <span>{formatTimeAgo(comment.created_at, t)}</span>
+          {isCommentEdited(comment) && <span className="forum-comment-edited">({t("commentEdited")})</span>}
         </div>
-        <div className="forum-comment-text">
-          <ForumMarkdown content={comment.content} />
-        </div>
-        <div className="forum-comment-actions">
-          {!isReply && selectedPost && !selectedPost.is_locked && (
-            <button className="forum-comment-action-btn" onClick={() => onReplyClick(comment.id)} type="button">
-              {t("reply")}
+        {isEditing ? (
+          <div className="forum-comment-edit-form">
+            <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={3} />
+            <div className="forum-comment-edit-actions">
+              <button
+                className="button primary py-1 px-3"
+                onClick={handleSaveEdit}
+                disabled={!editContent.trim()}
+                style={{ fontSize: "0.75rem" }}
+              >
+                {t("saveEdit")}
+              </button>
+              <button className="button py-1 px-3" onClick={handleCancelEdit} style={{ fontSize: "0.75rem" }}>
+                {t("cancelEdit")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="forum-comment-text">
+            <AppMarkdown content={comment.content} />
+          </div>
+        )}
+        {!isEditing && (
+          <div className="forum-comment-actions">
+            {!isReply && selectedPost && !selectedPost.is_locked && (
+              <button className="forum-comment-action-btn" onClick={() => onReplyClick(comment.id)} type="button">
+                {t("reply")}
+              </button>
+            )}
+            {canEditThis && !selectedPost.is_locked && (
+              <button className="forum-comment-action-btn" onClick={handleStartEdit} type="button">
+                {t("editComment")}
+              </button>
+            )}
+            {canDeleteThis && (
+              <button
+                className="forum-comment-action-btn danger"
+                onClick={() => setIsConfirmingDelete(true)}
+                type="button"
+              >
+                {t("deleteComment")}
+              </button>
+            )}
+          </div>
+        )}
+        {isConfirmingDelete && (
+          <div className="forum-comment-delete-confirm">
+            <span>{t("deleteCommentConfirm")}</span>
+            <button className="button danger py-1 px-2" onClick={handleConfirmDelete} style={{ fontSize: "0.7rem" }}>
+              {t("deleteCommentButton")}
             </button>
-          )}
-        </div>
+            <button
+              className="button py-1 px-2"
+              onClick={() => setIsConfirmingDelete(false)}
+              style={{ fontSize: "0.7rem" }}
+            >
+              {t("cancel")}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -109,6 +222,8 @@ export default function ForumPostDetail({
   onCancelDelete,
   onTogglePin,
   onToggleLock,
+  onEditComment,
+  onDeleteComment,
   detailRef,
 }: ForumPostDetailProps): JSX.Element {
   const isAuthor = currentUserId === selectedPost.author_id;
@@ -153,7 +268,7 @@ export default function ForumPostDetail({
         </div>
         {selectedPost.content && (
           <div className="forum-detail-content">
-            <ForumMarkdown content={selectedPost.content} />
+            <AppMarkdown content={selectedPost.content} />
           </div>
         )}
         <div className="forum-detail-actions">
@@ -211,7 +326,7 @@ export default function ForumPostDetail({
 
       {/* Comments Section */}
       <section className="forum-comments-section">
-        <h3 className="card-title mb-3">
+        <h3>
           {t("comments")} ({selectedPost.comment_count})
         </h3>
 
@@ -236,10 +351,32 @@ export default function ForumPostDetail({
         {comments.length === 0 && <p className="text-text-muted text-[0.84rem]">{t("noComments")}</p>}
         {comments.map((comment) => (
           <div key={comment.id}>
-            {renderComment(comment, false, selectedPost, t, onVoteComment, onReplyClick)}
+            <CommentItem
+              comment={comment}
+              isReply={false}
+              selectedPost={selectedPost}
+              currentUserId={currentUserId}
+              canManage={canManage}
+              t={t}
+              onVoteComment={onVoteComment}
+              onReplyClick={onReplyClick}
+              onEditComment={onEditComment}
+              onDeleteComment={onDeleteComment}
+            />
             {(comment.replies ?? []).map((reply) => (
               <div key={reply.id} className="forum-reply">
-                {renderComment(reply, true, selectedPost, t, onVoteComment, onReplyClick)}
+                <CommentItem
+                  comment={reply}
+                  isReply={true}
+                  selectedPost={selectedPost}
+                  currentUserId={currentUserId}
+                  canManage={canManage}
+                  t={t}
+                  onVoteComment={onVoteComment}
+                  onReplyClick={onReplyClick}
+                  onEditComment={onEditComment}
+                  onDeleteComment={onDeleteComment}
+                />
               </div>
             ))}
             {/* Reply form */}

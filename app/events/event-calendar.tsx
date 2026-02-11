@@ -24,6 +24,89 @@ export interface EventCalendarProps {
   readonly t: (key: string, values?: Record<string, string>) => string;
 }
 
+/** Inline SVG chevron arrow pointing left or right. */
+function ChevronIcon({ direction }: { readonly direction: "left" | "right" }): JSX.Element {
+  const isLeft = direction === "left";
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {isLeft ? <polyline points="15 18 9 12 15 6" /> : <polyline points="9 6 15 12 9 18" />}
+    </svg>
+  );
+}
+
+/** Small clock icon for event time display. */
+function ClockIcon(): JSX.Element {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="calendar-detail-icon"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+/** Small map-pin icon for location display. */
+function MapPinIcon(): JSX.Element {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="calendar-detail-icon"
+    >
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+/** Small user icon for organizer display. */
+function UserIcon(): JSX.Element {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="calendar-detail-icon"
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
 export function EventCalendar({
   calendarMonth,
   calendarDays,
@@ -62,22 +145,33 @@ export function EventCalendar({
         </div>
       </div>
       <div className="event-calendar-body">
-        <Image src="/assets/vip/backs_21.png" alt="" className="event-calendar-bg" width={800} height={600} />
         <div className="event-calendar-layout">
           <div>
             <div className="calendar-toolbar">
               <div className="calendar-nav">
-                <button className="button" type="button" onClick={() => onMonthShift(-1)}>
-                  {t("prev")}
+                <button
+                  className="calendar-nav-arrow"
+                  type="button"
+                  onClick={() => onMonthShift(-1)}
+                  aria-label={t("prev")}
+                  title={t("prev")}
+                >
+                  <ChevronIcon direction="left" />
                 </button>
                 <div className="calendar-month-label">
                   {calendarMonth.toLocaleDateString(locale, { month: "long", year: "numeric" })}
                 </div>
-                <button className="button" type="button" onClick={() => onMonthShift(1)}>
-                  {t("next")}
+                <button
+                  className="calendar-nav-arrow"
+                  type="button"
+                  onClick={() => onMonthShift(1)}
+                  aria-label={t("next")}
+                  title={t("next")}
+                >
+                  <ChevronIcon direction="right" />
                 </button>
               </div>
-              <button className="button" type="button" onClick={onJumpToToday}>
+              <button className="calendar-today-btn" type="button" onClick={onJumpToToday}>
                 {t("today")}
               </button>
             </div>
@@ -88,67 +182,115 @@ export function EventCalendar({
                   {t(`week${weekday}`)}
                 </div>
               ))}
-              {calendarDays.map((day) => (
-                <button
-                  key={day.key}
-                  type="button"
-                  className={[
-                    "calendar-day-cell",
-                    day.isCurrentMonth ? "" : "muted",
-                    day.key === selectedDateKey ? "selected" : "",
-                    day.isToday ? "today" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  onClick={() => handleDayClick(day)}
-                >
-                  <span className="calendar-day-number">{day.date.getDate()}</span>
-                  {day.events.length > 0 && <span className="calendar-day-count">{day.events.length}</span>}
-                  <span className="calendar-day-dots">
-                    {day.events.slice(0, 3).map((entry, index) => (
-                      <span
-                        key={`${day.key}-${entry.id}`}
-                        className="calendar-dot"
-                        style={{
-                          background: EVENT_COLORS[index % EVENT_COLORS.length],
-                        }}
-                      />
-                    ))}
-                  </span>
-                </button>
-              ))}
+              {calendarDays.map((day) => {
+                const hasEvents = day.events.length > 0;
+                const firstBanner = day.events.find((entry) => entry.banner_url)?.banner_url ?? null;
+                return (
+                  <button
+                    key={day.key}
+                    type="button"
+                    className={[
+                      "calendar-day-cell",
+                      day.isCurrentMonth ? "" : "muted",
+                      day.key === selectedDateKey ? "selected" : "",
+                      day.isToday ? "today" : "",
+                      hasEvents ? "has-events" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() => handleDayClick(day)}
+                  >
+                    <span className="calendar-day-number">{day.date.getDate()}</span>
+                    {hasEvents && <span className="calendar-day-count">{day.events.length}</span>}
+                    {firstBanner ? (
+                      <span className="calendar-day-banner">
+                        <img src={firstBanner} alt="" />
+                      </span>
+                    ) : (
+                      <span className="calendar-day-dots">
+                        {day.events.slice(0, 3).map((entry, index) => (
+                          <span
+                            key={`${day.key}-${entry.id}`}
+                            className="calendar-dot"
+                            style={{
+                              background: EVENT_COLORS[index % EVENT_COLORS.length],
+                            }}
+                          />
+                        ))}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Selected day detail (shown below calendar on compact layouts) */}
+            {/* Selected day detail panel below calendar */}
             <aside ref={dayPanelRef} className="calendar-day-panel calendar-day-panel--inline">
-              <div className="card-title mb-1.5">{t("selectedDay")}</div>
-              <div className="card-subtitle mt-0">{selectedDateLabel}</div>
+              <div className="calendar-day-panel-header">
+                <div className="card-title mb-0">{t("selectedDay")}</div>
+                <div className="calendar-day-panel-date">{selectedDateLabel}</div>
+              </div>
               {selectedDayEvents.length === 0 ? (
-                <div className="text-muted mt-3 text-sm">{t("noEventsOnDay")}</div>
+                <div className="calendar-day-empty">{t("noEventsOnDay")}</div>
               ) : (
                 <div className="calendar-day-events">
                   {selectedDayEvents.map((entry) => (
                     <article key={`calendar-${entry.displayKey}`} className="calendar-day-event">
-                      <div className="calendar-day-event-title">{entry.title}</div>
-                      <div className="calendar-day-event-time">
-                        {formatLocalDateTime(entry.starts_at, locale)} ({formatDuration(entry.starts_at, entry.ends_at)}
-                        )
+                      {entry.banner_url && (
+                        <div className="calendar-event-banner">
+                          <img src={entry.banner_url} alt="" />
+                        </div>
+                      )}
+                      <div className="calendar-day-event-header">
+                        <div className="calendar-day-event-title">{entry.title}</div>
+                        {canManage && (
+                          <button
+                            className="calendar-day-event-edit"
+                            type="button"
+                            onClick={() => onEditEvent(entry.id)}
+                            aria-label={t("editEvent")}
+                            title={t("editEvent")}
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
-                      {entry.organizer && (
-                        <div className="calendar-day-event-location">
-                          {t("organizer")}: {entry.organizer}
+                      <div className="calendar-day-event-details">
+                        <div className="calendar-day-event-detail">
+                          <ClockIcon />
+                          <span>
+                            {formatLocalDateTime(entry.starts_at, locale)} (
+                            {formatDuration(entry.starts_at, entry.ends_at)})
+                          </span>
                         </div>
-                      )}
-                      {entry.location && <div className="calendar-day-event-location">{entry.location}</div>}
+                        {entry.organizer && (
+                          <div className="calendar-day-event-detail">
+                            <UserIcon />
+                            <span>{entry.organizer}</span>
+                          </div>
+                        )}
+                        {entry.location && (
+                          <div className="calendar-day-event-detail">
+                            <MapPinIcon />
+                            <span>{entry.location}</span>
+                          </div>
+                        )}
+                      </div>
                       {entry.author_name && (
-                        <div className="text-[0.7rem] text-text-2 mt-0.5">
-                          {t("createdBy", { name: entry.author_name })}
-                        </div>
-                      )}
-                      {canManage && (
-                        <button className="button" type="button" onClick={() => onEditEvent(entry.id)}>
-                          {t("editEvent")}
-                        </button>
+                        <div className="calendar-day-event-author">{t("createdBy", { name: entry.author_name })}</div>
                       )}
                     </article>
                   ))}

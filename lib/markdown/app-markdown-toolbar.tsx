@@ -1,12 +1,32 @@
 "use client";
 
-import { useRef, useState, type RefObject, type DragEvent, type ClipboardEvent, type ChangeEvent } from "react";
+/**
+ * AppMarkdownToolbar — Unified formatting toolbar for all markdown text areas.
+ *
+ * Replaces both CmsMarkdownToolbar and MarkdownToolbar with a single component.
+ * Full feature set: Bold, Italic, Strikethrough, Heading, Quote, Code, Code Block,
+ * Link, Image URL, Video, List, Numbered List, Divider, and image upload.
+ *
+ * Supports image upload via file picker, clipboard paste, and drag-and-drop.
+ * i18n via next-intl (cmsToolbar namespace).
+ */
+
+import {
+  useRef,
+  useState,
+  useMemo,
+  type RefObject,
+  type DragEvent,
+  type ClipboardEvent,
+  type ChangeEvent,
+} from "react";
+import { useTranslations } from "next-intl";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/* ─── Types ─── */
+/* ─── Toolbar actions ─── */
 
 interface ToolbarAction {
-  readonly label: string;
+  readonly key: string;
   readonly icon: string;
   readonly prefix: string;
   readonly suffix: string;
@@ -14,21 +34,27 @@ interface ToolbarAction {
   readonly block?: boolean;
 }
 
-const TOOLBAR_ACTIONS: ToolbarAction[] = [
-  { label: "Bold", icon: "B", prefix: "**", suffix: "**", placeholder: "bold text" },
-  { label: "Italic", icon: "I", prefix: "_", suffix: "_", placeholder: "italic text" },
-  { label: "Strikethrough", icon: "S̶", prefix: "~~", suffix: "~~", placeholder: "strikethrough" },
-  { label: "Heading", icon: "H", prefix: "## ", suffix: "", placeholder: "Heading", block: true },
-  { label: "Quote", icon: "❝", prefix: "> ", suffix: "", placeholder: "quote", block: true },
-  { label: "Code", icon: "</>", prefix: "`", suffix: "`", placeholder: "code" },
-  { label: "Code Block", icon: "{ }", prefix: "```\n", suffix: "\n```", placeholder: "code block", block: true },
-  { label: "Link", icon: "🔗", prefix: "[", suffix: "](https://)", placeholder: "link text" },
-  { label: "Image URL", icon: "🖼️", prefix: "![", suffix: "](https://image-url)", placeholder: "alt text" },
-  { label: "Video", icon: "▶", prefix: "[Video](", suffix: ")", placeholder: "https://youtube.com/watch?v=..." },
-  { label: "List", icon: "•", prefix: "- ", suffix: "", placeholder: "list item", block: true },
-  { label: "Numbered List", icon: "1.", prefix: "1. ", suffix: "", placeholder: "list item", block: true },
-  { label: "Divider", icon: "—", prefix: "\n---\n", suffix: "", placeholder: "", block: true },
-];
+/**
+ * Builds the toolbar actions array using translated labels.
+ * Superset of both original CMS and Forum toolbar actions.
+ */
+function buildToolbarActions(t: ReturnType<typeof useTranslations>): ToolbarAction[] {
+  return [
+    { key: "bold", icon: "B", prefix: "**", suffix: "**", placeholder: "bold text" },
+    { key: "italic", icon: "I", prefix: "_", suffix: "_", placeholder: "italic text" },
+    { key: "strikethrough", icon: "S\u0336", prefix: "~~", suffix: "~~", placeholder: "strikethrough" },
+    { key: "heading", icon: "H", prefix: "## ", suffix: "", placeholder: "Heading", block: true },
+    { key: "quote", icon: "❝", prefix: "> ", suffix: "", placeholder: "quote", block: true },
+    { key: "code", icon: "</>", prefix: "`", suffix: "`", placeholder: "code" },
+    { key: "codeBlock", icon: "{ }", prefix: "```\n", suffix: "\n```", placeholder: "code block", block: true },
+    { key: "link", icon: "🔗", prefix: "[", suffix: "](https://)", placeholder: "link text" },
+    { key: "imageUrl", icon: "🖼️", prefix: "![", suffix: "](https://image-url)", placeholder: "alt text" },
+    { key: "video", icon: "▶", prefix: "[Video](", suffix: ")", placeholder: "https://youtube.com/watch?v=..." },
+    { key: "list", icon: "•", prefix: "- ", suffix: "", placeholder: "list item", block: true },
+    { key: "numberedList", icon: "1.", prefix: "1. ", suffix: "", placeholder: "list item", block: true },
+    { key: "divider", icon: "—", prefix: "\n---\n", suffix: "", placeholder: "", block: true },
+  ];
+}
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 const MAX_FILE_SIZE_MB = 5;
@@ -37,7 +63,7 @@ const DEFAULT_STORAGE_BUCKET = "forum-images";
 
 /* ─── Props ─── */
 
-interface MarkdownToolbarProps {
+interface AppMarkdownToolbarProps {
   readonly textareaRef: RefObject<HTMLTextAreaElement | null>;
   readonly value: string;
   readonly onChange: (value: string) => void;
@@ -45,7 +71,7 @@ interface MarkdownToolbarProps {
   readonly supabase?: SupabaseClient;
   /** Current user ID — required for image upload. */
   readonly userId?: string;
-  /** Storage bucket for image uploads (default: "forum-images"). */
+  /** Storage bucket name for image uploads (default: "forum-images"). */
   readonly storageBucket?: string;
 }
 
@@ -57,20 +83,22 @@ function generateStoragePath(userId: string, fileName: string): string {
 }
 
 /**
- * Formatting toolbar for markdown text areas.
- * Supports text formatting, image upload via file picker, paste, or drag-and-drop.
+ * Unified formatting toolbar for markdown text areas.
+ * Supports text formatting, image upload via file picker.
  */
-function MarkdownToolbar({
+function AppMarkdownToolbar({
   textareaRef,
   value,
   onChange,
   supabase,
   userId,
   storageBucket = DEFAULT_STORAGE_BUCKET,
-}: MarkdownToolbarProps): JSX.Element {
+}: AppMarkdownToolbarProps): JSX.Element {
+  const t = useTranslations("cmsToolbar");
+  const toolbarActions = useMemo(() => buildToolbarActions(t), [t]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadError, setUploadError] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   /** Insert text at the current cursor position in the textarea. */
   function insertAtCursor(text: string): void {
@@ -112,15 +140,15 @@ function MarkdownToolbar({
   /** Upload a single image file to Supabase Storage and insert its markdown. */
   async function uploadImage(file: File): Promise<void> {
     if (!supabase || !userId) {
-      setUploadError("Sign in required to upload images.");
+      setUploadError(t("loginRequiredToUpload"));
       return;
     }
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      setUploadError(`Unsupported file type: ${file.type}`);
+      setUploadError(t("unsupportedFileType", { type: file.type }));
       return;
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setUploadError(`File too large (max ${MAX_FILE_SIZE_MB} MB).`);
+      setUploadError(t("fileTooLargeMb", { max: MAX_FILE_SIZE_MB }));
       return;
     }
     setUploadError("");
@@ -131,31 +159,28 @@ function MarkdownToolbar({
         .from(storageBucket)
         .upload(filePath, file, { cacheControl: "3600", upsert: false });
       if (uploadErr) {
-        setUploadError(`Upload failed: ${uploadErr.message}`);
+        setUploadError(t("uploadFailed", { message: uploadErr.message }));
+        setIsUploading(false);
         return;
       }
       const { data: urlData } = supabase.storage.from(storageBucket).getPublicUrl(filePath);
       const altText = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
       insertAtCursor(`\n![${altText}](${urlData.publicUrl})\n`);
     } catch {
-      setUploadError("Upload failed unexpectedly.");
+      setUploadError(t("uploadUnexpectedError"));
     } finally {
       setIsUploading(false);
     }
   }
 
-  /** Handle files from input or drop. */
-  async function processFiles(files: FileList | null): Promise<void> {
+  function handleFileInputChange(e: ChangeEvent<HTMLInputElement>): void {
+    const files = e.target.files;
     if (!files || files.length === 0) return;
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (!file) continue;
-      await uploadImage(file);
+      void uploadImage(file);
     }
-  }
-
-  function handleFileInputChange(e: ChangeEvent<HTMLInputElement>): void {
-    void processFiles(e.target.files);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -164,12 +189,13 @@ function MarkdownToolbar({
   return (
     <div>
       <div className="forum-md-toolbar">
-        {TOOLBAR_ACTIONS.map((action) => (
+        {toolbarActions.map((action) => (
           <button
-            key={action.label}
+            key={action.key}
             type="button"
             className="forum-md-toolbar-btn"
-            title={action.label}
+            title={t(action.key)}
+            aria-label={t(action.key)}
             onClick={() => applyFormat(action)}
           >
             {action.icon}
@@ -180,7 +206,8 @@ function MarkdownToolbar({
         <button
           type="button"
           className="forum-md-toolbar-btn forum-md-toolbar-upload"
-          title={canUpload ? `Upload Image (max ${MAX_FILE_SIZE_MB} MB)` : "Sign in to upload images"}
+          title={canUpload ? t("uploadImageTooltip", { max: MAX_FILE_SIZE_MB }) : t("loginRequired")}
+          aria-label={t("uploadImage")}
           onClick={() => fileInputRef.current?.click()}
           disabled={!canUpload || isUploading}
         >
@@ -199,17 +226,22 @@ function MarkdownToolbar({
       {uploadError && (
         <div className="forum-upload-error">
           {uploadError}
-          <button type="button" onClick={() => setUploadError("")} className="forum-upload-error-close">
+          <button
+            type="button"
+            onClick={() => setUploadError("")}
+            className="forum-upload-error-close"
+            aria-label={t("closeError")}
+          >
             ✕
           </button>
         </div>
       )}
-      {isUploading && <div className="forum-upload-status">Uploading image...</div>}
+      {isUploading && <div className="forum-upload-status">{t("uploadingImage")}</div>}
     </div>
   );
 }
 
-export default MarkdownToolbar;
+export default AppMarkdownToolbar;
 
 /* ─── Exported helpers for paste / drag-drop on textarea ─── */
 

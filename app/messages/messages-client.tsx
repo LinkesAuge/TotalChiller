@@ -8,11 +8,11 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import { formatLocalDateTime } from "../../lib/date-format";
 import SearchInput from "../components/ui/search-input";
 import RadixSelect from "../components/ui/radix-select";
-import MarkdownToolbar, { handleImagePaste, handleImageDrop } from "../forum/markdown-toolbar";
+import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
 
 import type { MessageRow, RecipientResult } from "@/lib/types/domain";
 
-const ForumMarkdown = dynamic(() => import("../forum/forum-markdown"), {
+const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-16 rounded" />,
 });
 
@@ -59,7 +59,12 @@ const REPLY_SUBJECT_PREFIX = "Re: ";
  * Supports markdown formatting, image uploads, recipient search,
  * multi-recipient sends, and clan/global broadcasts for privileged roles.
  */
-function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
+interface MessagesClientProps {
+  readonly userId: string;
+  readonly initialRecipientId?: string;
+}
+
+function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JSX.Element {
   const supabase = createSupabaseBrowserClient();
   const locale = useLocale();
   const t = useTranslations("messagesPage");
@@ -136,6 +141,25 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
     }
     void loadClans();
   }, [supabase, isContentMgr]);
+
+  /* ── Pre-fill compose from ?to= param ── */
+
+  useEffect(() => {
+    if (!initialRecipientId || initialRecipientId === userId) return;
+    async function resolveRecipient(): Promise<void> {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, display_name, username")
+        .eq("id", initialRecipientId)
+        .single();
+      if (!profile) return;
+      const label = profile.display_name ?? profile.username ?? profile.id;
+      setComposeRecipients([{ id: profile.id, label }]);
+      setComposeMode("direct");
+      setIsComposeOpen(true);
+    }
+    void resolveRecipient();
+  }, [initialRecipientId, userId, supabase]);
 
   /* ── Recipient search with debounce ── */
 
@@ -710,7 +734,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
               {isComposePreview ? (
                 <div className="forum-editor-preview">
                   {composeContent.trim() ? (
-                    <ForumMarkdown content={composeContent} />
+                    <AppMarkdown content={composeContent} />
                   ) : (
                     <p className="text-muted" style={{ fontStyle: "italic" }}>
                       {t("previewEmpty")}
@@ -719,7 +743,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                 </div>
               ) : (
                 <>
-                  <MarkdownToolbar
+                  <AppMarkdownToolbar
                     textareaRef={composeTextareaRef}
                     value={composeContent}
                     onChange={setComposeContent}
@@ -929,7 +953,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                       </div>
                       {message.subject ? <div className="messages-email-subject">{message.subject}</div> : null}
                       <div className="messages-email-body">
-                        <ForumMarkdown content={message.content} />
+                        <AppMarkdown content={message.content} />
                       </div>
                       <div className="messages-email-footer">
                         {canReply && !isSelf ? (
@@ -1008,7 +1032,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                         {isReplyPreview ? (
                           <div className="forum-editor-preview" style={{ minHeight: "100px" }}>
                             {replyContent.trim() ? (
-                              <ForumMarkdown content={replyContent} />
+                              <AppMarkdown content={replyContent} />
                             ) : (
                               <p className="text-muted" style={{ fontStyle: "italic" }}>
                                 {t("previewEmpty")}
@@ -1017,7 +1041,7 @@ function MessagesClient({ userId }: { readonly userId: string }): JSX.Element {
                           </div>
                         ) : (
                           <>
-                            <MarkdownToolbar
+                            <AppMarkdownToolbar
                               textareaRef={replyTextareaRef}
                               value={replyContent}
                               onChange={setReplyContent}

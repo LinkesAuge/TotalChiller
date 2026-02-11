@@ -19,10 +19,10 @@ import SearchInput from "../components/ui/search-input";
 import dynamic from "next/dynamic";
 import SectionHero from "../components/section-hero";
 
-const ForumMarkdown = dynamic(() => import("../forum/forum-markdown"), {
+const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
 });
-import MarkdownToolbar, { handleImagePaste, handleImageDrop } from "../forum/markdown-toolbar";
+import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
 
 /* ─── Banner templates ─── */
 
@@ -47,20 +47,6 @@ const STORAGE_BUCKET = "forum-images";
  * - Preserves existing double newlines (paragraph breaks)
  * - Preserves markdown list / heading formatting
  */
-function normalizeContent(raw: string): string {
-  let text = raw;
-  // Convert fancy bullets to markdown list syntax
-  text = text.replace(/^[ \t]*[•–—][ \t]*/gm, "- ");
-  // Convert numbered items like "1." at line start — ensure blank line before first item
-  // (markdown needs a blank line before a list when preceded by a paragraph)
-  text = text.replace(/\n(\d+\.\s)/g, "\n\n$1");
-  // Ensure blank line before a dash-list when preceded by text
-  text = text.replace(/([^\n])\n(- )/g, "$1\n\n$2");
-  // For remaining single newlines (not already double), add trailing spaces for <br>
-  text = text.replace(/([^\n]) *\n(?!\n)/g, "$1  \n");
-  return text;
-}
-
 /* ─── Types ─── */
 
 interface ArticleRow {
@@ -477,14 +463,14 @@ function NewsClient(): JSX.Element {
                   {isPreviewMode ? (
                     <div className="forum-editor-preview p-4" style={{ minHeight: 250 }}>
                       {content.trim() ? (
-                        <ForumMarkdown content={content} />
+                        <AppMarkdown content={content} />
                       ) : (
                         <p style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>{t("previewEmpty")}</p>
                       )}
                     </div>
                   ) : (
                     <>
-                      <MarkdownToolbar
+                      <AppMarkdownToolbar
                         textareaRef={contentTextareaRef}
                         value={content}
                         onChange={setContent}
@@ -744,7 +730,7 @@ function NewsClient(): JSX.Element {
                         }
                       }}
                     >
-                      <ForumMarkdown content={normalizeContent(article.content)} />
+                      <AppMarkdown content={article.content} />
                       <div className="news-card-fade" />
                       <span className="news-card-read-more">{t("readMore")}</span>
                     </div>
@@ -753,7 +739,7 @@ function NewsClient(): JSX.Element {
                   {/* Expanded full content */}
                   {isExpanded && (
                     <div className="news-card-body">
-                      <ForumMarkdown content={normalizeContent(article.content)} />
+                      <AppMarkdown content={article.content} />
                     </div>
                   )}
 

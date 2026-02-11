@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Test 1: Markdown Rendering
- * Verifies that CmsMarkdown correctly renders markdown formatting
+ * Verifies that AppMarkdown (variant="cms") correctly renders markdown formatting
  * on public pages (no login required).
  */
 
@@ -13,7 +13,7 @@ test.describe("CMS Markdown Rendering", () => {
   });
 
   test("renders bold text as <strong>", async ({ page }) => {
-    // Look for any strong elements rendered by CmsMarkdown
+    // Look for any strong elements rendered by AppMarkdown
     const strongElements = page.locator(".cms-md strong");
     // At least one bold element should exist on the homepage (e.g. in aboutUs section)
     const count = await strongElements.count();
@@ -47,14 +47,14 @@ test.describe("CMS Markdown Rendering", () => {
   });
 
   test("does not show raw markdown syntax (properly formatted content)", async ({ page }) => {
-    // Check that CmsMarkdown renders markdown — bold markers become <strong> tags.
+    // Check that AppMarkdown renders markdown — bold markers become <strong> tags.
     // Note: Some existing DB content may have malformed markdown (e.g. "**word **" with
     // trailing space before closing **). That's a content issue, not a rendering issue.
     const containers = page.locator(".cms-md");
     const count = await containers.count();
     expect(count).toBeGreaterThan(0);
 
-    // Verify that at least some CmsMarkdown containers have rendered HTML
+    // Verify that at least some AppMarkdown containers have rendered HTML
     // (i.e., they contain child elements, not just plain text)
     let hasRenderedHtml = false;
     for (let i = 0; i < Math.min(count, 10); i++) {
@@ -67,7 +67,7 @@ test.describe("CMS Markdown Rendering", () => {
     expect(hasRenderedHtml).toBe(true);
   });
 
-  test("CmsMarkdown inherits parent font styles", async ({ page }) => {
+  test("AppMarkdown (cms variant) inherits parent font styles", async ({ page }) => {
     const md = page.locator(".cms-md").first();
     if (await md.isVisible()) {
       // cms-md should inherit font-size, not set its own

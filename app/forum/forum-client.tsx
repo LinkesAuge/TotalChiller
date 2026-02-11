@@ -430,6 +430,49 @@ function ForumClient(): JSX.Element {
     }
   }
 
+  /* ─── Edit Comment ─── */
+  async function handleEditComment(commentId: string, newContent: string): Promise<void> {
+    if (!selectedPost) return;
+    const { error } = await supabase
+      .from("forum_comments")
+      .update({ content: newContent, updated_at: new Date().toISOString() })
+      .eq("id", commentId);
+    if (!error) {
+      void loadComments(selectedPost.id);
+    }
+  }
+
+  /* ─── Delete Comment ─── */
+  async function handleDeleteComment(commentId: string): Promise<void> {
+    if (!selectedPost) return;
+    /* Count the comment + its nested replies to decrement comment_count */
+    function countInTree(list: ForumComment[], targetId: string): number {
+      for (const c of list) {
+        if (c.id === targetId) {
+          return 1 + (c.replies ?? []).length;
+        }
+        const found = countInTree(c.replies ?? [], targetId);
+        if (found > 0) return found;
+      }
+      return 0;
+    }
+    const deleteCount = countInTree(comments, commentId);
+    const { error } = await supabase.from("forum_comments").delete().eq("id", commentId);
+    if (!error) {
+      const newCount = Math.max(0, (selectedPost.comment_count ?? 0) - deleteCount);
+      await supabase.from("forum_posts").update({ comment_count: newCount }).eq("id", selectedPost.id);
+      setSelectedPost((prev) => (prev ? { ...prev, comment_count: newCount } : prev));
+      void loadComments(selectedPost.id);
+    }
+  }
+
+  /* ─── Navigate back to list (reload posts for fresh counts) ─── */
+  function handleBackToList(): void {
+    setViewMode("list");
+    setSelectedPost(null);
+    void loadPosts();
+  }
+
   /* ─── No clan context ─── */
   if (!clanContext) {
     return (
@@ -519,7 +562,7 @@ function ForumClient(): JSX.Element {
         <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
-          <button className="button mb-4" onClick={() => setViewMode("list")}>
+          <button className="button mb-4" onClick={handleBackToList}>
             ← {t("backToForum")}
           </button>
           <ForumPostDetail
@@ -552,6 +595,8 @@ function ForumClient(): JSX.Element {
             onCancelDelete={() => setDeletingPostId("")}
             onTogglePin={handleTogglePin}
             onToggleLock={handleToggleLock}
+            onEditComment={handleEditComment}
+            onDeleteComment={handleDeleteComment}
             detailRef={detailRef}
           />
         </div>

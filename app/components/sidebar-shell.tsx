@@ -208,9 +208,9 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           src="/assets/vip/back_left.png"
           alt="Sidebar steel panel texture"
           className="sidebar-texture"
-          width={236}
+          width={280}
           height={900}
-          sizes="236px"
+          sizes="280px"
           priority
         />
 

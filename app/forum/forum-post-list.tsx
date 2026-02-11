@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { extractThumbnail } from "./forum-thumbnail";
 
-const ForumMarkdown = dynamic(() => import("./forum-markdown"), {
+const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
 });
 import { UpArrow, DownArrow, CommentIcon, PostThumbnailBox } from "./forum-icons";
@@ -184,7 +184,7 @@ export default function ForumPostList({
                 <h3 className="forum-post-title">{post.title}</h3>
                 {post.content && (
                   <div className="forum-post-preview">
-                    <ForumMarkdown content={post.content} preview />
+                    <AppMarkdown content={post.content} preview />
                   </div>
                 )}
                 <div className="forum-post-footer">

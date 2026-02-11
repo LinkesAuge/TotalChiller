@@ -5,10 +5,10 @@ import type { RefObject } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ForumCategory } from "@/lib/types/domain";
 
-const ForumMarkdown = dynamic(() => import("./forum-markdown"), {
+const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
 });
-import MarkdownToolbar, { handleImagePaste, handleImageDrop } from "./markdown-toolbar";
+import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
 import type { TFunction } from "./forum-utils";
 
 export interface ForumPostFormProps {
@@ -131,14 +131,14 @@ export default function ForumPostForm({
         {isPreviewMode ? (
           <div className="forum-editor-preview">
             {formContent.trim() ? (
-              <ForumMarkdown content={formContent} />
+              <AppMarkdown content={formContent} />
             ) : (
               <p style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>{t("previewEmpty")}</p>
             )}
           </div>
         ) : (
           <>
-            <MarkdownToolbar
+            <AppMarkdownToolbar
               textareaRef={contentTextareaRef}
               value={formContent}
               onChange={onContentChange}

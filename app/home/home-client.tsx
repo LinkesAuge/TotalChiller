@@ -4,7 +4,7 @@
  * HomeClient — Homepage mit vollständigem CMS.
  *
  * Uses the unified useSiteContent hook with text content (site_content)
- * and list items (site_list_items). All markdown rendering via CmsMarkdown.
+ * and list items (site_list_items). All markdown rendering via AppMarkdown.
  * No more inline EditableList, deriveItems, or normalizeContent.
  */
 

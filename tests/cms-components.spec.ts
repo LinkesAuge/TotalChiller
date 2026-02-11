@@ -89,15 +89,15 @@ test.describe("CMS Components", () => {
     expect(await cards.count()).toBeGreaterThanOrEqual(1);
   });
 
-  test("CmsMarkdown renders inside editable-text-wrap", async ({ page }) => {
+  test("AppMarkdown renders inside editable-text-wrap", async ({ page }) => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle");
 
-    // Multi-line editable fields should use CmsMarkdown
+    // Multi-line editable fields should use AppMarkdown
     const cmsInEditable = page.locator(".editable-text-wrap .cms-md");
     const count = await cmsInEditable.count();
 
-    // There should be at least some CmsMarkdown-rendered fields
+    // There should be at least some AppMarkdown-rendered fields
     // (aboutUs intro, requirements, etc.)
     expect(count).toBeGreaterThan(0);
   });

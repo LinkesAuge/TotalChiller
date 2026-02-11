@@ -105,13 +105,12 @@ This file is a compact context transfer for a new chat.
   - **STATUS**: Complete. Design document: `Documentation/plans/2026-02-07-cms-refactoring-design.md`.
   - **Architecture**:
     - Two database tables: `site_content` (text fields, bilingual DE/EN) and `site_list_items` (structured list items with sort_order, badges, icons, links).
-    - `CmsMarkdown` component for Markdown rendering (`.cms-md` CSS, inherits parent styles). Replaces `ForumMarkdown` in CMS context.
-    - `EditableText` with 4 explicit rendering paths: children, singleLine, `markdown={true}` (CmsMarkdown), `markdown={false}` (plain text with `<br>`).
+    - **Unified markdown system** in `lib/markdown/`: `AppMarkdown` component with `variant` prop ("cms" or "forum"), `AppMarkdownToolbar`, shared `sanitizeMarkdown()`, shared `renderers.tsx`.
+    - `AppMarkdown variant="cms"` uses `.cms-md` CSS (inherits parent styles). `AppMarkdown variant="forum"` uses `.forum-md` CSS.
+    - `EditableText` with 4 explicit rendering paths: children, singleLine, `markdown={true}` (AppMarkdown), `markdown={false}` (plain text with `<br>`).
     - `EditableList` with drag-and-drop reordering, preset icon picker (15 icons), custom SVG upload (`cms-icons` bucket), inline edit modal, badges.
     - `useSiteContent(page)` hook loads text + list content in parallel, provides CRUD helpers, error handling, admin-only permission check.
     - Shared sub-components: `LoadingSkeleton` (animated), `ErrorBanner` (with retry), `CmsSection`.
-    - `markdown-renderers.tsx` shared between `CmsMarkdown` and `ForumMarkdown` (DRY).
-    - `CmsMarkdownToolbar` for CMS editing (separate from forum's `MarkdownToolbar`).
   - **API**:
     - `GET /api/site-content?page=X` — Public (service role client).
     - `PATCH /api/site-content` — Admin-only (upsert/delete).
@@ -122,7 +121,7 @@ This file is a compact context transfer for a new chat.
   - **Testing**: 40 Playwright tests (API, Markdown rendering, public view, responsive, components).
   - **Migrations**: `site_content.sql`, `site_list_items.sql`, `cms_icons_bucket.sql`, `fix_broken_markdown.sql`.
   - **Cursor rule**: `.cursor/rules/cms-content-management.mdc`.
-  - **Files**: `app/components/cms-markdown.tsx`, `app/components/cms-markdown-toolbar.tsx`, `app/components/cms-shared.tsx`, `app/components/editable-text.tsx`, `app/components/editable-list.tsx`, `app/components/use-site-content.ts`, `app/components/markdown-renderers.tsx`, `app/api/site-content/route.ts`, `app/api/site-list-items/route.ts`
+  - **Files**: `lib/markdown/app-markdown.tsx`, `lib/markdown/app-markdown-toolbar.tsx`, `lib/markdown/sanitize-markdown.ts`, `lib/markdown/renderers.tsx`, `app/components/cms-shared.tsx`, `app/components/editable-text.tsx`, `app/components/editable-list.tsx`, `app/components/use-site-content.ts`, `app/api/site-content/route.ts`, `app/api/site-list-items/route.ts`
 - **Branding: [THC] Chiller & Killer**
   - All instances of "The Chillers" replaced with "[THC] Chiller & Killer" across all pages, metadata, descriptions.
   - Sidebar title: `[THC]`, subtitle: `Chiller & Killer`, logo: `/public/assets/ui/chillerkiller_logo.png`.
@@ -138,17 +137,21 @@ This file is a compact context transfer for a new chat.
   - Categories managed via admin API route `/api/admin/forum-categories` (service role client, bypasses RLS).
   - Posts: title, content (markdown), category, pinning, voting (up/down), view count.
   - Comments: threaded replies with voting. Rich markdown editor shared with Announcements.
-  - `ForumMarkdown` renderer: auto-embeds YouTube, images, videos, code, tables. Preview mode for list views.
-  - Post thumbnails: extracts first media from content for list previews.
+  - **Comment edit/delete**: Users can edit and delete their own comments; admins/moderators can edit/delete any comment. Inline edit form replaces comment text; inline delete confirmation. "Edited" indicator shown on modified comments.
+  - **Post edit/delete permissions**: Authors can edit/delete their own posts; moderators/admins can edit/delete any post. RLS policies use `has_permission()` for enforcement.
+  - `AppMarkdown` renderer (variant="forum"): auto-embeds YouTube, images, videos, code, tables. Preview mode for list views.
+  - Post thumbnails (140x100px, stretches to card height): extracts first media from content for list previews.
   - Pinned posts always sort first. Pin/unpin via create/edit form (content managers only).
+  - Comment count: cached on `forum_posts.comment_count`, incremented on new comment, decremented on delete (accounts for nested replies). Post list is reloaded when navigating back from detail view.
+  - Visual design: post cards with gold left-border hover accent, detail view with gold top-border, comments wrapped in styled panel with card-like comment items, gold-accented reply indent borders.
   - Forum Management tab in admin panel for category CRUD and reordering.
-  - Files: `app/forum/forum-client.tsx`, `app/forum/forum-markdown.tsx`, `app/forum/markdown-toolbar.tsx`, `app/forum/page.tsx`, `app/api/admin/forum-categories/route.ts`, `app/admin/forum-category-admin.tsx`
-  - Migrations: `forum_tables.sql`, `forum_storage.sql`, `forum_seed_categories.sql`
+  - Files: `app/forum/forum-client.tsx`, `app/forum/forum-post-detail.tsx`, `app/forum/forum-post-list.tsx`, `app/forum/forum-types.ts`, `app/forum/page.tsx`, `app/api/admin/forum-categories/route.ts`, `app/admin/forum-category-admin.tsx`
+  - Migrations: `forum_tables.sql`, `forum_storage.sql`, `forum_seed_categories.sql`, `forum_rls_permissions.sql`
 - **Announcements (redesigned with banners, rich editor, edit tracking)**
   - Visually rich cards with banner headers (160px), gold title overlay (1.5rem), expandable content preview (280px).
   - Banner system: 6 templates from `/assets/banners/` + custom upload to Supabase Storage.
-  - Rich markdown editor (shared `MarkdownToolbar` + `ForumMarkdown`).
-  - `normalizeContent()`: converts `•`/`–`/`—` to markdown lists, preserves single line breaks.
+  - Rich markdown editor (shared `AppMarkdownToolbar` + `AppMarkdown`).
+  - `sanitizeMarkdown()`: converts `•`/`–`/`—` to markdown lists, preserves single line breaks, fixes broken emphasis.
   - Author protection: editing never overwrites `created_by`; `updated_by` tracks last editor.
   - Edit tracking displayed: "bearbeitet von {name} am {date}".
   - Type filter removed — all content is "announcement". Tags, search, date range filters remain.
@@ -162,6 +165,26 @@ This file is a compact context transfer for a new chat.
 - **Events (DB-backed, clan-scoped)**
   - Create/edit/delete with collapsible forms.
   - Calendar day click scrolls detail panel into view (`scrollIntoView` with smooth behavior).
+  - **Visual overhaul (Feb 2026)**:
+    - Calendar navigation: replaced "Zurück"/"Weiter" text buttons with circular chevron arrow buttons (inline SVG). Added dedicated pill-shaped "Today" button.
+    - Calendar background: removed opaque `backs_21.png` background image. Now uses a subtle radial gradient with dark navy tones for a cleaner, more modern look.
+    - Calendar grid: refined day cells with subtler borders, improved hover/selected/today states. Today's date gets a bold **gold circle badge** around the day number plus a radial glow background. Days with events get a **blue left accent bar** (inset border) and tinted background to stand out from empty days. Count badges on event days use a blue-tinted style; today's count badge switches to gold.
+    - Selected day panel: restructured with header separator, event cards featuring inline edit icon button, icon-prefixed detail rows (clock, map-pin, user SVG icons).
+    - Upcoming events sidebar: complete redesign with date badge column (weekday/day/month), structured event cards with icon-prefixed metadata (time, location, organizer), recurrence pills, hover-reveal edit buttons.
+    - Calendar toolbar: added bottom border separator, improved spacing and visual hierarchy.
+    - Files: `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/globals.css`.
+  - **Event banners (Feb 2026)**:
+    - Events and event templates now support an optional `banner_url` field.
+    - 51 predefined banners from `/assets/game/banners/` available in a scrollable picker grid.
+    - Custom banner upload via `forum-images` Supabase storage bucket (same pattern as news).
+    - Live preview of selected banner in the event form.
+    - Calendar day cells show a banner thumbnail strip at the bottom when a day's first event has a banner.
+    - Selected day panel shows the full-width banner image at the top of each event card (natural height, min 48px).
+    - Upcoming event cards show a full-width banner as a block element above the date-badge/content row (using a `.upcoming-event-body` wrapper for normal flow layout instead of absolute positioning, preventing overlap).
+    - Templates carry `banner_url` through save/apply.
+    - Migration: `Documentation/migrations/event_banner_url.sql`.
+    - Types: `EVENT_BANNER_PRESETS` constant in `events-types.ts`, `BannerPreset` interface.
+    - Files: `app/events/event-form.tsx`, `app/events/events-client.tsx`, `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/events/events-types.ts`, `app/events/use-events-data.ts`, `app/events/events-utils.ts`, `app/globals.css`.
   - Events:
     - Past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers.
     - Date + time model with optional duration (hours + minutes) or "open-ended" (default).
@@ -174,7 +197,7 @@ This file is a compact context transfer for a new chat.
     - Confirmation modals for event deletion and template deletion (two-step for templates).
   - Event Templates:
     - Unified template system — all templates are DB-stored, editable, and deletable (no built-in/prebuilt distinction).
-    - Templates have the same fields as events: title, description, location, duration/open-ended, organizer, recurrence.
+    - Templates have the same fields as events: title, description, location, duration/open-ended, organizer, recurrence, banner.
     - Title is used as the template name (no separate "name" field).
     - Save-as-template: one-click from event form or past event cards (auto-fills from form values).
     - Templates don't require an author (`created_by` nullable).
@@ -255,7 +278,7 @@ This file is a compact context transfer for a new chat.
 ## Notable Bug Fixes & Changes (Feb 2026)
 
 - **Dashboard widgets (live data)**: Quick Stats section now shows real data (personal score, clan score, chests, active members) fetched from `/api/charts` for the last 7 days, with week-over-week trend indicators. Week Highlights section replaced "Clan Progress" placeholder with top player, score change, and top chest type. "Coming Soon" badges removed.
-- **Member directory**: New `/members` page with searchable table of all active clan members. Filters: search by game username or display name, filter by clan, filter by rank. Shows game username, display name, clan, and rank badge. Defaults to selected clan from context. Added "Members" nav item in sidebar.
+- **Member directory**: `/members` page showing active game accounts for the currently selected clan. Uses the div-based grid table layout (`.table.member-dir`) matching the Sanctum table design system. Each row is a game account (primary) with the owning user shown as secondary text below. Rank labels pulled from the shared `RANK_LABELS` / `formatRank()` in `admin-types.ts` (single source of truth for rank translations). No search or filters — displays all members sorted by rank hierarchy then alphabetically. Columns: index, game account identity (game username + user display name), total score, chest count, rank badge, expand caret. Score and chest count are aggregated from `chest_entries` via case-insensitive `game_username`/`player` match and displayed directly in the main row. On mobile (below 768px) these two columns are hidden. Per-rank count chips shown above the table alongside clan name and total count. **Expandable rows**: clicking a row reveals a detail subrow with website role badge (admin/moderator/editor only, using `formatRole()` from `admin-types.ts`) and a "Send message" link navigating to `/messages?to=USER_ID`. Prompts user to select a clan if none is active. Added "Members" nav item in sidebar.
 - **Author FK constraints**: Migration `Documentation/migrations/author_fk_constraints.sql` adds FK constraints from `articles.created_by`, `articles.updated_by`, `events.created_by`, `event_templates.created_by`, `forum_posts.author_id`, and `forum_comments.author_id` to `profiles(id)`. Enables PostgREST embedded joins — dashboard, events, and news now resolve author names in a single query instead of separate `resolveAuthorNames()` calls.
 - **Events RLS fix**: Old events RLS policies used `is_clan_admin()` (owner/admin only). Updated to `has_permission('event:create')` etc., enabling moderators and editors to create/edit/delete events. Applied via the `roles_permissions_cleanup.sql` migration.
 - **Supabase error handling**: New `lib/supabase/error-utils.ts` classifies Supabase errors (RLS/permission, auth, network, unknown) and maps them to user-friendly i18n messages. Events page now shows "You don't have permission" instead of raw "row-level security policy" errors.
@@ -266,6 +289,8 @@ This file is a compact context transfer for a new chat.
 - **RLS**: `clans` table was missing `enable row level security`.
 - **UI Cleanup**: Removed `QuickActions` and `ClanScopeBanner` components. Added gold divider below top bar. Messages link moved to user menu dropdown. Removed standalone "Einstellungen" button from profile top bar (settings accessible via user menu). Profile user menu replaced native `<details>` with React-controlled panel.
 - **Autofill CSS**: Added `:-webkit-autofill` overrides to prevent browsers from forcing white backgrounds on input fields (especially password) in the dark theme.
+- **Unified markdown system** (Feb 2026): Consolidated 3 separate sanitizers, 2 renderer components, and 2 toolbar components into a single system under `lib/markdown/`. Created `AppMarkdown` (unified renderer with `variant` prop), `AppMarkdownToolbar` (unified toolbar with full feature set + i18n), `sanitizeMarkdown()` (merged sanitizer), and relocated `renderers.tsx`. Migrated all 7 consumer files (editable-text, editable-list, forum-post-detail, forum-post-list, forum-post-form, news-client, messages-client). Deleted 5 old files (cms-markdown.tsx, cms-markdown-toolbar.tsx, forum-markdown.tsx, forum/markdown-toolbar.tsx, app/components/markdown-renderers.tsx). Added 3 new i18n keys (strikethrough, codeBlock, video) to both locale files.
+- **List item spacing fix**: The `sanitizeMarkdown()` steps that ensure blank lines before lists (steps 3–4) were firing between consecutive list items (e.g. `- item1\n- item2` became `- item1\n\n- item2`), creating "loose lists" where each `<li>` gets wrapped in `<p>` tags with excessive vertical spacing. Fixed by adding `^(?!- )(?!\d+\. )` guards so blank lines are only inserted for paragraph-to-list transitions, never between consecutive list items. Step 5 (hard break conversion) also gained `(?!- )(?!\d+\. )` negative lookaheads to avoid inserting hard breaks before list markers.
 
 ## Database Setup
 
@@ -355,7 +380,7 @@ Production audit score: **84/100 (B)**, up from 43/100. Key areas:
 ## Known Behaviors
 
 - Clan context is stored in `localStorage` and used by announcements/events/data table.
-- Messages are global (not clan-scoped). Compose recipient and broadcast clan dropdowns use themed `RadixSelect` (with search on recipient).
+- Messages are global (not clan-scoped). Compose recipient and broadcast clan dropdowns use themed `RadixSelect` (with search on recipient). Messages page supports `?to=USER_ID` query param to pre-fill compose form with a specific recipient (used by member directory click-to-message).
 - Date pickers display dd.mm.yyyy, stored as YYYY‑MM‑DD. Datetime pickers (events) display dd.mm.yyyy, HH:mm.
 - Charts use Recharts; personal score relies on case-insensitive match between `chest_entries.player` and `game_accounts.game_username`.
 - Event templates mirror the event data model exactly (same fields). Template "name" is always the same as title.
@@ -364,10 +389,12 @@ Production audit score: **84/100 (B)**, up from 43/100. Key areas:
 - Author display on events/announcements uses client-side profile resolution (separate query to `profiles` table) rather than FK joins, due to missing FK constraints in the schema.
 - i18n uses `next-intl` with `messages/en.json` and `messages/de.json`. All UI strings are translated.
 - Announcements page uses server-side pagination with Supabase `.range()` and `{ count: "exact" }`.
-- Announcements content uses `ForumMarkdown` for rendering (with `normalizeContent()` in announcements context only).
+- Announcements content uses `AppMarkdown` for rendering (sanitization applied universally via `sanitizeMarkdown()`).
 - Announcements editing sets `updated_by` instead of `created_by` to protect original authorship. Edit info shown in card meta.
 - Forum categories are managed via a server-side API route (`/api/admin/forum-categories`) with service role client to bypass RLS restrictions.
 - Forum posts support markdown with rich media embeds, thumbnail extraction, and pinned-first sorting.
+- Forum RLS policies use `has_permission()` for update/delete (migration: `forum_rls_permissions.sql`). Moderators/admins can edit/delete any post or comment; regular users can only manage their own. Members have `forum:edit:own` but not `forum:delete:own`; editors have both.
+- Forum comment count is a cached integer on `forum_posts.comment_count`. It is incremented on new comment/reply and decremented on delete (accounting for cascade-deleted nested replies). The post list is reloaded when navigating back from detail view to ensure fresh counts.
 - Default game account (`profiles.default_game_account_id`) takes priority over localStorage in sidebar selector.
 - A decorative gold gradient divider line sits below the top bar on all pages.
 - Global `option` CSS ensures dark-themed native `<select>` dropdown menus where RadixSelect is not used.
@@ -378,11 +405,96 @@ Production audit score: **84/100 (B)**, up from 43/100. Key areas:
 - CMS edit controls (pencil buttons) are only visible to admins on hover. All content is publicly visible.
 - CMS API uses service role client for reads (bypasses RLS) and admin-checks for writes.
 - **API routes bypass proxy redirect**: All `/api/` routes bypass the proxy's auth redirect and handle their own authentication, returning proper JSON error responses. The CMS APIs (`/api/site-content`, `/api/site-list-items`) are also listed in `isPublicPath()` for historical reasons but this is now redundant.
-- CMS Markdown rendering uses `CmsMarkdown` (not `ForumMarkdown`). CSS class `.cms-md` inherits parent styles. Built-in `sanitizeCmsMarkdown()` auto-fixes broken emphasis markers (`**word **` → `**word**`).
+- **Unified markdown system** (Feb 2026): All markdown rendering uses `AppMarkdown` (`lib/markdown/app-markdown.tsx`) with a `variant` prop. `variant="cms"` uses `.cms-md` CSS (inherits parent styles), `variant="forum"` uses `.forum-md` CSS. All content goes through `sanitizeMarkdown()` (`lib/markdown/sanitize-markdown.ts`) which: (1) normalizes line endings, (2) converts fancy bullets to `- `, (3–4) ensures blank lines before lists when preceded by a non-list paragraph — using `^(?!- )(?!\d+\. )` guards so consecutive list items stay as a tight list, (5) converts remaining single newlines to hard breaks (`  \n`) but NOT before list markers (`(?!- )(?!\d+\. )`), (6–7) fixes broken bold/italic emphasis markers. **Critical**: the emphasis fix regexes use `[^\S\n]+` (horizontal whitespace only) instead of `\s+` to prevent matching across line boundaries. `remarkBreaks` plugin is always enabled. Both `.cms-md` and `.forum-md` use `white-space: pre-wrap` + `overflow-wrap: break-word` in CSS.
+- `AppMarkdownToolbar` (`lib/markdown/app-markdown-toolbar.tsx`) is the single toolbar for all markdown editing (CMS, forum, news, messages). Supports Bold, Italic, Strikethrough, Heading, Quote, Code, Code Block, Link, Image, Video, List, Numbered List, Divider, and image upload (file picker, paste, drag-and-drop). i18n via `next-intl` (`cmsToolbar` namespace).
+- Sidebar expanded width is 280px (CSS variable `--sidebar-width: 280px` and JS constant `EXPANDED_WIDTH = 280`). Collapsed width remains 60px.
 - Homepage hero background uses `thc_hero.png` at 32% opacity with no blur effect.
 - Buttons standardized: "Registrieren"/"Register" for registration, "Einloggen"/"Sign In" for login, across all pages.
 - Homepage section renamed: "Clan-Neuigkeiten" (formerly "Öffentliche Neuigkeiten"), badge "Clan-News" (formerly "Öffentlich").
 - "Erfahre mehr über uns" primary button in the "Über uns" section links to the About page.
+
+## Navigation Icons — Medieval Theme Overhaul (In Progress)
+
+**Status**: Preview page created, awaiting icon selection before integration.
+
+### Background
+
+- Sidebar navigation icons are defined as SVG path data in the `ICONS` record in `app/components/sidebar-nav.tsx` (lines 20–43).
+- Some nav items already use `vipIcon` (PNG image) instead of SVG (e.g. Chest DB uses `/assets/vip/icons_chest_1.png`).
+- **Bug**: Dashboard and Home (Startseite) share the exact same house SVG path — dashboard needs a distinct icon.
+- The current generic SVG stroke icons don't match the site's medieval/Total Battle theme.
+
+### Available Assets
+
+- **~260 game-style PNG icons** in `/assets/game/icons/` (swords, scrolls, shields, chests, envelopes, skulls, etc.)
+- **6 tier shields** in `/assets/game/shields/`
+- **VIP/stat icons** in `/assets/vip/` (armor, damage, heal, crowns, stars)
+- **Decorations** in `/assets/game/decorations/` (scrolls, decor elements, light effects)
+- **UI assets** in `/assets/ui/` (clan logo, swords, chest, ribbon, shield)
+
+### Preview Page
+
+`public/icon-preview.html` — standalone HTML file, access at `/icon-preview.html` when dev server is running.
+
+Features:
+
+- **Tab 1 "Suggested Nav Replacements"**: Shows each nav item with current SVG icon alongside hand-picked game icon suggestions. Recommended picks marked with green star.
+- **Tab 2 "Full Icon Gallery"**: All ~260 game icons with search, category filters, and light-background toggle.
+- **Tab 3 "Shields, Decorations & UI"**: Additional decorative assets.
+- Click any icon for enlarged preview.
+
+### Task List (Pick Up Here)
+
+- [ ] **1. Review preview page** — Open `/icon-preview.html` in browser, review Tab 1 suggestions and browse Tab 2 gallery. Pick one icon per nav item.
+- [ ] **2. Fix Dashboard icon (critical)** — At minimum, change `ICONS.dashboard` in `sidebar-nav.tsx` line 22 to a different SVG path, or add `vipIcon` to the dashboard nav item. This is a bug regardless of whether the full medieval overhaul happens.
+- [ ] **3. Decide approach** — Two options:
+  - **(A) All PNG game icons**: Replace all SVG icons with game PNG icons via `vipIcon` property on each nav item. Gives full medieval look. Requires ensuring all chosen PNGs render well at 16×16px in sidebar.
+  - **(B) Hybrid**: Keep SVG for some items, use game PNGs for others (like Chest DB already does). More conservative.
+- [ ] **4. Update `sidebar-nav.tsx`** — For each nav item, either:
+  - Change the `ICONS[key]` SVG path data (if sticking with SVG), or
+  - Add `vipIcon: "/assets/game/icons/CHOSEN_ICON.png"` to the item in `NAV_SECTIONS` / `SIDEBAR_ADMIN_META`. The existing `NavItemIcon` component (lines 118–137) already handles both SVG and image icons.
+- [ ] **5. Test at both sidebar widths** — Verify icons look correct when sidebar is expanded (280px) and collapsed (60px). Check tooltip visibility in collapsed mode.
+- [ ] **6. Test light-background rendering** — Some game PNGs have transparent backgrounds and may be hard to see on certain backgrounds. The preview page has a "Light background" toggle to check this.
+- [ ] **7. Update `editable-list.tsx` PRESET_ICONS** — If CMS list item icons should also use game assets instead of emojis, update the `PRESET_ICONS` in `app/components/editable-list.tsx`.
+- [ ] **8. Remove preview page** — Delete `public/icon-preview.html` before production deployment (it's a dev/design tool only).
+- [ ] **9. Add i18n for any new nav labels** — If icon changes coincide with label changes, update `messages/en.json` and `messages/de.json`.
+
+### How to Wire a Game Icon into Nav
+
+To switch any nav item from SVG to a game PNG icon:
+
+```typescript
+// In NAV_SECTIONS (main nav items), add vipIcon:
+{ href: "/", labelKey: "dashboard", iconKey: "dashboard", vipIcon: "/assets/game/icons/icons_main_menu_rating_1.png" }
+
+// In SIDEBAR_ADMIN_META (admin nav items), add vipIcon:
+corrections: { labelKey: "corrections", iconKey: "corrections", vipIcon: "/assets/game/icons/icons_pen_1.png" },
+```
+
+The `NavItemIcon` component automatically renders `<Image>` when `vipIcon` is set, or falls back to `<svg>` with the `ICONS[iconKey]` path data.
+
+### Suggested Mapping (from preview page, adjust after review)
+
+| Nav Item           | Recommended Game Icon | Path                                               |
+| ------------------ | --------------------- | -------------------------------------------------- |
+| Home (Startseite)  | Medieval house        | `/assets/game/icons/icons_card_house_1.png`        |
+| Dashboard          | Rating/stats          | `/assets/game/icons/icons_main_menu_rating_1.png`  |
+| News               | Scroll                | `/assets/game/icons/icons_scroll_1.png`            |
+| Charts             | Points clipboard      | `/assets/game/icons/icons_clip_points_1.png`       |
+| Events             | Events banner         | `/assets/game/icons/icons_events_1.png`            |
+| Forum              | Message bubble        | `/assets/game/icons/icons_message_1.png`           |
+| Messages           | Envelope              | `/assets/game/icons/icons_envelope_1.png`          |
+| Members            | Clan menu             | `/assets/game/icons/icons_main_menu_clan_1.png`    |
+| Admin: Clans       | Clan menu             | `/assets/game/icons/icons_main_menu_clan_1.png`    |
+| Admin: Approvals   | Checkmark             | `/assets/game/icons/icons_check_1.png`             |
+| Admin: Users       | Player                | `/assets/game/icons/icons_player_1.png`            |
+| Admin: Validation  | Paper saved           | `/assets/game/icons/icons_paper_saved_1.png`       |
+| Admin: Corrections | Quill pen             | `/assets/game/icons/icons_pen_1.png`               |
+| Admin: Audit Logs  | Log book              | `/assets/game/icons/icons_log.png`                 |
+| Admin: Data Import | Paper add             | `/assets/game/icons/icons_paper_add_1.png`         |
+| Admin: Forum       | Moderator             | `/assets/game/icons/icons_moderator.png`           |
+| Settings           | Gear                  | `/assets/game/icons/icons_options_gear_on_1.png`   |
+| Profile            | Captain/helmet        | `/assets/game/icons/icon_battler_captain_menu.png` |
 
 ## Important SQL Notes
 

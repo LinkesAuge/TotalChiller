@@ -3,6 +3,8 @@ import {
   toLocalDateTimeString,
   formatDuration,
   formatDurationFromHours,
+  isMultiDayEvent,
+  formatDateRange,
   toDateKey,
   parseDateKey,
   getDateRangeKeys,
@@ -54,6 +56,41 @@ describe("formatDuration", () => {
 
   it("returns hours and minutes for mixed durations", () => {
     expect(formatDuration("2026-02-11T12:00:00Z", "2026-02-11T13:45:00Z")).toBe("1h 45min");
+  });
+
+  it("returns days for multi-day durations", () => {
+    expect(formatDuration("2026-02-09T10:00:00Z", "2026-02-11T10:00:00Z")).toBe("2d");
+  });
+
+  it("returns days + hours for mixed multi-day durations", () => {
+    expect(formatDuration("2026-02-09T10:00:00Z", "2026-02-11T14:00:00Z")).toBe("2d 4h");
+  });
+});
+
+/* ── isMultiDayEvent ── */
+
+describe("isMultiDayEvent", () => {
+  it("returns false for same-day events", () => {
+    expect(isMultiDayEvent("2026-02-11T10:00:00Z", "2026-02-11T14:00:00Z")).toBe(false);
+  });
+
+  it("returns false for open-ended events", () => {
+    const t = "2026-02-11T12:00:00Z";
+    expect(isMultiDayEvent(t, t)).toBe(false);
+  });
+
+  it("returns true for events spanning multiple days", () => {
+    expect(isMultiDayEvent("2026-02-09T10:00:00Z", "2026-02-11T18:00:00Z")).toBe(true);
+  });
+});
+
+/* ── formatDateRange ── */
+
+describe("formatDateRange", () => {
+  it("returns a formatted date range string", () => {
+    const result = formatDateRange("2026-02-09T10:00:00Z", "2026-02-11T18:00:00Z", "en");
+    expect(result).toContain("–");
+    expect(result).toContain("Feb");
   });
 });
 

@@ -2189,20 +2189,18 @@ img[loading="lazy"] {
   }
 }
 
-.table.approvals-list header,
-.table.approvals-list .row {
-  grid-template-columns: 50px minmax(140px, 1.2fr) minmax(120px, 1fr) minmax(180px, 1.4fr) minmax(130px, 1fr) minmax(
-      200px,
-      220px
-    );
-  min-width: max-content;
-  width: max-content;
-  align-items: center;
+.table.approvals-list {
+  min-width: 820px;
 }
 
-.table.approvals-list {
-  min-width: 100%;
-  width: max-content;
+.table.approvals-list header,
+.table.approvals-list .row {
+  /* Use fixed + fr instead of minmax so all rows resolve identical column widths.
+     Override base min-width:max-content which causes each row to size independently. */
+  grid-template-columns: 40px 1.2fr 1fr 1.4fr 1fr auto;
+  min-width: 0;
+  width: auto;
+  align-items: center;
 }
 
 .table.approvals-list .row .button {
@@ -2988,9 +2986,216 @@ select:disabled,
   }
   .events-upcoming-sidebar {
     position: static;
+    max-height: none;
   }
   .calendar-month-label {
     min-width: 148px;
+  }
+  /* Slightly reduce calendar cell height when stacked */
+  .calendar-day-cell {
+    min-height: 78px;
+  }
+}
+
+/* ── Events-specific: medium screens ── */
+@media (max-width: 768px) {
+  .events-two-col {
+    gap: 14px;
+  }
+  .event-calendar-body {
+    padding: 10px 10px 12px;
+  }
+  .event-calendar-grid {
+    gap: 3px;
+  }
+  .calendar-toolbar {
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .calendar-nav-arrow {
+    width: 30px;
+    height: 30px;
+  }
+  .calendar-month-label {
+    min-width: 120px;
+    font-size: 0.82rem;
+  }
+  .calendar-today-btn {
+    font-size: 0.68rem;
+    padding: 4px 10px;
+  }
+  .calendar-weekday {
+    font-size: 0.6rem;
+    padding: 4px 0 6px;
+  }
+  .calendar-day-cell {
+    min-height: 66px;
+    padding: 5px 5px 4px;
+    border-radius: 6px;
+  }
+  .calendar-day-number {
+    width: 22px;
+    height: 22px;
+    font-size: 0.64rem;
+    top: 3px;
+    right: 3px;
+  }
+  .calendar-day-count {
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.58rem;
+    top: 4px;
+    left: 4px;
+  }
+  .calendar-day-title {
+    font-size: 0.62rem;
+    font-weight: 600;
+  }
+  .calendar-day-time {
+    font-size: 0.56rem;
+    bottom: 16px;
+  }
+  .calendar-day-cell .calendar-day-title {
+    bottom: 28px;
+  }
+  .calendar-day-dots {
+    bottom: 40px;
+  }
+  .calendar-day-more {
+    font-size: 0.54rem;
+  }
+  /* Day panel compact */
+  .day-panel-card-body {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .day-panel-date-badge {
+    min-width: 32px;
+  }
+  .day-panel-date-day {
+    font-size: 0.88rem;
+  }
+  .day-panel-card-title {
+    font-size: 0.78rem;
+  }
+  .day-panel-meta-item {
+    font-size: 0.68rem;
+  }
+  .day-panel-full-banner {
+    max-height: 120px;
+  }
+  /* Upcoming sidebar compact */
+  .upcoming-sidebar-title {
+    font-size: 0.82rem;
+  }
+  .upcoming-event-date-badge {
+    min-width: 44px;
+    padding: 8px 6px;
+  }
+}
+
+/* ── Events-specific: small screens ── */
+@media (max-width: 480px) {
+  .event-calendar-body {
+    padding: 8px 6px 10px;
+  }
+  .event-calendar-grid {
+    gap: 2px;
+  }
+  .calendar-toolbar {
+    gap: 6px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+  }
+  .calendar-nav-arrow {
+    width: 26px;
+    height: 26px;
+  }
+  .calendar-month-label {
+    min-width: 100px;
+    font-size: 0.74rem;
+  }
+  .calendar-weekday {
+    font-size: 0.52rem;
+    padding: 3px 0 4px;
+    letter-spacing: 0.04em;
+  }
+  .calendar-day-cell {
+    min-height: 48px;
+    padding: 3px 3px 2px;
+    border-radius: 4px;
+  }
+  .calendar-day-number {
+    width: 18px;
+    height: 18px;
+    font-size: 0.54rem;
+    top: 2px;
+    right: 2px;
+    border-width: 1px;
+  }
+  .calendar-day-count {
+    min-width: 15px;
+    height: 15px;
+    font-size: 0.5rem;
+    top: 2px;
+    left: 2px;
+    padding: 0 3px;
+    border-width: 1px;
+  }
+  /* Hide event text/time in cells on very small screens — just show dots */
+  .calendar-day-title,
+  .calendar-day-time,
+  .calendar-day-more {
+    display: none;
+  }
+  .calendar-day-dots {
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  /* Day panel even more compact */
+  .day-panel-card-body {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .day-panel-date-badge {
+    min-width: 28px;
+  }
+  .day-panel-date-day {
+    font-size: 0.78rem;
+  }
+  .day-panel-date-weekday,
+  .day-panel-date-month {
+    font-size: 0.48rem;
+  }
+  .day-panel-card-title {
+    font-size: 0.72rem;
+  }
+  .day-panel-meta-item {
+    font-size: 0.62rem;
+  }
+  .day-panel-action-btn {
+    width: 22px;
+    height: 22px;
+  }
+  .day-panel-full-banner {
+    max-height: 90px;
+  }
+  /* Upcoming sidebar cards compact */
+  .upcoming-event-card {
+    border-radius: 8px;
+  }
+  .upcoming-event-date-badge {
+    min-width: 38px;
+    padding: 6px 4px;
+  }
+  .upcoming-event-body {
+    padding: 8px 10px;
+  }
+  .upcoming-event-title {
+    font-size: 0.78rem;
   }
 }
 
@@ -3072,10 +3277,6 @@ select:disabled,
   .table.data-table header,
   .table.data-table .row {
     grid-template-columns: 70px 100px 1fr 1fr 1fr 70px 1.3fr 140px;
-  }
-  .calendar-day-cell {
-    min-height: 62px;
-    padding: 7px 6px 5px;
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { DisplayEvent } from "./events-types";
-import { formatDuration } from "./events-utils";
+import { formatDuration, formatDateRange, isMultiDayEvent } from "./events-utils";
 
 export interface UpcomingEventsSidebarProps {
   readonly upcomingEvents: readonly DisplayEvent[];
@@ -132,10 +132,16 @@ export function UpcomingEventsSidebar({
                             <circle cx="12" cy="12" r="10" />
                             <polyline points="12 6 12 12 16 14" />
                           </svg>
-                          {getTimeString(entry.starts_at, locale)}
-                          <span className="upcoming-event-duration">
-                            ({formatDuration(entry.starts_at, entry.ends_at)})
-                          </span>
+                          {isMultiDayEvent(entry.starts_at, entry.ends_at) ? (
+                            formatDateRange(entry.starts_at, entry.ends_at, locale)
+                          ) : (
+                            <>
+                              {getTimeString(entry.starts_at, locale)}
+                              <span className="upcoming-event-duration">
+                                ({formatDuration(entry.starts_at, entry.ends_at)})
+                              </span>
+                            </>
+                          )}
                         </span>
                         {entry.location && (
                           <span className="upcoming-event-meta-item">

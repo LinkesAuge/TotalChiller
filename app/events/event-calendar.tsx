@@ -6,7 +6,7 @@ import { useRef, useState, useCallback } from "react";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { CalendarDay, DisplayEvent } from "./events-types";
 import { EVENT_COLORS, WEEKDAY_LABELS } from "./events-types";
-import { formatDuration, sortPinnedFirst } from "./events-utils";
+import { formatDuration, formatDateRange, isMultiDayEvent, sortPinnedFirst } from "./events-utils";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-8 rounded" />,
@@ -204,8 +204,11 @@ export function EventCalendar({
                   <ChevronIcon direction="right" />
                 </button>
               </div>
-              <button className="calendar-today-btn" type="button" onClick={onJumpToToday}>
-                {t("today")}
+              <button className="calendar-today-btn selected-day-label" type="button" onClick={onJumpToToday}>
+                {(() => {
+                  const d = new Date(selectedDateKey + "T00:00:00");
+                  return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+                })()}
               </button>
             </div>
 
@@ -294,8 +297,14 @@ export function EventCalendar({
                   <div className="calendar-tooltip-single">
                     <div className="calendar-tooltip-title">{ev.title}</div>
                     <div className="calendar-tooltip-meta">
-                      <span>{shortTime(ev.starts_at, locale)}</span>
-                      <span>{formatDuration(ev.starts_at, ev.ends_at)}</span>
+                      {isMultiDayEvent(ev.starts_at, ev.ends_at) ? (
+                        <span>{formatDateRange(ev.starts_at, ev.ends_at, locale)}</span>
+                      ) : (
+                        <>
+                          <span>{shortTime(ev.starts_at, locale)}</span>
+                          <span>{formatDuration(ev.starts_at, ev.ends_at)}</span>
+                        </>
+                      )}
                     </div>
                     {ev.location && <div className="calendar-tooltip-location">{ev.location}</div>}
                     {ev.organizer && <div className="calendar-tooltip-organizer">{ev.organizer}</div>}
@@ -456,11 +465,20 @@ export function EventDayPanel({
                         </div>
                       </div>
                       <div className="day-panel-card-meta">
-                        <span className="day-panel-meta-item">
-                          <ClockIcon />
-                          {shortTime(entry.starts_at, locale)}
-                          <span className="day-panel-meta-dim">({formatDuration(entry.starts_at, entry.ends_at)})</span>
-                        </span>
+                        {isMultiDayEvent(entry.starts_at, entry.ends_at) ? (
+                          <span className="day-panel-meta-item">
+                            <ClockIcon />
+                            {formatDateRange(entry.starts_at, entry.ends_at, locale)}
+                          </span>
+                        ) : (
+                          <span className="day-panel-meta-item">
+                            <ClockIcon />
+                            {shortTime(entry.starts_at, locale)}
+                            <span className="day-panel-meta-dim">
+                              ({formatDuration(entry.starts_at, entry.ends_at)})
+                            </span>
+                          </span>
+                        )}
                         {entry.location && (
                           <span className="day-panel-meta-item">
                             <MapPinIcon />

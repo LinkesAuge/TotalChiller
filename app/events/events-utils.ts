@@ -32,16 +32,44 @@ export function formatDurationFromHours(hours: number): string {
   return `${m}min`;
 }
 
-/** Human-readable duration from two ISO timestamps. */
+/** Human-readable duration from two ISO timestamps. Shows days for multi-day events. */
 export function formatDuration(startsAt: string, endsAt: string): string {
   const ms = new Date(endsAt).getTime() - new Date(startsAt).getTime();
   if (ms <= 0) return "Open-ended";
   const totalMin = Math.round(ms / 60000);
-  const h = Math.floor(totalMin / 60);
+  const d = Math.floor(totalMin / 1440);
+  const h = Math.floor((totalMin % 1440) / 60);
   const m = totalMin % 60;
+  if (d > 0 && h > 0) return `${d}d ${h}h`;
+  if (d > 0) return `${d}d`;
   if (h > 0 && m > 0) return `${h}h ${m}min`;
   if (h > 0) return `${h}h`;
   return `${m}min`;
+}
+
+/** Check whether an event spans more than one calendar day. */
+export function isMultiDayEvent(startsAt: string, endsAt: string): boolean {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  return (
+    end.getTime() > start.getTime() &&
+    (end.getFullYear() !== start.getFullYear() ||
+      end.getMonth() !== start.getMonth() ||
+      end.getDate() !== start.getDate())
+  );
+}
+
+/** Format a compact date range string (e.g. "09. Feb 10:00 – 11. Feb 18:00"). */
+export function formatDateRange(startsAt: string, endsAt: string, locale: string): string {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  const dateOpts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
+  const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+  const startDate = start.toLocaleDateString(locale, dateOpts);
+  const startTime = start.toLocaleTimeString(locale, timeOpts);
+  const endDate = end.toLocaleDateString(locale, dateOpts);
+  const endTime = end.toLocaleTimeString(locale, timeOpts);
+  return `${startDate} ${startTime} – ${endDate} ${endTime}`;
 }
 
 export function toDateKey(date: Date): string {

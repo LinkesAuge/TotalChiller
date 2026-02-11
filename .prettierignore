@@ -1,5 +1,6 @@
 node_modules
 .next
+.cursor
 out
 coverage
 playwright-report

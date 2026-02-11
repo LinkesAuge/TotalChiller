@@ -20,6 +20,10 @@ squirrel.toml
 test-results/
 playwright-report/
 
+# Design system (copied assets from Design/Resources/Assets)
+public/design-assets/
+public/design-system-previews/
+
 # Misc
 *.png.bak
 window bug.png

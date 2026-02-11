@@ -104,7 +104,8 @@
     "dataImport": "Data Import",
     "chestDb": "Chest DB",
     "forum": "Forum",
-    "forumAdmin": "Forum Management"
+    "forumAdmin": "Forum Management",
+    "designSystem": "Design System"
   },
   "auth": {
     "login": {

@@ -30,6 +30,8 @@ This runbook explains how to set up, run, and use the [THC] Chiller & Killer com
    - `Documentation/migrations/roles_permissions_cleanup.sql`
    - `Documentation/migrations/author_fk_constraints.sql`
    - `Documentation/migrations/forum_rls_permissions.sql`
+   - `Documentation/migrations/event_banner_url.sql`
+   - `Documentation/migrations/design_system_tables.sql`
 
 ## 2) Local Environment
 
@@ -271,7 +273,41 @@ See **handoff_summary.md → "Navigation Icons — Medieval Theme Overhaul"** fo
 
 **Note**: Remove `icon-preview.html` before production deployment.
 
-## 17) Troubleshooting
+## 17) Design System Asset Manager
+
+Admin-only tool at `/design-system` for managing game assets, UI inventory, and assignments.
+
+### First-time setup
+
+1. Run migrations in Supabase SQL Editor (in order):
+   - `Documentation/migrations/design_system_tables.sql`
+   - `Documentation/migrations/design_system_render_type.sql`
+2. Scan and copy assets (from `Design/Resources/Assets` into `public/design-assets/` + Supabase):
+   ```
+   npx tsx scripts/scan-design-assets.ts
+   ```
+3. Scan UI elements (from codebase + checklist into Supabase — includes render_type and preview_html):
+   ```
+   npx tsx scripts/scan-ui-elements.ts
+   ```
+4. Open `/design-system` in the browser (admin login required).
+
+### Re-running scanners
+
+Both scripts are idempotent (upsert on unique keys). Re-run after adding new assets or UI elements:
+
+```
+npx tsx scripts/scan-design-assets.ts        # re-scan game assets
+npx tsx scripts/scan-ui-elements.ts          # re-scan UI elements
+```
+
+Flags:
+
+- `--dry-run` — log actions without copying files or writing to DB
+- `--skip-copy` — skip the file copy step (DB upsert only)
+- `--skip-db` — skip DB upsert (copy files only)
+
+## 18) Troubleshooting
 
 - If data insert fails: check RLS policies and membership
 - If user lookup fails: verify `profiles` trigger ran on signup

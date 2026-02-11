@@ -496,6 +496,24 @@ The `NavItemIcon` component automatically renders `<Image>` when `vipIcon` is se
 | Settings           | Gear                  | `/assets/game/icons/icons_options_gear_on_1.png`   |
 | Profile            | Captain/helmet        | `/assets/game/icons/icon_battler_captain_menu.png` |
 
+## Design System Asset Manager (Feb 2026)
+
+- **Admin-only tool** at `/design-system` for managing game assets, UI element inventory, and asset-to-element assignments.
+- **Three Supabase tables**: `design_assets` (catalog of ~2,359 raw game PNGs), `ui_elements` (inventory of website UI patterns with render type classification), `asset_assignments` (maps assets to UI elements with roles).
+- **Render type system**: Each UI element has a `render_type` (`css`, `asset`, `hybrid`, `icon`, `typography`, `composite`) that determines how it's previewed and whether game assets can be assigned to it. Only `asset`, `hybrid`, and `composite` types support asset assignment.
+- **Preview system**: Dual approach — inline HTML snippets (`preview_html` column) rendered using the project's CSS for css/icon/typography elements, plus screenshot upload (`preview_image` column) for complex composite components. Scanner auto-generates preview HTML for ~50 elements.
+- **Scanner scripts** in `scripts/`:
+  - `scan-design-assets.ts` — scans `Design/Resources/Assets`, auto-categorizes by filename patterns (~25 categories), reads dimensions via `image-size`, copies to `public/design-assets/{category}/`, upserts to DB. Flags: `--dry-run`, `--skip-copy`, `--skip-db`.
+  - `scan-ui-elements.ts` — scans `globals.css` and component directories for UI patterns, supplements with comprehensive checklist (~80 standard web UI elements). Each element classified with `render_type` and `preview_html`. Upserts to DB. Flag: `--dry-run`.
+- **Three-tab UI**: Asset Library (grid with category/tag filters, size picker, light/dark bg), UI Inventory (card grid with live CSS previews per render type, render_type badges/filter, conditional "Assign Assets" button, screenshot upload for composites), Assignments (side-by-side: only assignable elements shown left, paginated asset browser right).
+- **Full-screen assignment modal** (`assignment-modal.tsx`): reusable overlay triggered from Inventory and Assignments tabs. Shows element preview in header.
+- **Thumbnail size picker** (`thumbnail-size-picker.tsx`): XS/S/M/L/XL for assets, S/M/L for UI element previews.
+- **Screenshot upload** API (`/api/design-system/preview-upload`): accepts image file + element_id, stores to `public/design-system-previews/`, updates DB.
+- **API routes**: `/api/design-system/assets`, `/api/design-system/ui-elements`, `/api/design-system/assignments`, `/api/design-system/preview-upload` — all admin-protected with Zod validation.
+- **Migrations**: `design_system_tables.sql` (base tables), `design_system_render_type.sql` (adds render_type, preview_html, preview_image columns).
+- **Files**: `app/design-system/page.tsx`, `design-system-client.tsx`, `asset-library-tab.tsx`, `ui-inventory-tab.tsx`, `assignment-tab.tsx`, `assignment-modal.tsx`, `thumbnail-size-picker.tsx`, `design-system-types.ts`.
+- `public/design-assets/` and `public/design-system-previews/` are in `.gitignore`.
+
 ## Important SQL Notes
 
 - All RLS fixes (chest_entries admin access, global rules) are included in the base SQL and migration files.

@@ -28,7 +28,12 @@ function isPublicPath(pathname: string): boolean {
 }
 
 function isAdminPath(pathname: string): boolean {
-  return pathname.startsWith("/admin") || pathname.startsWith("/data-import") || pathname.startsWith("/data-table");
+  return (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/data-import") ||
+    pathname.startsWith("/data-table") ||
+    pathname.startsWith("/design-system")
+  );
 }
 
 async function isUserAdmin(supabase: ReturnType<typeof createServerClient>): Promise<boolean> {

@@ -104,7 +104,8 @@
     "dataImport": "Datenimport",
     "chestDb": "Truhen-DB",
     "forum": "Forum",
-    "forumAdmin": "Forum-Verwaltung"
+    "forumAdmin": "Forum-Verwaltung",
+    "designSystem": "Design-System"
   },
   "auth": {
     "login": {

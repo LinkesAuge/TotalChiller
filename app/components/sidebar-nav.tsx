@@ -69,6 +69,11 @@ const SIDEBAR_ADMIN_META: Record<string, { labelKey: string; iconKey: string; vi
   chestDb: { labelKey: "chestDb", iconKey: "admin", vipIcon: "/assets/vip/icons_chest_1.png" },
 };
 
+/** Standalone admin pages (not tabs on /admin). */
+const EXTRA_ADMIN_ITEMS: readonly NavItem[] = [
+  { href: "/design-system", labelKey: "designSystem", iconKey: "settings" },
+];
+
 const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Main",
@@ -87,16 +92,19 @@ const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Admin",
     groupLabel: "administration",
-    items: ADMIN_SECTIONS.map((section) => {
-      const meta = SIDEBAR_ADMIN_META[section.labelKey];
-      return {
-        href: section.href,
-        tab: section.tab,
-        labelKey: meta?.labelKey ?? section.labelKey,
-        iconKey: meta?.iconKey ?? "admin",
-        vipIcon: meta?.vipIcon,
-      };
-    }),
+    items: [
+      ...ADMIN_SECTIONS.map((section) => {
+        const meta = SIDEBAR_ADMIN_META[section.labelKey];
+        return {
+          href: section.href,
+          tab: section.tab,
+          labelKey: meta?.labelKey ?? section.labelKey,
+          iconKey: meta?.iconKey ?? "admin",
+          vipIcon: meta?.vipIcon,
+        };
+      }),
+      ...EXTRA_ADMIN_ITEMS,
+    ],
   },
 ];
 

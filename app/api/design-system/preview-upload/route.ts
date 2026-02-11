@@ -1,0 +1,80 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import createSupabaseServerClient from "@/lib/supabase/server-client";
+import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
+import getIsAdminAccess from "@/lib/supabase/admin-access";
+import { standardLimiter } from "@/lib/rate-limit";
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+const PREVIEW_DIR = path.join(process.cwd(), "public", "design-system-previews");
+const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+/* ------------------------------------------------------------------ */
+/*  POST /api/design-system/preview-upload                             */
+/*  Multipart form: file (image) + element_id (uuid)                   */
+/* ------------------------------------------------------------------ */
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
+
+  try {
+    const authClient = await createSupabaseServerClient();
+    const isAdmin = await getIsAdminAccess({ supabase: authClient });
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
+    const elementId = formData.get("element_id") as string | null;
+
+    if (!file || !elementId) {
+      return NextResponse.json({ error: "Missing file or element_id" }, { status: 400 });
+    }
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: `Unsupported file type. Allowed: ${ALLOWED_TYPES.join(", ")}` },
+        { status: 400 },
+      );
+    }
+
+    if (file.size > MAX_SIZE_BYTES) {
+      return NextResponse.json({ error: "File too large (max 2 MB)" }, { status: 400 });
+    }
+
+    /* Determine extension from MIME */
+    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const filename = `${elementId}.${ext}`;
+    const publicPath = `/design-system-previews/${filename}`;
+
+    /* Ensure directory exists and write file */
+    await mkdir(PREVIEW_DIR, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(path.join(PREVIEW_DIR, filename), buffer);
+
+    /* Update DB: set preview_image on the element */
+    const supabase = createSupabaseServiceRoleClient();
+    const { data, error } = await supabase
+      .from("ui_elements")
+      .update({ preview_image: publicPath })
+      .eq("id", elementId)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ data, path: publicPath });
+  } catch (err) {
+    console.error("[preview-upload POST] Unexpected:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

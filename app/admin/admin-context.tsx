@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "../components/toast-provider";
 import type { ClanRow, AdminSection, PendingApprovalRow } from "./admin-types";
@@ -67,7 +67,7 @@ interface AdminProviderProps {
 }
 
 export default function AdminProvider({ children }: AdminProviderProps): ReactElement {
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { pushToast } = useToast();

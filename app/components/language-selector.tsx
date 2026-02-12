@@ -4,7 +4,8 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { routing, LOCALE_COOKIE } from "../../i18n/routing";
 import type { Locale } from "../../i18n/routing";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { useSupabase } from "../hooks/use-supabase";
 
 interface LanguageSelectorProps {
   /** When true, only show a single compact button (collapsed sidebar). */
@@ -23,9 +24,8 @@ function readCurrentLocale(): Locale {
 /**
  * Sets the NEXT_LOCALE cookie and optionally syncs to Supabase user_metadata.
  */
-async function setLocale(locale: Locale): Promise<void> {
+async function setLocale(locale: Locale, supabase: SupabaseClient): Promise<void> {
   document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-  const supabase = createSupabaseBrowserClient();
   const { data } = await supabase.auth.getUser();
   if (data.user) {
     await supabase.auth.updateUser({ data: { language: locale } });
@@ -39,11 +39,12 @@ async function setLocale(locale: Locale): Promise<void> {
 function LanguageSelector({ compact = false }: LanguageSelectorProps): JSX.Element {
   const t = useTranslations("languageSelector");
   const router = useRouter();
+  const supabase = useSupabase();
   const currentLocale = typeof document !== "undefined" ? readCurrentLocale() : routing.defaultLocale;
 
   async function handleSwitch(locale: Locale): Promise<void> {
     if (locale === currentLocale) return;
-    await setLocale(locale);
+    await setLocale(locale, supabase);
     router.refresh();
   }
 

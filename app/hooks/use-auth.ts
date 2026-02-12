@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "./use-supabase";
 
 interface UseAuthResult {
   /** The current user's ID, or null if not authenticated or still loading. */
@@ -21,7 +21,7 @@ interface UseAuthResult {
 export function useAuth(): UseAuthResult {
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
 
   useEffect(() => {
     let isActive = true;

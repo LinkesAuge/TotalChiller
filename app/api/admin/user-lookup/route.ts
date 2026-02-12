@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
+import { requireAuth } from "../../../../lib/api/require-auth";
 import { strictLimiter } from "../../../../lib/rate-limit";
 
 /* ─── Schemas ─── */
@@ -37,11 +37,9 @@ export async function POST(request: Request): Promise<Response> {
   const email = body.email ?? "";
   const username = body.username ?? "";
   const lookupValue = identifier || username || email;
-  const supabase = await createSupabaseServerClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { supabase } = auth;
   const { data: isAdmin, error: adminError } = await supabase.rpc("is_clan_admin", {
     target_clan: body.clanId,
   });

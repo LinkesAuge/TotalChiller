@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
+import { requireAdmin } from "../../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
 
@@ -36,16 +36,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });
   }
-  const supabase = await createSupabaseServerClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id ?? "";
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
-  const { data: isAdmin, error: adminError } = await supabase.rpc("is_any_admin");
-  if (adminError || !isAdmin) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
   const rows: CommitRowInput[] = parsed.data.rows;
   const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
   const serviceClient = createSupabaseServiceRoleClient();
@@ -81,8 +73,8 @@ export async function POST(request: Request): Promise<Response> {
     chest: row.chest,
     score: row.score,
     clan_id: clanIdByName.get(row.clan) ?? "",
-    created_by: userId,
-    updated_by: userId,
+    created_by: auth.userId,
+    updated_by: auth.userId,
   }));
   if (payload.some((entry) => !entry.clan_id)) {
     return NextResponse.json({ error: "Some rows have unknown clan names." }, { status: 400 });

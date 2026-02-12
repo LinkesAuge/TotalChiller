@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../lib/supabase/server-client";
+import { requireAdmin } from "../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../lib/rate-limit";
 
@@ -79,23 +79,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-/* ─── Helper: verify admin permissions ─── */
-
-async function verifyAdmin(): Promise<{ userId: string } | NextResponse> {
-  const authClient = await createSupabaseServerClient();
-  const { data: authData } = await authClient.auth.getUser();
-  const userId = authData.user?.id;
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  /* Admin check — relies on simplified is_any_admin (user_roles only) */
-  const { data: adminFlag } = await authClient.rpc("is_any_admin");
-  if (!adminFlag) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  return { userId };
-}
-
 /**
  * PATCH /api/site-list-items
  * Admin-only. Supports multiple actions:
@@ -108,8 +91,8 @@ async function verifyAdmin(): Promise<{ userId: string } | NextResponse> {
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const auth = await verifyAdmin();
-  if (auth instanceof NextResponse) return auth;
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
   const { userId } = auth;
 
   const parsed = PATCH_SCHEMA.safeParse(await request.json());

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
+import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import getIsContentManager from "../../../../lib/supabase/role-access";
 import { strictLimiter } from "../../../../lib/rate-limit";
@@ -21,12 +21,9 @@ const BROADCAST_SCHEMA = z.object({
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const isContentManager = await getIsContentManager({ supabase });
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const isContentManager = await getIsContentManager({ supabase: auth.supabase });
   if (!isContentManager) {
     return NextResponse.json({ error: "Forbidden: content manager access required." }, { status: 403 });
   }
@@ -41,7 +38,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
   const body = parsed.data;
-  const senderId = authData.user.id;
+  const senderId = auth.userId;
   const serviceClient = createSupabaseServiceRoleClient();
 
   let recipientIds: string[];

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../../lib/supabase/browser-client";
+import { useSupabase } from "../../hooks/use-supabase";
 
 /**
  * Renders the Supabase email/password login form.
@@ -12,7 +12,7 @@ function LoginPage(): JSX.Element {
   const [identifier, setIdentifier] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [status, setStatus] = useState<string>("");
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const t = useTranslations("auth.login");
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();

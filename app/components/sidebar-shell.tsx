@@ -6,11 +6,9 @@ import { useTranslations, useLocale } from "next-intl";
 import { useSidebar } from "./sidebar-context";
 import SidebarNav from "./sidebar-nav";
 import LanguageSelector from "./language-selector";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
-
-/* ── Rank hierarchy — lower index = higher rank ── */
-const RANK_ORDER: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier"];
+import { formatRank, rankOptions } from "@/app/admin/admin-types";
 
 interface ClanOption {
   readonly clanId: string;
@@ -41,44 +39,19 @@ const DEFAULT_USER: SidebarUserData = {
   selectedKey: "",
 };
 
-/** Rank display names keyed by locale then rank key. */
-const RANK_LABELS: Record<string, Record<string, string>> = {
-  de: {
-    leader: "Anführer",
-    superior: "Vorgesetzter",
-    officer: "Offizier",
-    veteran: "Veteran",
-    soldier: "Soldat",
-  },
-  en: {
-    leader: "Leader",
-    superior: "Superior",
-    officer: "Officer",
-    veteran: "Veteran",
-    soldier: "Soldier",
-  },
-};
-
 /**
- * Returns the localised label for a rank string.
- */
-function formatRank(rank: string, locale: string = "de"): string {
-  return RANK_LABELS[locale]?.[rank] ?? RANK_LABELS.en?.[rank] ?? rank.charAt(0).toUpperCase() + rank.slice(1);
-}
-
-/**
- * Returns the highest rank from a list of clan options using RANK_ORDER.
+ * Returns the highest rank from a list of clan options using rankOptions order.
  */
 function resolveHighestRank(options: readonly ClanOption[]): string {
-  let bestIndex = RANK_ORDER.length;
+  let bestIndex = rankOptions.length;
   for (const option of options) {
     if (!option.rank) continue;
-    const index = RANK_ORDER.indexOf(option.rank);
+    const index = rankOptions.indexOf(option.rank);
     if (index !== -1 && index < bestIndex) {
       bestIndex = index;
     }
   }
-  return bestIndex < RANK_ORDER.length ? (RANK_ORDER[bestIndex] ?? "") : "";
+  return bestIndex < rankOptions.length ? (rankOptions[bestIndex] ?? "") : "";
 }
 
 /**
@@ -90,7 +63,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
   const t = useTranslations("sidebar");
   const locale = useLocale();
   const [userData, setUserData] = useState<SidebarUserData>(DEFAULT_USER);
-  const [supabase] = useState(() => createSupabaseBrowserClient());
+  const supabase = useSupabase();
   const { isAdmin } = useUserRole(supabase);
 
   const loadUserData = useCallback(async (): Promise<void> => {

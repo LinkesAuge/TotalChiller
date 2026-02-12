@@ -1,5 +1,7 @@
 "use client";
 
+import ConfirmModal from "../components/confirm-modal";
+
 export interface EventDeleteModalProps {
   readonly isOpen: boolean;
   readonly onConfirm: () => void;
@@ -8,31 +10,19 @@ export interface EventDeleteModalProps {
 }
 
 export function EventDeleteModal({ isOpen, onConfirm, onCancel, t }: EventDeleteModalProps): JSX.Element | null {
-  if (!isOpen) return null;
-
   return (
-    <div className="modal-backdrop">
-      <div className="modal card danger">
-        <div className="card-header">
-          <div>
-            <div className="danger-label">{t("dangerZone")}</div>
-            <div className="card-title">{t("confirmDeleteEventTitle")}</div>
-            <div className="card-subtitle">{t("cannotBeUndone")}</div>
-          </div>
-        </div>
-        <div className="list">
-          <div className="alert danger">{t("confirmDeleteEventMessage")}</div>
-        </div>
-        <div className="list inline">
-          <button className="button danger" type="button" onClick={onConfirm}>
-            {t("deleteEvent")}
-          </button>
-          <button className="button" type="button" onClick={onCancel}>
-            {t("cancel")}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      isOpen={isOpen}
+      title={t("confirmDeleteEventTitle")}
+      subtitle={t("cannotBeUndone")}
+      message={t("confirmDeleteEventMessage")}
+      variant="danger"
+      zoneLabel={t("dangerZone")}
+      confirmLabel={t("deleteEvent")}
+      cancelLabel={t("cancel")}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   );
 }
 
@@ -59,64 +49,40 @@ export function TemplateDeleteModal({
   onContinueToStep2,
   t,
 }: TemplateDeleteModalProps): JSX.Element | null {
-  if (!isOpen) return null;
-
   if (!isStep2) {
     return (
-      <div className="modal-backdrop">
-        <div className="modal card danger">
-          <div className="card-header">
-            <div>
-              <div className="danger-label">{t("dangerZone")}</div>
-              <div className="card-title">{t("confirmDeleteTemplateTitle")}</div>
-              <div className="card-subtitle">{t("cannotBeUndone")}</div>
-            </div>
-          </div>
-          <div className="list">
-            <div className="alert danger">{t("confirmDeleteTemplateWarning", { name: templateName })}</div>
-          </div>
-          <div className="list inline">
-            <button className="button danger" type="button" onClick={onContinueToStep2}>
-              {t("continueAction")}
-            </button>
-            <button className="button" type="button" onClick={onCancel}>
-              {t("cancel")}
-            </button>
-          </div>
-        </div>
-      </div>
+      <ConfirmModal
+        isOpen={isOpen}
+        title={t("confirmDeleteTemplateTitle")}
+        subtitle={t("cannotBeUndone")}
+        message={t("confirmDeleteTemplateWarning", { name: templateName })}
+        variant="danger"
+        zoneLabel={t("dangerZone")}
+        confirmLabel={t("continueAction")}
+        cancelLabel={t("cancel")}
+        onConfirm={onContinueToStep2}
+        onCancel={onCancel}
+      />
     );
   }
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal card danger">
-        <div className="card-header">
-          <div>
-            <div className="danger-label">{t("dangerZone")}</div>
-            <div className="card-title">{t("confirmDeleteTemplateTitle")}</div>
-            <div className="card-subtitle">{t("cannotBeUndone")}</div>
-          </div>
-        </div>
-        <div className="alert danger">{t("confirmDeleteTemplateWarning", { name: templateName })}</div>
-        <div className="form-group">
-          <label htmlFor="deleteTemplateInput">{t("confirmDeleteTemplatePhrase")}</label>
-          <input
-            id="deleteTemplateInput"
-            value={deleteInput}
-            onChange={(e) => onInputChange(e.target.value)}
-            placeholder={t("confirmDeleteTemplatePlaceholder")}
-          />
-        </div>
-        <div className="list inline">
-          <button className="button danger" type="button" onClick={onConfirm} disabled={deleteInput !== "DELETE"}>
-            {t("deleteTemplate")}
-          </button>
-          <button className="button" type="button" onClick={onCancel}>
-            {t("cancel")}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      isOpen={isOpen}
+      title={t("confirmDeleteTemplateTitle")}
+      subtitle={t("cannotBeUndone")}
+      message={<div className="alert danger">{t("confirmDeleteTemplateWarning", { name: templateName })}</div>}
+      variant="danger"
+      zoneLabel={t("dangerZone")}
+      confirmLabel={t("deleteTemplate")}
+      cancelLabel={t("cancel")}
+      confirmPhrase="DELETE"
+      phraseValue={deleteInput}
+      onPhraseChange={onInputChange}
+      phrasePlaceholder={t("confirmDeleteTemplatePlaceholder")}
+      phraseLabel={t("confirmDeleteTemplatePhrase")}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   );
 }

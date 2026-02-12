@@ -3,10 +3,11 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { formatLocalDateTime } from "../../lib/date-format";
 import SearchInput from "../components/ui/search-input";
+import DataState from "../components/data-state";
 import RadixSelect from "../components/ui/radix-select";
 import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
 
@@ -65,7 +66,7 @@ interface MessagesClientProps {
 }
 
 function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JSX.Element {
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const locale = useLocale();
   const t = useTranslations("messagesPage");
 
@@ -854,16 +855,21 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
           </div>
           {/* Conversation list — email-style: subject first */}
           <div className="messages-conversation-list">
-            {isLoading ? (
-              <div className="list-item">
-                <span className="text-muted">{t("loadingMessages")}</span>
-              </div>
-            ) : filteredConversations.length === 0 ? (
-              <div className="list-item">
-                <span className="text-muted">{t("noMessages")}</span>
-              </div>
-            ) : (
-              filteredConversations.map((conv) => (
+            <DataState
+              isLoading={isLoading}
+              isEmpty={filteredConversations.length === 0}
+              loadingNode={
+                <div className="list-item">
+                  <span className="text-muted">{t("loadingMessages")}</span>
+                </div>
+              }
+              emptyNode={
+                <div className="list-item">
+                  <span className="text-muted">{t("noMessages")}</span>
+                </div>
+              }
+            >
+              {filteredConversations.map((conv) => (
                 <button
                   key={conv.partnerId}
                   type="button"
@@ -900,8 +906,8 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
                       : conv.lastMessage.content}
                   </div>
                 </button>
-              ))
-            )}
+              ))}
+            </DataState>
           </div>
         </section>
 

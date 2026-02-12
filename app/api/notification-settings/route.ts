@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import createSupabaseServerClient from "../../../lib/supabase/server-client";
+import { requireAuth } from "../../../lib/api/require-auth";
 import { notificationSettingsSchema } from "../../../lib/api/validation";
 import { standardLimiter } from "../../../lib/rate-limit";
 
@@ -12,12 +12,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userId = authData.user.id;
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { userId, supabase } = auth;
     const { data: existing } = await supabase
       .from("user_notification_settings")
       .select("messages_enabled,news_enabled,events_enabled,system_enabled")
@@ -56,11 +53,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
     let rawBody: unknown;
     try {
       rawBody = await request.json();
@@ -74,7 +68,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         { status: 400 },
       );
     }
-    const userId = authData.user.id;
+    const { userId, supabase } = auth;
     const updatePayload: Record<string, boolean> = {};
     const body = parsed.data;
     if (typeof body.messages_enabled === "boolean") {

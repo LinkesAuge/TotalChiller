@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import RadixSelect from "../../components/ui/radix-select";
 import SearchInput from "../../components/ui/search-input";
@@ -8,10 +8,11 @@ import IconButton from "../../components/ui/icon-button";
 import LabeledSelect from "../../components/ui/labeled-select";
 import TableScroll from "../../components/table-scroll";
 import { useAdminContext } from "../admin-context";
-import SortableColumnHeader from "../components/sortable-column-header";
+import SortableColumnHeader from "@/app/components/sortable-column-header";
 import DangerConfirmModal from "../components/danger-confirm-modal";
+import FormModal from "@/app/components/form-modal";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
-import { useSortable, compareValues } from "../hooks/use-sortable";
+import { useSortable, compareValues } from "@/lib/hooks/use-sortable";
 import type {
   MembershipRow,
   MembershipQueryRow,
@@ -250,8 +251,7 @@ export default function ClansTab(): ReactElement {
   }, [assignAccounts.accounts, assignAccounts.filter, assignAccounts.search, selectedClanId, unassignedClanId]);
 
   /* ── Clan modal ── */
-  async function handleSaveClan(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
+  async function handleSaveClan(): Promise<void> {
     if (!clanModal.name.trim()) {
       setStatus("Clan name is required.");
       return;
@@ -1121,49 +1121,35 @@ export default function ClansTab(): ReactElement {
       )}
 
       {/* Clan create/edit modal */}
-      {clanModal.open ? (
-        <div className="modal-backdrop">
-          <div className="modal card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">
-                  {clanModal.mode === "edit" ? tAdmin("clans.editClan") : tAdmin("clans.createClan")}
-                </div>
-                <div className="card-subtitle">{tAdmin("clans.nameAndDescription")}</div>
-              </div>
-            </div>
-            <form onSubmit={handleSaveClan}>
-              <div className="form-group">
-                <label htmlFor="clanModalName">{tAdmin("clans.clanName")}</label>
-                <input
-                  id="clanModalName"
-                  value={clanModal.name}
-                  onChange={(e) => setClanModal((m) => ({ ...m, name: e.target.value }))}
-                  placeholder="[THC] Chiller & Killer"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="clanModalDescription">{tAdmin("clans.description")}</label>
-                <input
-                  id="clanModalDescription"
-                  value={clanModal.description}
-                  onChange={(e) => setClanModal((m) => ({ ...m, description: e.target.value }))}
-                  placeholder="Primary clan hub"
-                />
-              </div>
-              <div className="list">
-                <button className="button primary" type="submit">
-                  {clanModal.mode === "edit" ? tAdmin("common.saveChanges") : tAdmin("clans.createClan")}
-                </button>
-                <button className="button" type="button" onClick={() => setClanModal((m) => ({ ...m, open: false }))}>
-                  {tAdmin("common.cancel")}
-                </button>
-              </div>
-            </form>
-          </div>
+      <FormModal
+        isOpen={clanModal.open}
+        title={clanModal.mode === "edit" ? tAdmin("clans.editClan") : tAdmin("clans.createClan")}
+        subtitle={tAdmin("clans.nameAndDescription")}
+        submitLabel={clanModal.mode === "edit" ? tAdmin("common.saveChanges") : tAdmin("clans.createClan")}
+        cancelLabel={tAdmin("common.cancel")}
+        onSubmit={() => void handleSaveClan()}
+        onCancel={() => setClanModal((m) => ({ ...m, open: false }))}
+      >
+        <div className="form-group">
+          <label htmlFor="clanModalName">{tAdmin("clans.clanName")}</label>
+          <input
+            id="clanModalName"
+            value={clanModal.name}
+            onChange={(e) => setClanModal((m) => ({ ...m, name: e.target.value }))}
+            placeholder="[THC] Chiller & Killer"
+            required
+          />
         </div>
-      ) : null}
+        <div className="form-group">
+          <label htmlFor="clanModalDescription">{tAdmin("clans.description")}</label>
+          <input
+            id="clanModalDescription"
+            value={clanModal.description}
+            onChange={(e) => setClanModal((m) => ({ ...m, description: e.target.value }))}
+            placeholder="Primary clan hub"
+          />
+        </div>
+      </FormModal>
 
       <DangerConfirmModal
         state={clanDelete}

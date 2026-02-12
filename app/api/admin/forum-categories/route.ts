@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
 import { requireAdmin } from "../../../../lib/api/require-admin";
@@ -28,8 +27,7 @@ const UPDATE_CATEGORY_SCHEMA = z.object({
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const auth = await requireAdmin(supabase);
+  const auth = await requireAdmin();
   if (auth.error) return auth.error;
 
   const clanId = request.nextUrl.searchParams.get("clan_id");
@@ -55,8 +53,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const auth = await requireAdmin(supabase);
+  const auth = await requireAdmin();
   if (auth.error) return auth.error;
 
   let rawBody: unknown;
@@ -95,8 +92,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const auth = await requireAdmin(supabase);
+  const auth = await requireAdmin();
   if (auth.error) return auth.error;
 
   let rawBody: unknown;
@@ -140,8 +136,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const auth = await requireAdmin(supabase);
+  const auth = await requireAdmin();
   if (auth.error) return auth.error;
 
   const id = request.nextUrl.searchParams.get("id");

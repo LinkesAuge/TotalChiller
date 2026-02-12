@@ -10,9 +10,10 @@ import TableScroll from "../../components/table-scroll";
 import { useAdminContext } from "../admin-context";
 import { useRuleList } from "../hooks/use-rule-list";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
-import SortableColumnHeader from "../components/sortable-column-header";
-import PaginationBar from "../components/pagination-bar";
+import SortableColumnHeader from "@/app/components/sortable-column-header";
+import PaginationBar from "@/app/components/pagination-bar";
 import DangerConfirmModal from "../components/danger-confirm-modal";
+import ConfirmModal from "@/app/components/confirm-modal";
 import RuleImportModal from "../components/rule-import-modal";
 import type { RuleRow } from "../admin-types";
 import { ruleFieldOptions, formatLabel, NEW_VALIDATION_ID } from "../admin-types";
@@ -562,28 +563,18 @@ export default function ValidationTab(): ReactElement {
         onClose={ruleList.handleCloseImport}
       />
 
-      {ruleList.replaceConfirmOpen ? (
-        <div className="modal-backdrop">
-          <div className="modal card danger">
-            <div className="card-header">
-              <div>
-                <div className="danger-label">{tAdmin("danger.title")}</div>
-                <div className="card-title">{tAdmin("common.replaceList")}</div>
-                <div className="card-subtitle">{tAdmin("danger.replaceListWarning")}</div>
-              </div>
-            </div>
-            <div className="alert danger">{tAdmin("danger.replaceListWarning")}</div>
-            <div className="list inline">
-              <button className="button danger" type="button" onClick={handleConfirmReplace}>
-                {tAdmin("common.replaceList")}
-              </button>
-              <button className="button" type="button" onClick={() => ruleList.setReplaceConfirmOpen(false)}>
-                {tAdmin("common.cancel")}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        isOpen={ruleList.replaceConfirmOpen}
+        title={tAdmin("common.replaceList")}
+        subtitle={tAdmin("danger.replaceListWarning")}
+        message={tAdmin("danger.replaceListWarning")}
+        variant="danger"
+        zoneLabel={tAdmin("danger.title")}
+        confirmLabel={tAdmin("common.replaceList")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={handleConfirmReplace}
+        onCancel={() => ruleList.setReplaceConfirmOpen(false)}
+      />
     </section>
   );
 }

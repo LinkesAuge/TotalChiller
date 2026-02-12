@@ -9,9 +9,11 @@ const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
 import { UpArrow, DownArrow, CommentIcon, PostThumbnailBox } from "./forum-icons";
 import { formatTimeAgo } from "./forum-utils";
 import type { ForumPost, SortMode } from "./forum-types";
-import { PAGE_SIZE } from "./forum-types";
 import type { ForumCategory } from "@/lib/types/domain";
+
 import type { TFunction } from "./forum-utils";
+import type { PaginationState } from "@/lib/hooks/use-pagination";
+import PaginationBar from "../components/pagination-bar";
 
 export interface ForumPostListProps {
   readonly posts: ForumPost[];
@@ -19,14 +21,12 @@ export interface ForumPostListProps {
   readonly selectedCategory: string;
   readonly sortMode: SortMode;
   readonly searchTerm: string;
-  readonly totalCount: number;
-  readonly page: number;
+  readonly pagination: PaginationState;
   readonly isLoading: boolean;
   readonly t: TFunction;
   readonly onSortChange: (mode: SortMode) => void;
   readonly onSearchChange: (value: string) => void;
   readonly onCategoryClick: (slug: string) => void;
-  readonly onPageChange: (page: number) => void;
   readonly onPostClick: (post: ForumPost) => void;
   readonly onVotePost: (postId: string, voteType: number) => void;
   readonly onNewPost: () => void;
@@ -39,14 +39,12 @@ export default function ForumPostList({
   selectedCategory,
   sortMode,
   searchTerm,
-  totalCount,
-  page,
+  pagination,
   isLoading,
   t,
   onSortChange,
   onSearchChange,
   onCategoryClick,
-  onPageChange,
   onPostClick,
   onVotePost,
   onNewPost,
@@ -115,7 +113,7 @@ export default function ForumPostList({
 
       {isLoading ? (
         <div className="forum-empty">
-          <p>Loading...</p>
+          <p>{t("loadingPosts")}</p>
         </div>
       ) : posts.length === 0 ? (
         <div className="forum-empty">
@@ -198,31 +196,9 @@ export default function ForumPostList({
         </div>
       )}
 
-      {totalCount > PAGE_SIZE && (
-        <div className="flex justify-center items-center gap-2.5 mt-4">
-          <button
-            className="button py-1.5 px-3"
-            disabled={page <= 1}
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            style={{ fontSize: "0.78rem" }}
-          >
-            ←
-          </button>
-          <span className="text-[0.78rem] text-text-2">
-            {t("showing", {
-              from: (page - 1) * PAGE_SIZE + 1,
-              to: Math.min(page * PAGE_SIZE, totalCount),
-              total: totalCount,
-            })}
-          </span>
-          <button
-            className="button py-1.5 px-3"
-            disabled={page * PAGE_SIZE >= totalCount}
-            onClick={() => onPageChange(page + 1)}
-            style={{ fontSize: "0.78rem" }}
-          >
-            →
-          </button>
+      {pagination.totalItems > pagination.pageSize && (
+        <div className="mt-4">
+          <PaginationBar pagination={pagination} compact idPrefix="forum" />
         </div>
       )}
     </>

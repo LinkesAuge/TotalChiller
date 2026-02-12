@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import type { PostgrestError } from "@supabase/supabase-js";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
 import { classifySupabaseError, getErrorMessageKey } from "@/lib/supabase/error-utils";
@@ -28,12 +28,13 @@ import {
   toDateKey,
   toLocalDateTimeString,
 } from "./events-utils";
+import DataState from "../components/data-state";
 
 /**
  * Full events client component with CRUD, templates, role-gating, calendar, and past/upcoming.
  */
 function EventsClient(): JSX.Element {
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const clanContext = useClanContext();
   const { pushToast } = useToast();
   const t = useTranslations("events");
@@ -610,20 +611,14 @@ function EventsClient(): JSX.Element {
 
       <div className="content-inner">
         <div className="grid">
-          {isLoading && <div className="alert info loading col-span-full">{t("loadingEvents")}</div>}
-
-          {!isLoading && events.length === 0 && (
-            <section className="card col-span-full">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">{t("noEvents")}</div>
-                  <div className="card-subtitle">{t("createEvent")}</div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {!isLoading && (
+          <DataState
+            isLoading={isLoading}
+            isEmpty={events.length === 0}
+            loadingMessage={t("loadingEvents")}
+            emptyMessage={t("noEvents")}
+            emptySubtitle={t("createEvent")}
+            className="col-span-full"
+          >
             <div className="events-two-col col-span-full">
               <div className="events-calendar-column">
                 <EventCalendar
@@ -665,7 +660,7 @@ function EventsClient(): JSX.Element {
                 t={t}
               />
             </div>
-          )}
+          </DataState>
 
           {canManage && (
             <div className="col-span-full flex items-center gap-2.5 flex-wrap">

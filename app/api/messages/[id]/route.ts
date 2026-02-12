@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
+import { requireAuth } from "../../../../lib/api/require-auth";
 import { uuidSchema } from "../../../../lib/api/validation";
 import { standardLimiter } from "../../../../lib/rate-limit";
 
@@ -15,21 +15,18 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
     const { id } = await context.params;
     const parsed = uuidSchema.safeParse(id);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid message ID format." }, { status: 400 });
     }
-    const { error: updateError } = await supabase
+    const { error: updateError } = await auth.supabase
       .from("messages")
       .update({ is_read: true })
       .eq("id", parsed.data)
-      .eq("recipient_id", authData.user.id);
+      .eq("recipient_id", auth.userId);
     if (updateError) {
       console.error("[messages/[id] PATCH]", updateError.message);
       return NextResponse.json({ error: "Failed to update message." }, { status: 500 });
@@ -48,21 +45,18 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
     const { id } = await context.params;
     const parsed = uuidSchema.safeParse(id);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid message ID format." }, { status: 400 });
     }
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await auth.supabase
       .from("messages")
       .delete()
       .eq("id", parsed.data)
-      .eq("recipient_id", authData.user.id);
+      .eq("recipient_id", auth.userId);
     if (deleteError) {
       console.error("[messages/[id] DELETE]", deleteError.message);
       return NextResponse.json({ error: "Failed to delete message." }, { status: 500 });

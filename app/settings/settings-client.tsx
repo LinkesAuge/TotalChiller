@@ -2,9 +2,10 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import LanguageSelector from "../components/language-selector";
+import { buildFallbackUserDb } from "@/app/admin/admin-types";
 
 import type { NotificationPrefs } from "@/lib/types/domain";
 
@@ -56,7 +57,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
     system_enabled: true,
   });
   const [notifStatus, setNotifStatus] = useState<string>("");
-  const [supabase] = useState(() => createSupabaseBrowserClient());
+  const supabase = useSupabase();
   const { isAdmin } = useUserRole(supabase);
 
   useEffect(() => {
@@ -74,7 +75,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
           .maybeSingle();
         if (!profileData && currentEmail) {
           const emailPrefix = currentEmail.split("@")[0];
-          const fallbackUsername = `${emailPrefix}_${userId.replace(/-/g, "").slice(-6)}`.toLowerCase();
+          const fallbackUsername = buildFallbackUserDb(currentEmail, userId);
           const { data: createdProfile } = await supabase
             .from("profiles")
             .upsert(

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../lib/supabase/server-client";
+import { requireAdmin } from "../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../lib/rate-limit";
 
@@ -50,18 +50,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  /* Auth check */
-  const authClient = await createSupabaseServerClient();
-  const { data: authData } = await authClient.auth.getUser();
-  const userId = authData.user?.id;
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  /* Admin check — relies on simplified is_any_admin (user_roles only) */
-  const { data: adminFlag } = await authClient.rpc("is_any_admin");
-  if (!adminFlag) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  /* Auth + admin check */
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
 
   const parsed = PATCH_SCHEMA.safeParse(await request.json());
   if (!parsed.success) {
@@ -93,7 +84,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       field_key,
       content_de: content_de ?? "",
       content_en: content_en ?? "",
-      updated_by: userId,
+      updated_by: auth.userId,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "page,section_key,field_key" },

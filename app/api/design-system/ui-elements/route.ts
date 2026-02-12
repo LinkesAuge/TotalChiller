@@ -1,8 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "@/lib/supabase/server-client";
+import { requireAdmin } from "@/lib/api/require-admin";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
-import getIsAdminAccess from "@/lib/supabase/admin-access";
 import { standardLimiter } from "@/lib/rate-limit";
 
 /* ------------------------------------------------------------------ */
@@ -97,11 +96,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (blocked) return blocked;
 
   try {
-    const authClient = await createSupabaseServerClient();
-    const isAdmin = await getIsAdminAccess({ supabase: authClient });
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
 
     const body = await request.json();
     const parsed = createSchema.safeParse(body);
@@ -133,11 +129,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   if (blocked) return blocked;
 
   try {
-    const authClient = await createSupabaseServerClient();
-    const isAdmin = await getIsAdminAccess({ supabase: authClient });
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
 
     const body = await request.json();
     const parsed = patchSchema.safeParse(body);
@@ -170,11 +163,8 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   if (blocked) return blocked;
 
   try {
-    const authClient = await createSupabaseServerClient();
-    const isAdmin = await getIsAdminAccess({ supabase: authClient });
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
 
     const body = await request.json();
     const parsed = deleteSchema.safeParse(body);

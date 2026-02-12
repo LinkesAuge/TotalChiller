@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../../lib/supabase/browser-client";
+import { useSupabase } from "../../hooks/use-supabase";
 
 const REDIRECT_DELAY_MS = 2000;
 
@@ -25,7 +25,7 @@ const initialPasswordState: PasswordFormState = {
  */
 function UpdatePasswordPage(): JSX.Element {
   const [formState, setFormState] = useState<PasswordFormState>(initialPasswordState);
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const router = useRouter();
   const t = useTranslations("auth.update");
 

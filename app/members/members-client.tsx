@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import useClanContext from "../components/use-clan-context";
 import { formatRank, formatRole, rankOptions } from "../admin/admin-types";
+import DataState from "../components/data-state";
 
 /* ── Types ── */
 
@@ -45,7 +46,7 @@ function buildMessageLink(userId: string): string {
 function MembersClient(): JSX.Element {
   const t = useTranslations("members");
   const locale = useLocale();
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const clanContext = useClanContext();
 
   /* ── Data state ── */
@@ -253,18 +254,16 @@ function MembersClient(): JSX.Element {
         </div>
       )}
 
-      {/* ── Loading ── */}
-      {isLoading && <div className="alert info loading">{t("loading")}</div>}
-
-      {/* ── Empty ── */}
-      {!isLoading && members.length === 0 && (
-        <div className="card">
-          <div className="card-body text-text-muted">{t("noMembers")}</div>
-        </div>
-      )}
-
-      {/* ── Member Table ── */}
-      {!isLoading && members.length > 0 && (
+      <DataState
+        isLoading={isLoading}
+        isEmpty={members.length === 0}
+        loadingMessage={t("loading")}
+        emptyNode={
+          <div className="card">
+            <div className="card-body text-text-muted">{t("noMembers")}</div>
+          </div>
+        }
+      >
         <section className="table member-dir">
           <header>
             <span>#</span>
@@ -358,7 +357,7 @@ function MembersClient(): JSX.Element {
             );
           })}
         </section>
-      )}
+      </DataState>
     </div>
   );
 }

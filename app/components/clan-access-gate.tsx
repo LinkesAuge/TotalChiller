@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { LOCALE_COOKIE } from "../../i18n/routing";
 import type { Locale } from "../../i18n/routing";
 import { routing } from "../../i18n/routing";
@@ -35,7 +35,7 @@ type AccessState = "loading" | "granted" | "unassigned" | "denied";
  */
 function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
   const pathname = usePathname();
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const t = useTranslations("clanAccessGate");
   const [accessState, setAccessState] = useState<AccessState>("loading");
 

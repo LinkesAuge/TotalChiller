@@ -3,7 +3,7 @@ import {
   toDateString,
   getMonday,
   calculateTrend,
-  formatNumber,
+  formatCompactNumber,
   formatRelativeTime,
   extractAuthorName,
 } from "./dashboard-utils";
@@ -79,22 +79,22 @@ describe("calculateTrend", () => {
   });
 });
 
-describe("formatNumber", () => {
+describe("formatCompactNumber", () => {
   it("formats small numbers as-is", () => {
-    expect(formatNumber(0)).toBe("0");
-    expect(formatNumber(42)).toBe("42");
-    expect(formatNumber(999)).toBe("999");
+    expect(formatCompactNumber(0)).toBe("0");
+    expect(formatCompactNumber(42)).toBe("42");
+    expect(formatCompactNumber(999)).toBe("999");
   });
 
   it("formats thousands with K suffix", () => {
-    expect(formatNumber(1000)).toBe("1.0K");
-    expect(formatNumber(1500)).toBe("1.5K");
-    expect(formatNumber(99999)).toBe("100.0K");
+    expect(formatCompactNumber(1000)).toBe("1.0K");
+    expect(formatCompactNumber(1500)).toBe("1.5K");
+    expect(formatCompactNumber(99999)).toBe("100.0K");
   });
 
   it("formats millions with M suffix", () => {
-    expect(formatNumber(1000000)).toBe("1.0M");
-    expect(formatNumber(2500000)).toBe("2.5M");
+    expect(formatCompactNumber(1000000)).toBe("1.0M");
+    expect(formatCompactNumber(2500000)).toBe("2.5M");
   });
 });
 

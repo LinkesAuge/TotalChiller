@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
+import { requireAuth } from "../../../../lib/api/require-auth";
 import { standardLimiter } from "../../../../lib/rate-limit";
 
 /**
@@ -9,15 +9,12 @@ import { standardLimiter } from "../../../../lib/rate-limit";
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { error: updateError } = await supabase
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { error: updateError } = await auth.supabase
     .from("notifications")
     .update({ is_read: true })
-    .eq("user_id", authData.user.id)
+    .eq("user_id", auth.userId)
     .eq("is_read", false);
   if (updateError) {
     console.error("[notifications/mark-all-read]", updateError.message);

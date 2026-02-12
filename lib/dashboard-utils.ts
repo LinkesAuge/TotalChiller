@@ -27,8 +27,8 @@ export function calculateTrend(current: number, previous: number): number {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-/** Format a number with compact notation for display. */
-export function formatNumber(n: number): string {
+/** Format a number with compact notation for display (e.g. 1.5K, 2.3M). */
+export function formatCompactNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);

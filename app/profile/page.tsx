@@ -14,6 +14,8 @@ import GameAccountManager from "./game-account-manager";
 import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
 import SectionHero from "../components/section-hero";
+import type { GameAccountView } from "@/lib/types/domain";
+import { buildFallbackUserDb, formatRole } from "@/app/admin/admin-types";
 
 interface UserProfileView {
   readonly id: string;
@@ -23,22 +25,9 @@ interface UserProfileView {
   readonly displayName: string;
 }
 
-import { ROLE_LABELS as PERM_ROLE_LABELS, toRole } from "@/lib/permissions";
-
-function formatRole(role: string): string {
-  return PERM_ROLE_LABELS[toRole(role)] ?? role.charAt(0).toUpperCase() + role.slice(1);
-}
-
 interface ClanView {
   readonly id: string;
   readonly name: string;
-}
-
-interface GameAccountView {
-  readonly id: string;
-  readonly game_username: string;
-  readonly approval_status: string;
-  readonly created_at: string;
 }
 
 /**
@@ -56,6 +45,7 @@ async function ProfileContent(): Promise<JSX.Element> {
   const userEmail = data.user?.email ?? "Unknown";
   const userId = data.user?.id ?? "Unknown";
   /* Fetch profile + independent data in parallel */
+  const locale = await getLocale();
   const [{ data: profileData }, gameAccountResult, userRoleResult, t] = await Promise.all([
     supabase
       .from("profiles")
@@ -71,8 +61,8 @@ async function ProfileContent(): Promise<JSX.Element> {
     getTranslations("profile"),
   ]);
   const emailPrefix = userEmail && userEmail !== "Unknown" ? userEmail.split("@")[0] : "user";
-  const fallbackSuffix = userId !== "Unknown" ? userId.replace(/-/g, "").slice(-6) : "000000";
-  const fallbackUsername = `${emailPrefix}_${fallbackSuffix}`.toLowerCase();
+  const fallbackUsername =
+    userId !== "Unknown" && userEmail !== "Unknown" ? buildFallbackUserDb(userEmail, userId) : `${emailPrefix}_000000`;
   const { data: ensuredProfile } =
     !profileData && userId !== "Unknown" && userEmail !== "Unknown"
       ? await supabase
@@ -130,7 +120,7 @@ async function ProfileContent(): Promise<JSX.Element> {
     : undefined;
   const primaryMembership = defaultMembership ?? memberships[0] ?? null;
   const primaryClan = primaryMembership ? clansById[primaryMembership.clan_id] : null;
-  const roleLabel = formatRole(userRole);
+  const roleLabel = formatRole(userRole, locale);
   const clanLabel = primaryClan?.name ?? t("noClanAssigned");
 
   return (

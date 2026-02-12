@@ -76,6 +76,32 @@ export interface NotificationPrefs {
   readonly system_enabled: boolean;
 }
 
+/* ── Game Account View (profile) ── */
+
+export interface GameAccountView {
+  readonly id: string;
+  readonly game_username: string;
+  readonly approval_status: string;
+  readonly created_at: string;
+}
+
+/* ── Validation / Correction Rules (data-import & data-table) ── */
+
+export interface ValidationRuleRow {
+  readonly id: string;
+  readonly field: string;
+  readonly match_value: string;
+  readonly status: string;
+}
+
+export interface CorrectionRuleRow {
+  readonly id: string;
+  readonly field: string;
+  readonly match_value: string;
+  readonly replacement_value: string;
+  readonly status: string;
+}
+
 /* ── Pending Approvals ── */
 
 export interface PendingApprovalRow {

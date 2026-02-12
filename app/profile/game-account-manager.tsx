@@ -2,15 +2,9 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import IconButton from "../components/ui/icon-button";
-
-interface GameAccountView {
-  readonly id: string;
-  readonly game_username: string;
-  readonly approval_status: string;
-  readonly created_at: string;
-}
+import type { GameAccountView } from "@/lib/types/domain";
 
 interface GameAccountManagerProps {
   readonly userId: string;
@@ -40,7 +34,7 @@ function GameAccountManager({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [defaultStatus, setDefaultStatus] = useState<string>("");
-  const _supabase = createSupabaseBrowserClient();
+  const _supabase = useSupabase();
 
   useEffect(() => {
     setAccounts(initialAccounts);

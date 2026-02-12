@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../lib/supabase/server-client";
+import { requireAuth } from "../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../lib/rate-limit";
 
@@ -28,12 +28,9 @@ interface ExistingAccountRow {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = authData.user.id;
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { userId, supabase } = auth;
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -102,12 +99,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = authData.user.id;
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { userId, supabase } = auth;
   const [{ data: accounts, error: fetchError }, { data: profile }] = await Promise.all([
     supabase
       .from("game_accounts")
@@ -133,12 +127,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = authData.user.id;
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const { userId, supabase } = auth;
   let rawBody: unknown;
   try {
     rawBody = await request.json();

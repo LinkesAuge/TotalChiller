@@ -1,6 +1,6 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../lib/supabase/server-client";
+import { requireAuth } from "../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../lib/rate-limit";
 
@@ -46,12 +46,9 @@ function deduplicateOutgoing<T extends { broadcast_group_id: string | null }>(ro
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = authData.user.id;
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const userId = auth.userId;
   const typeFilter = request.nextUrl.searchParams.get("type") ?? "all";
   const serviceClient = createSupabaseServiceRoleClient();
 
@@ -132,12 +129,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const senderId = authData.user.id;
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const senderId = auth.userId;
   let rawBody: unknown;
   try {
     rawBody = await request.json();

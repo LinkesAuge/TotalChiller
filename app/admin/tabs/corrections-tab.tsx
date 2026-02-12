@@ -6,9 +6,10 @@ import { type RuleRow, correctionFieldOptions, formatLabel, NEW_CORRECTION_ID } 
 import { useAdminContext } from "../admin-context";
 import { useRuleList } from "../hooks/use-rule-list";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
-import SortableColumnHeader from "../components/sortable-column-header";
-import PaginationBar from "../components/pagination-bar";
+import SortableColumnHeader from "@/app/components/sortable-column-header";
+import PaginationBar from "@/app/components/pagination-bar";
 import DangerConfirmModal from "../components/danger-confirm-modal";
+import ConfirmModal from "@/app/components/confirm-modal";
 import RuleImportModal from "../components/rule-import-modal";
 import type { ImportColumn } from "../components/rule-import-modal";
 import RadixSelect from "../../components/ui/radix-select";
@@ -255,6 +256,11 @@ export default function CorrectionsTab(): ReactElement {
     }
     deleteConfirm.openConfirm();
   }, [rlSelectedIds.length, deleteConfirm, setStatus]);
+
+  const handleConfirmReplace = useCallback(async () => {
+    await ruleList.executeImport();
+    ruleList.setReplaceConfirmOpen(false);
+  }, [ruleList]);
 
   const importColumns: ImportColumn[] = useMemo(
     () => [
@@ -638,37 +644,18 @@ export default function CorrectionsTab(): ReactElement {
         onClose={ruleList.handleCloseImport}
       />
 
-      {ruleList.replaceConfirmOpen ? (
-        <div className="modal-backdrop">
-          <div className="modal card danger">
-            <div className="card-header">
-              <div>
-                <div className="danger-label">{tAdmin("danger.title")}</div>
-                <div className="card-title">{tAdmin("common.replaceList")}</div>
-                <div className="card-subtitle">{tAdmin("danger.cannotBeUndone")}</div>
-              </div>
-            </div>
-            <div className="alert danger">
-              This will delete all existing correction rules for this field before importing.
-            </div>
-            <div className="list inline">
-              <button
-                className="button danger"
-                type="button"
-                onClick={async () => {
-                  await ruleList.executeImport();
-                  ruleList.setReplaceConfirmOpen(false);
-                }}
-              >
-                {tAdmin("common.continue")}
-              </button>
-              <button className="button" type="button" onClick={() => ruleList.setReplaceConfirmOpen(false)}>
-                {tAdmin("common.cancel")}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmModal
+        isOpen={ruleList.replaceConfirmOpen}
+        title={tAdmin("common.replaceList")}
+        subtitle={tAdmin("danger.cannotBeUndone")}
+        message={tAdmin("corrections.replaceWarning")}
+        variant="danger"
+        zoneLabel={tAdmin("danger.title")}
+        confirmLabel={tAdmin("common.continue")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={handleConfirmReplace}
+        onCancel={() => ruleList.setReplaceConfirmOpen(false)}
+      />
     </section>
   );
 }

@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactElement } from "re
 import { useTranslations } from "next-intl";
 import SearchInput from "../../components/ui/search-input";
 import LabeledSelect from "../../components/ui/labeled-select";
-import PaginationBar from "../components/pagination-bar";
-import { usePagination } from "../hooks/use-pagination";
+import PaginationBar from "@/app/components/pagination-bar";
+import { usePagination } from "@/lib/hooks/use-pagination";
 import { useAdminContext } from "../admin-context";
 import type { AuditLogRow, ProfileRow } from "../admin-types";
 import { formatLocalDateTime } from "../../../lib/date-format";

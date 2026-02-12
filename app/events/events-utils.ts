@@ -1,4 +1,5 @@
 import type { DisplayEvent, EventRow, RecurrenceType } from "./events-types";
+import { toDateString } from "@/lib/dashboard-utils";
 
 /* ── Date helpers ── */
 
@@ -72,11 +73,9 @@ export function formatDateRange(startsAt: string, endsAt: string, locale: string
   return `${startDate} ${startTime} – ${endDate} ${endTime}`;
 }
 
+/** @deprecated Use `toDateString` from `@/lib/dashboard-utils` directly. Re-exported for backward compatibility. */
 export function toDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return toDateString(date);
 }
 
 export function parseDateKey(dateKey: string): Date | null {

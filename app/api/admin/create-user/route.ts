@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
 import { requireAdmin } from "../../../../lib/api/require-admin";
@@ -40,8 +39,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: "Invalid input." }, { status: 400 });
   }
   /* ── Auth guard: require authenticated admin ── */
-  const authClient = await createSupabaseServerClient();
-  const auth = await requireAdmin(authClient);
+  const auth = await requireAdmin();
   if (auth.error) return auth.error;
   const supabase = createSupabaseServiceRoleClient();
   const { email, username, displayName } = parsed.data;

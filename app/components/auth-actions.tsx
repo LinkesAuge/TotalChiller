@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import NotificationBell from "./notification-bell";
 
 type ActivePanel = "profile" | "notifications" | null;
@@ -30,7 +30,7 @@ function AuthActions(): JSX.Element | null {
   const [authState, setAuthState] = useState<AuthActionState>(initialAuthState);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const t = useTranslations("userMenu");
 
   useEffect(() => {

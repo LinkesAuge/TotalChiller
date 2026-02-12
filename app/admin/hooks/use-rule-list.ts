@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RuleRow } from "../admin-types";
-import { usePagination } from "./use-pagination";
-import { compareValues, useSortable } from "./use-sortable";
+import { usePagination } from "@/lib/hooks/use-pagination";
+import { compareValues, useSortable } from "@/lib/hooks/use-sortable";
 
 /* ── Config ── */
 

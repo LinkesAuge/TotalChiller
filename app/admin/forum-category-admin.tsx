@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import useClanContext from "../components/use-clan-context";
 
 /* ─── Types ─── */
@@ -37,7 +37,7 @@ function toSlug(name: string): string {
  * Supports create, edit (inline), reorder, and delete with confirmation.
  */
 function ForumCategoryAdmin(): JSX.Element {
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const clanContext = useClanContext();
   const t = useTranslations("admin.forumCategories");
 

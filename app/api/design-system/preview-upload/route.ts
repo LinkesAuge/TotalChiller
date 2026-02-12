@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
-import createSupabaseServerClient from "@/lib/supabase/server-client";
+import { requireAdmin } from "@/lib/api/require-admin";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
-import getIsAdminAccess from "@/lib/supabase/admin-access";
 import { standardLimiter } from "@/lib/rate-limit";
 
 /* ------------------------------------------------------------------ */
@@ -24,11 +23,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (blocked) return blocked;
 
   try {
-    const authClient = await createSupabaseServerClient();
-    const isAdmin = await getIsAdminAccess({ supabase: authClient });
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;

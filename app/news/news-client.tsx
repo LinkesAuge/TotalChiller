@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { z } from "zod";
 import { useTranslations, useLocale } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
 import { formatLocalDateTime } from "../../lib/date-format";
@@ -14,13 +14,15 @@ import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
 import { useToast } from "../components/toast-provider";
 import RadixSelect from "../components/ui/radix-select";
-import IconButton from "../components/ui/icon-button";
 import DatePicker from "../components/date-picker";
 import SearchInput from "../components/ui/search-input";
 import BannerPicker from "../components/banner-picker";
 import MarkdownEditor from "../components/markdown-editor";
 import dynamic from "next/dynamic";
 import SectionHero from "../components/section-hero";
+import DataState from "../components/data-state";
+import PaginationBar from "../components/pagination-bar";
+import { usePagination } from "@/lib/hooks/use-pagination";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
@@ -68,7 +70,7 @@ const ARTICLE_SCHEMA = z.object({
 /* ─── Component ─── */
 
 function NewsClient(): JSX.Element {
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const clanContext = useClanContext();
   const { pushToast } = useToast();
   const t = useTranslations("news");
@@ -85,9 +87,7 @@ function NewsClient(): JSX.Element {
   const [totalCount, setTotalCount] = useState<number>(0);
 
   /* ── Pagination ── */
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(10);
-  const totalPages: number = Math.max(1, Math.ceil(totalCount / pageSize));
+  const pagination = usePagination(totalCount, 10);
 
   /* ── Filter state ── */
   const [tagFilter, setTagFilter] = useState<string>("all");
@@ -126,7 +126,7 @@ function NewsClient(): JSX.Element {
 
   /* ── Load articles ── */
 
-  async function loadArticles(pageNumber: number): Promise<void> {
+  async function loadArticles(): Promise<void> {
     if (!clanContext?.clanId) {
       setArticles([]);
       setIsLoading(false);
@@ -134,8 +134,8 @@ function NewsClient(): JSX.Element {
       return;
     }
     setIsLoading(true);
-    const fromIndex = (pageNumber - 1) * pageSize;
-    const toIndex = fromIndex + pageSize - 1;
+    const fromIndex = pagination.startIndex;
+    const toIndex = fromIndex + pagination.pageSize - 1;
     /* Select with embedded profile joins for author + editor names */
     const selectCols =
       "id,title,content,type,is_pinned,status,tags,created_at,updated_at,created_by,banner_url,updated_by," +
@@ -164,20 +164,13 @@ function NewsClient(): JSX.Element {
       })) as ArticleRow[],
     );
     setTotalCount(count ?? 0);
-    if (rows.length === 0 && (count ?? 0) > 0 && pageNumber > 1) {
-      const maxPage = Math.max(1, Math.ceil((count ?? 0) / pageSize));
-      if (maxPage !== pageNumber) setPage(maxPage);
-    }
+    /* usePagination auto-clamps page when totalItems shrinks */
   }
 
   useEffect(() => {
-    void loadArticles(page);
+    void loadArticles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clanContext?.clanId, tagFilter, searchTerm, dateFrom, dateTo, page, pageSize]);
-
-  async function reloadArticles(): Promise<void> {
-    await loadArticles(page);
-  }
+  }, [clanContext?.clanId, tagFilter, searchTerm, dateFrom, dateTo, pagination.page, pagination.pageSize]);
 
   const availableTags = useMemo(() => {
     const s = new Set<string>();
@@ -295,7 +288,7 @@ function NewsClient(): JSX.Element {
     }
     pushToast(editingId ? t("postUpdated") : t("postCreated"));
     resetForm();
-    await reloadArticles();
+    await loadArticles();
   }
 
   /* ── Delete ── */
@@ -317,15 +310,9 @@ function NewsClient(): JSX.Element {
     setSearchTerm("");
     setDateFrom("");
     setDateTo("");
-    setPage(1);
+    pagination.setPage(1);
   }
   const hasActiveFilters = tagFilter !== "all" || searchTerm.trim() !== "" || dateFrom !== "" || dateTo !== "";
-
-  function handlePageInputChange(v: string): void {
-    const n = Number(v);
-    if (Number.isNaN(n)) return;
-    setPage(Math.min(Math.max(1, n), totalPages));
-  }
 
   /* ── Render ── */
   return (
@@ -444,94 +431,18 @@ function NewsClient(): JSX.Element {
           )}
 
           {/* ═══ Pagination ═══ */}
-          <div className="pagination-bar col-span-full">
-            <div className="pagination-page-size">
-              <label htmlFor="newsPageSize" className="text-muted">
-                {t("pageSize")}
-              </label>
-              <RadixSelect
-                id="newsPageSize"
-                ariaLabel={t("pageSize")}
-                value={String(pageSize)}
-                onValueChange={(v) => {
-                  setPageSize(Number(v));
-                  setPage(1);
-                }}
-                options={[
-                  { value: "10", label: "10" },
-                  { value: "25", label: "25" },
-                  { value: "50", label: "50" },
-                ]}
-              />
-            </div>
-            <span className="text-muted">
-              {t("showing")} {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)}{" "}
-              {t("of")} {totalCount}
-            </span>
-            <div className="pagination-actions">
-              <div className="pagination-page-indicator">
-                <label htmlFor="newsPageJump" className="text-muted">
-                  {t("page")}
-                </label>
-                <input
-                  id="newsPageJump"
-                  className="pagination-page-input"
-                  type="number"
-                  min={1}
-                  max={totalPages}
-                  value={page}
-                  onChange={(e) => handlePageInputChange(e.target.value)}
-                />
-                <span className="text-muted">/ {totalPages}</span>
-              </div>
-              <IconButton
-                ariaLabel={t("previousPage")}
-                onClick={() => setPage((c) => Math.max(1, c - 1))}
-                disabled={page === 1}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M10 3L6 8L10 13"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </IconButton>
-              <IconButton
-                ariaLabel={t("nextPage")}
-                onClick={() => setPage((c) => Math.min(totalPages, c + 1))}
-                disabled={page >= totalPages}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M6 3L10 8L6 13"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </IconButton>
-            </div>
+          <div className="col-span-full">
+            <PaginationBar pagination={pagination} pageSizeOptions={[10, 25, 50]} idPrefix="news" />
           </div>
 
-          {/* Loading / Empty */}
-          {isLoading && <div className="alert info loading col-span-full">{t("loadingNews")}</div>}
-          {!isLoading && articles.length === 0 && (
-            <section className="card col-span-full">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">{t("noNews")}</div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* ═══ Article Cards ═══ */}
-          {!isLoading &&
-            articles.map((article) => {
+          <DataState
+            isLoading={isLoading}
+            isEmpty={articles.length === 0}
+            loadingMessage={t("loadingNews")}
+            emptyMessage={t("noNews")}
+            className="col-span-full"
+          >
+            {articles.map((article) => {
               const isExpanded = expandedArticleId === article.id;
               return (
                 <article key={article.id} className="news-card col-span-full">
@@ -656,6 +567,7 @@ function NewsClient(): JSX.Element {
                 </article>
               );
             })}
+          </DataState>
 
           {/* ═══ Filters ═══ */}
           <section className="card col-span-full">
@@ -678,7 +590,7 @@ function NewsClient(): JSX.Element {
                   value={searchTerm}
                   onChange={(v) => {
                     setSearchTerm(v);
-                    setPage(1);
+                    pagination.setPage(1);
                   }}
                   placeholder={t("searchPlaceholder")}
                 />
@@ -692,7 +604,7 @@ function NewsClient(): JSX.Element {
                     value={tagFilter}
                     onValueChange={(v) => {
                       setTagFilter(v);
-                      setPage(1);
+                      pagination.setPage(1);
                     }}
                     options={[
                       { value: "all", label: t("all") },
@@ -708,7 +620,7 @@ function NewsClient(): JSX.Element {
                     value={dateFrom}
                     onChange={(v) => {
                       setDateFrom(v);
-                      setPage(1);
+                      pagination.setPage(1);
                     }}
                   />
                   <span className="text-muted">–</span>
@@ -716,7 +628,7 @@ function NewsClient(): JSX.Element {
                     value={dateTo}
                     onChange={(v) => {
                       setDateTo(v);
-                      setPage(1);
+                      pagination.setPage(1);
                     }}
                   />
                 </div>

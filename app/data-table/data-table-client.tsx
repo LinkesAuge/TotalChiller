@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
-import createCorrectionApplicator from "../../lib/correction-applicator";
+import { useSupabase } from "../hooks/use-supabase";
 import DatePicker from "../components/date-picker";
-import { createValidationEvaluator } from "../components/validation-evaluator";
 import { useToast } from "../components/toast-provider";
 import IconButton from "../components/ui/icon-button";
 import LabeledSelect from "../components/ui/labeled-select";
@@ -13,6 +11,12 @@ import RadixSelect from "../components/ui/radix-select";
 import ComboboxInput from "../components/ui/combobox-input";
 import SearchInput from "../components/ui/search-input";
 import TableScroll from "../components/table-scroll";
+import type { ValidationRuleRow, CorrectionRuleRow } from "@/lib/types/domain";
+import { DATE_REGEX } from "@/lib/constants";
+import { useRuleProcessing } from "@/lib/hooks/use-rule-processing";
+import SortableColumnHeader from "../components/sortable-column-header";
+import ConfirmModal from "../components/confirm-modal";
+import FormModal from "../components/form-modal";
 
 interface ChestEntryRow {
   readonly id: string;
@@ -57,21 +61,6 @@ interface ChestEntryQueryRow {
   readonly clans: { readonly name: string } | readonly { readonly name: string }[] | null;
 }
 
-interface ValidationRuleRow {
-  readonly id: string;
-  readonly field: string;
-  readonly match_value: string;
-  readonly status: string;
-}
-
-interface CorrectionRuleRow {
-  readonly id: string;
-  readonly field: string;
-  readonly match_value: string;
-  readonly replacement_value: string;
-  readonly status: string;
-}
-
 interface AuditLogEntry {
   readonly clan_id: string;
   readonly actor_id: string;
@@ -81,14 +70,12 @@ interface AuditLogEntry {
   readonly diff: Record<string, unknown> | null;
 }
 
-const DATE_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}$/;
-
 /**
  * Client-side data table with inline edit and batch operations.
  */
 function DataTableClient(): JSX.Element {
   const t = useTranslations("dataTable");
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const { pushToast } = useToast();
   const [rows, setRows] = useState<readonly ChestEntryRow[]>([]);
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
@@ -158,8 +145,15 @@ function DataTableClient(): JSX.Element {
       return acc;
     }, {});
   }, [availableClans]);
-  const validationEvaluator = useMemo(() => createValidationEvaluator(validationRules), [validationRules]);
-  const correctionApplicator = useMemo(() => createCorrectionApplicator(correctionRules), [correctionRules]);
+  const clanNameSuggestions = useMemo(() => availableClans.map((clan) => clan.name), [availableClans]);
+  const {
+    validationEvaluator,
+    correctionApplicator,
+    playerSuggestions,
+    sourceSuggestions,
+    chestSuggestions,
+    suggestionsForField,
+  } = useRuleProcessing(validationRules, correctionRules, clanNameSuggestions);
   const clanIdByName = useMemo(() => {
     return availableClans.reduce<Record<string, string>>((acc, clan) => {
       acc[clan.name.toLowerCase()] = clan.id;
@@ -169,82 +163,39 @@ function DataTableClient(): JSX.Element {
   const playerFilterOptions = useMemo(() => {
     const values = new Set<string>();
     validationRules.forEach((rule) => {
-      if (rule.field.toLowerCase() === "player" && rule.match_value.trim()) {
-        values.add(rule.match_value.trim());
-      }
+      if (rule.field.toLowerCase() === "player" && rule.match_value.trim()) values.add(rule.match_value.trim());
     });
     return [
       { value: "", label: t("all") },
       ...Array.from(values)
         .sort()
-        .map((value) => ({ value, label: value })),
+        .map((v) => ({ value: v, label: v })),
     ];
   }, [validationRules, t]);
   const sourceFilterOptions = useMemo(() => {
     const values = new Set<string>();
     validationRules.forEach((rule) => {
-      if (rule.field.toLowerCase() === "source" && rule.match_value.trim()) {
-        values.add(rule.match_value.trim());
-      }
+      if (rule.field.toLowerCase() === "source" && rule.match_value.trim()) values.add(rule.match_value.trim());
     });
     return [
       { value: "", label: t("all") },
       ...Array.from(values)
         .sort()
-        .map((value) => ({ value, label: value })),
+        .map((v) => ({ value: v, label: v })),
     ];
   }, [validationRules, t]);
   const chestFilterOptions = useMemo(() => {
     const values = new Set<string>();
     validationRules.forEach((rule) => {
-      if (rule.field.toLowerCase() === "chest" && rule.match_value.trim()) {
-        values.add(rule.match_value.trim());
-      }
+      if (rule.field.toLowerCase() === "chest" && rule.match_value.trim()) values.add(rule.match_value.trim());
     });
     return [
       { value: "", label: t("all") },
       ...Array.from(values)
         .sort()
-        .map((value) => ({ value, label: value })),
+        .map((v) => ({ value: v, label: v })),
     ];
   }, [validationRules, t]);
-  const playerSuggestions = useMemo(() => {
-    const values = new Set<string>();
-    validationRules.forEach((rule) => {
-      if (rule.field.toLowerCase() === "player" && rule.status.toLowerCase() === "valid" && rule.match_value.trim()) {
-        values.add(rule.match_value.trim());
-      }
-    });
-    return Array.from(values).sort((a, b) => a.localeCompare(b));
-  }, [validationRules]);
-  const sourceSuggestions = useMemo(() => {
-    const values = new Set<string>();
-    validationRules.forEach((rule) => {
-      if (rule.field.toLowerCase() === "source" && rule.status.toLowerCase() === "valid" && rule.match_value.trim()) {
-        values.add(rule.match_value.trim());
-      }
-    });
-    return Array.from(values).sort((a, b) => a.localeCompare(b));
-  }, [validationRules]);
-  const chestSuggestions = useMemo(() => {
-    const values = new Set<string>();
-    validationRules.forEach((rule) => {
-      if (rule.field.toLowerCase() === "chest" && rule.status.toLowerCase() === "valid" && rule.match_value.trim()) {
-        values.add(rule.match_value.trim());
-      }
-    });
-    return Array.from(values).sort((a, b) => a.localeCompare(b));
-  }, [validationRules]);
-  const suggestionsForField = useMemo<Record<string, readonly string[]>>(
-    () => ({
-      player: playerSuggestions,
-      source: sourceSuggestions,
-      chest: chestSuggestions,
-      clan: availableClans.map((clan) => clan.name),
-      all: [],
-    }),
-    [availableClans, chestSuggestions, playerSuggestions, sourceSuggestions],
-  );
   const rowValidationResults = useMemo(() => {
     return rows.reduce<Record<string, ReturnType<typeof validationEvaluator>>>((acc, row) => {
       const clanId = getRowValue(row, "clan_id");
@@ -631,27 +582,6 @@ function DataTableClient(): JSX.Element {
       return baseValue;
     }
     return batchEditValue;
-  }
-
-  function renderSortButton(label: string, key: SortKey): JSX.Element {
-    const isActive = sortKey === key && sortDirection;
-    return (
-      <button className="table-sort-button" type="button" onClick={() => toggleSort(key)}>
-        <span>{label}</span>
-        {isActive ? (
-          <svg
-            aria-hidden="true"
-            className={`table-sort-indicator ${sortDirection === "desc" ? "is-desc" : ""}`.trim()}
-            width="10"
-            height="10"
-            viewBox="0 0 12 12"
-            fill="none"
-          >
-            <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
-        ) : null}
-      </button>
-    );
   }
 
   function validateRow(values: RowValues): string | null {
@@ -1424,12 +1354,60 @@ function DataTableClient(): JSX.Element {
                 aria-label={t("selectAllRowsOnPage")}
               />
             </span>
-            <span>{renderSortButton(t("tableHeaderDate"), "collected_date")}</span>
-            <span>{renderSortButton(t("tableHeaderPlayer"), "player")}</span>
-            <span>{renderSortButton(t("tableHeaderSource"), "source")}</span>
-            <span>{renderSortButton(t("tableHeaderChest"), "chest")}</span>
-            <span>{renderSortButton(t("tableHeaderScore"), "score")}</span>
-            <span>{renderSortButton(t("tableHeaderClan"), "clan")}</span>
+            <span>
+              <SortableColumnHeader<string>
+                label={t("tableHeaderDate")}
+                sortKey="collected_date"
+                activeSortKey={sortKey ?? ""}
+                direction={sortDirection ?? "asc"}
+                onToggle={(k) => toggleSort(k as SortKey)}
+              />
+            </span>
+            <span>
+              <SortableColumnHeader<string>
+                label={t("tableHeaderPlayer")}
+                sortKey="player"
+                activeSortKey={sortKey ?? ""}
+                direction={sortDirection ?? "asc"}
+                onToggle={(k) => toggleSort(k as SortKey)}
+              />
+            </span>
+            <span>
+              <SortableColumnHeader<string>
+                label={t("tableHeaderSource")}
+                sortKey="source"
+                activeSortKey={sortKey ?? ""}
+                direction={sortDirection ?? "asc"}
+                onToggle={(k) => toggleSort(k as SortKey)}
+              />
+            </span>
+            <span>
+              <SortableColumnHeader<string>
+                label={t("tableHeaderChest")}
+                sortKey="chest"
+                activeSortKey={sortKey ?? ""}
+                direction={sortDirection ?? "asc"}
+                onToggle={(k) => toggleSort(k as SortKey)}
+              />
+            </span>
+            <span>
+              <SortableColumnHeader<string>
+                label={t("tableHeaderScore")}
+                sortKey="score"
+                activeSortKey={sortKey ?? ""}
+                direction={sortDirection ?? "asc"}
+                onToggle={(k) => toggleSort(k as SortKey)}
+              />
+            </span>
+            <span>
+              <SortableColumnHeader<string>
+                label={t("tableHeaderClan")}
+                sortKey="clan"
+                activeSortKey={sortKey ?? ""}
+                direction={sortDirection ?? "asc"}
+                onToggle={(k) => toggleSort(k as SortKey)}
+              />
+            </span>
             <span>{t("tableHeaderActions")}</span>
           </header>
           {clientFilteredRows.length === 0 ? (
@@ -1657,12 +1635,60 @@ function DataTableClient(): JSX.Element {
               <section className="table batch-preview">
                 <header>
                   <span>{t("tableHeaderIndex")}</span>
-                  <span>{renderSortButton(t("tableHeaderDate"), "collected_date")}</span>
-                  <span>{renderSortButton(t("tableHeaderPlayer"), "player")}</span>
-                  <span>{renderSortButton(t("tableHeaderSource"), "source")}</span>
-                  <span>{renderSortButton(t("tableHeaderChest"), "chest")}</span>
-                  <span>{renderSortButton(t("tableHeaderScore"), "score")}</span>
-                  <span>{renderSortButton(t("tableHeaderClan"), "clan")}</span>
+                  <span>
+                    <SortableColumnHeader<string>
+                      label={t("tableHeaderDate")}
+                      sortKey="collected_date"
+                      activeSortKey={sortKey ?? ""}
+                      direction={sortDirection ?? "asc"}
+                      onToggle={(k) => toggleSort(k as SortKey)}
+                    />
+                  </span>
+                  <span>
+                    <SortableColumnHeader<string>
+                      label={t("tableHeaderPlayer")}
+                      sortKey="player"
+                      activeSortKey={sortKey ?? ""}
+                      direction={sortDirection ?? "asc"}
+                      onToggle={(k) => toggleSort(k as SortKey)}
+                    />
+                  </span>
+                  <span>
+                    <SortableColumnHeader<string>
+                      label={t("tableHeaderSource")}
+                      sortKey="source"
+                      activeSortKey={sortKey ?? ""}
+                      direction={sortDirection ?? "asc"}
+                      onToggle={(k) => toggleSort(k as SortKey)}
+                    />
+                  </span>
+                  <span>
+                    <SortableColumnHeader<string>
+                      label={t("tableHeaderChest")}
+                      sortKey="chest"
+                      activeSortKey={sortKey ?? ""}
+                      direction={sortDirection ?? "asc"}
+                      onToggle={(k) => toggleSort(k as SortKey)}
+                    />
+                  </span>
+                  <span>
+                    <SortableColumnHeader<string>
+                      label={t("tableHeaderScore")}
+                      sortKey="score"
+                      activeSortKey={sortKey ?? ""}
+                      direction={sortDirection ?? "asc"}
+                      onToggle={(k) => toggleSort(k as SortKey)}
+                    />
+                  </span>
+                  <span>
+                    <SortableColumnHeader<string>
+                      label={t("tableHeaderClan")}
+                      sortKey="clan"
+                      activeSortKey={sortKey ?? ""}
+                      direction={sortDirection ?? "asc"}
+                      onToggle={(k) => toggleSort(k as SortKey)}
+                    />
+                  </span>
                 </header>
                 {selectedRows.length === 0 ? (
                   <div className="row">
@@ -1730,193 +1756,149 @@ function DataTableClient(): JSX.Element {
           </div>
         </div>
       ) : null}
-      {isBatchDeleteConfirmOpen ? (
-        <div className="modal-backdrop">
-          <div className="modal card danger">
-            <div className="card-header">
-              <div>
-                <div className="danger-label">{t("dangerZone")}</div>
-                <div className="card-title">{t("deleteSelectedRows")}</div>
-                <div className="card-subtitle">{t("cannotBeUndone")}</div>
-              </div>
-            </div>
-            <div className="list">
-              <div className="alert danger">{t("permanentlyDelete")}</div>
-            </div>
-            <div className="list inline">
-              <button className="button danger" type="button" onClick={openBatchDeleteInput}>
-                {t("continue")}
-              </button>
-              <button className="button" type="button" onClick={closeBatchDeleteConfirm}>
-                {t("cancel")}
-              </button>
-            </div>
+      <ConfirmModal
+        isOpen={isBatchDeleteConfirmOpen}
+        title={t("deleteSelectedRows")}
+        subtitle={t("cannotBeUndone")}
+        message={t("permanentlyDelete")}
+        variant="danger"
+        zoneLabel={t("dangerZone")}
+        confirmLabel={t("continue")}
+        cancelLabel={t("cancel")}
+        onConfirm={openBatchDeleteInput}
+        onCancel={closeBatchDeleteConfirm}
+      />
+      <ConfirmModal
+        isOpen={isBatchDeleteInputOpen}
+        title={t("confirmDeletion")}
+        subtitle={t("cannotBeUndone")}
+        message={<div className="alert danger">{t("deletingRowsWarning")}</div>}
+        variant="danger"
+        zoneLabel={t("dangerZone")}
+        confirmLabel={t("deleteRows")}
+        cancelLabel={t("cancel")}
+        confirmPhrase="DELETE ROWS"
+        phraseValue={batchDeleteInput}
+        onPhraseChange={(v) => setBatchDeleteInput(v)}
+        phrasePlaceholder="DELETE ROWS"
+        phraseLabel={t("confirmationPhrase")}
+        onConfirm={confirmBatchDelete}
+        onCancel={closeBatchDeleteInput}
+      />
+      <FormModal
+        isOpen={isAddCorrectionRuleOpen}
+        title={t("addCorrectionRuleTitle")}
+        subtitle={t("createRuleFromRow")}
+        statusMessage={correctionRuleMessage}
+        submitLabel={t("saveRule")}
+        cancelLabel={t("cancel")}
+        onSubmit={handleSaveCorrectionRuleFromRow}
+        onCancel={closeCorrectionRuleModal}
+        wide
+      >
+        <div className="form-grid">
+          <div className="form-group">
+            <label htmlFor="correctionRuleField">{t("field")}</label>
+            <RadixSelect
+              id="correctionRuleField"
+              ariaLabel={t("field")}
+              value={correctionRuleField}
+              onValueChange={(value) =>
+                updateCorrectionRuleField(value as "player" | "source" | "chest" | "clan" | "all")
+              }
+              options={[
+                { value: "player", label: t("player") },
+                { value: "source", label: t("source") },
+                { value: "chest", label: t("chest") },
+                { value: "clan", label: t("clan") },
+                { value: "all", label: t("all") },
+              ]}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="correctionRuleMatch">{t("matchValue")}</label>
+            <ComboboxInput
+              id="correctionRuleMatch"
+              value={correctionRuleMatch}
+              onChange={setCorrectionRuleMatch}
+              options={suggestionsForField[correctionRuleField] ?? []}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="correctionRuleReplacement">{t("replacementValue")}</label>
+            <ComboboxInput
+              id="correctionRuleReplacement"
+              value={correctionRuleReplacement}
+              onChange={setCorrectionRuleReplacement}
+              options={suggestionsForField[correctionRuleField] ?? []}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="correctionRuleStatus">{t("status")}</label>
+            <RadixSelect
+              id="correctionRuleStatus"
+              ariaLabel={t("status")}
+              value={correctionRuleStatus}
+              onValueChange={(value) => setCorrectionRuleStatus(value)}
+              options={[
+                { value: "active", label: t("active") },
+                { value: "inactive", label: t("inactive") },
+              ]}
+            />
           </div>
         </div>
-      ) : null}
-      {isBatchDeleteInputOpen ? (
-        <div className="modal-backdrop">
-          <div className="modal card danger">
-            <div className="card-header">
-              <div>
-                <div className="danger-label">{t("dangerZone")}</div>
-                <div className="card-title">{t("confirmDeletion")}</div>
-                <div className="card-subtitle">{t("cannotBeUndone")}</div>
-              </div>
-            </div>
-            <div className="alert danger">{t("deletingRowsWarning")}</div>
-            <div className="form-group">
-              <label htmlFor="batchDeleteInput">{t("confirmationPhrase")}</label>
-              <input
-                id="batchDeleteInput"
-                value={batchDeleteInput}
-                onChange={(event) => setBatchDeleteInput(event.target.value)}
-                placeholder="DELETE ROWS"
-              />
-            </div>
-            <div className="list inline">
-              <button className="button danger" type="button" onClick={confirmBatchDelete}>
-                {t("deleteRows")}
-              </button>
-              <button className="button" type="button" onClick={closeBatchDeleteInput}>
-                {t("cancel")}
-              </button>
-            </div>
+      </FormModal>
+      <FormModal
+        isOpen={isAddValidationRuleOpen}
+        title={t("addValidationRuleTitle")}
+        subtitle={t("createValidValue")}
+        statusMessage={validationRuleMessage}
+        submitLabel={t("saveRule")}
+        cancelLabel={t("cancel")}
+        onSubmit={handleSaveValidationRuleFromRow}
+        onCancel={closeValidationRuleModal}
+        wide
+      >
+        <div className="form-grid">
+          <div className="form-group">
+            <label htmlFor="validationRuleField">{t("field")}</label>
+            <RadixSelect
+              id="validationRuleField"
+              ariaLabel={t("field")}
+              value={validationRuleField}
+              onValueChange={(value) => updateValidationRuleField(value as "player" | "source" | "chest" | "clan")}
+              options={[
+                { value: "player", label: t("player") },
+                { value: "source", label: t("source") },
+                { value: "chest", label: t("chest") },
+                { value: "clan", label: t("clan") },
+              ]}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="validationRuleMatch">{t("value")}</label>
+            <ComboboxInput
+              id="validationRuleMatch"
+              value={validationRuleMatch}
+              onChange={setValidationRuleMatch}
+              options={suggestionsForField[validationRuleField] ?? []}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="validationRuleStatus">{t("status")}</label>
+            <RadixSelect
+              id="validationRuleStatus"
+              ariaLabel={t("status")}
+              value={validationRuleStatus}
+              onValueChange={(value) => setValidationRuleStatus(value)}
+              options={[
+                { value: "valid", label: t("valid") },
+                { value: "invalid", label: t("invalid") },
+              ]}
+            />
           </div>
         </div>
-      ) : null}
-      {isAddCorrectionRuleOpen ? (
-        <div className="modal-backdrop">
-          <div className="modal card wide">
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("addCorrectionRuleTitle")}</div>
-                <div className="card-subtitle">{t("createRuleFromRow")}</div>
-              </div>
-            </div>
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="correctionRuleField">{t("field")}</label>
-                <RadixSelect
-                  id="correctionRuleField"
-                  ariaLabel={t("field")}
-                  value={correctionRuleField}
-                  onValueChange={(value) =>
-                    updateCorrectionRuleField(value as "player" | "source" | "chest" | "clan" | "all")
-                  }
-                  options={[
-                    { value: "player", label: t("player") },
-                    { value: "source", label: t("source") },
-                    { value: "chest", label: t("chest") },
-                    { value: "clan", label: t("clan") },
-                    { value: "all", label: t("all") },
-                  ]}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="correctionRuleMatch">{t("matchValue")}</label>
-                <ComboboxInput
-                  id="correctionRuleMatch"
-                  value={correctionRuleMatch}
-                  onChange={setCorrectionRuleMatch}
-                  options={suggestionsForField[correctionRuleField] ?? []}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="correctionRuleReplacement">{t("replacementValue")}</label>
-                <ComboboxInput
-                  id="correctionRuleReplacement"
-                  value={correctionRuleReplacement}
-                  onChange={setCorrectionRuleReplacement}
-                  options={suggestionsForField[correctionRuleField] ?? []}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="correctionRuleStatus">{t("status")}</label>
-                <RadixSelect
-                  id="correctionRuleStatus"
-                  ariaLabel={t("status")}
-                  value={correctionRuleStatus}
-                  onValueChange={(value) => setCorrectionRuleStatus(value)}
-                  options={[
-                    { value: "active", label: t("active") },
-                    { value: "inactive", label: t("inactive") },
-                  ]}
-                />
-              </div>
-            </div>
-            {correctionRuleMessage ? <div className="alert info">{correctionRuleMessage}</div> : null}
-            <div className="list inline">
-              <button className="button" type="button" onClick={closeCorrectionRuleModal}>
-                {t("cancel")}
-              </button>
-              <button className="button primary" type="button" onClick={handleSaveCorrectionRuleFromRow}>
-                {t("saveRule")}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {isAddValidationRuleOpen ? (
-        <div className="modal-backdrop">
-          <div className="modal card wide">
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("addValidationRuleTitle")}</div>
-                <div className="card-subtitle">{t("createValidValue")}</div>
-              </div>
-            </div>
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="validationRuleField">{t("field")}</label>
-                <RadixSelect
-                  id="validationRuleField"
-                  ariaLabel={t("field")}
-                  value={validationRuleField}
-                  onValueChange={(value) => updateValidationRuleField(value as "player" | "source" | "chest" | "clan")}
-                  options={[
-                    { value: "player", label: t("player") },
-                    { value: "source", label: t("source") },
-                    { value: "chest", label: t("chest") },
-                    { value: "clan", label: t("clan") },
-                  ]}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="validationRuleMatch">{t("value")}</label>
-                <ComboboxInput
-                  id="validationRuleMatch"
-                  value={validationRuleMatch}
-                  onChange={setValidationRuleMatch}
-                  options={suggestionsForField[validationRuleField] ?? []}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="validationRuleStatus">{t("status")}</label>
-                <RadixSelect
-                  id="validationRuleStatus"
-                  ariaLabel={t("status")}
-                  value={validationRuleStatus}
-                  onValueChange={(value) => setValidationRuleStatus(value)}
-                  options={[
-                    { value: "valid", label: t("valid") },
-                    { value: "invalid", label: t("invalid") },
-                  ]}
-                />
-              </div>
-            </div>
-            {validationRuleMessage ? <div className="alert info">{validationRuleMessage}</div> : null}
-            <div className="list inline">
-              <button className="button" type="button" onClick={closeValidationRuleModal}>
-                {t("cancel")}
-              </button>
-              <button className="button primary" type="button" onClick={handleSaveValidationRuleFromRow}>
-                {t("saveRule")}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      </FormModal>
     </div>
   );
 }

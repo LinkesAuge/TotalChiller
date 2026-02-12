@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { after } from "next/server";
 import { z } from "zod";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
 import { requireAdmin } from "../../../../lib/api/require-admin";
@@ -20,8 +19,7 @@ const APPROVAL_ACTION_SCHEMA = z.object({
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const auth = await requireAdmin(supabase);
+  const auth = await requireAdmin();
   if (auth.error) return auth.error;
   let rawBody: unknown;
   try {
@@ -113,8 +111,7 @@ import type { PendingApprovalRow as PendingAccountWithProfile } from "@/lib/type
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const authGet = await requireAdmin(supabase);
+  const authGet = await requireAdmin();
   if (authGet.error) return authGet.error;
   const serviceClient = createSupabaseServiceRoleClient();
   const { data: pendingAccounts, error: fetchError } = await serviceClient

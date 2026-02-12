@@ -12,7 +12,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useLocale } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { useAuth } from "@/app/hooks/use-auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -109,7 +109,7 @@ async function checkIsAdmin(supabase: SupabaseClient): Promise<boolean> {
 /* ─── Hook ─── */
 
 export function useSiteContent(page: string): SiteContentHook {
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const locale = useLocale();
 
   const [canEdit, setCanEdit] = useState(false);

@@ -4,16 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../lib/supabase/browser-client";
+import { useSupabase } from "./hooks/use-supabase";
 import {
   toDateString,
   getMonday,
   calculateTrend,
-  formatNumber,
+  formatCompactNumber,
   formatRelativeTime,
   extractAuthorName,
 } from "../lib/dashboard-utils";
 import useClanContext from "./components/use-clan-context";
+import DataState from "./components/data-state";
 import type { ChartSummary } from "./charts/chart-types";
 
 interface ArticleRow {
@@ -99,7 +100,7 @@ function formatCountdown(startsAt: string, tDashboard: ReturnType<typeof useTran
  */
 function DashboardClient(): JSX.Element {
   const t = useTranslations("dashboard");
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const clanContext = useClanContext();
 
   /* ── Announcements state ── */
@@ -302,12 +303,13 @@ function DashboardClient(): JSX.Element {
             </div>
           </div>
           <div className="card-body">
-            {isLoadingAnnouncements && <div className="py-4 text-sm text-text-muted">{t("loading")}</div>}
-            {!isLoadingAnnouncements && announcements.length === 0 && (
-              <div className="py-4 text-sm text-text-muted">{t("noAnnouncements")}</div>
-            )}
-            {!isLoadingAnnouncements &&
-              announcements.map((article, i) => {
+            <DataState
+              isLoading={isLoadingAnnouncements}
+              isEmpty={announcements.length === 0}
+              loadingNode={<div className="py-4 text-sm text-text-muted">{t("loading")}</div>}
+              emptyNode={<div className="py-4 text-sm text-text-muted">{t("noAnnouncements")}</div>}
+            >
+              {announcements.map((article, i) => {
                 const firstTag = article.tags.length > 0 ? article.tags[0] : null;
                 const tagColor = firstTag ? (tagColorMap.get(firstTag) ?? "#4a6ea0") : "#4a6ea0";
                 return (
@@ -350,6 +352,7 @@ function DashboardClient(): JSX.Element {
                   </div>
                 );
               })}
+            </DataState>
           </div>
         </section>
 
@@ -368,19 +371,19 @@ function DashboardClient(): JSX.Element {
           <div className="stat-grid">
             {[
               {
-                value: isLoadingStats ? "…" : formatNumber(stats.personalScore),
+                value: isLoadingStats ? "…" : formatCompactNumber(stats.personalScore),
                 label: t("personalScore"),
                 icon: "/assets/vip/batler_icons_stat_damage.png",
                 trend: stats.personalTrend,
               },
               {
-                value: isLoadingStats ? "…" : formatNumber(stats.clanScore),
+                value: isLoadingStats ? "…" : formatCompactNumber(stats.clanScore),
                 label: t("clanScore"),
                 icon: "/assets/vip/batler_icons_stat_armor.png",
                 trend: stats.clanTrend,
               },
               {
-                value: isLoadingStats ? "…" : formatNumber(stats.totalChests),
+                value: isLoadingStats ? "…" : formatCompactNumber(stats.totalChests),
                 label: t("chests"),
                 icon: "/assets/vip/icons_chest_2.png",
                 trend: stats.chestTrend,
@@ -424,12 +427,13 @@ function DashboardClient(): JSX.Element {
                 {t("viewAll")} →
               </Link>
             </div>
-            {isLoadingEvents && <div className="py-2 text-sm text-text-muted">{t("loading")}</div>}
-            {!isLoadingEvents && events.length === 0 && (
-              <div className="py-2 text-sm text-text-muted">{t("noEventsScheduled")}</div>
-            )}
-            {!isLoadingEvents &&
-              events.map((event, i) => {
+            <DataState
+              isLoading={isLoadingEvents}
+              isEmpty={events.length === 0}
+              loadingNode={<div className="py-2 text-sm text-text-muted">{t("loading")}</div>}
+              emptyNode={<div className="py-2 text-sm text-text-muted">{t("noEventsScheduled")}</div>}
+            >
+              {events.map((event, i) => {
                 const color = EVENT_COLORS[i % EVENT_COLORS.length];
                 return (
                   <div key={event.id} className="flex items-center gap-2 py-1.5 text-sm">
@@ -454,6 +458,7 @@ function DashboardClient(): JSX.Element {
                   </div>
                 );
               })}
+            </DataState>
           </div>
         </section>
 
@@ -473,7 +478,7 @@ function DashboardClient(): JSX.Element {
                     <span>{t("topPlayer")}</span>
                     <span className="font-bold" style={{ color: "#c9a34a" }}>
                       {stats.topPlayerName !== "—"
-                        ? `${stats.topPlayerName} (${formatNumber(stats.topPlayerScore)})`
+                        ? `${stats.topPlayerName} (${formatCompactNumber(stats.topPlayerScore)})`
                         : t("noData")}
                     </span>
                   </div>

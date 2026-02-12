@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import createSupabaseServerClient from "../../../lib/supabase/server-client";
+import { requireAuth } from "../../../lib/api/require-auth";
 import { relaxedLimiter } from "../../../lib/rate-limit";
 
 /**
@@ -10,12 +10,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const blocked = relaxedLimiter.check(request);
     if (blocked) return blocked;
-    const supabase = await createSupabaseServerClient();
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userId = authData.user.id;
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { userId, supabase } = auth;
     const { data: settings } = await supabase
       .from("user_notification_settings")
       .select("messages_enabled,news_enabled,events_enabled,system_enabled")

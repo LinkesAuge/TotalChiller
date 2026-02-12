@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
+import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
 import { uuidSchema } from "../../../../lib/api/validation";
@@ -20,11 +20,8 @@ interface FanOutBody {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
   let body: FanOutBody;
   try {
     body = (await request.json()) as FanOutBody;
@@ -50,10 +47,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (recordError || !record) {
     return NextResponse.json({ error: "Referenced record not found." }, { status: 404 });
   }
-  if ((record.created_by as string) !== authData.user.id) {
+  if ((record.created_by as string) !== auth.userId) {
     return NextResponse.json({ error: "You can only create notifications for content you authored." }, { status: 403 });
   }
-  const senderId = authData.user.id;
+  const senderId = auth.userId;
   const { data: memberships, error: membershipError } = await serviceClient
     .from("game_account_clan_memberships")
     .select("game_accounts(user_id)")

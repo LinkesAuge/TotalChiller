@@ -79,8 +79,8 @@ This file is a compact context transfer for a new chat.
   - **Architecture**: Slim orchestrator (`admin-client.tsx`, ~140 lines) with `AdminProvider` context, lazy-loaded tabs via `next/dynamic`, and shared hooks/components that eliminate ~900 lines of duplicated patterns (delete modals, sort buttons, pagination, rule list management, import modals).
   - Files:
     - Orchestrator: `app/admin/admin-client.tsx`, `app/admin/admin-context.tsx`, `app/admin/admin-types.ts`
-    - Hooks: `app/admin/hooks/use-pagination.ts`, `use-sortable.ts`, `use-confirm-delete.ts`, `use-rule-list.ts`
-    - Shared components: `app/admin/components/danger-confirm-modal.tsx`, `sortable-column-header.tsx`, `pagination-bar.tsx`, `rule-import-modal.tsx`
+    - Hooks: `app/admin/hooks/use-confirm-delete.ts`, `use-rule-list.ts` (pagination & sortable hooks now in `lib/hooks/`)
+    - Shared components: `app/admin/components/danger-confirm-modal.tsx`, `rule-import-modal.tsx` (pagination-bar & sortable-column-header now in `app/components/`)
     - Tabs: `app/admin/tabs/clans-tab.tsx`, `users-tab.tsx`, `validation-tab.tsx`, `corrections-tab.tsx`, `logs-tab.tsx`, `approvals-tab.tsx`, `forum-tab.tsx`
     - APIs: `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`, `app/api/admin/game-account-approvals/route.ts`
 - **Data import (Pattern 1)**
@@ -263,6 +263,9 @@ This file is a compact context transfer for a new chat.
   - `app/components/banner-picker.tsx` (shared banner image picker with presets, custom upload, live preview)
   - `app/components/markdown-editor.tsx` (shared markdown editor with write/preview tabs, toolbar, image paste/drop)
   - `lib/constants/banner-presets.ts` (shared `BANNER_PRESETS` array and `BannerPreset` type)
+  - `app/components/confirm-modal.tsx` (reusable confirmation modal with danger/warning/info variants, optional phrase-based two-step confirmation)
+  - `app/components/form-modal.tsx` (reusable form modal wrapper providing backdrop, card header, form submit, status alert, and footer buttons)
+  - `app/components/data-state.tsx` (reusable loading/error/empty state wrapper with customizable nodes)
   - `app/components/sidebar-context.tsx` (SidebarProvider + useSidebar hook for collapse state)
   - `app/components/sidebar-shell.tsx` (sidebar layout: logo, toggle, nav, user status, clan selector)
   - `app/components/sidebar-nav.tsx` (navigation links with icons)
@@ -389,6 +392,14 @@ Run: `npx playwright test` (set `PLAYWRIGHT_BASE_URL` if not on port 3000).
 2. ~~**Member directory page**~~ — Done (2026-02-11). `/members` with search, clan/rank filters.
 3. ~~**Add Vitest to CI**~~ — Done (2026-02-11). Unit tests run in GitHub Actions.
 4. ~~**FK constraints**~~ — Done (2026-02-11). Author joins via PostgREST embedded select.
+5. **Redundancy Reduction Refactoring** — Complete (2026-02-12). 7-phase plan to eliminate ~1,230 lines of duplicate code across 50+ files. Plan: `Documentation/plans/2026-02-12-redundancy-reduction-plan.md`.
+   - **Phase 1 DONE**: Created `requireAuth()` (`lib/api/require-auth.ts`) and updated `requireAdmin()` to use it. Migrated 25+ API route handlers. Consolidated 4 admin check patterns into one. Created `useSupabase()` hook (`app/hooks/use-supabase.ts`) replacing 24 direct `createSupabaseBrowserClient()` calls. Consolidated auth state in `public-auth-actions` to use `useAuth()`.
+   - **Phase 2 DONE**: Extended `lib/types/domain.ts` with `GameAccountView`, `ValidationRuleRow`, `CorrectionRuleRow`. Created `lib/constants.ts` with shared `DATE_REGEX`. Added `dateStringSchema` to `lib/api/validation.ts`. Consolidated `RANK_LABELS`/`formatRank`/`formatRole` imports from `admin-types.ts`. Replaced inline `buildFallbackUserDb` with shared function. Deprecated `toDateKey` in favor of `toDateString`. Renamed `formatNumber` to `formatCompactNumber`.
+   - **Phase 3 DONE**: Moved `usePagination` and `useSortable` to `lib/hooks/`, `PaginationBar` and `SortableColumnHeader` to `app/components/`. Re-export stubs in old admin locations. `PaginationBar` now uses `common` i18n namespace.
+   - **Phase 4 DONE**: Created `useRuleProcessing` hook (`lib/hooks/use-rule-processing.ts`) consolidating evaluator/applicator/suggestion computation from both data files. Replaced `renderSortButton`/`renderImportSortButton` with `SortableColumnHeader`. Migrated 2 inline confirm modals (validation-tab, corrections-tab replace-list warnings) to `ConfirmModal`. Filter state extraction skipped (fundamentally different: client-side vs server-side filtering).
+   - **Phase 5 DONE**: Created `DataState` component (`app/components/data-state.tsx`) with `loadingNode`/`emptyNode` props. Applied to `members-client`, `news-client`, `events-client`, `dashboard-client` (announcements + events), `messages-client` (conversation list). Added pagination keys to root `common` i18n namespace. Replaced news inline pagination (~60 lines) with `usePagination` + `PaginationBar`. Added `compact` mode to `PaginationBar` (hides page-size selector + page-jump). Replaced forum inline pagination (~25 lines) with `PaginationBar compact`. Removed duplicate i18n keys from `news` and `forum` namespaces.
+   - **Phase 6 DONE**: Date helpers consolidated (toDateKey delegates to toDateString). `formatCompactNumber` rename. `dateStringSchema` reusing `DATE_REGEX`. Permission tests already correct.
+   - **Phase 7 DONE**: Created `ConfirmModal` component (`app/components/confirm-modal.tsx`). Migrated `EventDeleteModal`, `TemplateDeleteModal`, and batch delete modals to use it. Created `FormModal` component (`app/components/form-modal.tsx`) providing shared backdrop/card/header/form/status/footer. Migrated 7 inline form modals: users-tab (create user, create game account), clans-tab (clan create/edit), data-import (add correction rule, add validation rule), data-table (add correction rule, add validation rule). Removed 4 Phase-3 re-export stubs (`app/admin/hooks/use-pagination.ts`, `use-sortable.ts`, `app/admin/components/pagination-bar.tsx`, `sortable-column-header.tsx`) — admin files now import directly from shared locations. Removed unused pagination keys from `admin.common` i18n namespace.
 
 ## Website Audit (Feb 2026) — Completed
 

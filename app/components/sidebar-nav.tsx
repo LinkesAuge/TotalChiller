@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { useAuth } from "@/app/hooks/use-auth";
 import { ADMIN_SECTIONS } from "@/app/admin/admin-sections";
 import { useSidebar } from "./sidebar-context";
@@ -142,7 +142,7 @@ function NavItemIcon({ item }: { readonly item: NavItem }): JSX.Element {
  * hover glow, tooltips, and arrow active state.
  */
 function SidebarNav(): JSX.Element {
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { isOpen } = useSidebar();

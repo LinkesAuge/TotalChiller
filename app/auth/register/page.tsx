@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../../lib/supabase/browser-client";
+import { useSupabase } from "../../hooks/use-supabase";
 
 interface RegisterFormState {
   readonly email: string;
@@ -54,7 +54,7 @@ function SuccessStep({
  */
 function RegisterPage(): JSX.Element {
   const [formState, setFormState] = useState<RegisterFormState>(initialFormState);
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const t = useTranslations("auth.register");
 
   function updateFormState(nextState: Partial<RegisterFormState>): void {

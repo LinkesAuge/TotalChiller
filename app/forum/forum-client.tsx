@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
-import createSupabaseBrowserClient from "@/lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
 import useClanContext from "../components/use-clan-context";
@@ -17,9 +17,10 @@ import { computeHotRank, resolveAuthorNames } from "./forum-utils";
 import type { ForumPost, ForumComment, SortMode, ViewMode } from "./forum-types";
 import { PAGE_SIZE } from "./forum-types";
 import type { ForumCategory } from "@/lib/types/domain";
+import { usePagination } from "@/lib/hooks/use-pagination";
 
 function ForumClient(): JSX.Element {
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const clanContext = useClanContext();
   const t = useTranslations("forum");
   const searchParams = useSearchParams();
@@ -36,8 +37,8 @@ function ForumClient(): JSX.Element {
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [page, setPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const pagination = usePagination(totalCount, PAGE_SIZE);
   const [tablesReady, setTablesReady] = useState<boolean>(true);
 
   /* Create/edit form */
@@ -120,7 +121,7 @@ function ForumClient(): JSX.Element {
     } else {
       query = query.order("created_at", { ascending: false });
     }
-    const fromIdx = (page - 1) * PAGE_SIZE;
+    const fromIdx = pagination.startIndex;
     const toIdx = fromIdx + PAGE_SIZE - 1;
     const { data, error, count } = await query.range(fromIdx, toIdx);
     if (error) {
@@ -168,7 +169,17 @@ function ForumClient(): JSX.Element {
     }
     setPosts(enriched);
     setIsLoading(false);
-  }, [supabase, clanContext, selectedCategory, sortMode, searchTerm, page, categories, currentUserId, tablesReady]);
+  }, [
+    supabase,
+    clanContext,
+    selectedCategory,
+    sortMode,
+    searchTerm,
+    pagination.page,
+    categories,
+    currentUserId,
+    tablesReady,
+  ]);
 
   useEffect(() => {
     if (clanContext && categories.length > 0) {
@@ -319,7 +330,7 @@ function ForumClient(): JSX.Element {
     }
     resetForm();
     setViewMode("list");
-    setPage(1);
+    pagination.setPage(1);
     void loadPosts();
   }
 
@@ -616,29 +627,27 @@ function ForumClient(): JSX.Element {
           selectedCategory={selectedCategory}
           sortMode={sortMode}
           searchTerm={searchTerm}
-          totalCount={totalCount}
-          page={page}
+          pagination={pagination}
           isLoading={isLoading}
           t={t}
           onSortChange={(mode) => {
             setSortMode(mode);
-            setPage(1);
+            pagination.setPage(1);
           }}
           onSearchChange={(value) => {
             setSearchTerm(value);
-            setPage(1);
+            pagination.setPage(1);
           }}
           onCategoryClick={(slug) => {
             router.push(`/forum?category=${slug}`);
-            setPage(1);
+            pagination.setPage(1);
           }}
-          onPageChange={setPage}
           onPostClick={handleOpenPost}
           onVotePost={handleVotePost}
           onNewPost={handleOpenCreate}
           onAllCategories={() => {
             router.push("/forum");
-            setPage(1);
+            pagination.setPage(1);
           }}
         />
       </div>

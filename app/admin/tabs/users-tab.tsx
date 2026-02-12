@@ -9,10 +9,11 @@ import RadixSelect from "../../components/ui/radix-select";
 import IconButton from "../../components/ui/icon-button";
 import TableScroll from "../../components/table-scroll";
 import { useAdminContext } from "../admin-context";
-import SortableColumnHeader from "../components/sortable-column-header";
+import SortableColumnHeader from "@/app/components/sortable-column-header";
 import DangerConfirmModal from "../components/danger-confirm-modal";
+import FormModal from "@/app/components/form-modal";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
-import { useSortable, compareValues } from "../hooks/use-sortable";
+import { useSortable, compareValues } from "@/lib/hooks/use-sortable";
 import {
   type UserRow,
   type UserEditState,
@@ -1288,68 +1289,49 @@ export default function UsersTab(): ReactElement {
       )}
 
       {/* Create user modal */}
-      {isCreateUserModalOpen ? (
-        <div className="modal-backdrop">
-          <div className="modal card">
-            <div className="card-header">
-              <div className="card-title">{tAdmin("users.createUser")}</div>
-            </div>
-            <form
-              onSubmit={(e: FormEvent) => {
-                e.preventDefault();
-                handleCreateUser();
-              }}
-            >
-              <div className="list">
-                <div className="form-group">
-                  <label htmlFor="createUserEmail">{tAdmin("users.email")}</label>
-                  <input
-                    id="createUserEmail"
-                    type="email"
-                    value={createUserEmail}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setCreateUserEmail(e.target.value)}
-                    placeholder="user@example.com"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="createUserUsername">{tAdmin("users.username")}</label>
-                  <input
-                    id="createUserUsername"
-                    value={createUserUsername}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setCreateUserUsername(e.target.value)}
-                    placeholder="username"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="createUserDisplayName">{tAdmin("users.nickname")}</label>
-                  <input
-                    id="createUserDisplayName"
-                    value={createUserDisplayName}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setCreateUserDisplayName(e.target.value)}
-                    placeholder="Display name"
-                  />
-                </div>
-                {createUserStatus ? <div className="alert info">{createUserStatus}</div> : null}
-              </div>
-              <div className="list inline">
-                <button className="button primary" type="submit">
-                  {tAdmin("common.create")}
-                </button>
-                <button
-                  className="button"
-                  type="button"
-                  onClick={() => {
-                    setIsCreateUserModalOpen(false);
-                    setCreateUserStatus("");
-                  }}
-                >
-                  {tAdmin("common.cancel")}
-                </button>
-              </div>
-            </form>
+      <FormModal
+        isOpen={isCreateUserModalOpen}
+        title={tAdmin("users.createUser")}
+        statusMessage={createUserStatus}
+        submitLabel={tAdmin("common.create")}
+        cancelLabel={tAdmin("common.cancel")}
+        onSubmit={handleCreateUser}
+        onCancel={() => {
+          setIsCreateUserModalOpen(false);
+          setCreateUserStatus("");
+        }}
+      >
+        <div className="list">
+          <div className="form-group">
+            <label htmlFor="createUserEmail">{tAdmin("users.email")}</label>
+            <input
+              id="createUserEmail"
+              type="email"
+              value={createUserEmail}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setCreateUserEmail(e.target.value)}
+              placeholder="user@example.com"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="createUserUsername">{tAdmin("users.username")}</label>
+            <input
+              id="createUserUsername"
+              value={createUserUsername}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setCreateUserUsername(e.target.value)}
+              placeholder="username"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="createUserDisplayName">{tAdmin("users.nickname")}</label>
+            <input
+              id="createUserDisplayName"
+              value={createUserDisplayName}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setCreateUserDisplayName(e.target.value)}
+              placeholder="Display name"
+            />
           </div>
         </div>
-      ) : null}
+      </FormModal>
 
       {/* User delete DangerConfirmModal */}
       <DangerConfirmModal
@@ -1362,69 +1344,55 @@ export default function UsersTab(): ReactElement {
       />
 
       {/* Create game account modal */}
-      {createGameAccountUser ? (
-        <div className="modal-backdrop" onClick={closeCreateGameAccountModal}>
-          <div className="modal card" onClick={(e) => e.stopPropagation()}>
-            <div className="card-header">
-              <div className="card-title">{tAdmin("users.addGameAccount")}</div>
-              <div className="card-subtitle">
-                {createGameAccountUser.email} (
-                {createGameAccountUser.display_name ?? createGameAccountUser.username ?? "-"})
-              </div>
-            </div>
-            <form
-              onSubmit={(e: FormEvent) => {
-                e.preventDefault();
-                handleCreateGameAccount();
-              }}
-            >
-              <div className="list">
-                <div className="form-group">
-                  <label htmlFor="createGameAccountUsername">{tAdmin("clans.gameUsername")}</label>
-                  <input
-                    id="createGameAccountUsername"
-                    value={createGameAccountForm.username}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      setCreateGameAccountForm((prev) => ({ ...prev, username: e.target.value }))
-                    }
-                    placeholder={tAdmin("clans.gameUsername")}
-                  />
-                </div>
-                <div className="form-group">
-                  <LabeledSelect
-                    id="createGameAccountClan"
-                    label={tAdmin("common.clan")}
-                    value={createGameAccountForm.clanId}
-                    onValueChange={(v) => setCreateGameAccountForm((prev) => ({ ...prev, clanId: v }))}
-                    options={clanSelectOptions}
-                  />
-                </div>
-                <div className="form-group">
-                  <LabeledSelect
-                    id="createGameAccountRank"
-                    label={tAdmin("common.rank")}
-                    value={createGameAccountForm.rank}
-                    onValueChange={(v) => setCreateGameAccountForm((prev) => ({ ...prev, rank: v }))}
-                    options={[
-                      { value: "", label: tAdmin("common.none") },
-                      ...rankOptions.map((r) => ({ value: r, label: formatRank(r, locale) })),
-                    ]}
-                  />
-                </div>
-                {createGameAccountMessage ? <div className="alert info">{createGameAccountMessage}</div> : null}
-              </div>
-              <div className="list inline">
-                <button className="button primary" type="submit">
-                  {tAdmin("common.create")}
-                </button>
-                <button className="button" type="button" onClick={closeCreateGameAccountModal}>
-                  {tAdmin("common.cancel")}
-                </button>
-              </div>
-            </form>
+      <FormModal
+        isOpen={!!createGameAccountUser}
+        title={tAdmin("users.addGameAccount")}
+        subtitle={
+          createGameAccountUser
+            ? `${createGameAccountUser.email} (${createGameAccountUser.display_name ?? createGameAccountUser.username ?? "-"})`
+            : undefined
+        }
+        statusMessage={createGameAccountMessage}
+        submitLabel={tAdmin("common.create")}
+        cancelLabel={tAdmin("common.cancel")}
+        onSubmit={handleCreateGameAccount}
+        onCancel={closeCreateGameAccountModal}
+      >
+        <div className="list">
+          <div className="form-group">
+            <label htmlFor="createGameAccountUsername">{tAdmin("clans.gameUsername")}</label>
+            <input
+              id="createGameAccountUsername"
+              value={createGameAccountForm.username}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setCreateGameAccountForm((prev) => ({ ...prev, username: e.target.value }))
+              }
+              placeholder={tAdmin("clans.gameUsername")}
+            />
+          </div>
+          <div className="form-group">
+            <LabeledSelect
+              id="createGameAccountClan"
+              label={tAdmin("common.clan")}
+              value={createGameAccountForm.clanId}
+              onValueChange={(v) => setCreateGameAccountForm((prev) => ({ ...prev, clanId: v }))}
+              options={clanSelectOptions}
+            />
+          </div>
+          <div className="form-group">
+            <LabeledSelect
+              id="createGameAccountRank"
+              label={tAdmin("common.rank")}
+              value={createGameAccountForm.rank}
+              onValueChange={(v) => setCreateGameAccountForm((prev) => ({ ...prev, rank: v }))}
+              options={[
+                { value: "", label: tAdmin("common.none") },
+                ...rankOptions.map((r) => ({ value: r, label: formatRank(r, locale) })),
+              ]}
+            />
           </div>
         </div>
-      ) : null}
+      </FormModal>
 
       {/* Game account delete DangerConfirmModal */}
       <DangerConfirmModal

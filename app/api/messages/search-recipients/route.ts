@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import createSupabaseServerClient from "../../../../lib/supabase/server-client";
+import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
 
@@ -13,12 +13,9 @@ import type { RecipientResult } from "@/lib/types/domain";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const currentUserId = authData.user.id;
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const currentUserId = auth.userId;
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
   if (query.length < 2) {
     return NextResponse.json({ data: [] });

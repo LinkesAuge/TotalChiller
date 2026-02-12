@@ -1,35 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import AuthActions from "./auth-actions";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useAuth } from "../hooks/use-auth";
 
 /**
  * Renders public auth buttons when signed out.
  */
 function PublicAuthActions(): JSX.Element {
-  const supabase = createSupabaseBrowserClient();
   const t = useTranslations("publicAuth");
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-
-  useEffect(() => {
-    let isActive = true;
-    async function loadSession(): Promise<void> {
-      const { data } = await supabase.auth.getUser();
-      if (isActive) {
-        setIsAuthenticated(Boolean(data.user));
-      }
-    }
-    void loadSession();
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      void loadSession();
-    });
-    return () => {
-      isActive = false;
-      authListener.subscription.unsubscribe();
-    };
-  }, [supabase]);
+  const { isAuthenticated } = useAuth();
 
   return (
     <>

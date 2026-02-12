@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import createSupabaseServerClient from "../../../lib/supabase/server-client";
+import { requireAuth } from "../../../lib/api/require-auth";
 import { relaxedLimiter } from "../../../lib/rate-limit";
 import { chartQuerySchema } from "../../../lib/api/validation";
 import type {
@@ -9,6 +9,7 @@ import type {
   ChartSummary,
   ChartsApiResponse,
 } from "../../charts/chart-types";
+import type { GameAccountSummary } from "@/lib/types/domain";
 
 /** Maximum number of top players returned. */
 const TOP_PLAYERS_LIMIT = 15;
@@ -26,10 +27,8 @@ interface ChestRow {
   readonly clan_id: string;
 }
 
-/** Row shape returned from the game_accounts query. */
-interface GameAccountRow {
-  readonly game_username: string;
-}
+/** Narrow view of a game account used when resolving personal usernames. */
+type GameAccountRow = Pick<GameAccountSummary, "game_username">;
 
 /**
  * GET /api/charts
@@ -58,11 +57,9 @@ export async function GET(request: Request): Promise<Response> {
       );
     }
     const { clanId, gameAccountId, dateFrom, dateTo, player: playerFilter, source: sourceFilter } = parsed.data;
-    const supabase = await createSupabaseServerClient();
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { supabase } = auth;
     /* ── Build chest entries query ── */
     let query = supabase.from("chest_entries").select("collected_date,player,source,chest,score,clan_id");
     if (clanId) {
@@ -87,7 +84,7 @@ export async function GET(request: Request): Promise<Response> {
       : supabase
           .from("game_accounts")
           .select("game_username")
-          .eq("user_id", userData.user.id)
+          .eq("user_id", auth.userId)
           .eq("approval_status", "approved");
     /* ── Fetch chest entries and game accounts in parallel ── */
     const [chestResult, accountResult] = await Promise.all([query, accountsQuery]);

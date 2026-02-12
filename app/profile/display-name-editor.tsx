@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import createSupabaseBrowserClient from "../../lib/supabase/browser-client";
+import { useSupabase } from "../hooks/use-supabase";
 
 interface DisplayNameEditorProps {
   readonly userId: string;
@@ -12,7 +12,7 @@ interface DisplayNameEditorProps {
 
 function DisplayNameEditor({ userId, initialDisplayName, email: _email }: DisplayNameEditorProps): JSX.Element {
   const t = useTranslations("displayNameEditor");
-  const supabase = createSupabaseBrowserClient();
+  const supabase = useSupabase();
   const [displayName, setDisplayName] = useState<string>(initialDisplayName);
   const [status, setStatus] = useState<string>("");
 

@@ -35,19 +35,54 @@ export interface ForumCategory {
   readonly sort_order: number;
 }
 
-/* ── Messages ── */
+/* ── Messages (v2 — email model) ── */
 
 export interface MessageRow {
   readonly id: string;
   readonly sender_id: string | null;
-  readonly recipient_id: string;
-  readonly message_type: string;
   readonly subject: string | null;
   readonly content: string;
-  readonly is_read: boolean;
+  readonly message_type: string;
+  readonly thread_id: string | null;
+  readonly parent_id: string | null;
   readonly created_at: string;
-  readonly broadcast_group_id: string | null;
+}
+
+export interface MessageRecipientRow {
+  readonly id: string;
+  readonly message_id: string;
+  readonly recipient_id: string;
+  readonly is_read: boolean;
+  readonly deleted_at: string | null;
+  readonly created_at: string;
+}
+
+/** Inbox thread summary — returned by GET /api/messages/inbox */
+export interface InboxThread {
+  readonly thread_id: string;
+  readonly latest_message: MessageRow;
+  readonly message_count: number;
+  readonly unread_count: number;
+  readonly message_type: string;
+  readonly sender_id: string | null;
+}
+
+/** Sent message summary — returned by GET /api/messages/sent */
+export interface SentMessage extends MessageRow {
   readonly recipient_count: number;
+  readonly recipients: readonly RecipientSummary[];
+}
+
+export interface RecipientSummary {
+  readonly id: string;
+  readonly label: string;
+}
+
+/** Full thread message with per-recipient state — returned by GET /api/messages/thread/[threadId] */
+export interface ThreadMessage extends MessageRow {
+  readonly is_read: boolean;
+  readonly recipient_entry_id: string | null;
+  readonly recipients: readonly RecipientSummary[];
 }
 
 export interface RecipientResult {

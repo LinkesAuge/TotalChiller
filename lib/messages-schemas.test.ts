@@ -1,200 +1,138 @@
 /**
- * Unit tests for message-related Zod schemas and utility functions.
+ * Unit tests for message-related Zod schemas (v2 — email model).
  *
  * Validates:
- * - SEND_MESSAGE_SCHEMA: input validation for POST /api/messages
- * - BATCH_MARK_READ_SCHEMA: input validation for PATCH /api/messages
- * - deduplicateOutgoing: broadcast deduplication logic
+ * - SEND_SCHEMA: input validation for POST /api/messages (unified send)
  */
 import { describe, test, expect } from "vitest";
 import { z } from "zod";
 
-/* ── Re-declare schemas locally (mirroring route.ts) to test validation
+/* ── Re-declare schema locally (mirroring route.ts) to test validation
       without importing Next.js server code that requires runtime context. ── */
 
-const SEND_MESSAGE_SCHEMA = z.object({
-  recipient_id: z.string().uuid().optional(),
-  recipient_ids: z.array(z.string().uuid()).max(50).optional(),
+const SEND_SCHEMA = z.object({
+  recipient_ids: z.array(z.string().uuid()).min(1).max(500),
   subject: z.string().max(200).optional(),
   content: z.string().min(1).max(10_000),
+  message_type: z.enum(["private", "broadcast", "clan"]).default("private"),
+  parent_id: z.string().uuid().optional(),
+  clan_id: z.string().uuid().optional(),
 });
 
-const BATCH_MARK_READ_SCHEMA = z.object({
-  messageIds: z.array(z.string().uuid()).min(1).max(500),
-});
-
-function deduplicateOutgoing<T extends { broadcast_group_id: string | null }>(rows: readonly T[]): T[] {
-  const seenGroups = new Set<string>();
-  const result: T[] = [];
-  for (const row of rows) {
-    if (row.broadcast_group_id) {
-      if (seenGroups.has(row.broadcast_group_id)) continue;
-      seenGroups.add(row.broadcast_group_id);
-    }
-    result.push(row);
-  }
-  return result;
-}
-
 /* ------------------------------------------------------------------ */
-/*  SEND_MESSAGE_SCHEMA                                                */
+/*  SEND_SCHEMA                                                        */
 /* ------------------------------------------------------------------ */
 
-describe("SEND_MESSAGE_SCHEMA", () => {
-  test("accepts valid single-recipient message", () => {
+describe("SEND_SCHEMA", () => {
+  test("accepts valid single-recipient private message", () => {
     const input = {
-      recipient_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
       content: "Hello!",
     };
-    expect(SEND_MESSAGE_SCHEMA.safeParse(input).success).toBe(true);
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(true);
   });
 
-  test("accepts valid multi-recipient message", () => {
+  test("accepts valid multi-recipient private message", () => {
     const input = {
       recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"],
       content: "Hello everyone!",
       subject: "Group message",
     };
-    expect(SEND_MESSAGE_SCHEMA.safeParse(input).success).toBe(true);
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(true);
+  });
+
+  test("accepts broadcast message type", () => {
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "Broadcast content",
+      message_type: "broadcast",
+    };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(true);
+  });
+
+  test("accepts clan message with clan_id", () => {
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "Clan message",
+      message_type: "clan",
+      clan_id: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33",
+    };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(true);
+  });
+
+  test("accepts reply with parent_id", () => {
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "Reply content",
+      parent_id: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44",
+    };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(true);
+  });
+
+  test("defaults message_type to private", () => {
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "Hello",
+    };
+    const result = SEND_SCHEMA.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.message_type).toBe("private");
+    }
   });
 
   test("rejects empty content", () => {
-    const input = { recipient_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", content: "" };
-    const result = SEND_MESSAGE_SCHEMA.safeParse(input);
-    expect(result.success).toBe(false);
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "",
+    };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
   });
 
   test("rejects content exceeding 10000 characters", () => {
     const input = {
-      recipient_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
       content: "x".repeat(10_001),
     };
-    const result = SEND_MESSAGE_SCHEMA.safeParse(input);
-    expect(result.success).toBe(false);
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
   });
 
-  test("rejects invalid UUID for recipient_id", () => {
-    const input = { recipient_id: "not-a-uuid", content: "Hello" };
-    const result = SEND_MESSAGE_SCHEMA.safeParse(input);
-    expect(result.success).toBe(false);
+  test("rejects empty recipient_ids array", () => {
+    const input = { recipient_ids: [], content: "Hello" };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
   });
 
-  test("rejects recipient_ids exceeding 50", () => {
-    const ids = Array.from({ length: 51 }, (_, i) => `a0eebc99-9c0b-4ef8-bb6d-6bb9bd38${String(i).padStart(4, "0")}`);
+  test("rejects invalid UUID in recipient_ids", () => {
+    const input = { recipient_ids: ["not-a-uuid"], content: "Hello" };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
+  });
+
+  test("rejects recipient_ids exceeding 500", () => {
+    const ids = Array.from({ length: 501 }, (_, i) => `a0eebc99-9c0b-4ef8-bb6d-6bb9bd38${String(i).padStart(4, "0")}`);
     const input = { recipient_ids: ids, content: "Hello" };
-    const result = SEND_MESSAGE_SCHEMA.safeParse(input);
-    expect(result.success).toBe(false);
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
   });
 
   test("rejects subject exceeding 200 characters", () => {
     const input = {
-      recipient_id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
       content: "Hello",
       subject: "x".repeat(201),
     };
-    const result = SEND_MESSAGE_SCHEMA.safeParse(input);
-    expect(result.success).toBe(false);
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
   });
 
-  test("accepts message without subject or recipient_id (both optional)", () => {
-    const input = { content: "Just content" };
-    expect(SEND_MESSAGE_SCHEMA.safeParse(input).success).toBe(true);
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  BATCH_MARK_READ_SCHEMA                                             */
-/* ------------------------------------------------------------------ */
-
-describe("BATCH_MARK_READ_SCHEMA", () => {
-  test("accepts valid array of UUIDs", () => {
+  test("rejects invalid message_type", () => {
     const input = {
-      messageIds: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"],
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "Hello",
+      message_type: "invalid",
     };
-    expect(BATCH_MARK_READ_SCHEMA.safeParse(input).success).toBe(true);
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
   });
 
-  test("accepts single UUID", () => {
-    const input = { messageIds: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"] };
-    expect(BATCH_MARK_READ_SCHEMA.safeParse(input).success).toBe(true);
-  });
-
-  test("rejects empty array", () => {
-    const result = BATCH_MARK_READ_SCHEMA.safeParse({ messageIds: [] });
-    expect(result.success).toBe(false);
-  });
-
-  test("rejects array exceeding 500 items", () => {
-    const ids = Array.from({ length: 501 }, (_, i) => `a0eebc99-9c0b-4ef8-bb6d-6bb9bd38${String(i).padStart(4, "0")}`);
-    const result = BATCH_MARK_READ_SCHEMA.safeParse({ messageIds: ids });
-    expect(result.success).toBe(false);
-  });
-
-  test("rejects non-UUID strings", () => {
-    const result = BATCH_MARK_READ_SCHEMA.safeParse({ messageIds: ["not-a-uuid"] });
-    expect(result.success).toBe(false);
-  });
-
-  test("rejects missing messageIds", () => {
-    const result = BATCH_MARK_READ_SCHEMA.safeParse({});
-    expect(result.success).toBe(false);
-  });
-
-  test("rejects non-array messageIds", () => {
-    const result = BATCH_MARK_READ_SCHEMA.safeParse({ messageIds: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" });
-    expect(result.success).toBe(false);
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  deduplicateOutgoing                                                */
-/* ------------------------------------------------------------------ */
-
-describe("deduplicateOutgoing", () => {
-  test("keeps messages without broadcast_group_id", () => {
-    const rows = [
-      { id: "1", broadcast_group_id: null },
-      { id: "2", broadcast_group_id: null },
-    ];
-    expect(deduplicateOutgoing(rows)).toHaveLength(2);
-  });
-
-  test("deduplicates messages with same broadcast_group_id", () => {
-    const rows = [
-      { id: "1", broadcast_group_id: "group-a" },
-      { id: "2", broadcast_group_id: "group-a" },
-      { id: "3", broadcast_group_id: "group-a" },
-    ];
-    const result = deduplicateOutgoing(rows);
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("1");
-  });
-
-  test("keeps first of each broadcast group", () => {
-    const rows = [
-      { id: "1", broadcast_group_id: "group-a" },
-      { id: "2", broadcast_group_id: "group-b" },
-      { id: "3", broadcast_group_id: "group-a" },
-      { id: "4", broadcast_group_id: "group-b" },
-    ];
-    const result = deduplicateOutgoing(rows);
-    expect(result).toHaveLength(2);
-    expect(result.map((r) => r.id)).toEqual(["1", "2"]);
-  });
-
-  test("handles mixed null and grouped messages", () => {
-    const rows = [
-      { id: "1", broadcast_group_id: null },
-      { id: "2", broadcast_group_id: "group-a" },
-      { id: "3", broadcast_group_id: null },
-      { id: "4", broadcast_group_id: "group-a" },
-    ];
-    const result = deduplicateOutgoing(rows);
-    expect(result).toHaveLength(3);
-    expect(result.map((r) => r.id)).toEqual(["1", "2", "3"]);
-  });
-
-  test("returns empty array for empty input", () => {
-    expect(deduplicateOutgoing([])).toEqual([]);
+  test("rejects missing recipient_ids", () => {
+    const input = { content: "Hello" };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
   });
 });

@@ -69,11 +69,16 @@ test.describe("API: Messages", () => {
     expect([200, 400, 401, 429]).toContain(res.status());
   });
 
-  test("POST /api/messages/broadcast without auth returns gracefully", async ({ request }) => {
-    const res = await request.post("/api/messages/broadcast", {
-      data: { clan_id: "all", content: "test" },
+  test("POST /api/messages broadcast without auth returns gracefully", async ({ request }) => {
+    const res = await request.post("/api/messages", {
+      data: { recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"], content: "test", message_type: "broadcast" },
     });
     expect([200, 400, 401, 429]).toContain(res.status());
+  });
+
+  test("GET /api/messages/sent without auth returns gracefully", async ({ request }) => {
+    const res = await request.get("/api/messages/sent");
+    expect([200, 401, 429]).toContain(res.status());
   });
 });
 

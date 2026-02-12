@@ -11,11 +11,13 @@ import DataState from "../components/data-state";
 import RadixSelect from "../components/ui/radix-select";
 import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
 
-import type { MessageRow, RecipientResult } from "@/lib/types/domain";
+import type { InboxThread, SentMessage, ThreadMessage, RecipientResult, RecipientSummary } from "@/lib/types/domain";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-16 rounded" />,
 });
+
+/* ── Types ── */
 
 interface ProfileMap {
   readonly [userId: string]: {
@@ -27,22 +29,10 @@ interface ProfileMap {
 
 type ViewMode = "inbox" | "sent";
 
-interface ConversationSummary {
-  readonly partnerId: string;
-  readonly partnerLabel: string;
-  readonly lastMessage: MessageRow;
-  readonly unreadCount: number;
-  readonly messageType: string;
-  readonly isBroadcastGroup: boolean;
-  readonly recipientCount: number;
-}
-
 interface ClanOption {
   readonly id: string;
   readonly name: string;
 }
-
-type RecipientSearchResult = RecipientResult;
 
 interface SelectedRecipient {
   readonly id: string;
@@ -51,15 +41,11 @@ interface SelectedRecipient {
 
 type ComposeMode = "direct" | "clan" | "global";
 
-const SYSTEM_PARTNER_ID = "__system__";
 const MESSAGE_IMAGE_BUCKET = "message-images";
 const REPLY_SUBJECT_PREFIX = "Re: ";
 
-/**
- * Email-style messaging UI with conversation list, thread view, and compose.
- * Supports markdown formatting, image uploads, recipient search,
- * multi-recipient sends, and clan/global broadcasts for privileged roles.
- */
+/* ── Component ── */
+
 interface MessagesClientProps {
   readonly userId: string;
   readonly initialRecipientId?: string;
@@ -70,16 +56,29 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
   const locale = useLocale();
   const t = useTranslations("messagesPage");
 
-  /* Message state */
-  const [messages, setMessages] = useState<readonly MessageRow[]>([]);
-  const [profiles, setProfiles] = useState<ProfileMap>({});
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [selectedPartnerId, setSelectedPartnerId] = useState<string>("");
+  /* ── View state ── */
+  const [viewMode, setViewMode] = useState<ViewMode>("inbox");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
-  const [viewMode, setViewMode] = useState<ViewMode>("inbox");
 
-  /* Compose state */
+  /* ── Inbox state ── */
+  const [inboxThreads, setInboxThreads] = useState<readonly InboxThread[]>([]);
+  const [inboxProfiles, setInboxProfiles] = useState<ProfileMap>({});
+  const [isInboxLoading, setIsInboxLoading] = useState<boolean>(true);
+
+  /* ── Sent state ── */
+  const [sentMessages, setSentMessages] = useState<readonly SentMessage[]>([]);
+  const [sentProfiles, setSentProfiles] = useState<ProfileMap>({});
+  const [isSentLoading, setIsSentLoading] = useState<boolean>(false);
+
+  /* ── Thread view state ── */
+  const [selectedThreadId, setSelectedThreadId] = useState<string>("");
+  const [selectedSentMsgId, setSelectedSentMsgId] = useState<string>("");
+  const [threadMessages, setThreadMessages] = useState<readonly ThreadMessage[]>([]);
+  const [threadProfiles, setThreadProfiles] = useState<ProfileMap>({});
+  const [isThreadLoading, setIsThreadLoading] = useState<boolean>(false);
+
+  /* ── Compose state ── */
   const [isComposeOpen, setIsComposeOpen] = useState<boolean>(false);
   const [composeMode, setComposeMode] = useState<ComposeMode>("direct");
   const [composeRecipients, setComposeRecipients] = useState<readonly SelectedRecipient[]>([]);
@@ -91,45 +90,72 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
   const [isComposeUploading, setIsComposeUploading] = useState<boolean>(false);
   const composeTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  /* Reply state */
+  /* ── Reply state ── */
   const [isReplyOpen, setIsReplyOpen] = useState<boolean>(false);
   const [replySubject, setReplySubject] = useState<string>("");
   const [replyContent, setReplyContent] = useState<string>("");
   const [replyStatus, setReplyStatus] = useState<string>("");
+  const [replyParentId, setReplyParentId] = useState<string>("");
   const [isReplyPreview, setIsReplyPreview] = useState<boolean>(false);
   const [isReplyUploading, setIsReplyUploading] = useState<boolean>(false);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  /* Recipient search state */
+  /* ── Recipient search state ── */
   const [recipientSearch, setRecipientSearch] = useState<string>("");
-  const [recipientResults, setRecipientResults] = useState<readonly RecipientSearchResult[]>([]);
+  const [recipientResults, setRecipientResults] = useState<readonly RecipientResult[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /* Role / permission state */
+  /* ── Role / permission state ── */
   const { isContentManager: isContentMgr } = useUserRole(supabase);
   const [clans, setClans] = useState<readonly ClanOption[]>([]);
 
-  /* ── Data loading ── */
+  /* ══════════════════════════════════════════════════
+     Data Loading
+     ══════════════════════════════════════════════════ */
 
-  const loadMessages = useCallback(async (): Promise<void> => {
-    const params = typeFilter !== "all" ? `?type=${typeFilter}` : "";
-    const response = await fetch(`/api/messages${params}`);
+  const loadInbox = useCallback(async (): Promise<void> => {
+    setIsInboxLoading(true);
+    const params = new URLSearchParams();
+    if (typeFilter !== "all") params.set("type", typeFilter);
+    if (search.trim()) params.set("search", search.trim());
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const response = await fetch(`/api/messages${qs}`);
     if (response.ok) {
       const result = await response.json();
-      setMessages(result.data ?? []);
-      setProfiles(result.profiles ?? {});
+      setInboxThreads(result.data ?? []);
+      setInboxProfiles(result.profiles ?? {});
     }
-    setIsLoading(false);
-  }, [typeFilter]);
+    setIsInboxLoading(false);
+  }, [typeFilter, search]);
 
+  const loadSent = useCallback(async (): Promise<void> => {
+    setIsSentLoading(true);
+    const params = new URLSearchParams();
+    if (typeFilter !== "all") params.set("type", typeFilter);
+    if (search.trim()) params.set("search", search.trim());
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const response = await fetch(`/api/messages/sent${qs}`);
+    if (response.ok) {
+      const result = await response.json();
+      setSentMessages(result.data ?? []);
+      setSentProfiles(result.profiles ?? {});
+    }
+    setIsSentLoading(false);
+  }, [typeFilter, search]);
+
+  /* Load data when view/filter changes */
   useEffect(() => {
-    setIsLoading(true);
-    void loadMessages();
-  }, [loadMessages]);
+    if (viewMode === "inbox") {
+      void loadInbox();
+    } else {
+      void loadSent();
+    }
+  }, [viewMode, loadInbox, loadSent]);
 
+  /* Load clans for broadcast */
   useEffect(() => {
     async function loadClans(): Promise<void> {
       if (!isContentMgr) return;
@@ -143,8 +169,7 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     void loadClans();
   }, [supabase, isContentMgr]);
 
-  /* ── Pre-fill compose from ?to= param ── */
-
+  /* Pre-fill compose from ?to= param */
   useEffect(() => {
     if (!initialRecipientId || initialRecipientId === userId) return;
     async function resolveRecipient(): Promise<void> {
@@ -165,9 +190,7 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
   /* ── Recipient search with debounce ── */
 
   useEffect(() => {
-    if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current);
-    }
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     const query = recipientSearch.trim();
     if (query.length < 2) {
       setRecipientResults([]);
@@ -180,7 +203,7 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
         const response = await fetch(`/api/messages/search-recipients?q=${encodeURIComponent(query)}`);
         if (response.ok) {
           const result = await response.json();
-          const results = (result.data ?? []) as RecipientSearchResult[];
+          const results = (result.data ?? []) as RecipientResult[];
           const selectedIds = new Set(composeRecipients.map((r) => r.id));
           setRecipientResults(results.filter((r) => !selectedIds.has(r.id)));
           setIsSearchDropdownOpen(true);
@@ -190,9 +213,7 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
       }
     }, 300);
     return () => {
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-      }
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
   }, [recipientSearch, composeRecipients]);
 
@@ -206,12 +227,14 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  /* ── Helpers ── */
+  /* ══════════════════════════════════════════════════
+     Helpers
+     ══════════════════════════════════════════════════ */
 
-  function getPartnerLabel(partnerId: string): string {
-    if (partnerId === SYSTEM_PARTNER_ID) return t("systemPartner");
-    const profile = profiles[partnerId];
-    if (!profile) return t("unknownPartner");
+  function getProfileLabel(profileId: string, fallback?: string): string {
+    if (profileId === userId) return t("you");
+    const profile = { ...inboxProfiles, ...sentProfiles, ...threadProfiles }[profileId];
+    if (!profile) return fallback ?? t("unknownPartner");
     return profile.display_name ?? profile.username ?? profile.email;
   }
 
@@ -264,148 +287,71 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     setReplyContent((prev) => prev.substring(0, start) + markdown + prev.substring(start));
   }
 
-  /* ── Conversations ── */
-
-  const conversations = useMemo((): readonly ConversationSummary[] => {
-    const grouped = new Map<string, MessageRow[]>();
-    if (viewMode === "inbox") {
-      for (const message of messages) {
-        if (message.recipient_id !== userId) continue;
-        const partnerId =
-          message.message_type === "system" ? SYSTEM_PARTNER_ID : (message.sender_id ?? SYSTEM_PARTNER_ID);
-        const existing = grouped.get(partnerId) ?? [];
-        existing.push(message);
-        grouped.set(partnerId, existing);
-      }
-    } else {
-      for (const message of messages) {
-        if (message.sender_id !== userId) continue;
-        const groupKey = message.broadcast_group_id ?? message.recipient_id;
-        const existing = grouped.get(groupKey) ?? [];
-        existing.push(message);
-        grouped.set(groupKey, existing);
-      }
+  function formatRecipientLabel(msg: SentMessage): string {
+    if (msg.message_type === "broadcast") return t("sentToAll");
+    if (msg.message_type === "clan") return t("sentToClan", { clan: "Clan" });
+    if (msg.recipients.length === 0) return t("unknownPartner");
+    if (msg.recipients.length === 1) {
+      return `${t("to")}: ${msg.recipients[0]!.label}`;
     }
-    const summaries: ConversationSummary[] = [];
-    for (const [groupKey, groupMessages] of grouped.entries()) {
-      const sorted = [...groupMessages].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-      const lastMsg = sorted[0];
-      if (!lastMsg) continue;
-      const isBroadcastGroup = viewMode === "sent" && lastMsg.broadcast_group_id !== null;
-      let partnerId: string;
-      let partnerLabel: string;
-      if (viewMode === "inbox") {
-        partnerId = groupKey;
-        partnerLabel = getPartnerLabel(groupKey);
-      } else if (isBroadcastGroup) {
-        partnerId = groupKey;
-        partnerLabel =
-          lastMsg.message_type === "broadcast"
-            ? t("broadcastRecipients", { count: lastMsg.recipient_count })
-            : t("sentToRecipients", { count: lastMsg.recipient_count });
-      } else {
-        partnerId = lastMsg.recipient_id;
-        partnerLabel = getPartnerLabel(lastMsg.recipient_id);
-      }
-      const unreadCount = viewMode === "inbox" ? sorted.filter((message) => !message.is_read).length : 0;
-      summaries.push({
-        partnerId,
-        partnerLabel,
-        lastMessage: lastMsg,
-        unreadCount,
-        messageType: lastMsg.message_type,
-        isBroadcastGroup,
-        recipientCount: lastMsg.recipient_count,
-      });
-    }
-    summaries.sort(
-      (a, b) => new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime(),
-    );
-    return summaries;
-  }, [messages, profiles, userId, viewMode]);
+    const MAX_SHOWN = 2;
+    const shown = msg.recipients
+      .slice(0, MAX_SHOWN)
+      .map((r) => r.label)
+      .join(", ");
+    if (msg.recipients.length <= MAX_SHOWN) return t("sentToRecipients", { names: shown });
+    return t("sentToCount", { shown, more: String(msg.recipients.length - MAX_SHOWN) });
+  }
 
-  const filteredConversations = useMemo((): readonly ConversationSummary[] => {
-    if (!search.trim()) return conversations;
-    const normalizedSearch = search.trim().toLowerCase();
-    return conversations.filter(
-      (conv) =>
-        conv.partnerLabel.toLowerCase().includes(normalizedSearch) ||
-        conv.lastMessage.content.toLowerCase().includes(normalizedSearch) ||
-        (conv.lastMessage.subject ?? "").toLowerCase().includes(normalizedSearch),
-    );
-  }, [conversations, search]);
+  /* ══════════════════════════════════════════════════
+     Thread Loading
+     ══════════════════════════════════════════════════ */
 
-  const selectedThread = useMemo((): readonly MessageRow[] => {
-    if (!selectedPartnerId) return [];
-    if (viewMode === "inbox") {
-      if (selectedPartnerId === SYSTEM_PARTNER_ID) {
-        return messages
-          .filter((message) => message.message_type === "system" && message.recipient_id === userId)
-          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      }
-      return messages
-        .filter(
-          (message) =>
-            (message.sender_id === selectedPartnerId && message.recipient_id === userId) ||
-            (message.sender_id === userId && message.recipient_id === selectedPartnerId),
-        )
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  async function loadThread(threadId: string): Promise<void> {
+    setIsThreadLoading(true);
+    setThreadMessages([]);
+    const response = await fetch(`/api/messages/thread/${threadId}`);
+    if (response.ok) {
+      const result = await response.json();
+      setThreadMessages(result.data ?? []);
+      setThreadProfiles(result.profiles ?? {});
     }
-    const conv = filteredConversations.find((c) => c.partnerId === selectedPartnerId);
-    if (conv?.isBroadcastGroup) {
-      return messages
-        .filter((message) => message.sender_id === userId && message.broadcast_group_id === selectedPartnerId)
-        .slice(0, 1);
-    }
-    return messages
-      .filter(
-        (message) =>
-          (message.sender_id === userId && message.recipient_id === selectedPartnerId) ||
-          (message.sender_id === selectedPartnerId && message.recipient_id === userId),
-      )
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  }, [messages, selectedPartnerId, userId, viewMode, filteredConversations]);
+    setIsThreadLoading(false);
+  }
 
-  /* ── Handlers ── */
+  /* ══════════════════════════════════════════════════
+     Handlers
+     ══════════════════════════════════════════════════ */
 
   function handleViewModeChange(mode: ViewMode): void {
     setViewMode(mode);
-    setSelectedPartnerId("");
+    setSelectedThreadId("");
+    setSelectedSentMsgId("");
+    setThreadMessages([]);
+    setIsReplyOpen(false);
     setReplyContent("");
     setReplySubject("");
     setReplyStatus("");
-    setIsReplyOpen(false);
   }
 
-  async function handleSelectConversation(partnerId: string): Promise<void> {
-    setSelectedPartnerId(partnerId);
+  function handleSelectInboxThread(threadId: string): void {
+    setSelectedThreadId(threadId);
+    setSelectedSentMsgId("");
+    setIsReplyOpen(false);
     setReplyContent("");
     setReplySubject("");
     setReplyStatus("");
-    setIsReplyOpen(false);
     setIsReplyPreview(false);
-    if (viewMode !== "inbox") return;
-    const unreadIds = messages
-      .filter(
-        (message) =>
-          message.recipient_id === userId &&
-          !message.is_read &&
-          (partnerId === SYSTEM_PARTNER_ID ? message.message_type === "system" : message.sender_id === partnerId),
-      )
-      .map((message) => message.id);
-    for (const messageId of unreadIds) {
-      await fetch(`/api/messages/${messageId}`, { method: "PATCH" });
-    }
-    if (unreadIds.length > 0) {
-      setMessages((current) =>
-        current.map((message) => (unreadIds.includes(message.id) ? { ...message, is_read: true } : message)),
-      );
-    }
+    void loadThread(threadId);
   }
 
-  function openReplyToMessage(message: MessageRow): void {
+  function handleSelectSentMessage(msgId: string): void {
+    setSelectedSentMsgId(msgId);
+    setSelectedThreadId("");
+    setIsReplyOpen(false);
+  }
+
+  function openReplyToMessage(message: ThreadMessage): void {
     const originalSubject = message.subject ?? "";
     const prefilled = originalSubject.startsWith(REPLY_SUBJECT_PREFIX)
       ? originalSubject
@@ -413,6 +359,7 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
         ? `${REPLY_SUBJECT_PREFIX}${originalSubject}`
         : "";
     setReplySubject(prefilled);
+    setReplyParentId(message.id);
     const quoted = message.content
       .split("\n")
       .map((line) => `> ${line}`)
@@ -424,15 +371,22 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
 
   async function handleSendReply(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (!replyContent.trim() || !selectedPartnerId || selectedPartnerId === SYSTEM_PARTNER_ID) return;
+    if (!replyContent.trim() || !replyParentId) return;
+
+    /* Find the sender of the message we're replying to */
+    const parentMsg = threadMessages.find((m) => m.id === replyParentId);
+    if (!parentMsg?.sender_id) return;
+
     setReplyStatus(t("sending"));
     const response = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        recipient_id: selectedPartnerId,
+        recipient_ids: [parentMsg.sender_id],
         subject: replySubject.trim() || null,
         content: replyContent.trim(),
+        message_type: "private",
+        parent_id: replyParentId,
       }),
     });
     if (!response.ok) {
@@ -443,9 +397,11 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     setReplyContent("");
     setReplySubject("");
     setReplyStatus("");
+    setReplyParentId("");
     setIsReplyOpen(false);
     setIsReplyPreview(false);
-    await loadMessages();
+    /* Reload thread to show the new reply */
+    void loadThread(selectedThreadId);
   }
 
   async function handleCompose(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -454,20 +410,21 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
       setComposeStatus(t("recipientRequired"));
       return;
     }
+
     if (composeMode === "direct") {
       if (composeRecipients.length === 0) {
         setComposeStatus(t("recipientRequired"));
         return;
       }
       setComposeStatus(t("sending"));
-      const recipientIds = composeRecipients.map((r) => r.id);
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          recipient_ids: recipientIds,
+          recipient_ids: composeRecipients.map((r) => r.id),
           subject: composeSubject.trim() || null,
           content: composeContent.trim(),
+          message_type: "private",
         }),
       });
       if (!response.ok) {
@@ -475,47 +432,48 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
         setComposeStatus(result.error ?? t("failedToSend"));
         return;
       }
-      const result = await response.json();
-      if (recipientIds.length === 1) {
-        setComposeStatus(t("messageSent"));
-        setViewMode("sent");
-        setSelectedPartnerId(recipientIds[0] ?? "");
-      } else {
-        setComposeStatus(t("messagesSent", { count: result.count ?? recipientIds.length }));
-        setViewMode("sent");
-      }
+      setComposeStatus(t("messageSent"));
     } else {
-      const clanId = composeMode === "global" ? "all" : composeClanId;
-      if (composeMode === "clan" && !clanId) {
+      /* Broadcast or clan */
+      const msgType = composeMode === "global" ? "broadcast" : "clan";
+      if (composeMode === "clan" && !composeClanId) {
         setComposeStatus(t("clanAndMessageRequired"));
         return;
       }
       setComposeStatus(t("sendingBroadcast"));
-      const response = await fetch("/api/messages/broadcast", {
+      const response = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clan_id: clanId,
+          recipient_ids: ["__placeholder__"],
           subject: composeSubject.trim() || null,
           content: composeContent.trim(),
+          message_type: msgType,
+          clan_id: composeMode === "clan" ? composeClanId : undefined,
         }),
       });
       const result = await response.json();
       if (!response.ok) {
-        setComposeStatus(result.error ?? t("failedToSendBroadcast"));
+        setComposeStatus(result.error ?? t("failedToSend"));
         return;
       }
-      setComposeStatus(t("broadcastSent", { count: result.data?.recipients ?? 0 }));
-      setViewMode("sent");
+      setComposeStatus(t("broadcastSent", { count: result.recipient_count ?? 0 }));
     }
+
     resetCompose();
     setIsComposeOpen(false);
-    await loadMessages();
+    setViewMode("sent");
+    if (viewMode === "sent") {
+      void loadSent();
+    }
   }
 
   async function handleDeleteMessage(messageId: string): Promise<void> {
     await fetch(`/api/messages/${messageId}`, { method: "DELETE" });
-    setMessages((current) => current.filter((message) => message.id !== messageId));
+    /* Remove from thread view */
+    setThreadMessages((current) => current.filter((m) => m.id !== messageId));
+    /* Reload inbox to update thread list */
+    void loadInbox();
   }
 
   function getMessageTypeLabel(messageType: string): string {
@@ -524,11 +482,11 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     return "";
   }
 
-  const selectedConversation = filteredConversations.find((conv) => conv.partnerId === selectedPartnerId);
+  /* ── Derived values ── */
 
   const totalInboxUnread = useMemo(
-    () => messages.filter((m) => m.recipient_id === userId && !m.is_read).length,
-    [messages, userId],
+    () => inboxThreads.reduce((sum, thread) => sum + thread.unread_count, 0),
+    [inboxThreads],
   );
 
   const composeModeOptions = useMemo(() => {
@@ -539,10 +497,26 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     return options;
   }, [isContentMgr, t]);
 
-  const canReply =
-    selectedPartnerId !== SYSTEM_PARTNER_ID && !selectedConversation?.isBroadcastGroup && selectedPartnerId !== "";
+  const selectedSentMessage = useMemo(
+    () => sentMessages.find((m) => m.id === selectedSentMsgId),
+    [sentMessages, selectedSentMsgId],
+  );
 
-  /* ── Render ── */
+  const selectedInboxThread = useMemo(
+    () => inboxThreads.find((th) => th.thread_id === selectedThreadId),
+    [inboxThreads, selectedThreadId],
+  );
+
+  /* Can reply only in inbox thread view, for private messages */
+  const canReply =
+    viewMode === "inbox" &&
+    selectedThreadId !== "" &&
+    selectedInboxThread?.message_type === "private" &&
+    threadMessages.length > 0;
+
+  /* ══════════════════════════════════════════════════
+     Render
+     ══════════════════════════════════════════════════ */
 
   return (
     <div className="grid">
@@ -802,8 +776,11 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
         </section>
       ) : null}
 
+      {/* ══════════════════════════════════════════════════
+          Main Layout: List + Detail
+          ══════════════════════════════════════════════════ */}
       <div className="messages-layout">
-        {/* ── Conversation list ── */}
+        {/* ── Left panel: Message list ── */}
         <section className="card messages-list-panel">
           <div className="messages-view-tabs">
             <button
@@ -853,141 +830,210 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
               ))}
             </div>
           </div>
-          {/* Conversation list — email-style: subject first */}
-          <div className="messages-conversation-list">
-            <DataState
-              isLoading={isLoading}
-              isEmpty={filteredConversations.length === 0}
-              loadingNode={
-                <div className="list-item">
-                  <span className="text-muted">{t("loadingMessages")}</span>
-                </div>
-              }
-              emptyNode={
-                <div className="list-item">
-                  <span className="text-muted">{t("noMessages")}</span>
-                </div>
-              }
-            >
-              {filteredConversations.map((conv) => (
-                <button
-                  key={conv.partnerId}
-                  type="button"
-                  className={`messages-conversation-item ${selectedPartnerId === conv.partnerId ? "active" : ""} ${conv.unreadCount > 0 ? "unread" : ""}`}
-                  onClick={() => handleSelectConversation(conv.partnerId)}
-                >
-                  {/* Row 1: Subject + date */}
-                  <div className="messages-conversation-subject-row">
-                    <strong className="messages-conversation-subject">
-                      {conv.lastMessage.subject || t("noSubject")}
-                    </strong>
-                    <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
-                      {formatLocalDateTime(conv.lastMessage.created_at, locale)}
-                    </span>
-                  </div>
-                  {/* Row 2: Sender/recipient + badges */}
-                  <div className="messages-conversation-sender-row">
-                    <span className="text-muted" style={{ fontSize: "0.82rem" }}>
-                      {viewMode === "inbox" ? t("from") : t("to")}: {conv.partnerLabel}
-                    </span>
-                    <span className="messages-meta">
-                      {conv.unreadCount > 0 ? <span className="badge">{conv.unreadCount}</span> : null}
-                      {getMessageTypeLabel(conv.messageType) ? (
-                        <span className="badge" style={{ fontSize: "0.7rem" }}>
-                          {getMessageTypeLabel(conv.messageType)}
-                        </span>
-                      ) : null}
-                    </span>
-                  </div>
-                  {/* Row 3: Content preview */}
-                  <div className="messages-conversation-snippet">
-                    {conv.lastMessage.content.length > 80
-                      ? `${conv.lastMessage.content.slice(0, 80)}...`
-                      : conv.lastMessage.content}
-                  </div>
-                </button>
-              ))}
-            </DataState>
-          </div>
-        </section>
 
-        {/* ── Thread view (email-style cards) ── */}
-        <section className="card messages-thread-panel">
-          {!selectedPartnerId ? (
-            <div className="messages-empty">
-              <div className="text-muted">{t("selectConversation")}</div>
+          {/* ── Inbox thread list ── */}
+          {viewMode === "inbox" ? (
+            <div className="messages-conversation-list">
+              <DataState
+                isLoading={isInboxLoading}
+                isEmpty={inboxThreads.length === 0}
+                loadingNode={
+                  <div className="list-item">
+                    <span className="text-muted">{t("loadingMessages")}</span>
+                  </div>
+                }
+                emptyNode={
+                  <div className="list-item">
+                    <span className="text-muted">{t("noMessages")}</span>
+                  </div>
+                }
+              >
+                {inboxThreads.map((thread) => {
+                  const msg = thread.latest_message;
+                  const senderLabel = msg.sender_id
+                    ? getProfileLabel(msg.sender_id)
+                    : msg.message_type === "system"
+                      ? t("systemPartner")
+                      : t("unknownPartner");
+                  return (
+                    <button
+                      key={thread.thread_id}
+                      type="button"
+                      className={`messages-conversation-item ${selectedThreadId === thread.thread_id ? "active" : ""} ${thread.unread_count > 0 ? "unread" : ""}`}
+                      onClick={() => handleSelectInboxThread(thread.thread_id)}
+                    >
+                      {/* Row 1: Subject + date */}
+                      <div className="messages-conversation-subject-row">
+                        <strong className="messages-conversation-subject">{msg.subject || t("noSubject")}</strong>
+                        <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
+                          {formatLocalDateTime(msg.created_at, locale)}
+                        </span>
+                      </div>
+                      {/* Row 2: Sender + badges */}
+                      <div className="messages-conversation-sender-row">
+                        <span className="text-muted" style={{ fontSize: "0.82rem" }}>
+                          {t("from")}: {senderLabel}
+                        </span>
+                        <span className="messages-meta">
+                          {thread.unread_count > 0 ? (
+                            <span className="badge">{t("newInThread", { count: thread.unread_count })}</span>
+                          ) : null}
+                          {thread.message_count > 1 ? (
+                            <span className="badge" style={{ fontSize: "0.7rem" }}>
+                              {thread.message_count}
+                            </span>
+                          ) : null}
+                          {getMessageTypeLabel(thread.message_type) ? (
+                            <span className="badge" style={{ fontSize: "0.7rem" }}>
+                              {getMessageTypeLabel(thread.message_type)}
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                      {/* Row 3: Content preview */}
+                      <div className="messages-conversation-snippet">
+                        {msg.content.length > 80 ? `${msg.content.slice(0, 80)}...` : msg.content}
+                      </div>
+                    </button>
+                  );
+                })}
+              </DataState>
             </div>
           ) : (
+            /* ── Sent messages list ── */
+            <div className="messages-conversation-list">
+              <DataState
+                isLoading={isSentLoading}
+                isEmpty={sentMessages.length === 0}
+                loadingNode={
+                  <div className="list-item">
+                    <span className="text-muted">{t("loadingMessages")}</span>
+                  </div>
+                }
+                emptyNode={
+                  <div className="list-item">
+                    <span className="text-muted">{t("noSentMessages")}</span>
+                  </div>
+                }
+              >
+                {sentMessages.map((msg) => (
+                  <button
+                    key={msg.id}
+                    type="button"
+                    className={`messages-conversation-item ${selectedSentMsgId === msg.id ? "active" : ""}`}
+                    onClick={() => handleSelectSentMessage(msg.id)}
+                  >
+                    {/* Row 1: Subject + date */}
+                    <div className="messages-conversation-subject-row">
+                      <strong className="messages-conversation-subject">{msg.subject || t("noSubject")}</strong>
+                      <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
+                        {formatLocalDateTime(msg.created_at, locale)}
+                      </span>
+                    </div>
+                    {/* Row 2: Recipients + type badge */}
+                    <div className="messages-conversation-sender-row">
+                      <span className="text-muted" style={{ fontSize: "0.82rem" }}>
+                        {formatRecipientLabel(msg)}
+                      </span>
+                      <span className="messages-meta">
+                        {getMessageTypeLabel(msg.message_type) ? (
+                          <span className="badge" style={{ fontSize: "0.7rem" }}>
+                            {getMessageTypeLabel(msg.message_type)}
+                          </span>
+                        ) : null}
+                      </span>
+                    </div>
+                    {/* Row 3: Content preview */}
+                    <div className="messages-conversation-snippet">
+                      {msg.content.length > 80 ? `${msg.content.slice(0, 80)}...` : msg.content}
+                    </div>
+                  </button>
+                ))}
+              </DataState>
+            </div>
+          )}
+        </section>
+
+        {/* ── Right panel: Thread / message detail ── */}
+        <section className="card messages-thread-panel">
+          {viewMode === "inbox" && !selectedThreadId ? (
+            <div className="messages-empty">
+              <div className="text-muted">{t("selectMessage")}</div>
+            </div>
+          ) : viewMode === "sent" && !selectedSentMsgId ? (
+            <div className="messages-empty">
+              <div className="text-muted">{t("selectMessage")}</div>
+            </div>
+          ) : viewMode === "inbox" && selectedThreadId ? (
+            /* ── Inbox thread view ── */
             <>
               <div className="card-header">
                 <div>
-                  <div className="card-title">{selectedConversation?.partnerLabel ?? t("conversation")}</div>
+                  <div className="card-title">{threadMessages[0]?.subject || t("noSubject")}</div>
                   <div className="card-subtitle">
-                    {selectedConversation?.isBroadcastGroup
-                      ? t("broadcastSummary")
-                      : t("messagesCount", { count: selectedThread.length })}
+                    {isThreadLoading ? t("loadingThread") : t("threadMessages", { count: threadMessages.length })}
                   </div>
                 </div>
               </div>
-              {selectedConversation?.isBroadcastGroup ? (
-                <div className="messages-broadcast-info">
-                  {selectedConversation.messageType === "broadcast"
-                    ? t("broadcastInfoBanner", { count: selectedConversation.recipientCount })
-                    : t("multiRecipientInfoBanner", { count: selectedConversation.recipientCount })}
-                </div>
-              ) : null}
-              {/* Email-style message cards */}
+              {/* Thread message cards */}
               <div className="messages-thread-list">
-                {selectedThread.map((message) => {
-                  const isSelf = message.sender_id === userId;
-                  const isSystem = message.message_type === "system";
-                  const senderLabel = isSelf
-                    ? t("you")
-                    : isSystem
-                      ? t("systemPartner")
-                      : getPartnerLabel(message.sender_id ?? SYSTEM_PARTNER_ID);
-                  return (
-                    <div
-                      key={message.id}
-                      className={`messages-email-card ${isSelf ? "sent" : ""} ${isSystem ? "system" : ""}`}
-                    >
-                      <div className="messages-email-header">
-                        <span className="messages-email-from">
-                          {t("from")}: <strong>{senderLabel}</strong>
-                        </span>
-                        <span className="messages-email-date">{formatLocalDateTime(message.created_at, locale)}</span>
+                <DataState
+                  isLoading={isThreadLoading}
+                  isEmpty={threadMessages.length === 0}
+                  loadingNode={<div className="text-muted p-4">{t("loadingThread")}</div>}
+                  emptyNode={<div className="text-muted p-4">{t("noMessages")}</div>}
+                >
+                  {threadMessages.map((message) => {
+                    const isSelf = message.sender_id === userId;
+                    const isSystem = message.message_type === "system";
+                    const senderLabel = isSelf
+                      ? t("you")
+                      : isSystem
+                        ? t("systemPartner")
+                        : getProfileLabel(message.sender_id ?? "");
+                    return (
+                      <div
+                        key={message.id}
+                        className={`messages-email-card ${isSelf ? "sent" : ""} ${isSystem ? "system" : ""}`}
+                      >
+                        <div className="messages-email-header">
+                          <span className="messages-email-from">
+                            {t("from")}: <strong>{senderLabel}</strong>
+                          </span>
+                          <span className="messages-email-date">{formatLocalDateTime(message.created_at, locale)}</span>
+                        </div>
+                        {message.subject ? <div className="messages-email-subject">{message.subject}</div> : null}
+                        <div className="messages-email-body">
+                          <AppMarkdown content={message.content} />
+                        </div>
+                        <div className="messages-email-footer">
+                          {canReply && !isSelf && !isSystem ? (
+                            <button
+                              type="button"
+                              className="button text-[0.78rem]"
+                              onClick={() => openReplyToMessage(message)}
+                            >
+                              {t("reply")}
+                            </button>
+                          ) : null}
+                          {!isSelf && message.recipient_entry_id ? (
+                            <button
+                              type="button"
+                              className="messages-delete-button"
+                              onClick={() => handleDeleteMessage(message.id)}
+                              aria-label={t("deleteMessage")}
+                            >
+                              {t("delete")}
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
-                      {message.subject ? <div className="messages-email-subject">{message.subject}</div> : null}
-                      <div className="messages-email-body">
-                        <AppMarkdown content={message.content} />
-                      </div>
-                      <div className="messages-email-footer">
-                        {canReply && !isSelf ? (
-                          <button
-                            type="button"
-                            className="button text-[0.78rem]"
-                            onClick={() => openReplyToMessage(message)}
-                          >
-                            {t("reply")}
-                          </button>
-                        ) : null}
-                        {message.recipient_id === userId ? (
-                          <button
-                            type="button"
-                            className="messages-delete-button"
-                            onClick={() => handleDeleteMessage(message.id)}
-                            aria-label={t("deleteMessage")}
-                          >
-                            {t("delete")}
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </DataState>
               </div>
 
-              {/* ── Reply form (expandable) ── */}
+              {/* Reply form */}
               {canReply ? (
                 <div className="messages-reply-form">
                   {!isReplyOpen ? (
@@ -995,7 +1041,7 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
                       type="button"
                       className="button primary"
                       onClick={() => {
-                        const lastReceived = [...selectedThread].reverse().find((m) => m.sender_id !== userId);
+                        const lastReceived = [...threadMessages].reverse().find((m) => m.sender_id !== userId);
                         if (lastReceived) {
                           openReplyToMessage(lastReceived);
                         } else {
@@ -1105,6 +1151,7 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
                             setIsReplyOpen(false);
                             setReplyContent("");
                             setReplySubject("");
+                            setReplyParentId("");
                             setIsReplyPreview(false);
                           }}
                         >
@@ -1117,7 +1164,44 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
                 </div>
               ) : null}
             </>
-          )}
+          ) : viewMode === "sent" && selectedSentMessage ? (
+            /* ── Sent message detail view ── */
+            <>
+              <div className="card-header">
+                <div>
+                  <div className="card-title">{selectedSentMessage.subject || t("noSubject")}</div>
+                  <div className="card-subtitle">{formatRecipientLabel(selectedSentMessage)}</div>
+                </div>
+              </div>
+              {/* Recipient list for multi-recipient */}
+              {selectedSentMessage.recipient_count > 1 ? (
+                <div className="messages-broadcast-info">
+                  <strong>{t("recipientList", { count: selectedSentMessage.recipient_count })}</strong>
+                  <div style={{ marginTop: "6px", fontSize: "0.8rem" }}>
+                    {selectedSentMessage.recipients.map((r: RecipientSummary) => r.label).join(", ")}
+                  </div>
+                </div>
+              ) : null}
+              <div className="messages-thread-list">
+                <div className="messages-email-card sent">
+                  <div className="messages-email-header">
+                    <span className="messages-email-from">
+                      {t("from")}: <strong>{t("you")}</strong>
+                    </span>
+                    <span className="messages-email-date">
+                      {formatLocalDateTime(selectedSentMessage.created_at, locale)}
+                    </span>
+                  </div>
+                  {selectedSentMessage.subject ? (
+                    <div className="messages-email-subject">{selectedSentMessage.subject}</div>
+                  ) : null}
+                  <div className="messages-email-body">
+                    <AppMarkdown content={selectedSentMessage.content} />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : null}
         </section>
       </div>
     </div>

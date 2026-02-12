@@ -226,16 +226,19 @@ This file is a compact context transfer for a new chat.
   - Player-to-game-account linking via case-insensitive string match (`LOWER(player) = LOWER(game_username)`).
   - API route `/api/charts` fetches and aggregates `chest_entries` server-side (RLS-enforced).
   - Files: `app/charts/charts-client.tsx`, `app/charts/chart-components.tsx`, `app/charts/chart-types.ts`, `app/api/charts/route.ts`
-- **Messaging System**
-  - Full inbox with private messages, global/clan broadcasts, and system notifications.
-  - Flat message model: `messages` table with `sender_id`, `recipient_id`, `message_type` (`private`/`broadcast`/`system`/`clan`).
-  - Two-column layout: conversation list (420px, left) with search/filter, thread view (right) with compose.
-  - Filter tabs: All, Private, Clan, Broadcast. "Broadcast" filter includes both global broadcasts and legacy system messages. "Clan" filter shows clan-specific broadcasts.
-  - Content manager "Broadcast" button sends to all users (global, `message_type: broadcast`) or all active clan members (clan-specific, `message_type: clan`).
-  - System messages sent automatically on game account approval/rejection (`message_type: system`, grouped under Broadcast filter).
-  - RLS enforces users can only see their own messages; service role inserts system messages.
-  - Migration: `Documentation/migrations/messages.sql`
-  - Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/broadcast/route.ts`
+- **Messaging System (v2 — Email Model)**
+  - Email-style messaging with Gmail-style threading, clean outbox, and one-message-per-send.
+  - **Data model**: `messages` table (one row per authored message) + `message_recipients` table (one row per recipient). Replaced old flat "one row per recipient" model.
+  - **Threading**: `thread_id` (root message) + `parent_id` (direct parent) for reply chains. Inbox groups by thread, shows latest message + unread count.
+  - **Broadcasts**: create ONE `messages` row + N `message_recipients` rows. Sender sees one entry in sent box with recipient list visible. No reply on broadcasts/clan messages.
+  - **Sent box**: each sent message is its own row — no grouping needed. Shows "To: Alice, Bob, +3 others" for multi-recipient, "To: All members" for broadcasts.
+  - **Soft delete**: recipients can remove messages via `deleted_at` on `message_recipients` — message stays visible to sender and other recipients.
+  - Two-column layout: inbox/sent list (420px, left) with search/filter/type tabs, thread/message detail (right) with reply.
+  - Filter tabs: All, Private, Clan, Broadcast. "Broadcast" filter includes both global broadcasts and legacy system messages.
+  - Content manager compose modes: Direct, Clan broadcast, Global broadcast. Unified `POST /api/messages` endpoint handles all types.
+  - System messages sent automatically on game account approval/rejection (`message_type: system`).
+  - Migration: `Documentation/migrations/messages_v2.sql` (includes data migration from old table)
+  - Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/sent/route.ts`, `app/api/messages/thread/[threadId]/route.ts`
 - **Notification System**
   - Unified bell icon in the top-right header (next to user menu) with unread count badge and dropdown. Only one panel (bell or user menu) can be open at a time — coordinated via lifted `activePanel` state in `AuthActions`.
   - DB-stored notifications: `notifications` table with types `message`, `news`, `event`, `approval`.
@@ -415,7 +418,7 @@ Production audit score: **84/100 (B)**, up from 43/100. Key areas:
 ## Known Behaviors
 
 - Clan context is stored in `localStorage` and used by announcements/events/data table.
-- Messages are global (not clan-scoped). Compose recipient and broadcast clan dropdowns use themed `RadixSelect` (with search on recipient). Messages page supports `?to=USER_ID` query param to pre-fill compose form with a specific recipient (used by member directory click-to-message).
+- Messages use an email-style model: `messages` table (one row per sent message) + `message_recipients` table (one row per recipient). Threading via `thread_id`/`parent_id`. Broadcasts create one message + N recipients (sender sees one entry in sent box). Soft delete via `deleted_at` on recipients. Messages page supports `?to=USER_ID` query param to pre-fill compose form.
 - Date pickers display dd.mm.yyyy, stored as YYYY‑MM‑DD. Datetime pickers (events) display dd.mm.yyyy, HH:mm.
 - Charts use Recharts; personal score relies on case-insensitive match between `chest_entries.player` and `game_accounts.game_username`.
 - Event templates mirror the event data model exactly (same fields). Template "name" is always the same as title.

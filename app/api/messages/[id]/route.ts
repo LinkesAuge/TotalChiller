@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import { uuidSchema } from "../../../../lib/api/validation";
+import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
 
 interface RouteContext {
@@ -9,7 +10,8 @@ interface RouteContext {
 
 /**
  * PATCH /api/messages/[id]
- * Marks a message as read. Only the recipient can mark it.
+ * Marks a message as read for the authenticated user.
+ * Updates the `is_read` flag on the corresponding `message_recipients` row.
  */
 export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
@@ -22,11 +24,13 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid message ID format." }, { status: 400 });
     }
-    const { error: updateError } = await auth.supabase
-      .from("messages")
+    const svc = createSupabaseServiceRoleClient();
+    const { error: updateError } = await svc
+      .from("message_recipients")
       .update({ is_read: true })
-      .eq("id", parsed.data)
-      .eq("recipient_id", auth.userId);
+      .eq("message_id", parsed.data)
+      .eq("recipient_id", auth.userId)
+      .is("deleted_at", null);
     if (updateError) {
       console.error("[messages/[id] PATCH]", updateError.message);
       return NextResponse.json({ error: "Failed to update message." }, { status: 500 });
@@ -39,7 +43,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
 
 /**
  * DELETE /api/messages/[id]
- * Deletes a message. Only the recipient can delete it.
+ * Soft-deletes a message for the authenticated user.
+ * Sets `deleted_at` on the corresponding `message_recipients` row.
+ * The message remains visible to the sender and other recipients.
  */
 export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
@@ -52,10 +58,11 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid message ID format." }, { status: 400 });
     }
-    const { error: deleteError } = await auth.supabase
-      .from("messages")
-      .delete()
-      .eq("id", parsed.data)
+    const svc = createSupabaseServiceRoleClient();
+    const { error: deleteError } = await svc
+      .from("message_recipients")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("message_id", parsed.data)
       .eq("recipient_id", auth.userId);
     if (deleteError) {
       console.error("[messages/[id] DELETE]", deleteError.message);

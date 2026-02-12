@@ -43,7 +43,8 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - **articles**: announcements per clan (formerly "news"). All content is type "announcement". Includes `created_by` for author display, `updated_by` for edit tracking, `banner_url` for header banner images.
 - **events**: clan events with date+time, optional duration (or open-ended), optional organizer, recurrence support (daily/weekly/biweekly/monthly with end date or ongoing). Single row per recurring event; occurrences computed client-side.
 - **event_templates**: reusable event templates per clan. Same fields as events (title, description, location, duration/open-ended, organizer, recurrence). `created_by` is nullable. Title serves as template name.
-- **messages**: private messages, broadcasts, and system notifications (flat model, conversations derived by grouping sender/recipient).
+- **messages**: one row per authored message (private, broadcast, clan, system). Threading via `thread_id`/`parent_id`.
+- **message_recipients**: one row per recipient per message. Tracks `is_read` and `deleted_at` (soft delete) per recipient.
 - **notifications**: unified notification feed (types: message, news, event, approval) with per-user read tracking.
 - **user_notification_settings**: per-user toggles for message, news, event, and system notification types.
 
@@ -156,7 +157,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - `chest_entries` RLS: add `is_any_admin()` to SELECT and INSERT policies.
 - Global rules: make `clan_id` nullable on `validation_rules` and `correction_rules`, update RLS policies and index.
 - Game account approval: `Documentation/migrations/game_account_approval.sql` — adds `approval_status` column, RLS policy updates, approval trigger, and duplicate-prevention index.
-- Messaging system: `Documentation/migrations/messages.sql` — creates `messages` table with RLS policies, indexes, and type constraints.
+- Messaging system (v2): `Documentation/migrations/messages_v2.sql` — creates `messages` + `message_recipients` tables with RLS, threading support, and data migration from old `messages` table.
 - Notification system: `Documentation/migrations/notifications.sql` — creates `notifications` and `user_notification_settings` tables with RLS policies and indexes.
 - Event recurrence: `Documentation/migrations/event_recurrence.sql` — adds `recurrence_type`, `recurrence_end_date` to events.
 - Event organizer: `Documentation/migrations/event_organizer.sql` — adds `organizer` to events.
@@ -320,20 +321,30 @@ app/admin/
 - DatePicker component extended with `enableTime` prop for datetime support.
 - Page shells delegate fully to client components.
 
-## Messaging System
+## Messaging System (v2 — Email Model)
 
-- Flat message model: `messages` table with `message_type` (`private`, `broadcast`, `system`, `clan`).
-- Private messages: sender_id = user, recipient_id = user.
-- Global broadcasts: sender_id = admin, one row per user, message_type = `broadcast`. Sent when `clan_id: "all"`.
-- Clan broadcasts: sender_id = admin, one row per clan member, message_type = `clan`. Sent when targeting a specific clan.
-- System notifications: sender_id = null, recipient_id = user, message_type = `system`. Sent on game account approval/rejection. Displayed under the "Broadcast" filter in the UI (merged with broadcasts).
-- UI filter tabs: All, Private, Clan, Broadcast. The "Broadcast" filter includes both `broadcast` and legacy `system` messages. The "Clan" filter shows only `clan`-type messages.
-- Conversations derived by grouping messages between two users (no separate conversation table).
-- Two-column UI: conversation list (420px) with search/filter, thread view with compose.
-- Compose recipient and broadcast clan dropdowns use themed `RadixSelect` (no native `<select>`). Recipient dropdown includes search support.
-- Messages layout uses `max-height: calc(100vh - 200px)` for proper inbox/thread scrolling with many messages.
+- **Data model**: `messages` table (one row per authored message) + `message_recipients` junction table (one row per recipient).
+  - `messages`: `id`, `sender_id`, `subject`, `content`, `message_type`, `thread_id`, `parent_id`, `created_at`.
+  - `message_recipients`: `id`, `message_id`, `recipient_id`, `is_read`, `deleted_at`, `created_at`.
+- **Threading**: `thread_id` points to the root message; `parent_id` points to the direct parent. All replies in a chain share the same `thread_id`.
+- **Message types**: `private`, `broadcast`, `clan`, `system`.
+- **Broadcasts**: create ONE `messages` row + N `message_recipients` rows. Sender's sent box shows one entry with "To: All members" or "To: ClanName". No reply allowed on broadcasts/clan messages.
+- **Private messages**: support reply-to-sender threading. Reply inherits `thread_id` from parent.
+- **Soft delete**: recipients delete via `deleted_at` on `message_recipients`. Message stays visible to sender and other recipients.
+- **Inbox**: threads grouped by `thread_id`, showing latest message + unread count + message count per thread.
+- **Sent box**: one row per sent message. Multi-recipient shows "To: Alice, Bob, +3 others". Full recipient list visible in detail view.
+- **API routes**:
+  - `GET /api/messages` — inbox (threads for authenticated user)
+  - `GET /api/messages/sent` — sent messages with recipient lists
+  - `GET /api/messages/thread/[threadId]` — full thread with auto-mark-read
+  - `POST /api/messages` — unified send (private, broadcast, clan, reply)
+  - `PATCH /api/messages/[id]` — mark as read
+  - `DELETE /api/messages/[id]` — soft-delete for recipient
+- **UI**: two-column layout (420px list + detail). Inbox/Sent toggle. Filter tabs: All, Private, Clan, Broadcast. Compose form with searchable multi-recipient picker, content manager broadcast modes, markdown editor.
 - No real-time updates (messages load on page visit / manual refresh).
-- Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/broadcast/route.ts`.
+- Migration: `Documentation/migrations/messages_v2.sql` (includes data migration from old `messages` table).
+- Design document: `Documentation/plans/2026-02-12-email-model-messages-design.md`.
+- Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/sent/route.ts`, `app/api/messages/thread/[threadId]/route.ts`.
 
 ## Notification System
 

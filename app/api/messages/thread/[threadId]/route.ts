@@ -93,16 +93,13 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
       }
     }
 
-    /* Auto-mark unread messages as read */
-    if (unreadEntryIds.length > 0) {
-      await svc.from("message_recipients").update({ is_read: true }).in("id", unreadEntryIds);
-    }
-
-    /* Fetch recipients for all messages in the thread */
-    const { data: allRecipients } = await svc
-      .from("message_recipients")
-      .select("message_id,recipient_id")
-      .in("message_id", msgIds);
+    /* Mark-read and fetch-all-recipients are independent — run in parallel */
+    const [, { data: allRecipients }] = await Promise.all([
+      unreadEntryIds.length > 0
+        ? svc.from("message_recipients").update({ is_read: true }).in("id", unreadEntryIds)
+        : Promise.resolve(),
+      svc.from("message_recipients").select("message_id,recipient_id").in("message_id", msgIds),
+    ]);
 
     const recipientsByMsgId = new Map<string, string[]>();
     const allRecipientIds = new Set<string>();

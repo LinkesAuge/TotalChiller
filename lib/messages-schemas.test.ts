@@ -135,4 +135,90 @@ describe("SEND_SCHEMA", () => {
     const input = { content: "Hello" };
     expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
   });
+
+  test("rejects missing content", () => {
+    const input = { recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"] };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
+  });
+
+  /* ── Nil UUID placeholder (used by broadcast/clan) ── */
+
+  test("accepts nil UUID (00000000-0000-0000-0000-000000000000) as broadcast placeholder", () => {
+    const input = {
+      recipient_ids: ["00000000-0000-0000-0000-000000000000"],
+      content: "Broadcast content",
+      message_type: "broadcast",
+    };
+    const result = SEND_SCHEMA.safeParse(input);
+    expect(result.success).toBe(true);
+  });
+
+  test("accepts nil UUID for clan message with clan_id", () => {
+    const input = {
+      recipient_ids: ["00000000-0000-0000-0000-000000000000"],
+      content: "Clan message",
+      message_type: "clan",
+      clan_id: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33",
+    };
+    const result = SEND_SCHEMA.safeParse(input);
+    expect(result.success).toBe(true);
+  });
+
+  /* ── Subject edge cases ── */
+
+  test("accepts missing subject (optional)", () => {
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "Hello",
+    };
+    const result = SEND_SCHEMA.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.subject).toBeUndefined();
+    }
+  });
+
+  test("accepts subject at exactly 200 characters", () => {
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "Hello",
+      subject: "x".repeat(200),
+    };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(true);
+  });
+
+  test("accepts content at exactly 10000 characters", () => {
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "x".repeat(10_000),
+    };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(true);
+  });
+
+  test("accepts exactly 500 recipients (upper bound)", () => {
+    const ids = Array.from({ length: 500 }, (_, i) => `a0eebc99-9c0b-4ef8-bb6d-6bb9bd38${String(i).padStart(4, "0")}`);
+    const input = { recipient_ids: ids, content: "Hello" };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(true);
+  });
+
+  /* ── Invalid parent_id / clan_id ── */
+
+  test("rejects invalid parent_id (not a UUID)", () => {
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "Reply",
+      parent_id: "not-a-uuid",
+    };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
+  });
+
+  test("rejects invalid clan_id (not a UUID)", () => {
+    const input = {
+      recipient_ids: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+      content: "Clan msg",
+      message_type: "clan",
+      clan_id: "bad-clan-id",
+    };
+    expect(SEND_SCHEMA.safeParse(input).success).toBe(false);
+  });
 });

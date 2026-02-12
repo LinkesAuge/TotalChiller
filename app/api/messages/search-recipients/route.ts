@@ -13,101 +13,102 @@ import type { RecipientResult } from "@/lib/types/domain";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const auth = await requireAuth();
-  if (auth.error) return auth.error;
-  const currentUserId = auth.userId;
-  const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
-  if (query.length < 2) {
-    return NextResponse.json({ data: [] });
-  }
-
-  const serviceClient = createSupabaseServiceRoleClient();
-  const escapedQuery = query.replace(/[%_\\]/g, "\\$&");
-  const searchPattern = `%${escapedQuery}%`;
-
-  /* Search profiles by username and display_name */
-  const { data: profileMatches } = await serviceClient
-    .from("profiles")
-    .select("id, email, username, display_name")
-    .neq("id", currentUserId)
-    .or(`username.ilike.${searchPattern},display_name.ilike.${searchPattern},email.ilike.${searchPattern}`)
-    .limit(20);
-
-  /* Search game accounts by game_username */
-  const { data: gameAccountMatches } = await serviceClient
-    .from("game_accounts")
-    .select("user_id, game_username")
-    .neq("user_id", currentUserId)
-    .eq("approval_status", "approved")
-    .ilike("game_username", searchPattern)
-    .limit(20);
-
-  /* Collect all matched user IDs */
-  const userIdSet = new Set<string>();
-  for (const profile of profileMatches ?? []) {
-    userIdSet.add(profile.id as string);
-  }
-  for (const account of gameAccountMatches ?? []) {
-    if (account.user_id) {
-      userIdSet.add(account.user_id as string);
+  try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const currentUserId = auth.userId;
+    const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
+    if (query.length < 2) {
+      return NextResponse.json({ data: [] });
     }
+
+    const serviceClient = createSupabaseServiceRoleClient();
+    const escapedQuery = query.replace(/[%_\\]/g, "\\$&");
+    const searchPattern = `%${escapedQuery}%`;
+
+    /* Search profiles and game accounts in parallel (independent queries) */
+    const [{ data: profileMatches }, { data: gameAccountMatches }] = await Promise.all([
+      serviceClient
+        .from("profiles")
+        .select("id, email, username, display_name")
+        .neq("id", currentUserId)
+        .or(`username.ilike.${searchPattern},display_name.ilike.${searchPattern},email.ilike.${searchPattern}`)
+        .limit(20),
+      serviceClient
+        .from("game_accounts")
+        .select("user_id, game_username")
+        .neq("user_id", currentUserId)
+        .eq("approval_status", "approved")
+        .ilike("game_username", searchPattern)
+        .limit(20),
+    ]);
+
+    /* Collect all matched user IDs */
+    const userIdSet = new Set<string>();
+    for (const profile of profileMatches ?? []) {
+      userIdSet.add(profile.id as string);
+    }
+    for (const account of gameAccountMatches ?? []) {
+      if (account.user_id) {
+        userIdSet.add(account.user_id as string);
+      }
+    }
+
+    if (userIdSet.size === 0) {
+      return NextResponse.json({ data: [] });
+    }
+
+    const userIds = Array.from(userIdSet);
+
+    /* Fetch full profiles and game accounts in parallel (independent queries) */
+    const [{ data: allProfiles }, { data: allGameAccounts }] = await Promise.all([
+      serviceClient.from("profiles").select("id, email, username, display_name").in("id", userIds),
+      serviceClient
+        .from("game_accounts")
+        .select("user_id, game_username")
+        .in("user_id", userIds)
+        .eq("approval_status", "approved"),
+    ]);
+
+    /* Build game accounts map */
+    const gameAccountsByUserId = new Map<string, string[]>();
+    for (const account of allGameAccounts ?? []) {
+      const uid = account.user_id as string;
+      const existing = gameAccountsByUserId.get(uid) ?? [];
+      existing.push(account.game_username as string);
+      gameAccountsByUserId.set(uid, existing);
+    }
+
+    /* Build result */
+    const results: RecipientResult[] = (allProfiles ?? []).map((profile) => {
+      const id = profile.id as string;
+      return {
+        id,
+        label:
+          (profile.display_name as string | null) ?? (profile.username as string | null) ?? (profile.email as string),
+        username: profile.username as string | null,
+        gameAccounts: gameAccountsByUserId.get(id) ?? [],
+      };
+    });
+
+    /* Sort: exact matches first, then alphabetical */
+    const lowerQuery = query.toLowerCase();
+    results.sort((a, b) => {
+      const aExact =
+        a.label.toLowerCase() === lowerQuery ||
+        a.username?.toLowerCase() === lowerQuery ||
+        a.gameAccounts.some((ga) => ga.toLowerCase() === lowerQuery);
+      const bExact =
+        b.label.toLowerCase() === lowerQuery ||
+        b.username?.toLowerCase() === lowerQuery ||
+        b.gameAccounts.some((ga) => ga.toLowerCase() === lowerQuery);
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      return a.label.localeCompare(b.label);
+    });
+
+    return NextResponse.json({ data: results.slice(0, 15) });
+  } catch {
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
-
-  if (userIdSet.size === 0) {
-    return NextResponse.json({ data: [] });
-  }
-
-  const userIds = Array.from(userIdSet);
-
-  /* Fetch full profiles for all matched users */
-  const { data: allProfiles } = await serviceClient
-    .from("profiles")
-    .select("id, email, username, display_name")
-    .in("id", userIds);
-
-  /* Fetch all approved game accounts for matched users */
-  const { data: allGameAccounts } = await serviceClient
-    .from("game_accounts")
-    .select("user_id, game_username")
-    .in("user_id", userIds)
-    .eq("approval_status", "approved");
-
-  /* Build game accounts map */
-  const gameAccountsByUserId = new Map<string, string[]>();
-  for (const account of allGameAccounts ?? []) {
-    const uid = account.user_id as string;
-    const existing = gameAccountsByUserId.get(uid) ?? [];
-    existing.push(account.game_username as string);
-    gameAccountsByUserId.set(uid, existing);
-  }
-
-  /* Build result */
-  const results: RecipientResult[] = (allProfiles ?? []).map((profile) => {
-    const id = profile.id as string;
-    return {
-      id,
-      label:
-        (profile.display_name as string | null) ?? (profile.username as string | null) ?? (profile.email as string),
-      username: profile.username as string | null,
-      gameAccounts: gameAccountsByUserId.get(id) ?? [],
-    };
-  });
-
-  /* Sort: exact matches first, then alphabetical */
-  const lowerQuery = query.toLowerCase();
-  results.sort((a, b) => {
-    const aExact =
-      a.label.toLowerCase() === lowerQuery ||
-      a.username?.toLowerCase() === lowerQuery ||
-      a.gameAccounts.some((ga) => ga.toLowerCase() === lowerQuery);
-    const bExact =
-      b.label.toLowerCase() === lowerQuery ||
-      b.username?.toLowerCase() === lowerQuery ||
-      b.gameAccounts.some((ga) => ga.toLowerCase() === lowerQuery);
-    if (aExact && !bExact) return -1;
-    if (!aExact && bExact) return 1;
-    return a.label.localeCompare(b.label);
-  });
-
-  return NextResponse.json({ data: results.slice(0, 15) });
 }

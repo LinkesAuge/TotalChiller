@@ -27,6 +27,8 @@ export interface MarkdownEditorProps {
   readonly rows?: number;
   /** Minimum height of the textarea/preview in px. */
   readonly minHeight?: number;
+  /** Storage bucket name for image uploads (default: "forum-images"). */
+  readonly storageBucket?: string;
 }
 
 /**
@@ -42,6 +44,7 @@ function MarkdownEditor({
   placeholder,
   rows = 8,
   minHeight = 200,
+  storageBucket,
 }: MarkdownEditorProps): JSX.Element {
   const t = useTranslations("markdownEditor");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -82,6 +85,7 @@ function MarkdownEditor({
             onChange={onChange}
             supabase={supabase}
             userId={userId}
+            storageBucket={storageBucket}
           />
           <textarea
             id={id}
@@ -92,8 +96,8 @@ function MarkdownEditor({
             rows={rows}
             className="text-[0.88rem] leading-relaxed"
             style={{ minHeight, fontFamily: "var(--font-body)" }}
-            onPaste={(e) => handleImagePaste(e, supabase, userId, (md) => onChange(value + md), setIsImageUploading)}
-            onDrop={(e) => handleImageDrop(e, supabase, userId, (md) => onChange(value + md), setIsImageUploading)}
+            onPaste={(e) => handleImagePaste(e, supabase, userId, (md) => onChange(value + md), setIsImageUploading, storageBucket)}
+            onDrop={(e) => handleImageDrop(e, supabase, userId, (md) => onChange(value + md), setIsImageUploading, storageBucket)}
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();

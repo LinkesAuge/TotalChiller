@@ -9,7 +9,7 @@ import { formatLocalDateTime } from "../../lib/date-format";
 import SearchInput from "../components/ui/search-input";
 import DataState from "../components/data-state";
 import RadixSelect from "../components/ui/radix-select";
-import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
+import MarkdownEditor from "../components/markdown-editor";
 
 import type { InboxThread, SentMessage, ThreadMessage, RecipientResult, RecipientSummary } from "@/lib/types/domain";
 
@@ -19,12 +19,14 @@ const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
 
 /* ── Types ── */
 
+interface ProfileEntry {
+  readonly email: string;
+  readonly username: string | null;
+  readonly display_name: string | null;
+}
+
 interface ProfileMap {
-  readonly [userId: string]: {
-    readonly email: string;
-    readonly username: string | null;
-    readonly display_name: string | null;
-  };
+  readonly [userId: string]: ProfileEntry;
 }
 
 type ViewMode = "inbox" | "sent";
@@ -86,9 +88,6 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
   const [composeSubject, setComposeSubject] = useState<string>("");
   const [composeContent, setComposeContent] = useState<string>("");
   const [composeStatus, setComposeStatus] = useState<string>("");
-  const [isComposePreview, setIsComposePreview] = useState<boolean>(false);
-  const [isComposeUploading, setIsComposeUploading] = useState<boolean>(false);
-  const composeTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   /* ── Reply state ── */
   const [isReplyOpen, setIsReplyOpen] = useState<boolean>(false);
@@ -96,9 +95,6 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
   const [replyContent, setReplyContent] = useState<string>("");
   const [replyStatus, setReplyStatus] = useState<string>("");
   const [replyParentId, setReplyParentId] = useState<string>("");
-  const [isReplyPreview, setIsReplyPreview] = useState<boolean>(false);
-  const [isReplyUploading, setIsReplyUploading] = useState<boolean>(false);
-  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   /* ── Recipient search state ── */
   const [recipientSearch, setRecipientSearch] = useState<string>("");
@@ -113,37 +109,52 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
   const [clans, setClans] = useState<readonly ClanOption[]>([]);
 
   /* ══════════════════════════════════════════════════
+     Merged profile map (computed once, not on every call)
+     ══════════════════════════════════════════════════ */
+
+  const allProfiles = useMemo<ProfileMap>(
+    () => ({ ...inboxProfiles, ...sentProfiles, ...threadProfiles }),
+    [inboxProfiles, sentProfiles, threadProfiles],
+  );
+
+  /* ══════════════════════════════════════════════════
      Data Loading
      ══════════════════════════════════════════════════ */
 
   const loadInbox = useCallback(async (): Promise<void> => {
     setIsInboxLoading(true);
-    const params = new URLSearchParams();
-    if (typeFilter !== "all") params.set("type", typeFilter);
-    if (search.trim()) params.set("search", search.trim());
-    const qs = params.toString() ? `?${params.toString()}` : "";
-    const response = await fetch(`/api/messages${qs}`);
-    if (response.ok) {
-      const result = await response.json();
-      setInboxThreads(result.data ?? []);
-      setInboxProfiles(result.profiles ?? {});
+    try {
+      const params = new URLSearchParams();
+      if (typeFilter !== "all") params.set("type", typeFilter);
+      if (search.trim()) params.set("search", search.trim());
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      const response = await fetch(`/api/messages${qs}`);
+      if (response.ok) {
+        const result = await response.json();
+        setInboxThreads(result.data ?? []);
+        setInboxProfiles(result.profiles ?? {});
+      }
+    } finally {
+      setIsInboxLoading(false);
     }
-    setIsInboxLoading(false);
   }, [typeFilter, search]);
 
   const loadSent = useCallback(async (): Promise<void> => {
     setIsSentLoading(true);
-    const params = new URLSearchParams();
-    if (typeFilter !== "all") params.set("type", typeFilter);
-    if (search.trim()) params.set("search", search.trim());
-    const qs = params.toString() ? `?${params.toString()}` : "";
-    const response = await fetch(`/api/messages/sent${qs}`);
-    if (response.ok) {
-      const result = await response.json();
-      setSentMessages(result.data ?? []);
-      setSentProfiles(result.profiles ?? {});
+    try {
+      const params = new URLSearchParams();
+      if (typeFilter !== "all") params.set("type", typeFilter);
+      if (search.trim()) params.set("search", search.trim());
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      const response = await fetch(`/api/messages/sent${qs}`);
+      if (response.ok) {
+        const result = await response.json();
+        setSentMessages(result.data ?? []);
+        setSentProfiles(result.profiles ?? {});
+      }
+    } finally {
+      setIsSentLoading(false);
     }
-    setIsSentLoading(false);
   }, [typeFilter, search]);
 
   /* Load data when view/filter changes */
@@ -233,7 +244,7 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
 
   function getProfileLabel(profileId: string, fallback?: string): string {
     if (profileId === userId) return t("you");
-    const profile = { ...inboxProfiles, ...sentProfiles, ...threadProfiles }[profileId];
+    const profile = allProfiles[profileId];
     if (!profile) return fallback ?? t("unknownPartner");
     return profile.display_name ?? profile.username ?? profile.email;
   }
@@ -264,27 +275,14 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     setRecipientSearch("");
     setRecipientResults([]);
     setIsSearchDropdownOpen(false);
-    setIsComposePreview(false);
   }
 
-  function insertAtComposeCursor(markdown: string): void {
-    const textarea = composeTextareaRef.current;
-    if (!textarea) {
-      setComposeContent((prev) => prev + markdown);
-      return;
-    }
-    const start = textarea.selectionStart;
-    setComposeContent((prev) => prev.substring(0, start) + markdown + prev.substring(start));
-  }
-
-  function insertAtReplyCursor(markdown: string): void {
-    const textarea = replyTextareaRef.current;
-    if (!textarea) {
-      setReplyContent((prev) => prev + markdown);
-      return;
-    }
-    const start = textarea.selectionStart;
-    setReplyContent((prev) => prev.substring(0, start) + markdown + prev.substring(start));
+  function resetReply(): void {
+    setIsReplyOpen(false);
+    setReplyContent("");
+    setReplySubject("");
+    setReplyStatus("");
+    setReplyParentId("");
   }
 
   function formatRecipientLabel(msg: SentMessage): string {
@@ -303,6 +301,12 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     return t("sentToCount", { shown, more: String(msg.recipients.length - MAX_SHOWN) });
   }
 
+  function getMessageTypeLabel(messageType: string): string {
+    if (messageType === "broadcast" || messageType === "system") return t("broadcast");
+    if (messageType === "clan") return t("clan");
+    return "";
+  }
+
   /* ══════════════════════════════════════════════════
      Thread Loading
      ══════════════════════════════════════════════════ */
@@ -310,13 +314,16 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
   async function loadThread(threadId: string): Promise<void> {
     setIsThreadLoading(true);
     setThreadMessages([]);
-    const response = await fetch(`/api/messages/thread/${threadId}`);
-    if (response.ok) {
-      const result = await response.json();
-      setThreadMessages(result.data ?? []);
-      setThreadProfiles(result.profiles ?? {});
+    try {
+      const response = await fetch(`/api/messages/thread/${threadId}`);
+      if (response.ok) {
+        const result = await response.json();
+        setThreadMessages(result.data ?? []);
+        setThreadProfiles(result.profiles ?? {});
+      }
+    } finally {
+      setIsThreadLoading(false);
     }
-    setIsThreadLoading(false);
   }
 
   /* ══════════════════════════════════════════════════
@@ -328,27 +335,20 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     setSelectedThreadId("");
     setSelectedSentMsgId("");
     setThreadMessages([]);
-    setIsReplyOpen(false);
-    setReplyContent("");
-    setReplySubject("");
-    setReplyStatus("");
+    resetReply();
   }
 
   function handleSelectInboxThread(threadId: string): void {
     setSelectedThreadId(threadId);
     setSelectedSentMsgId("");
-    setIsReplyOpen(false);
-    setReplyContent("");
-    setReplySubject("");
-    setReplyStatus("");
-    setIsReplyPreview(false);
+    resetReply();
     void loadThread(threadId);
   }
 
   function handleSelectSentMessage(msgId: string): void {
     setSelectedSentMsgId(msgId);
     setSelectedThreadId("");
-    setIsReplyOpen(false);
+    resetReply();
   }
 
   function openReplyToMessage(message: ThreadMessage): void {
@@ -366,7 +366,6 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
       .join("\n");
     setReplyContent(`\n\n${quoted}\n`);
     setIsReplyOpen(true);
-    setIsReplyPreview(false);
   }
 
   async function handleSendReply(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -378,108 +377,110 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     if (!parentMsg?.sender_id) return;
 
     setReplyStatus(t("sending"));
-    const response = await fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipient_ids: [parentMsg.sender_id],
-        subject: replySubject.trim() || null,
-        content: replyContent.trim(),
-        message_type: "private",
-        parent_id: replyParentId,
-      }),
-    });
-    if (!response.ok) {
-      const result = await response.json();
-      setReplyStatus(result.error ?? t("failedToSend"));
-      return;
+    try {
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient_ids: [parentMsg.sender_id],
+          subject: replySubject.trim() || null,
+          content: replyContent.trim(),
+          message_type: "private",
+          parent_id: replyParentId,
+        }),
+      });
+      if (!response.ok) {
+        const result = await response.json();
+        setReplyStatus(result.error ?? t("failedToSend"));
+        return;
+      }
+      resetReply();
+      /* Reload thread to show the new reply */
+      void loadThread(selectedThreadId);
+    } catch {
+      setReplyStatus(t("failedToSend"));
     }
-    setReplyContent("");
-    setReplySubject("");
-    setReplyStatus("");
-    setReplyParentId("");
-    setIsReplyOpen(false);
-    setIsReplyPreview(false);
-    /* Reload thread to show the new reply */
-    void loadThread(selectedThreadId);
   }
 
   async function handleCompose(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!composeContent.trim()) {
-      setComposeStatus(t("recipientRequired"));
+      setComposeStatus(t("messageRequired"));
       return;
     }
 
-    if (composeMode === "direct") {
-      if (composeRecipients.length === 0) {
-        setComposeStatus(t("recipientRequired"));
-        return;
-      }
-      setComposeStatus(t("sending"));
-      const response = await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient_ids: composeRecipients.map((r) => r.id),
-          subject: composeSubject.trim() || null,
-          content: composeContent.trim(),
-          message_type: "private",
-        }),
-      });
-      if (!response.ok) {
+    try {
+      if (composeMode === "direct") {
+        if (composeRecipients.length === 0) {
+          setComposeStatus(t("recipientRequired"));
+          return;
+        }
+        setComposeStatus(t("sending"));
+        const response = await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipient_ids: composeRecipients.map((r) => r.id),
+            subject: composeSubject.trim() || null,
+            content: composeContent.trim(),
+            message_type: "private",
+          }),
+        });
+        if (!response.ok) {
+          const result = await response.json();
+          setComposeStatus(result.error ?? t("failedToSend"));
+          return;
+        }
+        setComposeStatus(t("messageSent"));
+      } else {
+        /* Broadcast or clan */
+        const msgType = composeMode === "global" ? "broadcast" : "clan";
+        if (composeMode === "clan" && !composeClanId) {
+          setComposeStatus(t("clanAndMessageRequired"));
+          return;
+        }
+        setComposeStatus(t("sendingBroadcast"));
+        const response = await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            /* Server resolves actual recipients for broadcast/clan types */
+            recipient_ids: ["00000000-0000-0000-0000-000000000000"],
+            subject: composeSubject.trim() || null,
+            content: composeContent.trim(),
+            message_type: msgType,
+            clan_id: composeMode === "clan" ? composeClanId : undefined,
+          }),
+        });
         const result = await response.json();
-        setComposeStatus(result.error ?? t("failedToSend"));
-        return;
+        if (!response.ok) {
+          setComposeStatus(result.error ?? t("failedToSend"));
+          return;
+        }
+        setComposeStatus(t("broadcastSent", { count: result.recipient_count ?? 0 }));
       }
-      setComposeStatus(t("messageSent"));
-    } else {
-      /* Broadcast or clan */
-      const msgType = composeMode === "global" ? "broadcast" : "clan";
-      if (composeMode === "clan" && !composeClanId) {
-        setComposeStatus(t("clanAndMessageRequired"));
-        return;
-      }
-      setComposeStatus(t("sendingBroadcast"));
-      const response = await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient_ids: ["__placeholder__"],
-          subject: composeSubject.trim() || null,
-          content: composeContent.trim(),
-          message_type: msgType,
-          clan_id: composeMode === "clan" ? composeClanId : undefined,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        setComposeStatus(result.error ?? t("failedToSend"));
-        return;
-      }
-      setComposeStatus(t("broadcastSent", { count: result.recipient_count ?? 0 }));
-    }
 
-    resetCompose();
-    setIsComposeOpen(false);
-    setViewMode("sent");
-    if (viewMode === "sent") {
+      resetCompose();
+      setIsComposeOpen(false);
+      setViewMode("sent");
+      /* Always reload sent since we just switched to it */
       void loadSent();
+    } catch {
+      setComposeStatus(t("failedToSend"));
     }
   }
 
   async function handleDeleteMessage(messageId: string): Promise<void> {
-    await fetch(`/api/messages/${messageId}`, { method: "DELETE" });
-    /* Remove from thread view */
-    setThreadMessages((current) => current.filter((m) => m.id !== messageId));
-    /* Reload inbox to update thread list */
-    void loadInbox();
-  }
-
-  function getMessageTypeLabel(messageType: string): string {
-    if (messageType === "broadcast" || messageType === "system") return t("broadcast");
-    if (messageType === "clan") return t("clan");
-    return "";
+    try {
+      const response = await fetch(`/api/messages/${messageId}`, { method: "DELETE" });
+      if (!response.ok) return;
+      /* Remove from thread view */
+      setThreadMessages((current) => current.filter((m) => m.id !== messageId));
+      /* Reload inbox to update thread list */
+      void loadInbox();
+    } catch {
+      /* Network failure — silently ignore (message stays visible) */
+    }
   }
 
   /* ── Derived values ── */
@@ -687,82 +688,19 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
               />
             </div>
 
-            {/* Message content with Write/Preview tabs + toolbar */}
+            {/* Message content — shared MarkdownEditor */}
             <div className="form-group">
               <label htmlFor="composeContent">{t("message")}</label>
-              <div className="forum-editor-tabs">
-                <button
-                  type="button"
-                  className={`forum-editor-tab${!isComposePreview ? " active" : ""}`}
-                  onClick={() => setIsComposePreview(false)}
-                >
-                  {t("writeTab")}
-                </button>
-                <button
-                  type="button"
-                  className={`forum-editor-tab${isComposePreview ? " active" : ""}`}
-                  onClick={() => setIsComposePreview(true)}
-                >
-                  {t("previewTab")}
-                </button>
-              </div>
-              {isComposePreview ? (
-                <div className="forum-editor-preview">
-                  {composeContent.trim() ? (
-                    <AppMarkdown content={composeContent} />
-                  ) : (
-                    <p className="text-muted" style={{ fontStyle: "italic" }}>
-                      {t("previewEmpty")}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <AppMarkdownToolbar
-                    textareaRef={composeTextareaRef}
-                    value={composeContent}
-                    onChange={setComposeContent}
-                    supabase={supabase}
-                    userId={userId}
-                    storageBucket={MESSAGE_IMAGE_BUCKET}
-                  />
-                  <textarea
-                    id="composeContent"
-                    ref={composeTextareaRef}
-                    value={composeContent}
-                    onChange={(event) => setComposeContent(event.target.value)}
-                    placeholder={composeMode === "direct" ? t("messagePlaceholder") : t("broadcastPlaceholder")}
-                    rows={8}
-                    required
-                    onPaste={(e) =>
-                      handleImagePaste(
-                        e,
-                        supabase,
-                        userId,
-                        insertAtComposeCursor,
-                        setIsComposeUploading,
-                        MESSAGE_IMAGE_BUCKET,
-                      )
-                    }
-                    onDrop={(e) =>
-                      handleImageDrop(
-                        e,
-                        supabase,
-                        userId,
-                        insertAtComposeCursor,
-                        setIsComposeUploading,
-                        MESSAGE_IMAGE_BUCKET,
-                      )
-                    }
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                  />
-                  {isComposeUploading ? <div className="text-muted text-[0.8rem]">{t("uploadingImage")}</div> : null}
-                </>
-              )}
-              <p className="text-muted text-[0.75rem] mt-1">{t("markdownHint")}</p>
+              <MarkdownEditor
+                id="composeContent"
+                value={composeContent}
+                onChange={setComposeContent}
+                supabase={supabase}
+                userId={userId}
+                placeholder={composeMode === "direct" ? t("messagePlaceholder") : t("broadcastPlaceholder")}
+                rows={8}
+                storageBucket={MESSAGE_IMAGE_BUCKET}
+              />
             </div>
 
             {/* Submit */}
@@ -1033,7 +971,7 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
                 </DataState>
               </div>
 
-              {/* Reply form */}
+              {/* Reply form — uses shared MarkdownEditor */}
               {canReply ? (
                 <div className="messages-reply-form">
                   {!isReplyOpen ? (
@@ -1065,96 +1003,22 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
                         />
                       </div>
                       <div className="form-group mb-2">
-                        <div className="forum-editor-tabs">
-                          <button
-                            type="button"
-                            className={`forum-editor-tab${!isReplyPreview ? " active" : ""}`}
-                            onClick={() => setIsReplyPreview(false)}
-                          >
-                            {t("writeTab")}
-                          </button>
-                          <button
-                            type="button"
-                            className={`forum-editor-tab${isReplyPreview ? " active" : ""}`}
-                            onClick={() => setIsReplyPreview(true)}
-                          >
-                            {t("previewTab")}
-                          </button>
-                        </div>
-                        {isReplyPreview ? (
-                          <div className="forum-editor-preview" style={{ minHeight: "100px" }}>
-                            {replyContent.trim() ? (
-                              <AppMarkdown content={replyContent} />
-                            ) : (
-                              <p className="text-muted" style={{ fontStyle: "italic" }}>
-                                {t("previewEmpty")}
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <>
-                            <AppMarkdownToolbar
-                              textareaRef={replyTextareaRef}
-                              value={replyContent}
-                              onChange={setReplyContent}
-                              supabase={supabase}
-                              userId={userId}
-                              storageBucket={MESSAGE_IMAGE_BUCKET}
-                            />
-                            <textarea
-                              ref={replyTextareaRef}
-                              value={replyContent}
-                              onChange={(event) => setReplyContent(event.target.value)}
-                              placeholder={t("composeReply")}
-                              rows={6}
-                              required
-                              onPaste={(e) =>
-                                handleImagePaste(
-                                  e,
-                                  supabase,
-                                  userId,
-                                  insertAtReplyCursor,
-                                  setIsReplyUploading,
-                                  MESSAGE_IMAGE_BUCKET,
-                                )
-                              }
-                              onDrop={(e) =>
-                                handleImageDrop(
-                                  e,
-                                  supabase,
-                                  userId,
-                                  insertAtReplyCursor,
-                                  setIsReplyUploading,
-                                  MESSAGE_IMAGE_BUCKET,
-                                )
-                              }
-                              onDragOver={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                            />
-                            {isReplyUploading ? (
-                              <div className="text-muted text-[0.8rem]">{t("uploadingImage")}</div>
-                            ) : null}
-                          </>
-                        )}
-                        <p className="text-muted text-[0.75rem] mt-1">{t("markdownHint")}</p>
+                        <MarkdownEditor
+                          id="replyContent"
+                          value={replyContent}
+                          onChange={setReplyContent}
+                          supabase={supabase}
+                          userId={userId}
+                          placeholder={t("composeReply")}
+                          rows={6}
+                          storageBucket={MESSAGE_IMAGE_BUCKET}
+                        />
                       </div>
                       <div className="flex gap-2 items-center">
                         <button className="button primary" type="submit">
                           {t("send")}
                         </button>
-                        <button
-                          className="button"
-                          type="button"
-                          onClick={() => {
-                            setIsReplyOpen(false);
-                            setReplyContent("");
-                            setReplySubject("");
-                            setReplyParentId("");
-                            setIsReplyPreview(false);
-                          }}
-                        >
+                        <button className="button" type="button" onClick={resetReply}>
                           {t("cancel")}
                         </button>
                         {replyStatus ? <span className="text-muted">{replyStatus}</span> : null}

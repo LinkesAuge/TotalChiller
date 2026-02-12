@@ -22,21 +22,22 @@ interface RateLimiter {
   check(request: Request): NextResponse | null;
 }
 
-const store = new Map<string, number[]>();
-
 /** Garbage-collect expired entries every 60 s. */
 let gcTimer: ReturnType<typeof setInterval> | null = null;
+const allStores: { store: Map<string, number[]>; windowMs: number }[] = [];
 
-function ensureGc(windowMs: number): void {
+function ensureGc(): void {
   if (gcTimer) return;
   gcTimer = setInterval(() => {
     const now = Date.now();
-    for (const [key, timestamps] of store) {
-      const filtered = timestamps.filter((t) => now - t < windowMs);
-      if (filtered.length === 0) {
-        store.delete(key);
-      } else {
-        store.set(key, filtered);
+    for (const { store, windowMs } of allStores) {
+      for (const [key, timestamps] of store) {
+        const filtered = timestamps.filter((t) => now - t < windowMs);
+        if (filtered.length === 0) {
+          store.delete(key);
+        } else {
+          store.set(key, filtered);
+        }
       }
     }
   }, 60_000);
@@ -53,7 +54,10 @@ function getClientIp(request: Request): string {
 
 export function createRateLimiter(options: RateLimitOptions): RateLimiter {
   const { windowMs, max } = options;
-  ensureGc(windowMs);
+  /* Each limiter gets its own store so endpoints don't cross-contaminate. */
+  const store = new Map<string, number[]>();
+  allStores.push({ store, windowMs });
+  ensureGc();
   return {
     check(request: Request): NextResponse | null {
       const ip = getClientIp(request);

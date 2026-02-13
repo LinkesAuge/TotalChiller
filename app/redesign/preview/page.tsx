@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import SectionHero from "../../components/section-hero";
 
 /**
@@ -27,7 +28,7 @@ function PreviewPage(): JSX.Element {
     <div>
       {/* ─── TOP BAR ─── */}
       <div className="top-bar">
-        <img src="/assets/vip/header_3.png" alt="" className="top-bar-bg" />
+        <Image src="/assets/vip/header_3.png" alt="" width={1920} height={60} className="top-bar-bg" />
         <div className="top-bar-inner">
           <div>
             <div className="top-bar-breadcrumb">The Chillers &bull; Alpha Division</div>
@@ -35,7 +36,7 @@ function PreviewPage(): JSX.Element {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button className="button leather">
-              <img src="/assets/vip/backs_1.png" alt="" className="leather-bg" />
+              <Image src="/assets/vip/backs_1.png" alt="" width={200} height={40} className="leather-bg" />
               <span>New Post</span>
             </button>
           </div>
@@ -458,7 +459,7 @@ function PreviewPage(): JSX.Element {
                 <input type="password" placeholder="Enter your password" />
               </div>
               <button className="button leather" style={{ width: "100%", marginTop: 8 }}>
-                <img src="/assets/vip/backs_1.png" alt="" className="leather-bg" />
+                <Image src="/assets/vip/backs_1.png" alt="" width={200} height={40} className="leather-bg" />
                 <span>Enter the Sanctum</span>
               </button>
               <div style={{ textAlign: "center", marginTop: 10, fontSize: "0.8rem", color: "var(--color-text-2)" }}>

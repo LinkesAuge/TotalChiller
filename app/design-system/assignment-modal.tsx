@@ -119,6 +119,8 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       style={{
         position: "fixed",
         inset: 0,
@@ -129,6 +131,9 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
       }}
     >
       {/* Header */}

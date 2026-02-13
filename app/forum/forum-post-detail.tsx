@@ -303,20 +303,6 @@ export default function ForumPostDetail({
   const [isCommentPreview, setIsCommentPreview] = useState<boolean>(false);
   const isReplyToComment = replyingTo !== "" && replyingTo !== "thread";
 
-  /** Finds the author name of the comment being replied to. */
-  function getReplyTargetName(): string {
-    if (!isReplyToComment) return "";
-    function findInTree(list: ForumComment[]): string {
-      for (const c of list) {
-        if (c.id === replyingTo) return c.authorName ?? "";
-        const found = findInTree(c.replies ?? []);
-        if (found) return found;
-      }
-      return "";
-    }
-    return findInTree(comments);
-  }
-
   /** Opens the editor form, scrolls to it, and focuses the textarea. */
   function handleReplyClick(targetId: string): void {
     onReplyClick(targetId);

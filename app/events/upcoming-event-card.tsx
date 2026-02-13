@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback } from "react";
+import Image from "next/image";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { DisplayEvent } from "./events-types";
 import {
@@ -92,7 +93,7 @@ function UpcomingEventCardInner({
     >
       {entry.banner_url && (
         <div className="upcoming-event-banner">
-          <img src={entry.banner_url} alt="" />
+          <Image src={entry.banner_url} alt="" width={708} height={123} unoptimized />
         </div>
       )}
       <div className="upcoming-event-body">

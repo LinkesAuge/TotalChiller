@@ -2,6 +2,7 @@
 
 import { memo, useCallback } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { DisplayEvent } from "./events-types";
 import {
@@ -166,7 +167,7 @@ function DayPanelEventCardInner({
       {/* ── Full banner when expanded ── */}
       {isExpanded && entry.banner_url && (
         <div className="day-panel-full-banner">
-          <img src={entry.banner_url} alt="" />
+          <Image src={entry.banner_url} alt="" width={708} height={123} unoptimized />
         </div>
       )}
 
@@ -175,7 +176,7 @@ function DayPanelEventCardInner({
         {/* Small banner strip only when collapsed */}
         {!isExpanded && entry.banner_url && (
           <div className="day-panel-card-banner">
-            <img src={entry.banner_url} alt="" />
+            <Image src={entry.banner_url} alt="" width={708} height={123} unoptimized />
           </div>
         )}
         <div className="day-panel-card-body">

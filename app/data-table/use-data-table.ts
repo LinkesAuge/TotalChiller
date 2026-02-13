@@ -9,7 +9,7 @@ import { DATE_REGEX } from "@/lib/constants";
 import { useRuleProcessing } from "@/lib/hooks/use-rule-processing";
 import { useDataTableFilters } from "./use-data-table-filters";
 import { useDataTableBatch } from "./use-data-table-batch";
-import type { ChestEntryRow, EditableRow, RowValues, SortDirection, SortKey } from "./use-data-table-types";
+import type { ChestEntryRow, EditableRow, RowValues, SortKey } from "./use-data-table-types";
 
 export type {
   ChestEntryRow,

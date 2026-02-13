@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { DisplayEvent, EventRow } from "./events-types";
@@ -121,6 +122,12 @@ export function PastEventsList({
   locale,
   t,
 }: PastEventsListProps): JSX.Element {
+  const sourceEventMap = useMemo(() => {
+    const map = new Map<string, EventRow>();
+    for (const ev of sourceEvents) map.set(ev.id, ev);
+    return map;
+  }, [sourceEvents]);
+
   return (
     <>
       <div className="col-span-full flex items-center gap-3">
@@ -136,7 +143,7 @@ export function PastEventsList({
           <EventCard
             key={entry.displayKey}
             entry={entry}
-            sourceEvent={sourceEvents.find((item) => item.id === entry.id)}
+            sourceEvent={sourceEventMap.get(entry.id)}
             isPast={true}
             onEditEvent={onEditEvent}
             onDeleteEvent={onDeleteEvent}

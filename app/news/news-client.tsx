@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { z } from "zod";
 import { useTranslations, useLocale } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
@@ -181,11 +182,25 @@ function NewsClient(): JSX.Element {
     void loadArticles();
   }, [loadArticles]);
 
-  const availableTags = useMemo(() => {
-    const s = new Set<string>();
-    articles.forEach((a) => a.tags.forEach((tag) => s.add(tag)));
-    return Array.from(s).sort();
-  }, [articles]);
+  /* Load all distinct tags for the clan (not just current page) */
+  const [availableTags, setAvailableTags] = useState<readonly string[]>([]);
+  useEffect(() => {
+    if (!clanContext?.clanId) return;
+    let cancelled = false;
+    async function loadTags(): Promise<void> {
+      const { data } = await supabase.from("articles").select("tags").eq("clan_id", clanContext!.clanId);
+      if (cancelled || !data) return;
+      const tagSet = new Set<string>();
+      for (const row of data as Array<{ tags: string[] }>) {
+        for (const tag of row.tags ?? []) tagSet.add(tag);
+      }
+      setAvailableTags(Array.from(tagSet).sort());
+    }
+    void loadTags();
+    return () => {
+      cancelled = true;
+    };
+  }, [clanContext, supabase]);
 
   /* ── Form helpers ── */
 
@@ -690,7 +705,7 @@ function NewsClient(): JSX.Element {
                     {/* Actions */}
                     <div className="news-card-actions">
                       {article.forum_post_id && (
-                        <a
+                        <Link
                           className="news-action-btn thread"
                           href={`/forum?post=${article.forum_post_id}`}
                           aria-label={t("goToThread")}
@@ -710,7 +725,7 @@ function NewsClient(): JSX.Element {
                             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                           </svg>
                           {t("goToThread")}
-                        </a>
+                        </Link>
                       )}
                       {canManage && (
                         <>

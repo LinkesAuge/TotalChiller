@@ -182,7 +182,10 @@ export function useEventsData(
       .select("*")
       .eq("clan_id", clanId)
       .order("title", { ascending: true });
-    if (error) return;
+    if (error) {
+      showError(error, "saveFailed");
+      return;
+    }
     setTemplates((data ?? []).map((row: Record<string, unknown>) => mapRowToTemplateRow(row)));
   }
 

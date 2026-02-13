@@ -12,7 +12,7 @@ export interface ForumPost {
   readonly comment_count: number;
   readonly created_at: string;
   readonly updated_at: string;
-  readonly source_type: string | null;
+  readonly source_type: "event" | "announcement" | null;
   readonly source_id: string | null;
   /* resolved client-side */
   readonly authorName?: string;
@@ -36,7 +36,7 @@ export interface ForumComment {
 }
 
 export type SortMode = "hot" | "new" | "top";
-export type ViewMode = "list" | "detail" | "create" | "edit";
+export type ViewMode = "list" | "detail" | "create";
 
 /** No fallback categories — categories are managed via Admin > Forum. */
 export const PAGE_SIZE = 20;

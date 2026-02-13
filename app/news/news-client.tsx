@@ -592,21 +592,90 @@ function NewsClient(): JSX.Element {
                     {/* Actions */}
                     <div className="news-card-actions">
                       {article.forum_post_id && (
-                        <a className="button" href={`/forum?post=${article.forum_post_id}`}>
+                        <a
+                          className="news-action-btn thread"
+                          href={`/forum?post=${article.forum_post_id}`}
+                          aria-label={t("goToThread")}
+                          title={t("goToThread")}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                          </svg>
                           {t("goToThread")}
                         </a>
                       )}
                       {canManage && (
                         <>
-                          <button className="button" type="button" onClick={() => handleEditArticle(article)}>
-                            {t("editPost")}
+                          {article.is_pinned && (
+                            <span className="news-action-btn pin active" aria-label={t("pinned")} title={t("pinned")}>
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M12 2l2.09 6.26L21 9.27l-5 4.87L17.18 21 12 17.27 6.82 21 8 14.14l-5-4.87 6.91-1.01L12 2z" />
+                              </svg>
+                            </span>
+                          )}
+                          <button
+                            className="news-action-btn"
+                            type="button"
+                            onClick={() => handleEditArticle(article)}
+                            aria-label={t("editPost")}
+                            title={t("editPost")}
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
                           </button>
                           <button
-                            className="button danger"
+                            className="news-action-btn danger"
                             type="button"
                             onClick={() => handleDeleteArticle(article.id)}
+                            aria-label={t("deletePost")}
+                            title={t("deletePost")}
                           >
-                            {t("deletePost")}
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
                           </button>
                         </>
                       )}

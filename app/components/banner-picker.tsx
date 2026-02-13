@@ -43,7 +43,7 @@ function BannerPicker({
       {/* Live preview */}
       {value && (
         <div className="banner-picker-preview">
-          <img src={value} alt="" />
+          <Image src={value} alt="" width={708} height={123} unoptimized />
         </div>
       )}
       <div className="banner-picker-grid" role="group" aria-labelledby={labelId}>
@@ -77,7 +77,14 @@ function BannerPicker({
           aria-pressed={isCustom}
         >
           {isCustom ? (
-            <img src={value} alt="Custom" className="banner-picker-custom-thumb" />
+            <Image
+              src={value}
+              alt="Custom"
+              width={148}
+              height={52}
+              unoptimized
+              className="banner-picker-custom-thumb"
+            />
           ) : (
             <>
               <svg

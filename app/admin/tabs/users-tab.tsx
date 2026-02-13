@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useToast } from "../../components/toast-provider";
 import SearchInput from "../../components/ui/search-input";
@@ -926,6 +926,7 @@ export default function UsersTab(): ReactElement {
                       </span>
                     </div>
                     <div
+                      role="toolbar"
                       className="list inline user-actions action-icons"
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}

@@ -37,24 +37,26 @@ export default function SortableColumnHeader<K extends string>({
     : "none";
 
   return (
-    <button className="table-sort-button" type="button" onClick={() => onToggle(sortKey)} aria-sort={ariaSort}>
-      <span>{label}</span>
-      {isActive ? (
-        <svg
-          aria-hidden="true"
-          className={`table-sort-indicator ${direction === "desc" ? "is-desc" : ""}`.trim()}
-          width="10"
-          height="10"
-          viewBox="0 0 12 12"
-          fill="none"
-        >
-          {variant === "triangle" ? (
-            <path d="M6 2L10 6H2L6 2Z" fill="currentColor" />
-          ) : (
-            <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          )}
-        </svg>
-      ) : null}
-    </button>
+    <span role="columnheader" aria-sort={ariaSort}>
+      <button className="table-sort-button" type="button" onClick={() => onToggle(sortKey)}>
+        <span>{label}</span>
+        {isActive ? (
+          <svg
+            aria-hidden="true"
+            className={`table-sort-indicator ${direction === "desc" ? "is-desc" : ""}`.trim()}
+            width="10"
+            height="10"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            {variant === "triangle" ? (
+              <path d="M6 2L10 6H2L6 2Z" fill="currentColor" />
+            ) : (
+              <path d="M3 7L6 4L9 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            )}
+          </svg>
+        ) : null}
+      </button>
+    </span>
   );
 }

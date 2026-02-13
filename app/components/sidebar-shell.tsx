@@ -152,7 +152,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [loadUserData]);
+  }, [loadUserData, supabase.auth]);
 
   function handleClanChange(event: React.ChangeEvent<HTMLSelectElement>): void {
     const value = event.target.value;

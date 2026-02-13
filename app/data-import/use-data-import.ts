@@ -479,10 +479,7 @@ export function useDataImport(): UseDataImportReturn {
     }));
   }
 
-  const correctionResults = useMemo(
-    () => applyCorrectionsToRows(rows),
-    [rows, correctionApplicator, isAutoCorrectEnabled, applyCorrectionsToRows],
-  );
+  const correctionResults = useMemo(() => applyCorrectionsToRows(rows), [rows, applyCorrectionsToRows]);
 
   const openCorrectionRuleModal = useCallback(
     (index: number): void => {

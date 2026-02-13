@@ -13,6 +13,7 @@
  */
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useState, useRef, useCallback, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
 
@@ -154,7 +155,7 @@ function EditableList({
     } catch (err) {
       setActionError(err instanceof Error ? err.message : t("reorderFailed"));
     }
-  }, [dragIdx, dropIdx, items, onReorder]);
+  }, [dragIdx, dropIdx, items, onReorder, t]);
 
   /* ── Add item ── */
 
@@ -319,7 +320,14 @@ function EditableList({
               {item.icon_type === "preset" && PRESET_ICONS[item.icon] ? (
                 PRESET_ICONS[item.icon]
               ) : item.icon_type === "custom" && item.icon ? (
-                <img src={item.icon} alt="" className="editable-list-icon-custom" />
+                <Image
+                  src={item.icon}
+                  alt=""
+                  width={20}
+                  height={20}
+                  unoptimized
+                  className="editable-list-icon-custom"
+                />
               ) : null}
             </span>
           )}
@@ -514,7 +522,14 @@ function EditableList({
                     />
                     {editModal.iconType === "custom" && editModal.icon && (
                       <div className="editable-list-svg-preview">
-                        <img src={editModal.icon} alt="Custom Icon" className="editable-list-svg-preview-img" />
+                        <Image
+                          src={editModal.icon}
+                          alt="Custom Icon"
+                          width={24}
+                          height={24}
+                          unoptimized
+                          className="editable-list-svg-preview-img"
+                        />
                         <button
                           type="button"
                           className="editable-list-svg-preview-remove"

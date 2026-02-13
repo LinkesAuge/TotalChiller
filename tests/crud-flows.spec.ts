@@ -147,30 +147,25 @@ test.describe("Events: CRUD flow", () => {
     await page.locator("#eventDescription").fill("E2E test event description.");
     await page.locator("#eventLocation").fill("Test Location");
 
-    /* Fill required start date — Flatpickr uses altInput, so set value via JS */
-    await page.evaluate(() => {
+    /* Fill required start date — Flatpickr uses altInput, so set value via JS.
+       Poll for the Flatpickr instance in case it hasn't initialized yet. */
+    const dateWasSet = await page.evaluate(async () => {
       const tomorrow = new Date(Date.now() + 86400000);
       tomorrow.setHours(18, 0, 0, 0);
-      const inputs = document.querySelectorAll<HTMLInputElement>("input.date-picker-input");
-      for (const input of inputs) {
-        /* Find the Flatpickr instance via the hidden input's _flatpickr property */
-        const fp = (input as unknown as Record<string, unknown>)._flatpickr;
-        if (fp && typeof (fp as Record<string, unknown>).setDate === "function") {
-          (fp as { setDate: (d: Date, triggerChange: boolean) => void }).setDate(tomorrow, true);
-          break;
+      for (let attempt = 0; attempt < 50; attempt++) {
+        const inputs = document.querySelectorAll<HTMLInputElement>("input.date-picker-input");
+        for (const input of inputs) {
+          const fp = (input as unknown as Record<string, unknown>)._flatpickr;
+          if (fp && typeof (fp as Record<string, unknown>).setDate === "function") {
+            (fp as { setDate: (d: Date, triggerChange: boolean) => void }).setDate(tomorrow, true);
+            return true;
+          }
         }
+        await new Promise((r) => setTimeout(r, 100));
       }
-      /* Fallback: also set via a visible date-picker-input's native value */
-      const hidden = document.querySelector<HTMLInputElement>("input.date-picker-input:not([readonly])");
-      if (hidden && !hidden.value) {
-        const yyyy = tomorrow.getFullYear();
-        const mm = String(tomorrow.getMonth() + 1).padStart(2, "0");
-        const dd = String(tomorrow.getDate()).padStart(2, "0");
-        hidden.value = `${yyyy}-${mm}-${dd}T18:00`;
-        hidden.dispatchEvent(new Event("input", { bubbles: true }));
-        hidden.dispatchEvent(new Event("change", { bubbles: true }));
-      }
+      return false;
     });
+    expect(dateWasSet, "Flatpickr start-date should be set").toBe(true);
 
     /* Fill required duration (at least 1h) */
     const durationH = page.locator("#eventDurationH");
@@ -178,7 +173,10 @@ test.describe("Events: CRUD flow", () => {
       await durationH.fill("1");
     }
 
-    await page.locator("button.primary, form button[type='submit']").first().click();
+    await page.locator("form button[type='submit']").click();
+
+    /* Wait for the form to close — indicates submission succeeded */
+    await expect(page.locator("#eventTitle")).toBeHidden({ timeout: 15000 });
 
     /* Verify the event appears — may show in both calendar and upcoming sidebar */
     await expect(page.locator(`text=${eventTitle}`).first()).toBeVisible({ timeout: 15000 });
@@ -186,8 +184,8 @@ test.describe("Events: CRUD flow", () => {
 
   test("editor can edit the event", async ({ page }) => {
     await page.goto("/events");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 15000 });
 
     const noClanMsg = page.locator(
       "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
@@ -209,7 +207,10 @@ test.describe("Events: CRUD flow", () => {
 
     await page.locator("#eventTitle").clear();
     await page.locator("#eventTitle").fill(editedEventTitle);
-    await page.locator("button.primary, form button[type='submit']").first().click();
+    await page.locator("form button[type='submit']").click();
+
+    /* Wait for the form to close — indicates edit was saved */
+    await expect(page.locator("#eventTitle")).toBeHidden({ timeout: 15000 });
 
     /* Title may appear in both calendar and sidebar — use .first() to avoid strict mode violation */
     await expect(page.locator(`text=${editedEventTitle}`).first()).toBeVisible({ timeout: 15000 });

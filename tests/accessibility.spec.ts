@@ -16,7 +16,8 @@ test.describe("Accessibility: Public pages", () => {
   for (const path of PUBLIC_PAGES) {
     test(`${path} has no critical a11y violations`, async ({ page }) => {
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
+      await expect(page.locator("main, .card, form").first()).toBeVisible({ timeout: 10000 });
 
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
 
@@ -47,8 +48,8 @@ test.describe("Accessibility: Protected pages", () => {
   for (const path of PROTECTED_PAGES) {
     test(`${path} has no critical a11y violations`, async ({ page }) => {
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
-      await expect(page.locator(".content-inner, .card, main").first()).toBeVisible({ timeout: 10000 });
+      await page.waitForLoadState("domcontentloaded");
+      await expect(page.locator(".content-inner, .card, main").first()).toBeVisible({ timeout: 15000 });
 
       const builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]);
       const exclusions = KNOWN_A11Y_EXCLUSIONS[path];

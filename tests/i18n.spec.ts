@@ -18,7 +18,8 @@ test.use({ storageState: storageStatePath("member") });
 test.describe("i18n: Language switching", () => {
   test("language selector is visible on public pages", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator(".content-inner, .card, main").first()).toBeVisible({ timeout: 15000 });
 
     /* Look for the lang-toggle radio group or the compact sidebar button */
     const langToggle = page.locator(".lang-toggle, .sidebar-lang-compact");
@@ -27,13 +28,15 @@ test.describe("i18n: Language switching", () => {
 
   test("switching to German updates page content", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator(".content-inner, .card, main").first()).toBeVisible({ timeout: 15000 });
 
     /* Click the DE button */
     const deBtn = page.locator('.lang-toggle-btn:has-text("DE"), .sidebar-lang-compact');
     if ((await deBtn.count()) > 0) {
       await deBtn.first().click();
-      await page.waitForLoadState("networkidle");
+      /* Language switch may trigger a reload — wait for the page to settle */
+      await page.waitForURL(/\/home/, { timeout: 15000, waitUntil: "domcontentloaded" });
     }
 
     /* Verify NEXT_LOCALE cookie is set to "de" */
@@ -44,13 +47,15 @@ test.describe("i18n: Language switching", () => {
 
   test("switching to English updates page content", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator(".content-inner, .card, main").first()).toBeVisible({ timeout: 15000 });
 
     /* Click the EN button */
     const enBtn = page.locator('.lang-toggle-btn:has-text("EN")');
     if ((await enBtn.count()) > 0) {
       await enBtn.first().click();
-      await page.waitForLoadState("networkidle");
+      /* Language switch may trigger a reload — wait for the page to settle */
+      await page.waitForURL(/\/home/, { timeout: 15000, waitUntil: "domcontentloaded" });
     }
 
     const cookies = await page.context().cookies();
@@ -60,7 +65,8 @@ test.describe("i18n: Language switching", () => {
 
   test("sidebar compact language toggle works for authenticated user", async ({ page }) => {
     await page.goto("/news");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator(".content-inner, .card, main").first()).toBeVisible({ timeout: 15000 });
 
     /* The sidebar has either a toggle or a compact button for language */
     const langToggle = page.locator(".lang-toggle");

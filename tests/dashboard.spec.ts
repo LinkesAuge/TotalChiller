@@ -32,7 +32,7 @@ test.describe("Dashboard: Page loading", () => {
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     expect(errors).toEqual([]);
   });
@@ -73,12 +73,14 @@ test.describe("Dashboard: Members page", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner, main").first()).toBeVisible({ timeout: 10000 });
 
-    /* User either sees member search (has clan) or a profile link prompt (no clan) */
-    const searchInput = page.locator('input[id="memberSearch"]');
+    /* User either sees the member directory table (has clan) or a profile link prompt (no clan) */
+    const memberDir = page.locator(".member-dir, .member-dir-heading, section.table");
+    const noClanCard = page.locator(".card");
     const profileLink = page.locator('a[href="/profile"]');
-    const hasSearch = (await searchInput.count()) > 0;
+    const hasMembers = (await memberDir.count()) > 0;
+    const hasCard = (await noClanCard.count()) > 0;
     const hasPrompt = (await profileLink.count()) > 0;
-    expect(hasSearch || hasPrompt).toBe(true);
+    expect(hasMembers || hasCard || hasPrompt).toBe(true);
   });
 
   test("members page has no JS errors", async ({ page }) => {

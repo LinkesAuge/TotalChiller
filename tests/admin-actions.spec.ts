@@ -49,7 +49,7 @@ test.describe("Admin Actions: Users tab", () => {
   test("users tab search filters results", async ({ page }) => {
     await page.goto("/admin?tab=users");
     await waitForAdmin(page);
-    await expect(page.locator(".content-inner")).toContainText(/user|benutzer/i, { timeout: 25000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/user|benutzer/i, { timeout: 25000 });
 
     const searchInput = page.locator('input[type="search"], input[placeholder*="such"], input[placeholder*="search"]');
     if ((await searchInput.count()) > 0) {
@@ -86,7 +86,7 @@ test.describe("Admin Actions: Validation tab", () => {
   test("validation tab shows field tabs (player, source, chest, clan)", async ({ page }) => {
     await page.goto("/admin?tab=validation");
     await waitForAdmin(page);
-    await expect(page.locator(".content-inner")).toContainText(/validation|validierung|rule|regel/i, {
+    await expect(page.locator(".content-inner").first()).toContainText(/validation|validierung|rule|regel/i, {
       timeout: 20000,
     });
 
@@ -98,7 +98,7 @@ test.describe("Admin Actions: Validation tab", () => {
   test("validation tab has add rule button", async ({ page }) => {
     await page.goto("/admin?tab=validation");
     await waitForAdmin(page);
-    await expect(page.locator(".content-inner")).toContainText(/validation|validierung/i, { timeout: 25000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/validation|validierung/i, { timeout: 25000 });
 
     /* Button may be an IconButton with aria-label or a text button — wait for it to render */
     const addBtn = page.locator(
@@ -112,7 +112,7 @@ test.describe("Admin Actions: Forum management", () => {
   test("forum tab shows category management", async ({ page }) => {
     await page.goto("/admin?tab=forum");
     await waitForAdmin(page);
-    await expect(page.locator(".content-inner")).toContainText(/forum|kategor/i, { timeout: 20000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/forum|kategor/i, { timeout: 20000 });
 
     /* Forum categories require a clan to be selected; look for add button OR "select clan" prompt */
     const addBtn = page.locator(
@@ -127,7 +127,7 @@ test.describe("Admin Actions: Logs tab", () => {
   test("logs tab shows filter controls", async ({ page }) => {
     await page.goto("/admin?tab=logs");
     await waitForAdmin(page);
-    await expect(page.locator(".content-inner")).toContainText(/log|protokoll|audit/i, { timeout: 20000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/log|protokoll|audit/i, { timeout: 20000 });
 
     /* Should have search or filter elements */
     const searchInput = page.locator('input[type="search"], input[placeholder*="such"], input[placeholder*="search"]');

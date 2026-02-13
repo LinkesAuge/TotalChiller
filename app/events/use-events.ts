@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useSupabase } from "../hooks/use-supabase";
@@ -51,6 +52,7 @@ export interface UseEventsResult {
   readonly selectedDayEvents: readonly DisplayEvent[];
   readonly todayKey: string;
   readonly dateSelectNonce: number;
+  readonly highlightEventId: string;
 
   /* ── Upcoming & past ── */
   readonly upcomingEvents: readonly DisplayEvent[];
@@ -201,14 +203,23 @@ export function useEvents(): UseEventsResult {
     reloadTemplates,
   });
 
+  const searchParams = useSearchParams();
+  const urlDate = searchParams.get("date") ?? "";
+  const urlEventId = searchParams.get("event") ?? "";
+
   const [isPastExpanded, setIsPastExpanded] = useState<boolean>(false);
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
+    if (urlDate) {
+      const d = new Date(urlDate + "T00:00:00");
+      if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), 1);
+    }
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [selectedDateKey, setSelectedDateKey] = useState<string>(() => toDateString(new Date()));
+  const [selectedDateKey, setSelectedDateKey] = useState<string>(() => (urlDate ? urlDate : toDateString(new Date())));
   const [dateSelectNonce, setDateSelectNonce] = useState(0);
   const [upcomingPage, setUpcomingPage] = useState<number>(1);
+  const [highlightEventId, setHighlightEventId] = useState<string>(urlEventId);
 
   const expandedEvents: readonly DisplayEvent[] = useMemo(() => {
     const horizon = new Date();
@@ -285,6 +296,25 @@ export function useEvents(): UseEventsResult {
       })
     : selectedDateKey;
 
+  /* ─── Deep-link: navigate to date + highlight event from URL params ─── */
+  const handledDeepLinkRef = useRef(false);
+  useEffect(() => {
+    if (!urlDate || handledDeepLinkRef.current || expandedEvents.length === 0) return;
+    handledDeepLinkRef.current = true;
+    const d = new Date(urlDate + "T00:00:00");
+    if (isNaN(d.getTime())) return;
+    setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+    setSelectedDateKey(urlDate);
+    setDateSelectNonce((n) => n + 1);
+    if (urlEventId) {
+      setHighlightEventId(urlEventId);
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-event-id="${urlEventId}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [urlDate, urlEventId, expandedEvents.length]);
+
   const shiftCalendarMonth = useCallback((offset: number): void => {
     setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
   }, []);
@@ -333,6 +363,7 @@ export function useEvents(): UseEventsResult {
     selectedDayEvents,
     todayKey,
     dateSelectNonce,
+    highlightEventId,
     upcomingEvents,
     pastEvents,
     upcomingPage,

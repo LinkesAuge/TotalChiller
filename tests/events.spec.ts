@@ -18,7 +18,7 @@ test.describe("Events: Page loading", () => {
     await page.waitForLoadState("networkidle");
 
     /* Should have some content visible */
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -39,7 +39,7 @@ test.describe("Events: Content manager features (editor)", () => {
   test("editor sees create event button or no-clan message", async ({ page }) => {
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* Editor is a content manager but may lack clan membership */
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
@@ -56,7 +56,7 @@ test.describe("Events: Content manager features (member)", () => {
   test("member does NOT see create event button", async ({ page }) => {
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
     expect(await createBtn.count()).toBe(0);

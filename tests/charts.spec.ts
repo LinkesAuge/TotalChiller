@@ -19,9 +19,12 @@ test.describe("Charts: Page loading", () => {
     await page.waitForLoadState("networkidle");
 
     /* Should have filter controls or a no-clan-access message (test user may not be in a clan) */
-    await expect(page.locator(".content-inner")).toContainText(/filter|datum|date|player|spieler|clan|zugang|access/i, {
-      timeout: 10000,
-    });
+    await expect(page.locator(".content-inner").first()).toContainText(
+      /filter|datum|date|player|spieler|clan|zugang|access/i,
+      {
+        timeout: 10000,
+      },
+    );
   });
 
   test("no JS errors on charts page", async ({ page }) => {
@@ -30,7 +33,7 @@ test.describe("Charts: Page loading", () => {
 
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     expect(errors).toEqual([]);
   });
@@ -58,7 +61,7 @@ test.describe("Charts: Visualization", () => {
   test("renders chart containers (canvas or svg)", async ({ page }) => {
     await page.goto("/charts");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* Charts typically render as canvas or SVG */
     const chartElements = page.locator("canvas, svg.recharts-surface, .recharts-wrapper");

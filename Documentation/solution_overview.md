@@ -168,6 +168,8 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Design system base tables: `Documentation/migrations/design_system_tables.sql` — creates `design_assets`, `ui_elements`, `asset_assignments` tables with admin-only RLS policies.
 - Design system render types: `Documentation/migrations/design_system_render_type.sql` — adds `render_type`, `preview_html`, `preview_image` columns to `ui_elements`.
 - Member directory RLS: `Documentation/migrations/member_directory_rls.sql` — adds `is_clan_member()` and `shares_clan_with_user()` helper functions, updates `game_accounts_select` and `game_account_clan_memberships_select` policies so clan members can see fellow clan members.
+- Message sender delete: `Documentation/migrations/messages_sender_delete.sql` — adds `sender_deleted_at` column + index to `messages` for outbox soft-delete.
+- Message archive: `Documentation/migrations/messages_archive.sql` — adds `archived_at` to `message_recipients` and `sender_archived_at` to `messages`, with indexes for efficient querying.
 
 ## Data Import & Chest Database
 
@@ -329,12 +331,17 @@ app/admin/
 - Clan broadcasts: sender_id = admin, one row per clan member, message_type = `clan`. Sent when targeting a specific clan.
 - System notifications: sender_id = null, recipient_id = user, message_type = `system`. Sent on game account approval/rejection. Displayed under the "Broadcast" filter in the UI (merged with broadcasts).
 - UI filter tabs: All, Private, Clan, Broadcast. The "Broadcast" filter includes both `broadcast` and legacy `system` messages. The "Clan" filter shows only `clan`-type messages.
+- View mode tabs: Inbox, Sent, Archive. Archive shows a combined list of archived inbox threads and sent messages with source badges.
 - Conversations derived by grouping messages between two users (no separate conversation table).
 - Two-column UI: conversation list (420px) with search/filter, thread view with compose.
 - Compose recipient and broadcast clan dropdowns use themed `RadixSelect` (no native `<select>`). Recipient dropdown includes search support.
 - Messages layout uses `max-height: calc(100vh - 200px)` for proper inbox/thread scrolling with many messages.
+- **Delete**: Per-row trash icon (hover-visible) + multi-select batch delete. Inbox thread delete soft-deletes `message_recipients` (`deleted_at`). Sent delete sets `sender_deleted_at` on `messages`. Confirmation modal for single/batch.
+- **Archive**: Per-row archive icon (hover-visible) + multi-select batch archive. Inbox archive sets `archived_at` on `message_recipients`. Sent archive sets `sender_archived_at` on `messages`. Reversible via unarchive in Archive tab. Archived items can be viewed and deleted.
 - No real-time updates (messages load on page visit / manual refresh).
-- Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/broadcast/route.ts`.
+- Decomposed into: `messages-client.tsx` (orchestrator), `use-messages.ts` (hook), `messages-inbox.tsx` (list), `messages-thread.tsx` (detail), `messages-compose.tsx` (compose form), `messages-types.ts` (types).
+- API routes: `route.ts` (inbox GET/POST), `sent/route.ts` (sent GET), `sent/[id]/route.ts` (sender DELETE), `thread/[threadId]/route.ts` (thread GET/DELETE), `[id]/route.ts` (mark read/delete), `archive/route.ts` (archive GET/POST), `broadcast/route.ts` (broadcast POST), `search-recipients/route.ts` (recipient search GET).
+- Migrations: `messages.sql`, `messages_sender_delete.sql`, `messages_archive.sql`.
 
 ## Notification System
 

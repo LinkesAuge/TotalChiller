@@ -98,8 +98,10 @@
   width: 100%;
 }
 
-.messages-conversation-item:hover {
+.messages-conversation-item:hover,
+.messages-conversation-item:focus-visible {
   background: var(--color-gold-a06);
+  outline: none;
 }
 
 .messages-conversation-item.active {
@@ -117,6 +119,200 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
+}
+
+/* Leading area: checkbox + subject */
+.messages-conversation-leading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.messages-conversation-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Checkboxes ── */
+.messages-checkbox {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--color-text-muted);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  position: relative;
+}
+
+.messages-checkbox:checked {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+}
+
+.messages-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--color-bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.messages-checkbox:hover {
+  border-color: var(--color-gold);
+}
+
+.messages-conversation-item.checked {
+  background: var(--color-gold-a06);
+}
+
+/* ── Batch action bar ── */
+.messages-batch-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px 14px;
+  background: var(--color-gold-a06);
+  border-bottom: 1px solid var(--color-gold-a18);
+}
+
+.messages-batch-select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.messages-batch-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: rgba(220, 53, 69, 0.15);
+  color: var(--color-accent-red);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.messages-batch-delete-btn:hover {
+  background: rgba(220, 53, 69, 0.25);
+}
+
+.messages-batch-cancel-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.messages-batch-cancel-btn:hover {
+  color: var(--color-text);
+  background: var(--color-gold-a06);
+}
+
+/* ── Action buttons inside list items — visible on hover ── */
+.messages-list-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: var(--transition-fast);
+}
+
+.messages-conversation-item:hover .messages-list-action-btn,
+.messages-conversation-item:focus-within .messages-list-action-btn {
+  opacity: 0.6;
+}
+
+.messages-list-action-btn.delete:hover {
+  opacity: 1 !important;
+  color: var(--color-accent-red);
+  background: rgba(220, 53, 69, 0.12);
+}
+
+.messages-list-action-btn.archive:hover,
+.messages-list-action-btn.unarchive:hover {
+  opacity: 1 !important;
+  color: var(--color-gold-2);
+  background: var(--color-gold-a12);
+}
+
+/* ── Source badge in archive list ── */
+.messages-source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.messages-source-badge.inbox {
+  background: rgba(74, 105, 160, 0.15);
+  color: rgb(120, 160, 220);
+}
+
+.messages-source-badge.sent {
+  background: var(--color-gold-a12);
+  color: var(--color-gold-2);
+}
+
+/* ── Batch archive button ── */
+.messages-batch-archive-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-gold-a12);
+  color: var(--color-gold-2);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.messages-batch-archive-btn:hover {
+  background: var(--color-gold-a18);
 }
 
 .messages-conversation-subject {

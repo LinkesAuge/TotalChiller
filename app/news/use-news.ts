@@ -11,6 +11,7 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
@@ -21,6 +22,7 @@ import { usePagination } from "@/lib/hooks/use-pagination";
 import { createLinkedForumPost } from "@/lib/forum-thread-sync";
 import { FORUM_IMAGES_BUCKET } from "@/lib/constants";
 import { z } from "zod";
+import { escapeLikePattern } from "@/lib/api/validation";
 import type { NewsFormValues } from "./news-form";
 
 /* ─── Types ─── */
@@ -117,6 +119,8 @@ export function useNews(t: (key: string) => string): UseNewsResult {
   const supabase = useSupabase();
   const clanContext = useClanContext();
   const { pushToast } = useToast();
+  const searchParams = useSearchParams();
+  const urlArticleId = searchParams.get("article") ?? "";
 
   const { isContentManager: canManage } = useUserRole(supabase);
   const { userId: authUserId } = useAuth();
@@ -191,7 +195,10 @@ export function useNews(t: (key: string) => string): UseNewsResult {
       "editor:profiles!articles_updated_by_profiles_fkey(display_name,username)";
     let query = supabase.from("articles").select(selectCols, { count: "exact" }).eq("clan_id", clanContext.clanId);
     if (tagFilter !== "all") query = query.contains("tags", [tagFilter]);
-    if (searchTerm.trim()) query = query.or(`title.ilike.%${searchTerm.trim()}%,content.ilike.%${searchTerm.trim()}%`);
+    if (searchTerm.trim()) {
+      const escaped = escapeLikePattern(searchTerm.trim());
+      query = query.or(`title.ilike.%${escaped}%,content.ilike.%${escaped}%`);
+    }
     if (dateFrom) query = query.gte("created_at", dateFrom);
     if (dateTo) query = query.lte("created_at", `${dateTo}T23:59:59`);
     const { data, error, count } = await query
@@ -228,6 +235,76 @@ export function useNews(t: (key: string) => string): UseNewsResult {
   useEffect(() => {
     void loadArticles();
   }, [loadArticles]);
+
+  /* ─── Deep-link: auto-expand article from ?article= query param ─── */
+  const handledArticleRef = useRef<string>("");
+  useEffect(() => {
+    if (!urlArticleId || !clanContext?.clanId) return;
+    if (handledArticleRef.current === urlArticleId) return;
+    /* If article is on the current page, expand and scroll to it */
+    const match = articles.find((a) => a.id === urlArticleId);
+    if (match) {
+      handledArticleRef.current = urlArticleId;
+      setExpandedArticleId(urlArticleId);
+      requestAnimationFrame(() => {
+        document.getElementById(`article-${urlArticleId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      return;
+    }
+    /* Article not on this page — find its position and navigate to the correct page.
+       We query the count of articles that sort before this one (pinned-first, then newest). */
+    if (articles.length === 0) return;
+    let cancelled = false;
+    async function findArticlePage(): Promise<void> {
+      const { data: target } = await supabase
+        .from("articles")
+        .select("id,is_pinned,created_at")
+        .eq("id", urlArticleId)
+        .eq("clan_id", clanContext!.clanId)
+        .maybeSingle();
+      if (cancelled || !target) return;
+      /* Count how many articles sort before this one */
+      let countBefore = 0;
+      if (target.is_pinned) {
+        /* Pinned articles that are newer sort before this one */
+        const { count } = await supabase
+          .from("articles")
+          .select("id", { count: "exact", head: true })
+          .eq("clan_id", clanContext!.clanId)
+          .eq("is_pinned", true)
+          .gt("created_at", target.created_at as string);
+        if (cancelled) return;
+        countBefore = count ?? 0;
+      } else {
+        /* All pinned articles + non-pinned articles newer than this one sort first */
+        const [pinnedResult, newerResult] = await Promise.all([
+          supabase
+            .from("articles")
+            .select("id", { count: "exact", head: true })
+            .eq("clan_id", clanContext!.clanId)
+            .eq("is_pinned", true),
+          supabase
+            .from("articles")
+            .select("id", { count: "exact", head: true })
+            .eq("clan_id", clanContext!.clanId)
+            .eq("is_pinned", false)
+            .gt("created_at", target.created_at as string),
+        ]);
+        if (cancelled) return;
+        countBefore = (pinnedResult.count ?? 0) + (newerResult.count ?? 0);
+      }
+      const targetPage = Math.floor(countBefore / pagination.pageSize) + 1;
+      if (targetPage !== pagination.page) {
+        pagination.setPage(targetPage);
+        /* loadArticles will re-run due to pagination change, then this effect
+           re-runs and finds the article on the current page */
+      }
+    }
+    void findArticlePage();
+    return () => {
+      cancelled = true;
+    };
+  }, [urlArticleId, articles, clanContext, supabase, pagination]);
 
   /* Load all distinct tags for the clan */
   useEffect(() => {

@@ -1835,6 +1835,35 @@ input[type="checkbox"]:disabled {
   font-weight: 600;
 }
 
+/* Dashboard clickable item link */
+.dashboard-item-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.dashboard-item-link:hover {
+  color: var(--color-gold);
+}
+
+/* Dashboard thread icon button */
+.dashboard-thread-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  background: transparent;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+.dashboard-thread-btn:hover {
+  color: var(--color-gold);
+  background: var(--color-gold-a10);
+}
+
 /* Quick action buttons */
 /* Pin badge */
 .pin-badge {

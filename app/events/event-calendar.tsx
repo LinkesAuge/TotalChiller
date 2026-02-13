@@ -36,6 +36,8 @@ export interface EventDayPanelProps {
   readonly canManage: boolean;
   readonly locale: string;
   readonly t: (key: string, values?: Record<string, string>) => string;
+  /** When set, auto-expand and highlight this event instead of the first one. */
+  readonly highlightEventId?: string;
 }
 
 /* ── Inline SVG icons ── */
@@ -315,6 +317,7 @@ export function EventDayPanel({
   canManage,
   locale,
   t,
+  highlightEventId,
 }: EventDayPanelProps): JSX.Element {
   const panelRef = useRef<HTMLElement>(null);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
@@ -343,8 +346,10 @@ export function EventDayPanel({
     setPrevNonce(selectionNonce);
     setVisibleCount(DAY_PANEL_PAGE_SIZE);
     const sorted = sortPinnedFirst(selectedDayEvents);
-    const firstKey = sorted[0]?.displayKey;
-    setExpandedKeys(firstKey ? new Set([firstKey]) : new Set());
+    /* Prefer the highlighted event (from deep-link) over the first event. */
+    const highlightMatch = highlightEventId ? sorted.find((e) => e.id === highlightEventId)?.displayKey : undefined;
+    const expandKey = highlightMatch ?? sorted[0]?.displayKey;
+    setExpandedKeys(expandKey ? new Set([expandKey]) : new Set());
   }
 
   const sortedEvents = sortPinnedFirst(selectedDayEvents);

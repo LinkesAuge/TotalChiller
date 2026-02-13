@@ -16,7 +16,7 @@ test.describe("News: Page loading", () => {
   test("news page shows content or no-clan message", async ({ page }) => {
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 20000 });
 
     /* Wait for ClanAccessGate to resolve — either shows content or a gate message */
     /* The gate loading state shows "Zugang wird geladen" or similar, which eventually resolves to either:
@@ -35,7 +35,7 @@ test.describe("News: Content manager features (editor)", () => {
   test("editor sees create article button or no-clan message", async ({ page }) => {
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* Editor is a content manager but may lack clan membership */
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
@@ -52,7 +52,7 @@ test.describe("News: Content manager features (member)", () => {
   test("member does NOT see create article button", async ({ page }) => {
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* Members are NOT content managers, so no create button */
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
@@ -65,7 +65,7 @@ test.describe("News: Content manager features (guest)", () => {
   test("guest does NOT see create button", async ({ page }) => {
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
     expect(await createBtn.count()).toBe(0);

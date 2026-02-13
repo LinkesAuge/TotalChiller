@@ -33,6 +33,8 @@ This runbook explains how to set up, run, and use the [THC] Chiller & Killer com
    - `Documentation/migrations/event_banner_url.sql`
    - `Documentation/migrations/design_system_tables.sql`
    - `Documentation/migrations/design_system_render_type.sql`
+   - `Documentation/migrations/messages_sender_delete.sql`
+   - `Documentation/migrations/messages_archive.sql`
 
 ## 2) Local Environment
 

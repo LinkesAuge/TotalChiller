@@ -27,16 +27,20 @@ test.describe("Notifications: Bell icon", () => {
   test("clicking bell opens notification dropdown", async ({ page }) => {
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const bell = page
-      .locator(".notification-bell, [aria-label*='notification'], [aria-label*='Benachrichtigung']")
+      .locator(
+        ".notification-bell__trigger, .notification-bell, [aria-label*='notification'], [aria-label*='Benachrichtigung']",
+      )
       .first();
     if ((await bell.count()) > 0) {
       await bell.click();
 
-      /* Dropdown panel should appear */
-      const panel = page.locator(".notification-panel, .notification-dropdown, [role='dialog']");
+      /* Dropdown panel should appear — component uses .notification-bell__panel */
+      const panel = page.locator(
+        ".notification-bell__panel, .notification-panel, .notification-dropdown, [role='dialog']",
+      );
       await expect(panel.first()).toBeVisible({ timeout: 5000 });
     }
   });
@@ -44,7 +48,7 @@ test.describe("Notifications: Bell icon", () => {
   test("notification panel has mark-all-read button", async ({ page }) => {
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const bell = page
       .locator(".notification-bell, [aria-label*='notification'], [aria-label*='Benachrichtigung']")

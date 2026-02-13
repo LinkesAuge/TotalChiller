@@ -6,6 +6,62 @@
 
 ---
 
+## 2026-02-13 — Feature: Message archive
+
+- **Archive tab**: Third tab ("Archive") alongside Inbox and Sent. Shows both archived inbox threads and sent messages in a unified list sorted by archive date, each tagged with an "Inbox"/"Sent" source badge.
+- **Archive from inbox/sent**: Each message row in inbox and sent has a hover-visible archive button (box icon). Clicking it moves the message to the archive via the POST endpoint. A toast confirms the action.
+- **Unarchive**: Items in the archive view have an unarchive button (box with up-arrow) that moves them back to inbox/sent. Batch unarchive is also supported.
+- **Batch archive**: Multi-select checkboxes support batch archive/unarchive alongside batch delete. The batch bar shows "Archive selected" or "Unarchive selected" depending on the current tab.
+- **Thread viewing from archive**: Clicking an archived inbox thread loads and displays the thread detail. Clicking an archived sent message shows the sent detail (falls back to `ArchivedItem` data since archived items are not in the `sentMessages` list). Reply still works from archived threads.
+- **New API endpoints**: `GET /api/messages/archive` (combined archived list) and `POST /api/messages/archive` (batch archive/unarchive with `{ type, ids, action }`).
+- **Filtered existing APIs**: Inbox GET now filters `archived_at IS NULL`; sent GET now filters `sender_archived_at IS NULL`.
+- **Domain type**: New `ArchivedItem` interface in `lib/types/domain.ts`. `ViewMode` extended to `"inbox" | "sent" | "archive"`.
+- **Migration**: `Documentation/migrations/messages_archive.sql` — adds `archived_at` to `message_recipients`, `sender_archived_at` to `messages`, with indexes.
+
+## 2026-02-13 — Code review fixes
+
+- **Fix: Mixed archive delete**: Batch-deleting a mix of inbox threads and sent messages from the archive tab now correctly routes each group to its respective API endpoint (`/api/messages/thread/` vs `/api/messages/sent/`). Previously, all IDs were sent to the thread endpoint, silently failing to delete sent messages.
+- **Fix: Archived sent message detail**: Clicking an archived sent message now displays its content in the detail panel. Previously `selectedSentMessage` looked only in the active `sentMessages` list (which excludes archived items); now falls back to constructing the detail from `archivedItems`.
+- **Fix: Batch bar overflow**: The batch action bar (`messages-batch-bar`) now uses `flex-wrap` and `white-space: nowrap` on buttons to prevent the "Archive selected" button from being clipped in the 420px list panel.
+- **Fix: `use-news.ts` TypeScript error**: Fixed `pagination.currentPage` → `pagination.page` (property renamed during pagination hook refactor but this reference was missed).
+- **Minor: `let` → `const`** in archive API route for variables that are mutated via methods but never reassigned.
+
+---
+
+## 2026-02-13 — Feature: Delete messages from inbox/outbox list
+
+- **Inbox thread delete**: Users can delete entire conversations directly from the inbox list via a trash icon button on each row. Soft-deletes all `message_recipients` entries for the user across the thread — other participants are unaffected.
+- **Sent message delete**: Users can delete sent messages from the outbox list. Adds `sender_deleted_at` column to the `messages` table; outbox queries filter it out. Recipients still see the message.
+- **Multi-select batch delete**: Checkboxes on each list item enable selecting multiple messages. A batch action bar appears with "Select all", selected count, and "Delete selected" button. Batch deletion runs in parallel via `Promise.allSettled` with partial-failure toast.
+- **Trash icon**: Delete buttons use an inline SVG trash icon (consistent with news/events) instead of a text character. Buttons appear on hover and turn red.
+- **Confirmation modal**: Both single and batch delete show a danger-variant `ConfirmModal` with context-aware messaging (singular vs plural, inbox vs sent).
+- **New API endpoints**: `DELETE /api/messages/thread/[threadId]` (thread delete) and `DELETE /api/messages/sent/[id]` (sender soft-delete).
+- **Migration**: `Documentation/migrations/messages_sender_delete.sql` — adds `sender_deleted_at` column with index.
+
+---
+
+## 2026-02-13 — Dashboard deep-links to announcements, events, and forum threads
+
+- **Dashboard items are now clickable**: Announcement titles link to `/news?article=<id>` (auto-expands and scrolls to that article). Event titles link to `/events?date=<YYYY-MM-DD>&event=<id>` (navigates calendar to the date and highlights the specific event).
+- **Forum thread buttons on dashboard**: Announcements and events with a linked forum thread show a chat icon button linking to `/forum?post=<forum_post_id>`.
+- **News deep-link** (`?article=<id>`): Added `useSearchParams` to `use-news.ts`. When the URL contains `?article=<id>`, the matching article auto-expands and scrolls into view. Article elements now have `id="article-<id>"` for scroll targeting.
+- **Events deep-link** (`?date=YYYY-MM-DD&event=<id>`): Added `useSearchParams` to `use-events.ts`. Calendar navigates to the specified month, selects the date, and the day panel auto-expands the highlighted event. `EventDayPanel` gained a `highlightEventId` prop. `DayPanelEventCard` now has `data-event-id` for scroll targeting.
+- **Domain types**: Added `forum_post_id` to `ArticleSummary` and `EventSummary` in `lib/types/domain.ts`.
+- **Dashboard data**: Updated both announcement and event queries in `use-dashboard-data.ts` to select `forum_post_id`.
+- **i18n**: Added `dashboard.goToThread` key to both `de.json` and `en.json`.
+- **CSS**: Added `.dashboard-item-link` (hover gold) and `.dashboard-thread-btn` (chat icon) styles.
+
+---
+
+## 2026-02-13 — Fix: Forum deep-link navigation stuck in thread
+
+- **Fixed forum deep-link back-navigation bug**: Navigating to a forum thread via "Zum Diskussionsthread" from announcements or events (`/forum?post=<id>`) would trap users — the "zurück zum Forum" button, sidebar forum link, and category sub-links all failed to leave the thread view.
+  - **Root cause 1**: `handleBackToList` only reset React state (`viewMode`, `selectedPost`) but never cleared the `?post=` URL param. The deep-link `useEffect` re-fired immediately, re-opening the same post.
+  - **Root cause 2**: Sidebar `<Link>` navigation did clear the URL param, but no effect synced the React state back to list view when the param was removed.
+  - **Fix**: Removed `viewMode` and `selectedPost?.id` from the deep-link effect's dependency array so view-state changes (back button) no longer re-trigger it. An `openedPostIdRef` (set _after_ the async fetch succeeds) prevents duplicate opens while remaining strict-mode safe. `handleBackToList` and `resetFormAndSetList` now call `router.replace("/forum")` to clear the URL. A URL-sync effect (depending only on `urlPostId`) resets `viewMode` to "list" when `?post=` is removed (covers sidebar navigation). A `loadPostsRef` avoids the sync effect depending on the `loadPosts` callback.
+
+---
+
 ## 2026-02-13 — Code Review Phase 11: Comprehensive Codebase Optimization
 
 ### Bugs & Security (Critical)

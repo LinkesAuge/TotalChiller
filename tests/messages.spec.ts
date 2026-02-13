@@ -17,7 +17,7 @@ test.describe("Messages: Page loading", () => {
     await page.goto("/messages");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -40,20 +40,24 @@ test.describe("Messages: Broadcast (moderator)", () => {
     await page.waitForLoadState("networkidle");
 
     /* Content managers should see clan/global broadcast options */
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
   });
 });
 
 test.describe("Messages: Broadcast (member)", () => {
   test.use({ storageState: storageStatePath("member") });
-  test("member does NOT see broadcast options", async ({ page }) => {
+  test("member does NOT see broadcast compose options", async ({ page }) => {
     await page.goto("/messages");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
-    /* Member shouldn't see clan broadcast selector */
-    const broadcastSelect = page.locator("select", { hasText: /broadcast|rundnachricht|clan/i });
-    expect(await broadcastSelect.count()).toBe(0);
+    /* Member shouldn't see the broadcast compose clan selector (#composeClan)
+       or the recipient-type group with broadcast options in the compose form.
+       Note: inbox filter tabs showing "broadcast" is expected — those filter received messages. */
+    const broadcastClanSelect = page.locator("#composeClan");
+    const recipientTypeGroup = page.locator("[aria-labelledby='recipientTypeLabel']");
+    expect(await broadcastClanSelect.count()).toBe(0);
+    expect(await recipientTypeGroup.count()).toBe(0);
   });
 });
 

@@ -17,7 +17,7 @@ test.describe("Forum: Page loading", () => {
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -46,7 +46,7 @@ test.describe("Forum: Create post (member)", () => {
   test("member sees new post button or no-clan message", async ({ page }) => {
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* Forum may show "no clan" message if user has no clan membership */
     const createBtn = page.locator("button.primary", { hasText: /neuer beitrag|new post/i });
@@ -63,7 +63,7 @@ test.describe("Forum: Create post (guest)", () => {
   test("guest sees new post button or no-clan message", async ({ page }) => {
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const createBtn = page.locator("button.primary", { hasText: /neuer beitrag|new post/i });
     const noClanMsg = page.locator(
@@ -79,12 +79,14 @@ test.describe("Forum: Moderation", () => {
   test("moderator sees pin/lock controls", async ({ page }) => {
     await page.goto("/forum");
     await page.waitForLoadState("networkidle");
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* Moderator should see the pinned checkbox option in the create form */
-    const createBtn = page.locator("button", { hasText: /erstellen|create|neuer|new post/i });
+    const createBtn = page.locator("button.primary, button", { hasText: /neuer beitrag|new post|erstellen|create/i });
     if ((await createBtn.count()) > 0) {
       await createBtn.first().click();
-      await expect(page.locator("form")).toBeVisible({ timeout: 5000 });
+      /* The forum form uses section.forum-form, not a bare <form> */
+      await expect(page.locator("section.forum-form, form, #post-title").first()).toBeVisible({ timeout: 10000 });
 
       /* Should have pin checkbox for moderators */
       const pinCheckbox = page.locator('input[type="checkbox"]');

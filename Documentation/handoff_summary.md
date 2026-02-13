@@ -2,6 +2,21 @@
 
 This file is a compact context transfer for a new chat.
 
+## Dashboard Deep-Links & Forum Navigation Fix (2026-02-13)
+
+- **Dashboard items are now clickable**: Announcements link to `/news?article=<id>` (auto-expands and scrolls). Events link to `/events?date=YYYY-MM-DD&event=<id>` (navigates calendar and highlights event). Items with a linked forum thread show a chat icon button to `/forum?post=<id>`.
+- **Domain types updated**: `ArticleSummary` and `EventSummary` in `lib/types/domain.ts` now include `forum_post_id`.
+- **News deep-link** (`?article=<id>`): `use-news.ts` reads `useSearchParams`, finds the matching article, expands it, and scrolls into view via `id="article-<id>"` on each `<article>`.
+- **Events deep-link** (`?date=YYYY-MM-DD&event=<id>`): `use-events.ts` reads URL params, navigates the calendar month/date, and passes `highlightEventId` to `EventDayPanel` for auto-expansion. `DayPanelEventCard` uses `data-event-id` for scroll targeting.
+- **Forum deep-link fix**: Users were stuck in threads after navigating via "Zum Diskussionsthread". Root cause: the deep-link `useEffect` in `use-forum.ts` had `viewMode` and `selectedPost?.id` in its dependency array, causing re-opens on back-navigation. Fix: decoupled the effect from view state, added `openedPostIdRef` for strict-mode safety, URL-sync effect resets state when `?post=` is cleared.
+- **CSS**: `.dashboard-item-link` (hover gold), `.dashboard-thread-btn` (chat icon button).
+- **i18n**: `dashboard.goToThread` in DE/EN.
+
+## Message Delete + Archive (2026-02-13)
+
+- **Delete from list**: Inbox thread delete and sent message delete via hover-visible trash icon on each row. Multi-select with checkboxes + batch delete bar. Confirmation modals (singular/plural). `DELETE /api/messages/thread/[threadId]` (batch soft-deletes `message_recipients`), `DELETE /api/messages/sent/[id]` (sets `sender_deleted_at`). Migration: `messages_sender_delete.sql`.
+- **Archive**: Gmail-style archive for both inbox and sent. Third "Archive" tab shows combined list with source badges. Each item has hover-visible archive icon; archive tab shows unarchive icon. Batch archive/unarchive via multi-select. Archived items can be viewed (opens thread/sent detail) and deleted. `GET /api/messages/archive` (combined list), `POST /api/messages/archive` (batch archive/unarchive). Inbox/sent GET routes filter out archived items. Migration: `messages_archive.sql`. `ArchivedItem` type in `lib/types/domain.ts`, `ViewMode` extended to `"inbox" | "sent" | "archive"`.
+
 ## Code Review Phase 10: Minor Improvements (2026-02-13)
 
 - Footer links → Next.js `<Link>`, proxy.ts redundant paths removed, rate-limit limitation documented.
@@ -280,9 +295,11 @@ This file is a compact context transfer for a new chat.
   - Filter tabs: All, Private, Clan, Broadcast. "Broadcast" filter includes both global broadcasts and legacy system messages. "Clan" filter shows clan-specific broadcasts.
   - Content manager "Broadcast" button sends to all users (global, `message_type: broadcast`) or all active clan members (clan-specific, `message_type: clan`).
   - System messages sent automatically on game account approval/rejection (`message_type: system`, grouped under Broadcast filter).
+  - **Delete**: Trash icon per row (hover-visible). Multi-select checkboxes with batch delete bar. Inbox delete soft-deletes `message_recipients`. Sent delete sets `sender_deleted_at` on `messages`. Confirmation modal.
+  - **Archive**: Archive icon per row (hover-visible). Third "Archive" tab shows combined inbox+sent archived items with source badges. Unarchive reverses. Archived items viewable and deletable. `archived_at` on `message_recipients`, `sender_archived_at` on `messages`.
   - RLS enforces users can only see their own messages; service role inserts system messages.
-  - Migration: `Documentation/migrations/messages.sql`
-  - Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/broadcast/route.ts`
+  - Migrations: `messages.sql`, `messages_sender_delete.sql`, `messages_archive.sql`
+  - Files: `app/messages/page.tsx`, `app/messages/messages-client.tsx`, `app/messages/use-messages.ts`, `app/messages/messages-inbox.tsx`, `app/messages/messages-thread.tsx`, `app/messages/messages-compose.tsx`, `app/messages/messages-types.ts`, `app/api/messages/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/sent/[id]/route.ts`, `app/api/messages/archive/route.ts`, `app/api/messages/broadcast/route.ts`
 - **Notification System**
   - Unified bell icon in the top-right header (next to user menu) with unread count badge and dropdown. Only one panel (bell or user menu) can be open at a time — coordinated via lifted `activePanel` state in `AuthActions`.
   - DB-stored notifications: `notifications` table with types `message`, `news`, `event`, `approval`.
@@ -516,6 +533,7 @@ Production audit score: **84/100 (B)**, up from 43/100. Key areas:
 - Forum RLS policies use `has_permission()` for update/delete (migration: `forum_rls_permissions.sql`). Moderators/admins can edit/delete any post or comment; regular users can only manage their own. Members have `forum:edit:own` but not `forum:delete:own`; editors have both.
 - Forum comment count is a cached integer on `forum_posts.comment_count`. It is incremented on new comment/reply and decremented on delete (accounting for cascade-deleted nested replies). The post list is reloaded when navigating back from detail view to ensure fresh counts.
 - **Forum Thread Auto-Linking** (Feb 2026): Creating an event or announcement auto-creates a linked forum thread. Bidirectional linking via `forum_post_id` on events/articles and `source_type`/`source_id` on forum_posts. Database triggers handle bidirectional delete cascade and edit sync (all `SECURITY DEFINER`). "Events" and "Ankündigungen" categories seeded per clan. Deep-link: `/forum?post=<id>` opens the post directly. Prominent "Discuss in Forum" button on expanded events. "View in Events/Announcements" links on forum threads. Editing a forum thread stays in detail view. Announcements edit form opens inline below the edited article. Migration: `forum_thread_linking.sql`. Helper: `lib/forum-thread-sync.ts` (create only; update/delete handled by DB triggers).
+- **Deep-link URL patterns** (Feb 2026): `/forum?post=<id>` opens a forum post directly, `/news?article=<id>` expands and scrolls to an article, `/events?date=YYYY-MM-DD&event=<id>` navigates the calendar to a date and highlights the event. Dashboard items link to these deep-link URLs. Forum deep-link uses `openedPostIdRef` to prevent duplicate opens in strict mode; URL-sync effect resets view state when `?post=` is cleared.
 - **Forum permissions fix** (Feb 2026): Members can now delete their own forum comments/posts. Added `forum:delete:own` to the member role in both TypeScript and SQL `has_permission()`. Forum create/edit/delete operations now show toast error feedback on failure. Migration: `member_forum_delete_permission.sql`.
 - **Forum comment count DB trigger** (Feb 2026): `comment_count` on `forum_posts` is now maintained by `SECURITY DEFINER` triggers (`trg_forum_comment_insert_count`, `trg_forum_comment_delete_count`) instead of client-side updates. This resolves silent failures when non-authors tried to update the count (blocked by RLS). Migration: `forum_comment_count_trigger.sql`.
 - Forum categories are sorted alphabetically by name. Admin reorder (move up/down) UI removed since it conflicted with alphabetical ordering. Categories managed via `/api/admin/forum-categories`.

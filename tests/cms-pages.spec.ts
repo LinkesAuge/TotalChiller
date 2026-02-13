@@ -50,11 +50,14 @@ test.describe("CMS Pages: Admin edit controls", () => {
   for (const { path, name } of CMS_PAGES) {
     test(`${name} shows edit buttons for admin`, async ({ page }) => {
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
-      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      /* Use domcontentloaded — networkidle can hang on admin-authenticated CMS pages */
+      await page.waitForLoadState("domcontentloaded");
+      await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 15000 });
 
-      /* Admin should see editable pencil icons */
+      /* Wait for CMS content to fully load + admin check (async RPC) to complete.
+         The editable-text-pencil buttons appear after both content load and admin check. */
       const editBtns = page.locator(".editable-text-pencil, .pencil-icon, button[aria-label*='edit']");
+      await expect(editBtns.first()).toBeVisible({ timeout: 20000 });
       expect(await editBtns.count()).toBeGreaterThan(0);
     });
   }
@@ -65,8 +68,8 @@ test.describe("CMS Pages: Member edit controls", () => {
 
   test("member does NOT see edit buttons on /home", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 15000 });
 
     const editBtns = page.locator(".editable-text-pencil, .pencil-icon, button[aria-label*='edit']");
     expect(await editBtns.count()).toBe(0);

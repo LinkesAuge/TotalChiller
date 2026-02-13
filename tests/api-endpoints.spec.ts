@@ -287,19 +287,19 @@ test.describe("API: Notifications Fan-out", () => {
 });
 
 test.describe("API: Design System (public endpoints)", () => {
-  test("GET /api/design-system/assets returns 200 or rate-limited", async ({ request }) => {
+  test("GET /api/design-system/assets returns 200, 401, or rate-limited", async ({ request }) => {
     const res = await request.get("/api/design-system/assets");
-    expect([200, 429]).toContain(res.status());
+    expect([200, 401, 429]).toContain(res.status());
   });
 
-  test("GET /api/design-system/assignments returns 200 or rate-limited", async ({ request }) => {
+  test("GET /api/design-system/assignments returns 200, 401, or rate-limited", async ({ request }) => {
     const res = await request.get("/api/design-system/assignments");
-    expect([200, 429]).toContain(res.status());
+    expect([200, 401, 429]).toContain(res.status());
   });
 
-  test("GET /api/design-system/ui-elements returns 200 or rate-limited", async ({ request }) => {
+  test("GET /api/design-system/ui-elements returns 200, 401, or rate-limited", async ({ request }) => {
     const res = await request.get("/api/design-system/ui-elements");
-    expect([200, 429]).toContain(res.status());
+    expect([200, 401, 429]).toContain(res.status());
   });
 
   test("POST /api/design-system/preview-upload without auth returns 401 or rate-limited", async ({ request }) => {

@@ -10,7 +10,7 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
@@ -21,6 +21,7 @@ import { computeHotRank, resolveAuthorNames } from "./forum-utils";
 import type { ForumPost, ForumComment, SortMode, ViewMode } from "./forum-types";
 import { PAGE_SIZE } from "./forum-types";
 import type { ForumCategory } from "@/lib/types/domain";
+import { escapeLikePattern } from "@/lib/api/validation";
 
 /**
  * Return type for useForum hook. Exposes all state and handlers needed by the forum UI.
@@ -104,6 +105,7 @@ export interface UseForumResult {
  */
 export function useForum(t: (key: string) => string): UseForumResult {
   const supabase = useSupabase();
+  const router = useRouter();
   const clanContext = useClanContext();
   const { pushToast } = useToast();
   const searchParams = useSearchParams();
@@ -144,6 +146,11 @@ export function useForum(t: (key: string) => string): UseForumResult {
   const detailRef = useRef<HTMLElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const categoriesRef = useRef<ForumCategory[]>([]);
+  const prevUrlPostIdRef = useRef<string>(urlPostId);
+  /** Tracks which post was successfully opened by the deep-link effect.
+   *  Set *after* the async fetch completes so React strict-mode double-mount
+   *  doesn't block the second run (the first is cancelled before setting it). */
+  const openedPostIdRef = useRef<string>("");
   useEffect(() => {
     categoriesRef.current = categories;
   }, [categories]);
@@ -207,7 +214,8 @@ export function useForum(t: (key: string) => string): UseForumResult {
       query = query.eq("category_id", selectedCategory);
     }
     if (searchTerm.trim()) {
-      query = query.or(`title.ilike.%${searchTerm.trim()}%,content.ilike.%${searchTerm.trim()}%`);
+      const escaped = escapeLikePattern(searchTerm.trim());
+      query = query.or(`title.ilike.%${escaped}%,content.ilike.%${escaped}%`);
     }
     query = query.order("is_pinned", { ascending: false });
     if (sortMode === "new") {
@@ -279,6 +287,13 @@ export function useForum(t: (key: string) => string): UseForumResult {
     }
   }, [loadPosts, clanContext, categories]);
 
+  /** Stable ref to loadPosts so the URL-sync effect can call it without
+   *  depending on it (which would cause spurious re-runs). */
+  const loadPostsRef = useRef(loadPosts);
+  useEffect(() => {
+    loadPostsRef.current = loadPosts;
+  }, [loadPosts]);
+
   /* ─── Load comments ─── */
   const loadComments = useCallback(
     async (postId: string): Promise<void> => {
@@ -335,7 +350,7 @@ export function useForum(t: (key: string) => string): UseForumResult {
   /* ─── Deep-link: open post from ?post= query param ─── */
   useEffect(() => {
     if (!urlPostId || !clanContext || !tablesReady) return;
-    if (viewMode === "detail" && selectedPost?.id === urlPostId) return;
+    if (openedPostIdRef.current === urlPostId) return;
     let cancelled = false;
     async function openLinkedPost(): Promise<void> {
       const { data, error } = await supabase.from("forum_posts").select("*").eq("id", urlPostId).maybeSingle();
@@ -361,6 +376,10 @@ export function useForum(t: (key: string) => string): UseForumResult {
         categorySlug: raw.category_id ? (catMap[raw.category_id]?.slug ?? "") : "",
         userVote,
       };
+      /* Mark as opened *after* fetch succeeds. Placing it here (not before the
+         fetch) ensures React strict-mode works: the first mount's fetch is
+         cancelled, the ref stays "", and the second mount proceeds normally. */
+      openedPostIdRef.current = urlPostId;
       setSelectedPost(enriched);
       setViewMode("detail");
       setCommentText("");
@@ -371,18 +390,18 @@ export function useForum(t: (key: string) => string): UseForumResult {
     return () => {
       cancelled = true;
     };
-  }, [
-    urlPostId,
-    clanContext,
-    tablesReady,
-    categories,
-    supabase,
-    currentUserId,
-    loadComments,
-    catMap,
-    viewMode,
-    selectedPost?.id,
-  ]);
+  }, [urlPostId, clanContext, tablesReady, supabase, currentUserId, loadComments, catMap]);
+
+  /* ─── Sync URL → view state: reset to list when ?post= is removed ─── */
+  useEffect(() => {
+    if (prevUrlPostIdRef.current && !urlPostId) {
+      openedPostIdRef.current = "";
+      setViewMode("list");
+      setSelectedPost(null);
+      void loadPostsRef.current();
+    }
+    prevUrlPostIdRef.current = urlPostId;
+  }, [urlPostId]);
 
   /* ─── Voting ─── */
   const handleVotePost = useCallback(
@@ -722,15 +741,20 @@ export function useForum(t: (key: string) => string): UseForumResult {
 
   /* ─── Navigate back to list ─── */
   const handleBackToList = useCallback((): void => {
+    openedPostIdRef.current = "";
     setViewMode("list");
     setSelectedPost(null);
+    router.replace("/forum");
     void loadPosts();
-  }, [loadPosts]);
+  }, [loadPosts, router]);
 
   const resetFormAndSetList = useCallback((): void => {
     resetForm();
+    if (urlPostId) openedPostIdRef.current = "";
     setViewMode("list");
-  }, [resetForm]);
+    setSelectedPost(null);
+    if (urlPostId) router.replace("/forum");
+  }, [resetForm, urlPostId, router]);
 
   return {
     categories,

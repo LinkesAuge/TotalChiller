@@ -1,0 +1,300 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
+import { apiError, parseJsonBody } from "@/lib/api/validation";
+import { requireAuth } from "../../../../lib/api/require-auth";
+import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
+import { standardLimiter } from "../../../../lib/rate-limit";
+
+/* ── Schemas ── */
+
+const ARCHIVE_BODY = z.object({
+  type: z.enum(["thread", "sent"]),
+  ids: z.array(z.string().uuid()).min(1).max(100),
+  action: z.enum(["archive", "unarchive"]),
+});
+
+const ARCHIVE_LIMIT = 200;
+
+/**
+ * GET /api/messages/archive
+ * Returns archived items for the authenticated user.
+ * Combines archived inbox threads and archived sent messages into
+ * a unified list sorted by archive date.
+ */
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
+  try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const userId = auth.userId;
+    const svc = createSupabaseServiceRoleClient();
+
+    /* ── Archived inbox: recipient entries with archived_at set ── */
+    const { data: archivedRecipients, error: recErr } = await svc
+      .from("message_recipients")
+      .select("message_id, archived_at")
+      .eq("recipient_id", userId)
+      .not("archived_at", "is", null)
+      .is("deleted_at", null)
+      .order("archived_at", { ascending: false })
+      .limit(ARCHIVE_LIMIT);
+
+    if (recErr) {
+      captureApiError("GET /api/messages/archive", recErr);
+      return apiError("Failed to load archive.", 500);
+    }
+
+    const archivedEntries = archivedRecipients ?? [];
+    const archivedMsgIds = archivedEntries.map((e) => e.message_id as string);
+    const archivedAtByMsgId = new Map<string, string>();
+    for (const e of archivedEntries) {
+      archivedAtByMsgId.set(e.message_id as string, e.archived_at as string);
+    }
+
+    /* Fetch messages for archived inbox entries */
+    type MsgRow = {
+      id: string;
+      sender_id: string | null;
+      subject: string | null;
+      content: string;
+      message_type: string;
+      thread_id: string | null;
+      parent_id: string | null;
+      created_at: string;
+    };
+    let inboxMsgs: MsgRow[] = [];
+    if (archivedMsgIds.length > 0) {
+      const { data: msgData, error: msgErr } = await svc
+        .from("messages")
+        .select("id,sender_id,subject,content,message_type,thread_id,parent_id,created_at")
+        .in("id", archivedMsgIds);
+      if (msgErr) {
+        captureApiError("GET /api/messages/archive", msgErr);
+        return apiError("Failed to load archive.", 500);
+      }
+      inboxMsgs = (msgData ?? []) as MsgRow[];
+    }
+
+    /* Group inbox messages into threads (same logic as inbox) */
+    const threadMap = new Map<string, { messages: MsgRow[]; latestArchivedAt: string }>();
+    for (const msg of inboxMsgs) {
+      const threadKey = msg.thread_id ?? msg.id;
+      const msgArchivedAt = archivedAtByMsgId.get(msg.id) ?? msg.created_at;
+      const existing = threadMap.get(threadKey);
+      if (existing) {
+        existing.messages.push(msg);
+        if (msgArchivedAt > existing.latestArchivedAt) {
+          existing.latestArchivedAt = msgArchivedAt;
+        }
+      } else {
+        threadMap.set(threadKey, {
+          messages: [msg],
+          latestArchivedAt: msgArchivedAt,
+        });
+      }
+    }
+
+    /* Build inbox archive items */
+    const inboxItems = Array.from(threadMap.entries()).map(([threadId, { messages: threadMsgs, latestArchivedAt }]) => {
+      const sorted = threadMsgs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const latest = sorted[0]!;
+      return {
+        id: threadId,
+        source: "inbox" as const,
+        subject: latest.subject,
+        content: latest.content,
+        message_type: latest.message_type,
+        created_at: latest.created_at,
+        archived_at: latestArchivedAt,
+        sender_id: latest.sender_id,
+        message_count: sorted.length,
+        recipient_count: 0,
+        recipients: [] as { id: string; label: string }[],
+      };
+    });
+
+    /* ── Archived sent messages ── */
+    const { data: sentData, error: sentErr } = await svc
+      .from("messages")
+      .select("id,sender_id,subject,content,message_type,thread_id,parent_id,created_at,sender_archived_at")
+      .eq("sender_id", userId)
+      .not("sender_archived_at", "is", null)
+      .is("sender_deleted_at", null)
+      .order("sender_archived_at", { ascending: false })
+      .limit(ARCHIVE_LIMIT);
+
+    if (sentErr) {
+      captureApiError("GET /api/messages/archive", sentErr);
+      return apiError("Failed to load archive.", 500);
+    }
+
+    const sentMsgs = (sentData ?? []) as (MsgRow & { sender_archived_at: string })[];
+
+    /* Fetch recipients for sent messages */
+    const recipientsByMsgId = new Map<string, { id: string; label: string }[]>();
+    if (sentMsgs.length > 0) {
+      const sentIds = sentMsgs.map((m) => m.id);
+      const { data: recipientData } = await svc
+        .from("message_recipients")
+        .select("message_id,recipient_id")
+        .in("message_id", sentIds);
+
+      const allRecipientIds = new Set<string>();
+      const rawByMsg = new Map<string, string[]>();
+      for (const r of recipientData ?? []) {
+        const mid = r.message_id as string;
+        const rid = r.recipient_id as string;
+        const existing = rawByMsg.get(mid) ?? [];
+        existing.push(rid);
+        rawByMsg.set(mid, existing);
+        if (rid !== userId) allRecipientIds.add(rid);
+      }
+
+      /* Resolve profiles */
+      const profilesById: Record<string, { display_name: string | null; username: string | null; email: string }> = {};
+      if (allRecipientIds.size > 0) {
+        const { data: profileData } = await svc
+          .from("profiles")
+          .select("id,email,username,display_name")
+          .in("id", Array.from(allRecipientIds).slice(0, 200));
+        for (const p of profileData ?? []) {
+          profilesById[p.id as string] = {
+            email: p.email as string,
+            username: p.username as string | null,
+            display_name: p.display_name as string | null,
+          };
+        }
+      }
+
+      for (const [mid, rids] of rawByMsg) {
+        recipientsByMsgId.set(
+          mid,
+          rids.map((rid) => {
+            const profile = profilesById[rid];
+            return {
+              id: rid,
+              label: profile?.display_name ?? profile?.username ?? profile?.email ?? "Unknown",
+            };
+          }),
+        );
+      }
+    }
+
+    const sentItems = sentMsgs.map((msg) => {
+      const recipients = recipientsByMsgId.get(msg.id) ?? [];
+      return {
+        id: msg.id,
+        source: "sent" as const,
+        subject: msg.subject,
+        content: msg.content,
+        message_type: msg.message_type,
+        created_at: msg.created_at,
+        archived_at: msg.sender_archived_at,
+        sender_id: msg.sender_id,
+        message_count: 1,
+        recipient_count: recipients.length,
+        recipients,
+      };
+    });
+
+    /* ── Combine and sort by archived_at DESC ── */
+    const combined = [...inboxItems, ...sentItems].sort(
+      (a, b) => new Date(b.archived_at).getTime() - new Date(a.archived_at).getTime(),
+    );
+
+    /* ── Fetch sender profiles for inbox items ── */
+    const senderIds = Array.from(
+      new Set(inboxItems.map((i) => i.sender_id).filter((id): id is string => id !== null && id !== userId)),
+    );
+    const profiles: Record<string, { email: string; username: string | null; display_name: string | null }> = {};
+    if (senderIds.length > 0) {
+      const { data: profileData } = await svc
+        .from("profiles")
+        .select("id,email,username,display_name")
+        .in("id", senderIds);
+      for (const p of profileData ?? []) {
+        profiles[p.id as string] = {
+          email: p.email as string,
+          username: p.username as string | null,
+          display_name: p.display_name as string | null,
+        };
+      }
+    }
+
+    return NextResponse.json({ data: combined, profiles });
+  } catch (err) {
+    captureApiError("GET /api/messages/archive", err);
+    return apiError("Internal server error.", 500);
+  }
+}
+
+/**
+ * POST /api/messages/archive
+ * Archives or unarchives messages for the authenticated user.
+ * Supports batch operations for both inbox threads and sent messages.
+ */
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
+  try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const userId = auth.userId;
+
+    const parsed = await parseJsonBody(request, ARCHIVE_BODY);
+    if (parsed.error) return parsed.error;
+    const { type, ids, action } = parsed.data;
+
+    const svc = createSupabaseServiceRoleClient();
+    const timestamp = action === "archive" ? new Date().toISOString() : null;
+
+    if (type === "thread") {
+      /* Find all message IDs for the given threads */
+      const threadConditions = ids.map((tid) => `thread_id.eq.${tid},id.eq.${tid}`).join(",");
+      const { data: threadMsgs, error: msgErr } = await svc.from("messages").select("id").or(threadConditions);
+
+      if (msgErr) {
+        captureApiError("POST /api/messages/archive", msgErr);
+        return apiError("Failed to process archive.", 500);
+      }
+
+      const messageIds = (threadMsgs ?? []).map((m) => m.id as string);
+      if (messageIds.length === 0) {
+        return apiError("No messages found.", 404);
+      }
+
+      /* Update archived_at on all recipient entries */
+      const { error: updateErr } = await svc
+        .from("message_recipients")
+        .update({ archived_at: timestamp })
+        .eq("recipient_id", userId)
+        .in("message_id", messageIds)
+        .is("deleted_at", null);
+
+      if (updateErr) {
+        captureApiError("POST /api/messages/archive", updateErr);
+        return apiError("Failed to archive messages.", 500);
+      }
+    } else {
+      /* Sent: update sender_archived_at on the message rows */
+      const { error: updateErr } = await svc
+        .from("messages")
+        .update({ sender_archived_at: timestamp })
+        .eq("sender_id", userId)
+        .in("id", ids)
+        .is("sender_deleted_at", null);
+
+      if (updateErr) {
+        captureApiError("POST /api/messages/archive", updateErr);
+        return apiError("Failed to archive messages.", 500);
+      }
+    }
+
+    return NextResponse.json({ data: { type, ids, action } });
+  } catch (err) {
+    captureApiError("POST /api/messages/archive", err);
+    return apiError("Internal server error.", 500);
+  }
+}

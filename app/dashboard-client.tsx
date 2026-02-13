@@ -5,13 +5,32 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useDashboardData } from "./hooks/use-dashboard-data";
-import { formatCompactNumber, formatRelativeTime } from "../lib/dashboard-utils";
+import { formatCompactNumber, formatRelativeTime, toDateString } from "../lib/dashboard-utils";
 import useClanContext from "./hooks/use-clan-context";
 import DataState from "./components/data-state";
 
 /* ── Constants ── */
 
 const EVENT_COLORS: readonly string[] = ["#c94a3a", "#4a6ea0", "#4a9960", "#c9a34a", "#8a6ea0"];
+
+/** Chat bubble icon for "go to thread" buttons. */
+function ChatIcon(): JSX.Element {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
 
 /* ── Helpers ── */
 
@@ -119,14 +138,23 @@ function DashboardClient(): JSX.Element {
                         height={14}
                         className="mt-0.5"
                       />
-                      <div className="flex-1 min-w-0">
+                      <Link href={`/news?article=${article.id}`} className="flex-1 min-w-0 dashboard-item-link">
                         <div className="text-[0.88rem]">{article.title}</div>
                         <div className="text-[0.68rem] text-text-muted mt-0.5">
                           {formatRelativeTime(article.created_at)}
-                          {article.type === "announcement" ? " • " + article.type : ""}
                           {article.author_name && ` • ${article.author_name}`}
                         </div>
-                      </div>
+                      </Link>
+                      {article.forum_post_id && (
+                        <Link
+                          href={`/forum?post=${article.forum_post_id}`}
+                          className="dashboard-thread-btn shrink-0"
+                          title={t("goToThread")}
+                          aria-label={t("goToThread")}
+                        >
+                          <ChatIcon />
+                        </Link>
+                      )}
                       {firstTag && (
                         <span
                           className="badge py-0.5 px-2 shrink-0"
@@ -227,15 +255,29 @@ function DashboardClient(): JSX.Element {
             >
               {events.map((event, i) => {
                 const color = EVENT_COLORS[i % EVENT_COLORS.length];
+                const dateKey = toDateString(new Date(event.starts_at));
                 return (
                   <div key={event.id} className="flex items-center gap-2 py-1.5 text-sm">
                     <div style={{ background: color, flexShrink: 0 }} className="w-1.5 h-1.5 rounded-full" />
-                    <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                    <Link
+                      href={`/events?date=${dateKey}&event=${event.id}`}
+                      className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap dashboard-item-link"
+                    >
                       {event.title}
                       {event.author_name && (
                         <span className="text-[0.7rem] text-text-muted ml-1">{event.author_name}</span>
                       )}
-                    </span>
+                    </Link>
+                    {event.forum_post_id && (
+                      <Link
+                        href={`/forum?post=${event.forum_post_id}`}
+                        className="dashboard-thread-btn shrink-0"
+                        title={t("goToThread")}
+                        aria-label={t("goToThread")}
+                      >
+                        <ChatIcon />
+                      </Link>
+                    )}
                     <span
                       className="countdown-badge"
                       style={{

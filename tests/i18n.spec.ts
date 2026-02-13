@@ -74,13 +74,15 @@ test.describe("i18n: Language switching", () => {
 
   test("URL stays the same after language switch", async ({ page }) => {
     await page.goto("/about");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
+    /* Wait for content to render (networkidle can hang due to persistent connections) */
+    await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
 
     const deBtn = page.locator('.lang-toggle-btn:has-text("DE")');
     if ((await deBtn.count()) > 0) {
       await deBtn.first().click();
-      await page.waitForLoadState("networkidle");
-      /* Path should be the same (only content changes, not route) */
+      /* Language switch may trigger a reload — wait for the page to settle */
+      await page.waitForURL(/\/about/, { timeout: 15000, waitUntil: "domcontentloaded" });
       expect(page.url()).toContain("/about");
     }
   });

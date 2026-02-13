@@ -34,6 +34,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .from("messages")
       .select("id,sender_id,subject,content,message_type,thread_id,parent_id,created_at")
       .eq("sender_id", userId)
+      .is("sender_deleted_at", null)
+      .is("sender_archived_at", null)
       .order("created_at", { ascending: false })
       .limit(SENT_LIMIT);
 

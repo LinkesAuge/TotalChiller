@@ -58,12 +58,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const svc = createSupabaseServiceRoleClient();
 
-    /* Fetch recipient entries for this user (non-deleted) */
+    /* Fetch recipient entries for this user (non-deleted, non-archived) */
     const { data: recipientEntries, error: recErr } = await svc
       .from("message_recipients")
       .select("message_id, is_read")
       .eq("recipient_id", userId)
       .is("deleted_at", null)
+      .is("archived_at", null)
       .order("created_at", { ascending: false })
       .limit(INBOX_LIMIT);
 

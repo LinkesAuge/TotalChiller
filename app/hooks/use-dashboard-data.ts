@@ -77,6 +77,7 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
   const [isLoadingStats, setIsLoadingStats] = useState<boolean>(true);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadAnnouncements(): Promise<void> {
       if (!clanId) {
         setAnnouncements([]);
@@ -87,7 +88,7 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       const { data, error } = await supabase
         .from("articles")
         .select(
-          "id,title,content,type,is_pinned,status,tags,created_at,created_by," +
+          "id,title,content,type,is_pinned,status,tags,created_at,created_by,forum_post_id," +
             "author:profiles!articles_created_by_profiles_fkey(display_name,username)",
         )
         .eq("clan_id", clanId)
@@ -95,6 +96,7 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(5);
+      if (cancelled) return;
       setIsLoadingAnnouncements(false);
       if (error) return;
       setAnnouncements(
@@ -105,9 +107,13 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       );
     }
     void loadAnnouncements();
+    return () => {
+      cancelled = true;
+    };
   }, [clanId, supabase]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadEvents(): Promise<void> {
       if (!clanId) {
         setEvents([]);
@@ -119,13 +125,14 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       const { data, error } = await supabase
         .from("events")
         .select(
-          "id,title,description,location,starts_at,ends_at,created_by," +
+          "id,title,description,location,starts_at,ends_at,created_by,forum_post_id," +
             "author:profiles!events_created_by_profiles_fkey(display_name,username)",
         )
         .eq("clan_id", clanId)
         .gte("ends_at", now)
         .order("starts_at", { ascending: true })
         .limit(5);
+      if (cancelled) return;
       setIsLoadingEvents(false);
       if (error) return;
       setEvents(
@@ -136,6 +143,9 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       );
     }
     void loadEvents();
+    return () => {
+      cancelled = true;
+    };
   }, [clanId, supabase]);
 
   const fetchCharts = useCallback(

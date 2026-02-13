@@ -10,6 +10,62 @@ interface RouteContext {
 }
 
 /**
+ * DELETE /api/messages/thread/[threadId]
+ * Soft-deletes all messages in a thread for the authenticated user.
+ * Sets `deleted_at` on every `message_recipients` row belonging to the user
+ * for all messages in the thread. The messages remain visible to other recipients.
+ */
+export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
+  try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { threadId } = await context.params;
+    const parsed = uuidSchema.safeParse(threadId);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid thread ID format." }, { status: 400 });
+    }
+    const svc = createSupabaseServiceRoleClient();
+    const tid = parsed.data;
+
+    /* Find all message IDs in this thread (root + replies) */
+    const { data: threadMsgs, error: msgErr } = await svc
+      .from("messages")
+      .select("id")
+      .or(`thread_id.eq.${tid},id.eq.${tid}`);
+
+    if (msgErr) {
+      captureApiError("DELETE /api/messages/thread/[threadId]", msgErr);
+      return NextResponse.json({ error: "Failed to delete thread." }, { status: 500 });
+    }
+
+    const messageIds = (threadMsgs ?? []).map((m) => m.id as string);
+    if (messageIds.length === 0) {
+      return NextResponse.json({ error: "Thread not found." }, { status: 404 });
+    }
+
+    /* Soft-delete all recipient entries for this user in the thread */
+    const { error: deleteError } = await svc
+      .from("message_recipients")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("recipient_id", auth.userId)
+      .in("message_id", messageIds)
+      .is("deleted_at", null);
+
+    if (deleteError) {
+      captureApiError("DELETE /api/messages/thread/[threadId]", deleteError);
+      return NextResponse.json({ error: "Failed to delete thread." }, { status: 500 });
+    }
+
+    return NextResponse.json({ data: { thread_id: tid, deleted: true } });
+  } catch (err) {
+    captureApiError("DELETE /api/messages/thread/[threadId]", err);
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+  }
+}
+
+/**
  * GET /api/messages/thread/[threadId]
  * Returns all messages in a thread, ordered chronologically.
  * For standalone messages (no thread_id), returns the single message.

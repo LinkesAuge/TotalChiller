@@ -13,7 +13,7 @@ export interface ProfileMap {
   readonly [userId: string]: ProfileEntry;
 }
 
-export type ViewMode = "inbox" | "sent";
+export type ViewMode = "inbox" | "sent" | "archive";
 
 export interface ClanOption {
   readonly id: string;

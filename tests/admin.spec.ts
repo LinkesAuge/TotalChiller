@@ -66,14 +66,14 @@ test.describe("Admin: Tab navigation", () => {
     await waitForAdminShell(page);
 
     /* Wait for the lazy-loaded tab content to appear */
-    await expect(page.locator(".content-inner")).toContainText(/user|benutzer|email/i, { timeout: 20000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/user|benutzer|email/i, { timeout: 20000 });
   });
 
   test("can switch to approvals tab", async ({ page }) => {
     await page.goto("/admin?tab=approvals");
     await waitForAdminShell(page);
 
-    await expect(page.locator(".content-inner")).toContainText(/approval|genehmigung|pending|game.account/i, {
+    await expect(page.locator(".content-inner").first()).toContainText(/approval|genehmigung|pending|game.account/i, {
       timeout: 20000,
     });
   });
@@ -82,7 +82,7 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=validation");
     await waitForAdminShell(page);
 
-    await expect(page.locator(".content-inner")).toContainText(/validation|validierung|rule|regel/i, {
+    await expect(page.locator(".content-inner").first()).toContainText(/validation|validierung|rule|regel/i, {
       timeout: 20000,
     });
   });
@@ -91,21 +91,21 @@ test.describe("Admin: Tab navigation", () => {
     await page.goto("/admin?tab=corrections");
     await waitForAdminShell(page);
 
-    await expect(page.locator(".content-inner")).toContainText(/correction|korrektur/i, { timeout: 20000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/correction|korrektur/i, { timeout: 20000 });
   });
 
   test("can switch to logs tab", async ({ page }) => {
     await page.goto("/admin?tab=logs");
     await waitForAdminShell(page);
 
-    await expect(page.locator(".content-inner")).toContainText(/log|protokoll|audit/i, { timeout: 20000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/log|protokoll|audit/i, { timeout: 20000 });
   });
 
   test("can switch to forum tab", async ({ page }) => {
     await page.goto("/admin?tab=forum");
     await waitForAdminShell(page);
 
-    await expect(page.locator(".content-inner")).toContainText(/forum|kategor/i, { timeout: 20000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/forum|kategor/i, { timeout: 20000 });
   });
 });
 
@@ -139,12 +139,12 @@ test.describe("Admin: Users section", () => {
     await page.goto("/admin?tab=users");
     await expect(page.locator(".admin-grid")).toBeVisible({ timeout: 30000 });
 
-    /* Wait for lazy-loaded users tab to render its selects */
-    await expect(page.locator("select, [role=combobox], button[class*='select']").first()).toBeVisible({
-      timeout: 20000,
-    });
+    /* Wait for lazy-loaded users tab to render its selects (Radix Select uses .select-trigger) */
+    await expect(page.locator("select, [role=combobox], button[class*='select'], .select-trigger").first()).toBeVisible(
+      { timeout: 20000 },
+    );
 
-    const selects = page.locator("select, [role=combobox], button[class*='select']");
+    const selects = page.locator("select, [role=combobox], button[class*='select'], .select-trigger");
     expect(await selects.count()).toBeGreaterThan(0);
   });
 });

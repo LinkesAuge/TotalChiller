@@ -50,7 +50,10 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     setIsReplyOpen,
   } = api;
 
-  if (viewMode === "inbox" && !selectedThreadId) {
+  const showThread = (viewMode === "inbox" || viewMode === "archive") && selectedThreadId;
+  const showSent = (viewMode === "sent" || viewMode === "archive") && selectedSentMsgId && !selectedThreadId;
+
+  if (!showThread && !showSent) {
     return (
       <section className="card messages-thread-panel">
         <div className="messages-empty">
@@ -60,17 +63,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     );
   }
 
-  if (viewMode === "sent" && !selectedSentMsgId) {
-    return (
-      <section className="card messages-thread-panel">
-        <div className="messages-empty">
-          <div className="text-muted">{t("selectMessage")}</div>
-        </div>
-      </section>
-    );
-  }
-
-  if (viewMode === "inbox" && selectedThreadId) {
+  if (showThread) {
     return (
       <section className="card messages-thread-panel">
         <div className="card-header">
@@ -197,7 +190,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     );
   }
 
-  if (viewMode === "sent" && selectedSentMessage) {
+  if (showSent && selectedSentMessage) {
     return (
       <section className="card messages-thread-panel">
         <div className="card-header">

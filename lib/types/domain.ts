@@ -92,6 +92,22 @@ export interface RecipientResult {
   readonly gameAccounts: readonly string[];
 }
 
+/** Archived item — unified view for both archived inbox threads and sent messages. */
+export interface ArchivedItem {
+  /** thread_id for inbox items, message id for sent items */
+  readonly id: string;
+  readonly source: "inbox" | "sent";
+  readonly subject: string | null;
+  readonly content: string;
+  readonly message_type: string;
+  readonly created_at: string;
+  readonly archived_at: string;
+  readonly sender_id: string | null;
+  readonly message_count: number;
+  readonly recipient_count: number;
+  readonly recipients: readonly RecipientSummary[];
+}
+
 /* ── Notifications ── */
 
 export interface NotificationRow {
@@ -150,6 +166,7 @@ export interface ArticleSummary {
   readonly tags: readonly string[];
   readonly created_at: string;
   readonly author_name: string | null;
+  readonly forum_post_id: string | null;
 }
 
 /** Slim event type for dashboard upcoming events */
@@ -161,6 +178,7 @@ export interface EventSummary {
   readonly starts_at: string;
   readonly ends_at: string;
   readonly author_name: string | null;
+  readonly forum_post_id: string | null;
 }
 
 /* ── Pending Approvals ── */

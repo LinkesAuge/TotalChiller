@@ -159,7 +159,10 @@ function DayPanelEventCardInner({
   }, []);
 
   return (
-    <article className={`day-panel-card${isExpanded ? " expanded" : ""}${entry.is_pinned ? " pinned" : ""}`}>
+    <article
+      data-event-id={entry.id}
+      className={`day-panel-card${isExpanded ? " expanded" : ""}${entry.is_pinned ? " pinned" : ""}`}
+    >
       {/* ── Full banner when expanded ── */}
       {isExpanded && entry.banner_url && (
         <div className="day-panel-full-banner">

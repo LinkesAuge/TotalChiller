@@ -199,7 +199,7 @@ function NewsClient(): JSX.Element {
               const isBeingEdited = isFormOpen && editingId === article.id;
               return (
                 <React.Fragment key={article.id}>
-                  <article className="news-card col-span-full">
+                  <article id={`article-${article.id}`} className="news-card col-span-full">
                     {/* Banner header */}
                     <div
                       className="news-card-banner"

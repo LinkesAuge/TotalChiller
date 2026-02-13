@@ -35,6 +35,7 @@ export function EventsList({ eventsState }: EventsListProps): JSX.Element {
     requestDeleteEvent,
     handleTogglePin,
     handleSelectUpcomingEvent,
+    highlightEventId,
     canManage,
     locale,
     t,
@@ -74,6 +75,7 @@ export function EventsList({ eventsState }: EventsListProps): JSX.Element {
             canManage={canManage}
             locale={locale}
             t={t}
+            highlightEventId={highlightEventId}
           />
         </div>
 

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useToast } from "../components/toast-provider";
-import type { InboxThread, SentMessage, ThreadMessage, RecipientResult } from "@/lib/types/domain";
+import type { ArchivedItem, InboxThread, SentMessage, ThreadMessage, RecipientResult } from "@/lib/types/domain";
 import type { ProfileMap, ViewMode, ClanOption, SelectedRecipient, ComposeMode } from "./messages-types";
 
 const REPLY_SUBJECT_PREFIX = "Re: ";
@@ -31,6 +31,10 @@ export interface UseMessagesResult {
   readonly sentMessages: readonly SentMessage[];
   readonly sentProfiles: ProfileMap;
   readonly isSentLoading: boolean;
+
+  /* Archive */
+  readonly archivedItems: readonly ArchivedItem[];
+  readonly isArchiveLoading: boolean;
 
   /* Thread view */
   readonly selectedThreadId: string;
@@ -85,14 +89,43 @@ export interface UseMessagesResult {
   readonly selectedInboxThread: InboxThread | undefined;
   readonly canReply: boolean;
 
+  /* Delete confirmation */
+  readonly deleteConfirm: {
+    readonly type: "thread" | "sent";
+    readonly ids: readonly string[];
+    readonly extraType?: "thread" | "sent";
+    readonly extraIds?: readonly string[];
+  } | null;
+  readonly setDeleteConfirm: (
+    v: {
+      readonly type: "thread" | "sent";
+      readonly ids: readonly string[];
+      readonly extraType?: "thread" | "sent";
+      readonly extraIds?: readonly string[];
+    } | null,
+  ) => void;
+  readonly isDeleting: boolean;
+
+  /* Multi-select */
+  readonly checkedIds: ReadonlySet<string>;
+  readonly toggleChecked: (id: string) => void;
+  readonly toggleAllChecked: () => void;
+  readonly clearChecked: () => void;
+  readonly requestBatchDelete: () => void;
+  readonly requestBatchArchive: () => void;
+  readonly handleArchive: (type: "thread" | "sent", ids: readonly string[]) => Promise<void>;
+  readonly handleUnarchive: (type: "thread" | "sent", ids: readonly string[]) => Promise<void>;
+
   /* Handlers */
   readonly handleViewModeChange: (mode: ViewMode) => void;
   readonly handleSelectInboxThread: (threadId: string) => void;
   readonly handleSelectSentMessage: (msgId: string) => void;
+  readonly handleSelectArchivedItem: (item: ArchivedItem) => void;
   readonly openReplyToMessage: (message: ThreadMessage) => void;
   readonly handleSendReply: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   readonly handleCompose: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   readonly handleDeleteMessage: (messageId: string) => Promise<void>;
+  readonly confirmDelete: () => Promise<void>;
 
   /* Helpers */
   readonly getProfileLabel: (profileId: string, fallback?: string) => string;
@@ -107,6 +140,7 @@ export interface UseMessagesResult {
   readonly loadThread: (threadId: string) => Promise<void>;
   readonly loadInbox: () => Promise<void>;
   readonly loadSent: () => Promise<void>;
+  readonly loadArchive: () => Promise<void>;
 }
 
 /**
@@ -134,6 +168,11 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
   const [sentMessages, setSentMessages] = useState<readonly SentMessage[]>([]);
   const [sentProfiles, setSentProfiles] = useState<ProfileMap>({});
   const [isSentLoading, setIsSentLoading] = useState<boolean>(false);
+
+  /* ── Archive state ── */
+  const [archivedItems, setArchivedItems] = useState<readonly ArchivedItem[]>([]);
+  const [archiveProfiles, setArchiveProfiles] = useState<ProfileMap>({});
+  const [isArchiveLoading, setIsArchiveLoading] = useState<boolean>(false);
 
   /* ── Thread view state ── */
   const [selectedThreadId, setSelectedThreadId] = useState<string>("");
@@ -171,13 +210,14 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
   const sentAbortRef = useRef<AbortController | null>(null);
   const threadAbortRef = useRef<AbortController | null>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
+  const archiveAbortRef = useRef<AbortController | null>(null);
 
   /* ── Clans ── */
   const [clans, setClans] = useState<readonly ClanOption[]>([]);
 
   const allProfiles = useMemo<ProfileMap>(
-    () => ({ ...inboxProfiles, ...sentProfiles, ...threadProfiles }),
-    [inboxProfiles, sentProfiles, threadProfiles],
+    () => ({ ...inboxProfiles, ...sentProfiles, ...threadProfiles, ...archiveProfiles }),
+    [inboxProfiles, sentProfiles, threadProfiles, archiveProfiles],
   );
 
   const loadInbox = useCallback(async (): Promise<void> => {
@@ -232,6 +272,28 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
     }
   }, [typeFilter, search]);
 
+  const loadArchive = useCallback(async (): Promise<void> => {
+    archiveAbortRef.current?.abort();
+    const controller = new AbortController();
+    archiveAbortRef.current = controller;
+    setIsArchiveLoading(true);
+    try {
+      const response = await fetch("/api/messages/archive", { signal: controller.signal });
+      if (response.ok) {
+        const result = await response.json();
+        if (!controller.signal.aborted) {
+          setArchivedItems(result.data ?? []);
+          setArchiveProfiles(result.profiles ?? {});
+        }
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      throw err;
+    } finally {
+      if (!controller.signal.aborted) setIsArchiveLoading(false);
+    }
+  }, []);
+
   const loadThread = useCallback(async (threadId: string): Promise<void> => {
     threadAbortRef.current?.abort();
     const controller = new AbortController();
@@ -261,16 +323,19 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
       sentAbortRef.current?.abort();
       threadAbortRef.current?.abort();
       searchAbortRef.current?.abort();
+      archiveAbortRef.current?.abort();
     };
   }, []);
 
   useEffect(() => {
     if (viewMode === "inbox") {
       void loadInbox();
-    } else {
+    } else if (viewMode === "sent") {
       void loadSent();
+    } else {
+      void loadArchive();
     }
-  }, [viewMode, loadInbox, loadSent]);
+  }, [viewMode, loadInbox, loadSent, loadArchive]);
 
   useEffect(() => {
     async function loadClans(): Promise<void> {
@@ -431,6 +496,7 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
       setSelectedThreadId("");
       setSelectedSentMsgId("");
       setThreadMessages([]);
+      setCheckedIds(new Set());
       resetReply();
     },
     [resetReply],
@@ -453,6 +519,21 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
       resetReply();
     },
     [resetReply],
+  );
+
+  const handleSelectArchivedItem = useCallback(
+    (item: ArchivedItem): void => {
+      resetReply();
+      if (item.source === "inbox") {
+        setSelectedThreadId(item.id);
+        setSelectedSentMsgId("");
+        void loadThread(item.id);
+      } else {
+        setSelectedSentMsgId(item.id);
+        setSelectedThreadId("");
+      }
+    },
+    [loadThread, resetReply],
   );
 
   const openReplyToMessage = useCallback((message: ThreadMessage): void => {
@@ -588,6 +669,233 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
     [loadInbox, pushToast, t],
   );
 
+  /* ── Delete confirmation state ── */
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    readonly type: "thread" | "sent";
+    readonly ids: readonly string[];
+    /** Additional IDs of a different type (used for mixed archive deletes) */
+    readonly extraType?: "thread" | "sent";
+    readonly extraIds?: readonly string[];
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  /* ── Multi-select state ── */
+  const [checkedIds, setCheckedIds] = useState<ReadonlySet<string>>(new Set());
+
+  const toggleChecked = useCallback((id: string): void => {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAllChecked = useCallback((): void => {
+    if (viewMode === "inbox") {
+      const allIds = inboxThreads.map((th) => th.thread_id);
+      setCheckedIds((prev) => (prev.size === allIds.length ? new Set() : new Set(allIds)));
+    } else if (viewMode === "sent") {
+      const allIds = sentMessages.map((m) => m.id);
+      setCheckedIds((prev) => (prev.size === allIds.length ? new Set() : new Set(allIds)));
+    } else {
+      const allIds = archivedItems.map((i) => i.id);
+      setCheckedIds((prev) => (prev.size === allIds.length ? new Set() : new Set(allIds)));
+    }
+  }, [viewMode, inboxThreads, sentMessages, archivedItems]);
+
+  const clearChecked = useCallback((): void => {
+    setCheckedIds(new Set());
+  }, []);
+
+  const requestBatchDelete = useCallback((): void => {
+    if (checkedIds.size === 0) return;
+    if (viewMode === "archive") {
+      /* In archive: separate by source so each group hits the correct API endpoint */
+      const threadIds = archivedItems.filter((i) => i.source === "inbox" && checkedIds.has(i.id)).map((i) => i.id);
+      const sentIds = archivedItems.filter((i) => i.source === "sent" && checkedIds.has(i.id)).map((i) => i.id);
+      if (threadIds.length > 0 && sentIds.length === 0) {
+        setDeleteConfirm({ type: "thread", ids: threadIds });
+      } else if (sentIds.length > 0 && threadIds.length === 0) {
+        setDeleteConfirm({ type: "sent", ids: sentIds });
+      } else {
+        /* Mixed: primary group is threads, extra group is sent */
+        setDeleteConfirm({ type: "thread", ids: threadIds, extraType: "sent", extraIds: sentIds });
+      }
+    } else {
+      setDeleteConfirm({
+        type: viewMode === "inbox" ? "thread" : "sent",
+        ids: Array.from(checkedIds),
+      });
+    }
+  }, [checkedIds, viewMode, archivedItems]);
+
+  const confirmDelete = useCallback(async (): Promise<void> => {
+    if (!deleteConfirm) return;
+    setIsDeleting(true);
+    try {
+      const { type, ids, extraType, extraIds } = deleteConfirm;
+
+      /* Build the list of fetch promises — each ID goes to the correct endpoint */
+      const endpoint = type === "thread" ? "/api/messages/thread/" : "/api/messages/sent/";
+      const fetches = ids.map((id) => fetch(`${endpoint}${id}`, { method: "DELETE" }));
+
+      /* Handle mixed deletes (e.g. archive with both inbox + sent selected) */
+      if (extraType && extraIds && extraIds.length > 0) {
+        const extraEndpoint = extraType === "thread" ? "/api/messages/thread/" : "/api/messages/sent/";
+        for (const id of extraIds) {
+          fetches.push(fetch(`${extraEndpoint}${id}`, { method: "DELETE" }));
+        }
+      }
+
+      const results = await Promise.allSettled(fetches);
+
+      const failCount = results.filter(
+        (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok),
+      ).length;
+      if (failCount > 0) {
+        pushToast(t("failedToDeleteSome", { count: failCount }));
+      }
+
+      /* Collect all deleted IDs from both groups */
+      const allDeletedIds = [...ids, ...(extraIds ?? [])];
+      const deletedSet = new Set(allDeletedIds);
+
+      /* Clear selection if any deleted items were open */
+      if (deletedSet.has(selectedThreadId)) {
+        setSelectedThreadId("");
+        setThreadMessages([]);
+        resetReply();
+      }
+      if (deletedSet.has(selectedSentMsgId)) {
+        setSelectedSentMsgId("");
+      }
+
+      /* Reload the appropriate list */
+      if (viewMode === "archive") {
+        void loadArchive();
+      } else if (type === "thread") {
+        void loadInbox();
+      } else {
+        void loadSent();
+      }
+
+      /* Clear checked IDs for deleted items */
+      setCheckedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of allDeletedIds) next.delete(id);
+        return next;
+      });
+    } catch {
+      pushToast(t("failedToDelete"));
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirm(null);
+    }
+  }, [
+    deleteConfirm,
+    selectedThreadId,
+    selectedSentMsgId,
+    viewMode,
+    loadInbox,
+    loadSent,
+    loadArchive,
+    pushToast,
+    resetReply,
+    t,
+  ]);
+
+  /* ── Archive / unarchive handlers ── */
+
+  const handleArchive = useCallback(
+    async (type: "thread" | "sent", ids: readonly string[]): Promise<void> => {
+      try {
+        const response = await fetch("/api/messages/archive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, ids, action: "archive" }),
+        });
+        if (!response.ok) {
+          pushToast(t("failedToArchive"));
+          return;
+        }
+        /* Clear selection for archived items */
+        setCheckedIds((prev) => {
+          const next = new Set(prev);
+          for (const id of ids) next.delete(id);
+          return next;
+        });
+        if (type === "thread") {
+          if (ids.includes(selectedThreadId)) {
+            setSelectedThreadId("");
+            setThreadMessages([]);
+            resetReply();
+          }
+          void loadInbox();
+        } else {
+          if (ids.includes(selectedSentMsgId)) {
+            setSelectedSentMsgId("");
+          }
+          void loadSent();
+        }
+        pushToast(t("archived", { count: ids.length }));
+      } catch {
+        pushToast(t("failedToArchive"));
+      }
+    },
+    [selectedThreadId, selectedSentMsgId, loadInbox, loadSent, pushToast, resetReply, t],
+  );
+
+  const handleUnarchive = useCallback(
+    async (type: "thread" | "sent", ids: readonly string[]): Promise<void> => {
+      try {
+        const response = await fetch("/api/messages/archive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, ids, action: "unarchive" }),
+        });
+        if (!response.ok) {
+          pushToast(t("failedToUnarchive"));
+          return;
+        }
+        setCheckedIds((prev) => {
+          const next = new Set(prev);
+          for (const id of ids) next.delete(id);
+          return next;
+        });
+        /* Clear selection if unarchived item was open */
+        if (type === "thread" && ids.includes(selectedThreadId)) {
+          setSelectedThreadId("");
+          setThreadMessages([]);
+        }
+        if (type === "sent" && ids.includes(selectedSentMsgId)) {
+          setSelectedSentMsgId("");
+        }
+        void loadArchive();
+        pushToast(t("unarchived", { count: ids.length }));
+      } catch {
+        pushToast(t("failedToUnarchive"));
+      }
+    },
+    [selectedThreadId, selectedSentMsgId, loadArchive, pushToast, t],
+  );
+
+  const requestBatchArchive = useCallback((): void => {
+    if (checkedIds.size === 0) return;
+    if (viewMode === "archive") {
+      /* Unarchive: separate by source */
+      const threadIds = archivedItems.filter((i) => i.source === "inbox" && checkedIds.has(i.id)).map((i) => i.id);
+      const sentIds = archivedItems.filter((i) => i.source === "sent" && checkedIds.has(i.id)).map((i) => i.id);
+      const promises: Promise<void>[] = [];
+      if (threadIds.length > 0) promises.push(handleUnarchive("thread", threadIds));
+      if (sentIds.length > 0) promises.push(handleUnarchive("sent", sentIds));
+      void Promise.all(promises);
+    } else {
+      const type = viewMode === "inbox" ? "thread" : "sent";
+      void handleArchive(type as "thread" | "sent", Array.from(checkedIds));
+    }
+  }, [checkedIds, viewMode, archivedItems, handleArchive, handleUnarchive]);
+
   const totalInboxUnread = useMemo(
     () => inboxThreads.reduce((sum, thread) => sum + thread.unread_count, 0),
     [inboxThreads],
@@ -601,10 +909,31 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
     return options;
   }, [isContentMgr, t]);
 
-  const selectedSentMessage = useMemo(
-    () => sentMessages.find((m) => m.id === selectedSentMsgId),
-    [sentMessages, selectedSentMsgId],
-  );
+  const selectedSentMessage = useMemo((): SentMessage | undefined => {
+    if (!selectedSentMsgId) return undefined;
+    /* Look in regular sent list first */
+    const fromSent = sentMessages.find((m) => m.id === selectedSentMsgId);
+    if (fromSent) return fromSent;
+    /* Fall back to archived items (archive tab shows sent messages that aren't in sentMessages) */
+    if (viewMode === "archive") {
+      const archived = archivedItems.find((i) => i.id === selectedSentMsgId && i.source === "sent");
+      if (archived) {
+        return {
+          id: archived.id,
+          sender_id: archived.sender_id,
+          subject: archived.subject,
+          content: archived.content,
+          message_type: archived.message_type,
+          thread_id: null,
+          parent_id: null,
+          created_at: archived.created_at,
+          recipient_count: archived.recipient_count,
+          recipients: archived.recipients,
+        };
+      }
+    }
+    return undefined;
+  }, [sentMessages, selectedSentMsgId, viewMode, archivedItems]);
 
   const selectedInboxThread = useMemo(
     () => inboxThreads.find((th) => th.thread_id === selectedThreadId),
@@ -612,9 +941,10 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
   );
 
   const canReply =
-    viewMode === "inbox" &&
+    (viewMode === "inbox" || (viewMode === "archive" && selectedThreadId !== "")) &&
     selectedThreadId !== "" &&
-    selectedInboxThread?.message_type === "private" &&
+    (selectedInboxThread?.message_type === "private" ||
+      (viewMode === "archive" && threadMessages.some((m) => m.message_type === "private"))) &&
     threadMessages.length > 0;
 
   return {
@@ -628,6 +958,8 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
     sentMessages,
     sentProfiles,
     isSentLoading,
+    archivedItems,
+    isArchiveLoading,
     selectedThreadId,
     selectedSentMsgId,
     threadMessages,
@@ -670,10 +1002,23 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
     handleViewModeChange,
     handleSelectInboxThread,
     handleSelectSentMessage,
+    handleSelectArchivedItem,
     openReplyToMessage,
     handleSendReply,
     handleCompose,
     handleDeleteMessage,
+    confirmDelete,
+    deleteConfirm,
+    setDeleteConfirm,
+    isDeleting,
+    checkedIds,
+    toggleChecked,
+    toggleAllChecked,
+    clearChecked,
+    requestBatchDelete,
+    requestBatchArchive,
+    handleArchive,
+    handleUnarchive,
     getProfileLabel,
     addRecipient,
     removeRecipient,
@@ -684,5 +1029,6 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
     loadThread,
     loadInbox,
     loadSent,
+    loadArchive,
   };
 }

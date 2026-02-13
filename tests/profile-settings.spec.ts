@@ -38,7 +38,9 @@ test.describe("Profile: Game accounts section", () => {
     await page.waitForLoadState("networkidle");
 
     /* Should have some section for game accounts or memberships */
-    await expect(page.locator(".content-inner")).toContainText(/game|account|konto|spiel|clan/i, { timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/game|account|konto|spiel|clan/i, {
+      timeout: 10000,
+    });
   });
 });
 
@@ -79,7 +81,9 @@ test.describe("Settings: Sections", () => {
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator(".content-inner")).toContainText(/display|anzeigename|nickname/i, { timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/display|anzeigename|nickname/i, {
+      timeout: 10000,
+    });
   });
 
   test("has notification toggles", async ({ page }) => {
@@ -95,7 +99,7 @@ test.describe("Settings: Sections", () => {
     await page.goto("/settings");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator(".content-inner")).toContainText(/language|sprache/i, { timeout: 10000 });
+    await expect(page.locator(".content-inner").first()).toContainText(/language|sprache/i, { timeout: 10000 });
   });
 });
 
@@ -104,7 +108,7 @@ test.describe("Settings: Username (admin only)", () => {
     await loginAs(page, "admin");
     await page.goto("/settings");
     /* Don't wait for networkidle — settings page may have persistent connections */
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 20000 });
 
     /* Username input should be enabled for admins */
     const usernameInput = page.locator('input[placeholder*="username"], input[minlength="2"]');

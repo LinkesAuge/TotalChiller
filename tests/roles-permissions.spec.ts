@@ -99,7 +99,7 @@ test.describe("Role-based access: Content management buttons", () => {
       await page.goto("/news");
       await page.waitForLoadState("networkidle");
       /* Wait for page content to render */
-      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
       const noClanMsg = page.locator(
         "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
@@ -113,7 +113,7 @@ test.describe("Role-based access: Content management buttons", () => {
     test("moderator sees create article button or no-clan message on /news", async ({ page }) => {
       await page.goto("/news");
       await page.waitForLoadState("networkidle");
-      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
       const noClanMsg = page.locator(
         "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
@@ -127,7 +127,7 @@ test.describe("Role-based access: Content management buttons", () => {
     test("guest does NOT see create article button on /news", async ({ page }) => {
       await page.goto("/news");
       await page.waitForLoadState("networkidle");
-      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
       expect(await createBtn.count()).toBe(0);
     });
@@ -140,7 +140,7 @@ test.describe("Role-based access: Event management", () => {
     test("editor sees create event button or no-clan message on /events", async ({ page }) => {
       await page.goto("/events");
       await page.waitForLoadState("networkidle");
-      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
       const noClanMsg = page.locator(
         "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
@@ -154,7 +154,7 @@ test.describe("Role-based access: Event management", () => {
     test("member does NOT see create event button on /events", async ({ page }) => {
       await page.goto("/events");
       await page.waitForLoadState("networkidle");
-      await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
       expect(await createBtn.count()).toBe(0);
     });

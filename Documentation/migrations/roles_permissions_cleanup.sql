@@ -176,7 +176,7 @@ as $$
             'article:create', 'article:edit:own',
             'comment:create', 'comment:edit:own', 'comment:delete:own',
             'data:view',
-            'forum:create', 'forum:edit:own',
+            'forum:create', 'forum:edit:own', 'forum:delete:own',
             'message:send:private',
             'profile:edit:own'
           ]))

@@ -2,7 +2,14 @@
 
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { DisplayEvent } from "./events-types";
-import { formatDuration, formatDateRange, isMultiDayEvent } from "./events-utils";
+import {
+  formatDuration,
+  formatDateRange,
+  isMultiDayEvent,
+  getDateBadgeParts,
+  getShortTimeString,
+  getRecurrenceLabel,
+} from "./events-utils";
 
 export interface UpcomingEventsSidebarProps {
   readonly upcomingEvents: readonly DisplayEvent[];
@@ -18,37 +25,7 @@ export interface UpcomingEventsSidebarProps {
   readonly t: (key: string, values?: Record<string, string>) => string;
 }
 
-/** Returns a short weekday abbreviation and day number from a date string. */
-function getDateParts(dateString: string, locale: string): { weekday: string; day: string; month: string } {
-  const date = new Date(dateString);
-  return {
-    weekday: date.toLocaleDateString(locale, { weekday: "short" }),
-    day: String(date.getDate()),
-    month: date.toLocaleDateString(locale, { month: "short" }),
-  };
-}
-
-/** Returns a short time string (HH:MM) from a date string. */
-function getTimeString(dateString: string, locale: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
-}
-
-/** Recurrence type label helper. */
-function getRecurrenceLabel(recurrenceType: string, t: (key: string) => string): string {
-  switch (recurrenceType) {
-    case "daily":
-      return t("recurrenceDailyLabel");
-    case "weekly":
-      return t("recurrenceWeeklyLabel");
-    case "biweekly":
-      return t("recurrenceBiweeklyLabel");
-    case "monthly":
-      return t("recurrenceMonthlyLabel");
-    default:
-      return "";
-  }
-}
+/* getDateBadgeParts, getShortTimeString, getRecurrenceLabel imported from events-utils */
 
 export function UpcomingEventsSidebar({
   upcomingEvents,
@@ -80,7 +57,7 @@ export function UpcomingEventsSidebar({
         <>
           <div className="events-upcoming-list">
             {pageEvents.map((entry) => {
-              const dateParts = getDateParts(entry.starts_at, locale);
+              const dateParts = getDateBadgeParts(entry.starts_at, locale);
               return (
                 <article
                   key={`upcoming-${entry.displayKey}`}
@@ -136,7 +113,7 @@ export function UpcomingEventsSidebar({
                             formatDateRange(entry.starts_at, entry.ends_at, locale)
                           ) : (
                             <>
-                              {getTimeString(entry.starts_at, locale)}
+                              {getShortTimeString(entry.starts_at, locale)}
                               <span className="upcoming-event-duration">
                                 ({formatDuration(entry.starts_at, entry.ends_at)})
                               </span>

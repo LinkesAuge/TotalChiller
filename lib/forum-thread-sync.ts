@@ -12,11 +12,6 @@ interface CreateLinkedPostParams {
   readonly categorySlug: string;
 }
 
-interface UpdateLinkedPostParams {
-  readonly title: string;
-  readonly content: string;
-}
-
 interface SyncResult {
   readonly forumPostId: string | null;
   readonly error: string | null;
@@ -43,6 +38,9 @@ async function findCategoryId(supabase: SupabaseClient, clanId: string, slug: st
 /**
  * Creates a forum post linked to an event or announcement.
  * Returns the new forum post ID, or an error message.
+ *
+ * Note: Update and delete sync are handled by database triggers
+ * (see Documentation/migrations/forum_thread_linking.sql).
  */
 export async function createLinkedForumPost(
   supabase: SupabaseClient,
@@ -66,31 +64,4 @@ export async function createLinkedForumPost(
     return { forumPostId: null, error: error.message };
   }
   return { forumPostId: data.id as string, error: null };
-}
-
-/**
- * Updates the title and content of an existing linked forum post.
- */
-export async function updateLinkedForumPost(
-  supabase: SupabaseClient,
-  forumPostId: string,
-  params: UpdateLinkedPostParams,
-): Promise<string | null> {
-  const { error } = await supabase
-    .from("forum_posts")
-    .update({
-      title: params.title,
-      content: params.content || null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", forumPostId);
-  return error?.message ?? null;
-}
-
-/**
- * Deletes a linked forum post by ID.
- */
-export async function deleteLinkedForumPost(supabase: SupabaseClient, forumPostId: string): Promise<string | null> {
-  const { error } = await supabase.from("forum_posts").delete().eq("id", forumPostId);
-  return error?.message ?? null;
 }

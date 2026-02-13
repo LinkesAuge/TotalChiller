@@ -6,7 +6,16 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { CalendarDay, DisplayEvent } from "./events-types";
 import { EVENT_COLORS, WEEKDAY_LABELS } from "./events-types";
-import { formatDuration, formatDateRange, isMultiDayEvent, sortPinnedFirst, toDateKey } from "./events-utils";
+import {
+  formatDuration,
+  formatDateRange,
+  isMultiDayEvent,
+  sortPinnedFirst,
+  toDateKey,
+  getDateBadgeParts,
+  getShortTimeString,
+  getRecurrenceLabel,
+} from "./events-utils";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-8 rounded" />,
@@ -125,10 +134,7 @@ function UserIcon(): JSX.Element {
 
 /* ── Time helpers ── */
 
-/** Format a short time string for tooltip display. */
-function shortTime(isoString: string, locale: string): string {
-  return new Date(isoString).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
-}
+/* shortTime is imported as getShortTimeString from events-utils */
 
 /**
  * Return the appropriate time label for a calendar cell based on the cell's
@@ -145,15 +151,15 @@ function cellTimeLabel(
   t: (key: string, values?: Record<string, string>) => string,
 ): string {
   if (!isMultiDayEvent(event.starts_at, event.ends_at)) {
-    return shortTime(event.starts_at, locale);
+    return getShortTimeString(event.starts_at, locale);
   }
   const startKey = toDateKey(new Date(event.starts_at));
   const endKey = toDateKey(new Date(event.ends_at));
   if (cellDateKey === startKey) {
-    return t("fromTime", { time: shortTime(event.starts_at, locale) });
+    return t("fromTime", { time: getShortTimeString(event.starts_at, locale) });
   }
   if (cellDateKey === endKey) {
-    return t("untilTime", { time: shortTime(event.ends_at, locale) });
+    return t("untilTime", { time: getShortTimeString(event.ends_at, locale) });
   }
   return t("allDay");
 }
@@ -338,7 +344,7 @@ export function EventCalendar({
                         <span>{formatDateRange(ev.starts_at, ev.ends_at, locale)}</span>
                       ) : (
                         <>
-                          <span>{shortTime(ev.starts_at, locale)}</span>
+                          <span>{getShortTimeString(ev.starts_at, locale)}</span>
                           <span>{formatDuration(ev.starts_at, ev.ends_at)}</span>
                         </>
                       )}
@@ -372,31 +378,7 @@ export function EventCalendar({
    EventDayPanel — selected day detail (rendered separately)
    ══════════════════════════════════════════════════════════ */
 
-/** Recurrence label helper (same logic as sidebar). */
-function recurrenceLabel(type: string, t: (k: string) => string): string {
-  switch (type) {
-    case "daily":
-      return t("recurrenceDailyLabel");
-    case "weekly":
-      return t("recurrenceWeeklyLabel");
-    case "biweekly":
-      return t("recurrenceBiweeklyLabel");
-    case "monthly":
-      return t("recurrenceMonthlyLabel");
-    default:
-      return "";
-  }
-}
-
-/** Returns weekday / day / month parts for the date badge. */
-function dateBadgeParts(isoString: string, locale: string): { weekday: string; day: string; month: string } {
-  const d = new Date(isoString);
-  return {
-    weekday: d.toLocaleDateString(locale, { weekday: "short" }),
-    day: String(d.getDate()),
-    month: d.toLocaleDateString(locale, { month: "short" }),
-  };
-}
+/* recurrenceLabel and dateBadgeParts are imported from events-utils */
 
 export function EventDayPanel({
   selectedDateLabel,
@@ -456,7 +438,7 @@ export function EventDayPanel({
         <div className="calendar-day-events">
           {visibleEvents.map((entry) => {
             const isExpanded = expandedKeys.has(entry.displayKey);
-            const dp = dateBadgeParts(entry.starts_at, locale);
+            const dp = getDateBadgeParts(entry.starts_at, locale);
             return (
               <article
                 key={`daypanel-${entry.displayKey}`}
@@ -503,7 +485,7 @@ export function EventDayPanel({
                           {entry.is_pinned && <span className="day-panel-pin-badge">{t("pinned")}</span>}
                           {entry.recurrence_type !== "none" && (
                             <span className="day-panel-recurrence-badge">
-                              {recurrenceLabel(entry.recurrence_type, t)}
+                              {getRecurrenceLabel(entry.recurrence_type, t)}
                             </span>
                           )}
                         </div>
@@ -517,7 +499,7 @@ export function EventDayPanel({
                         ) : (
                           <span className="day-panel-meta-item">
                             <ClockIcon />
-                            {shortTime(entry.starts_at, locale)}
+                            {getShortTimeString(entry.starts_at, locale)}
                             <span className="day-panel-meta-dim">
                               ({formatDuration(entry.starts_at, entry.ends_at)})
                             </span>

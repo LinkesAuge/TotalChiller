@@ -298,7 +298,7 @@ function NewsClient(): JSX.Element {
         }),
       });
       /* Create linked forum thread */
-      const { forumPostId } = await createLinkedForumPost(supabase, {
+      const { forumPostId, error: forumError } = await createLinkedForumPost(supabase, {
         clanId: clanContext.clanId,
         authorId: userId,
         title: parsed.data.title,
@@ -307,7 +307,9 @@ function NewsClient(): JSX.Element {
         sourceId: insertedData.id as string,
         categorySlug: "announcements",
       });
-      if (forumPostId) {
+      if (forumError) {
+        pushToast(t("forumThreadFailed"));
+      } else if (forumPostId) {
         await supabase
           .from("articles")
           .update({ forum_post_id: forumPostId })

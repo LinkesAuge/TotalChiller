@@ -16,6 +16,37 @@ interface ProfileJoin {
 const EVENTS_SELECT =
   "id,title,description,location,starts_at,ends_at,created_at,updated_at,created_by,organizer,recurrence_type,recurrence_end_date,banner_url,is_pinned,forum_post_id,author:profiles!events_created_by_profiles_fkey(display_name,username)";
 
+/** Map a raw Supabase row to an EventRow. */
+function mapRowToEventRow(row: Record<string, unknown>): EventRow {
+  return {
+    ...row,
+    organizer: (row.organizer as string) ?? null,
+    author_name: extractAuthorName(row.author as ProfileJoin | null),
+    recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
+    recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+    banner_url: (row.banner_url as string) ?? null,
+    is_pinned: (row.is_pinned as boolean) ?? false,
+    forum_post_id: (row.forum_post_id as string) ?? null,
+    updated_at: (row.updated_at as string) ?? null,
+  } as EventRow;
+}
+
+/** Map a raw Supabase row to a TemplateRow. */
+function mapRowToTemplateRow(row: Record<string, unknown>): TemplateRow {
+  return {
+    id: row.id as string,
+    title: (row.title as string) ?? "",
+    description: (row.description as string) ?? "",
+    location: (row.location as string) ?? null,
+    duration_hours: (row.duration_hours as number) ?? 0,
+    is_open_ended: (row.is_open_ended as boolean) ?? ((row.duration_hours as number) ?? 0) <= 0,
+    organizer: (row.organizer as string) ?? null,
+    recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
+    recurrence_end_date: (row.recurrence_end_date as string) ?? null,
+    banner_url: (row.banner_url as string) ?? null,
+  };
+}
+
 export interface UseEventsDataResult {
   readonly events: readonly EventRow[];
   readonly setEvents: React.Dispatch<React.SetStateAction<readonly EventRow[]>>;
@@ -70,19 +101,7 @@ export function useEventsData(
         return;
       }
       const rows = (data ?? []) as Array<Record<string, unknown>>;
-      setEvents(
-        rows.map((row) => ({
-          ...row,
-          organizer: (row.organizer as string) ?? null,
-          author_name: extractAuthorName(row.author as ProfileJoin | null),
-          recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
-          recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-          banner_url: (row.banner_url as string) ?? null,
-          is_pinned: (row.is_pinned as boolean) ?? false,
-          forum_post_id: (row.forum_post_id as string) ?? null,
-          updated_at: (row.updated_at as string) ?? null,
-        })) as EventRow[],
-      );
+      setEvents(rows.map(mapRowToEventRow));
     }
     void loadEvents();
     return () => {
@@ -103,20 +122,7 @@ export function useEventsData(
         .eq("clan_id", clanId)
         .order("title", { ascending: true });
       if (cancelled || error) return;
-      setTemplates(
-        (data ?? []).map((row: Record<string, unknown>) => ({
-          id: row.id as string,
-          title: (row.title as string) ?? "",
-          description: (row.description as string) ?? "",
-          location: (row.location as string) ?? null,
-          duration_hours: (row.duration_hours as number) ?? 0,
-          is_open_ended: (row.is_open_ended as boolean) ?? ((row.duration_hours as number) ?? 0) <= 0,
-          organizer: (row.organizer as string) ?? null,
-          recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
-          recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-          banner_url: (row.banner_url as string) ?? null,
-        })),
-      );
+      setTemplates((data ?? []).map((row: Record<string, unknown>) => mapRowToTemplateRow(row)));
     }
     void loadTemplates();
     return () => {
@@ -166,19 +172,7 @@ export function useEventsData(
       return;
     }
     const rows = (data ?? []) as Array<Record<string, unknown>>;
-    setEvents(
-      rows.map((row) => ({
-        ...row,
-        organizer: (row.organizer as string) ?? null,
-        author_name: extractAuthorName(row.author as ProfileJoin | null),
-        recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
-        recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-        banner_url: (row.banner_url as string) ?? null,
-        is_pinned: (row.is_pinned as boolean) ?? false,
-        forum_post_id: (row.forum_post_id as string) ?? null,
-        updated_at: (row.updated_at as string) ?? null,
-      })) as EventRow[],
-    );
+    setEvents(rows.map(mapRowToEventRow));
   }
 
   async function reloadTemplates(): Promise<void> {
@@ -189,20 +183,7 @@ export function useEventsData(
       .eq("clan_id", clanId)
       .order("title", { ascending: true });
     if (error) return;
-    setTemplates(
-      (data ?? []).map((row: Record<string, unknown>) => ({
-        id: row.id as string,
-        title: (row.title as string) ?? "",
-        description: (row.description as string) ?? "",
-        location: (row.location as string) ?? null,
-        duration_hours: (row.duration_hours as number) ?? 0,
-        is_open_ended: (row.is_open_ended as boolean) ?? ((row.duration_hours as number) ?? 0) <= 0,
-        organizer: (row.organizer as string) ?? null,
-        recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
-        recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-        banner_url: (row.banner_url as string) ?? null,
-      })),
-    );
+    setTemplates((data ?? []).map((row: Record<string, unknown>) => mapRowToTemplateRow(row)));
   }
 
   return {

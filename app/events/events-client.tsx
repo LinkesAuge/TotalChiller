@@ -403,7 +403,7 @@ function EventsClient(): JSX.Element {
         }),
       });
       /* Create linked forum thread */
-      const { forumPostId } = await createLinkedForumPost(supabase, {
+      const { forumPostId, error: forumError } = await createLinkedForumPost(supabase, {
         clanId: clanContext.clanId,
         authorId: userId,
         title: parsed.data.title,
@@ -412,7 +412,9 @@ function EventsClient(): JSX.Element {
         sourceId: insertedData.id as string,
         categorySlug: "events",
       });
-      if (forumPostId) {
+      if (forumError) {
+        pushToast(t("forumThreadFailed"));
+      } else if (forumPostId) {
         await supabase
           .from("events")
           .update({ forum_post_id: forumPostId })

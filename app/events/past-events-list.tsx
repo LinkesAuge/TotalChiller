@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { DisplayEvent, EventRow } from "./events-types";
-import { formatDuration } from "./events-utils";
+import { formatDuration, getRecurrenceLabel } from "./events-utils";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-8 rounded" />,
@@ -73,15 +73,7 @@ function EventCard({
         </div>
         <div className="flex gap-1.5 items-center shrink-0">
           {entry.recurrence_type && entry.recurrence_type !== "none" && (
-            <span className="badge text-[0.65rem]">
-              {entry.recurrence_type === "daily"
-                ? t("recurrenceDailyLabel")
-                : entry.recurrence_type === "weekly"
-                  ? t("recurrenceWeeklyLabel")
-                  : entry.recurrence_type === "biweekly"
-                    ? t("recurrenceBiweeklyLabel")
-                    : t("recurrenceMonthlyLabel")}
-            </span>
+            <span className="badge text-[0.65rem]">{getRecurrenceLabel(entry.recurrence_type, t)}</span>
           )}
           <span className="badge">{isPast ? t("past") : t("upcoming")}</span>
         </div>

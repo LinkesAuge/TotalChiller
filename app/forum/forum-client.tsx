@@ -18,11 +18,13 @@ import type { ForumPost, ForumComment, SortMode, ViewMode } from "./forum-types"
 import { PAGE_SIZE } from "./forum-types";
 import type { ForumCategory } from "@/lib/types/domain";
 import { usePagination } from "@/lib/hooks/use-pagination";
+import { useToast } from "../components/toast-provider";
 
 function ForumClient(): JSX.Element {
   const supabase = useSupabase();
   const clanContext = useClanContext();
   const t = useTranslations("forum");
+  const { pushToast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlCategorySlug = searchParams.get("category") ?? "";
@@ -244,11 +246,13 @@ function ForumClient(): JSX.Element {
   useEffect(() => {
     if (!urlPostId || !clanContext || !tablesReady) return;
     if (viewMode === "detail" && selectedPost?.id === urlPostId) return;
+    let cancelled = false;
     async function openLinkedPost(): Promise<void> {
       const { data, error } = await supabase.from("forum_posts").select("*").eq("id", urlPostId).maybeSingle();
-      if (error || !data) return;
+      if (cancelled || error || !data) return;
       const raw = data as ForumPost;
       const nameMap = await resolveAuthorNames(supabase, [raw.author_id]);
+      if (cancelled) return;
       const catMap: Record<string, { name: string; slug: string }> = {};
       for (const cat of categories) {
         catMap[cat.id] = { name: cat.name, slug: cat.slug };
@@ -261,6 +265,7 @@ function ForumClient(): JSX.Element {
           .eq("post_id", raw.id)
           .eq("user_id", currentUserId)
           .maybeSingle();
+        if (cancelled) return;
         userVote = (votes?.vote_type as number) ?? 0;
       }
       const enriched: ForumPost = {
@@ -277,6 +282,9 @@ function ForumClient(): JSX.Element {
       void loadComments(enriched.id);
     }
     void openLinkedPost();
+    return () => {
+      cancelled = true;
+    };
   }, [urlPostId, clanContext, tablesReady, categories, supabase, currentUserId, loadComments]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ─── Voting ─── */
@@ -353,7 +361,11 @@ function ForumClient(): JSX.Element {
       if (canManage) {
         updatePayload.is_pinned = formPinned;
       }
-      await supabase.from("forum_posts").update(updatePayload).eq("id", editingPostId);
+      const { error: updateError } = await supabase.from("forum_posts").update(updatePayload).eq("id", editingPostId);
+      if (updateError) {
+        pushToast(t("saveFailed"));
+        return;
+      }
       /* Stay in detail view with refreshed data */
       const savedId = editingPostId;
       resetForm();
@@ -392,7 +404,11 @@ function ForumClient(): JSX.Element {
       if (canManage && formPinned) {
         insertPayload.is_pinned = true;
       }
-      await supabase.from("forum_posts").insert(insertPayload);
+      const { error: insertError } = await supabase.from("forum_posts").insert(insertPayload);
+      if (insertError) {
+        pushToast(t("saveFailed"));
+        return;
+      }
       resetForm();
       setViewMode("list");
       pagination.setPage(1);
@@ -535,12 +551,14 @@ function ForumClient(): JSX.Element {
     }
     const deleteCount = countInTree(comments, commentId);
     const { error } = await supabase.from("forum_comments").delete().eq("id", commentId);
-    if (!error) {
-      const newCount = Math.max(0, (selectedPost.comment_count ?? 0) - deleteCount);
-      await supabase.from("forum_posts").update({ comment_count: newCount }).eq("id", selectedPost.id);
-      setSelectedPost((prev) => (prev ? { ...prev, comment_count: newCount } : prev));
-      void loadComments(selectedPost.id);
+    if (error) {
+      pushToast(t("deleteCommentFailed"));
+      return;
     }
+    const newCount = Math.max(0, (selectedPost.comment_count ?? 0) - deleteCount);
+    await supabase.from("forum_posts").update({ comment_count: newCount }).eq("id", selectedPost.id);
+    setSelectedPost((prev) => (prev ? { ...prev, comment_count: newCount } : prev));
+    void loadComments(selectedPost.id);
   }
 
   /* ─── Navigate back to list (reload posts for fresh counts) ─── */

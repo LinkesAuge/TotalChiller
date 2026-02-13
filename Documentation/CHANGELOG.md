@@ -6,6 +6,18 @@
 
 ---
 
+## 2026-02-13 — Code Review Fixes: Permissions, Error Handling, Deduplication
+
+- **Fix: members can now delete own forum comments/replies**: Added `forum:delete:own` to the `member` role in both TypeScript (`lib/permissions.ts`) and SQL (`has_permission()`). Previously the UI showed the delete button but RLS silently blocked the action. Migration: `member_forum_delete_permission.sql`.
+- **Error handling**: Forum post create/edit/delete now surface errors via toast notifications instead of failing silently. Event and announcement forum thread creation also shows a warning toast on failure.
+- **Dead code removed**: `updateLinkedForumPost` and `deleteLinkedForumPost` removed from `lib/forum-thread-sync.ts` — DB triggers handle all update/delete sync.
+- **Admin category reorder UI removed**: Since categories are now sorted alphabetically, the move-up/move-down buttons and sort_order display were removed from the forum category admin panel.
+- **Deep-link effect cleanup**: The `useEffect` for `?post=` in `forum-client.tsx` now uses a cancellation flag to prevent state updates after unmount.
+- **Deduplicated event data mapping**: Extracted `mapRowToEventRow()` and `mapRowToTemplateRow()` helpers in `use-events-data.ts`, eliminating four copies of the same mapping logic.
+- **Deduplicated display helpers**: Extracted `getDateBadgeParts()`, `getShortTimeString()`, and `getRecurrenceLabel()` into `events-utils.ts`, replacing identical copies in `event-calendar.tsx`, `upcoming-events-sidebar.tsx`, and `past-events-list.tsx`.
+
+---
+
 ## 2026-02-13 — UI Polish: Buttons, Filters, Event Edit Indicator
 
 - **"Edited by" indicator on events**: Events now track `updated_at`. When an event has been edited (directly or via forum thread sync), the footer displays "bearbeitet von {name}" / "edited by {name}" with the last-edited timestamp, instead of the original "von {name}" / "by {name}" with the creation date. Applied across calendar day panel, upcoming events sidebar, and past events list.

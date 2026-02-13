@@ -85,6 +85,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
     "data:view",
     "forum:create",
     "forum:edit:own",
+    "forum:delete:own",
     "message:send:private",
     "profile:edit:own",
   ],

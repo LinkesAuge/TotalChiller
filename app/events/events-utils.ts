@@ -193,3 +193,36 @@ export function sortPinnedFirst<T extends { readonly is_pinned: boolean }>(event
     return 0;
   });
 }
+
+/* ── Shared display helpers ── */
+
+/** Returns a short weekday abbreviation, day number, and month from a date string. */
+export function getDateBadgeParts(dateString: string, locale: string): { weekday: string; day: string; month: string } {
+  const d = new Date(dateString);
+  return {
+    weekday: d.toLocaleDateString(locale, { weekday: "short" }),
+    day: String(d.getDate()),
+    month: d.toLocaleDateString(locale, { month: "short" }),
+  };
+}
+
+/** Returns a short time string (HH:MM) from a date string. */
+export function getShortTimeString(dateString: string, locale: string): string {
+  return new Date(dateString).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+}
+
+/** Returns a human-readable recurrence label from a recurrence type. */
+export function getRecurrenceLabel(recurrenceType: string, t: (key: string) => string): string {
+  switch (recurrenceType) {
+    case "daily":
+      return t("recurrenceDailyLabel");
+    case "weekly":
+      return t("recurrenceWeeklyLabel");
+    case "biweekly":
+      return t("recurrenceBiweeklyLabel");
+    case "monthly":
+      return t("recurrenceMonthlyLabel");
+    default:
+      return "";
+  }
+}

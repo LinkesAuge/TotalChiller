@@ -169,56 +169,6 @@ function ForumCategoryAdmin(): JSX.Element {
     await loadCategories();
   }
 
-  /* ─── Move (reorder) ─── */
-  async function handleMoveUp(index: number): Promise<void> {
-    if (index <= 0) return;
-    const current = categories[index]!;
-    const above = categories[index - 1]!;
-    /* Swap sort_order values; if they are identical, assign distinct values */
-    const currentOrder = current.sort_order;
-    const aboveOrder = above.sort_order;
-    const newCurrentOrder = currentOrder === aboveOrder ? aboveOrder - 1 : aboveOrder;
-    const newAboveOrder = currentOrder === aboveOrder ? currentOrder : currentOrder;
-
-    await Promise.all([
-      fetch("/api/admin/forum-categories", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: current.id, sort_order: newCurrentOrder }),
-      }),
-      fetch("/api/admin/forum-categories", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: above.id, sort_order: newAboveOrder }),
-      }),
-    ]);
-    await loadCategories();
-  }
-
-  async function handleMoveDown(index: number): Promise<void> {
-    if (index >= categories.length - 1) return;
-    const current = categories[index]!;
-    const below = categories[index + 1]!;
-    const currentOrder = current.sort_order;
-    const belowOrder = below.sort_order;
-    const newCurrentOrder = currentOrder === belowOrder ? belowOrder + 1 : belowOrder;
-    const newBelowOrder = currentOrder === belowOrder ? currentOrder : currentOrder;
-
-    await Promise.all([
-      fetch("/api/admin/forum-categories", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: current.id, sort_order: newCurrentOrder }),
-      }),
-      fetch("/api/admin/forum-categories", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: below.id, sort_order: newBelowOrder }),
-      }),
-    ]);
-    await loadCategories();
-  }
-
   /* ─── Render ─── */
 
   if (!clanContext) {
@@ -317,18 +267,6 @@ function ForumCategoryAdmin(): JSX.Element {
                 className="w-full bg-bg text-text border border-edge rounded-sm"
               />
             </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="cat-order">
-                {t("sortOrder")}
-              </label>
-              <input
-                id="cat-order"
-                type="number"
-                value={createForm.sort_order}
-                onChange={(e) => setCreateForm({ ...createForm, sort_order: e.target.value })}
-                className="min-w-20 bg-bg text-text border border-edge rounded-sm"
-              />
-            </div>
           </div>
           <div className="flex gap-2 mt-2.5">
             <button className="button primary" type="submit" disabled={!createForm.name.trim()}>
@@ -348,7 +286,7 @@ function ForumCategoryAdmin(): JSX.Element {
         <p className="text-text-muted">{t("noCategories")}</p>
       ) : (
         <div className="flex flex-col gap-1">
-          {categories.map((cat, index) => (
+          {categories.map((cat) => (
             <div key={cat.id}>
               {editingId === cat.id ? (
                 /* Inline edit form */
@@ -428,33 +366,12 @@ function ForumCategoryAdmin(): JSX.Element {
               ) : (
                 /* Normal row */
                 <div
-                  className="flex items-center gap-2.5 rounded-sm"
+                  className="flex items-center gap-2.5 rounded-sm px-3 py-2"
                   style={{
                     background: "var(--color-surface)",
                     border: "1px solid var(--color-edge)",
                   }}
                 >
-                  {/* Reorder buttons */}
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      className="forum-mod-btn py-0.5 px-1"
-                      onClick={() => handleMoveUp(index)}
-                      disabled={index === 0}
-                      aria-label={t("moveUp")}
-                    >
-                      &#9650;
-                    </button>
-                    <button
-                      type="button"
-                      className="forum-mod-btn py-0.5 px-1"
-                      onClick={() => handleMoveDown(index)}
-                      disabled={index === categories.length - 1}
-                      aria-label={t("moveDown")}
-                    >
-                      &#9660;
-                    </button>
-                  </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-[0.84rem] text-text">
@@ -463,8 +380,6 @@ function ForumCategoryAdmin(): JSX.Element {
                     </div>
                     {cat.description && <div className="text-[0.72rem] text-text-muted mt-px">{cat.description}</div>}
                   </div>
-                  {/* Sort order */}
-                  <span className="text-[0.68rem] text-text-muted">#{cat.sort_order}</span>
                   {/* Actions */}
                   <button className="forum-mod-btn" type="button" onClick={() => startEdit(cat)} aria-label={t("edit")}>
                     &#9998;

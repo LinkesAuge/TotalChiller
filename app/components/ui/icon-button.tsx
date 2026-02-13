@@ -7,7 +7,7 @@ interface IconButtonProps {
   readonly title?: string;
   readonly onClick?: () => void;
   readonly disabled?: boolean;
-  readonly variant?: "default" | "primary" | "danger";
+  readonly variant?: "default" | "primary" | "danger" | "active";
   readonly type?: "button" | "submit" | "reset";
   readonly className?: string;
   readonly children: ReactNode;

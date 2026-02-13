@@ -479,6 +479,14 @@ function ForumClient(): JSX.Element {
     });
   }
 
+  /** Re-read comment_count from DB (maintained by trigger) and update local state. */
+  async function refreshCommentCount(): Promise<void> {
+    if (!selectedPost) return;
+    const { data } = await supabase.from("forum_posts").select("comment_count").eq("id", selectedPost.id).maybeSingle();
+    const count = (data?.comment_count as number) ?? 0;
+    setSelectedPost((prev) => (prev ? { ...prev, comment_count: count } : prev));
+  }
+
   /* ─── Submit Comment ─── */
   async function handleSubmitComment(): Promise<void> {
     if (!currentUserId || !selectedPost || !commentText.trim()) return;
@@ -490,13 +498,8 @@ function ForumClient(): JSX.Element {
     if (!error) {
       setCommentText("");
       setReplyingTo("");
-      await supabase
-        .from("forum_posts")
-        .update({
-          comment_count: (selectedPost.comment_count ?? 0) + 1,
-        })
-        .eq("id", selectedPost.id);
-      setSelectedPost((prev) => (prev ? { ...prev, comment_count: prev.comment_count + 1 } : prev));
+      /* comment_count is incremented by DB trigger (trg_forum_comment_insert_count) */
+      await refreshCommentCount();
       void loadComments(selectedPost.id);
     }
   }
@@ -512,13 +515,8 @@ function ForumClient(): JSX.Element {
     if (!error) {
       setCommentText("");
       setReplyingTo("");
-      await supabase
-        .from("forum_posts")
-        .update({
-          comment_count: (selectedPost.comment_count ?? 0) + 1,
-        })
-        .eq("id", selectedPost.id);
-      setSelectedPost((prev) => (prev ? { ...prev, comment_count: prev.comment_count + 1 } : prev));
+      /* comment_count is incremented by DB trigger (trg_forum_comment_insert_count) */
+      await refreshCommentCount();
       void loadComments(selectedPost.id);
     }
   }
@@ -538,26 +536,13 @@ function ForumClient(): JSX.Element {
   /* ─── Delete Comment ─── */
   async function handleDeleteComment(commentId: string): Promise<void> {
     if (!selectedPost) return;
-    /* Count the comment + its nested replies to decrement comment_count */
-    function countInTree(list: ForumComment[], targetId: string): number {
-      for (const c of list) {
-        if (c.id === targetId) {
-          return 1 + (c.replies ?? []).length;
-        }
-        const found = countInTree(c.replies ?? [], targetId);
-        if (found > 0) return found;
-      }
-      return 0;
-    }
-    const deleteCount = countInTree(comments, commentId);
     const { error } = await supabase.from("forum_comments").delete().eq("id", commentId);
     if (error) {
       pushToast(t("deleteCommentFailed"));
       return;
     }
-    const newCount = Math.max(0, (selectedPost.comment_count ?? 0) - deleteCount);
-    await supabase.from("forum_posts").update({ comment_count: newCount }).eq("id", selectedPost.id);
-    setSelectedPost((prev) => (prev ? { ...prev, comment_count: newCount } : prev));
+    /* comment_count is maintained by DB trigger (trg_forum_comment_delete_count) */
+    await refreshCommentCount();
     void loadComments(selectedPost.id);
   }
 

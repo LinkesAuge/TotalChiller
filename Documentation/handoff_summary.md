@@ -2,6 +2,42 @@
 
 This file is a compact context transfer for a new chat.
 
+## Code Review Phase 10: Minor Improvements (2026-02-13)
+
+- Footer links → Next.js `<Link>`, proxy.ts redundant paths removed, rate-limit limitation documented.
+- signOut `window.location.href` documented as intentional. Nav icon inline SVG replaced with `NavItemIcon`.
+
+## Code Review Phase 9: Testing Gaps (2026-02-13)
+
+- Added 194 new unit tests across 8 new test files (309 → 503 total, all passing).
+- Covered: sanitize-markdown, renderers, validation-evaluator, forum-utils, forum-thumbnail, admin-types, use-sortable (compareValues), design-system-types.
+
+## Code Review Phase 8: CSS Architecture (2026-02-13)
+
+- Split `globals.css` (7455L) into 10 modular files under `app/styles/`: theme, layout, components, tables, cms, events, messages, forum, news, design-system.
+- `globals.css` is now 30 lines of `@import` statements. Each module is independently maintainable.
+
+## Code Review Phase 7: Error Boundaries & Loading States (2026-02-13)
+
+- Added `app/global-error.tsx` — root-level error boundary with Sentry reporting (catches errors in root layout).
+- Added auth loading skeleton to `auth-actions.tsx` (was returning `null`/invisible during auth check).
+
+## Code Review Phase 6: TypeScript & Code Quality (2026-02-13)
+
+- Created `lib/api/logger.ts` — `captureApiError(context, error)` wraps `console.error` + `Sentry.captureException` with context tags.
+- Replaced ~60 `console.error` calls across 17 API route files. All caught server errors now report to Sentry.
+- `permissions.ts` / `role-access.ts` confirmed as properly layered, no changes needed.
+
+## Code Review Phase 5: Oversized Component Decomposition (2026-02-13)
+
+- Decomposed 5 oversized client components into **hook + subcomponents + orchestrator** pattern.
+- **data-import** (1364→372L): `use-data-import.ts`, `data-import-table.tsx`, `data-import-filters.tsx`, `data-import-modals.tsx`, `data-import-types.ts`.
+- **data-table** (1377→701L): `use-data-table.ts`, `data-table-filters.tsx`, `data-table-rows.tsx`.
+- **messages** (831→51L): `use-messages.ts`, `messages-compose.tsx`, `messages-inbox.tsx`, `messages-thread.tsx`, `messages-types.ts`.
+- **events** (617→155L): `use-events.ts`, `events-form.tsx`, `events-list.tsx`.
+- **forum** (534→232L): `use-forum.ts`; `forum-post-list.tsx` already existed.
+- All TypeScript compiles clean. All 309 unit tests pass.
+
 ## Roles & Permissions Refactor (2026-02-09)
 
 - **Dropped 6 unused tables**: `roles`, `ranks`, `permissions`, `role_permissions`, `rank_permissions`, `cross_clan_permissions`.
@@ -305,6 +341,27 @@ This file is a compact context transfer for a new chat.
 - **i18n for error page**: `app/error.tsx` now uses `next-intl` translations instead of hardcoded German/English strings. New `errorPage` keys in both `messages/en.json` and `messages/de.json`.
 - **12 new Playwright API tests** for previously uncovered routes: admin/user-lookup, auth/forgot-password, messages/[id], messages/search-recipients, notifications/[id], notifications/fan-out.
 - **Config**: `vitest.config.ts`, `test:unit` / `test:unit:watch` scripts in `package.json`.
+
+## Code Review & Hardening (Feb 2026)
+
+- **Phase 1 — Silent error fixes** (2026-02-13):
+  - Forum: 8 Supabase operations (vote, delete, pin, lock, comment, reply) that silently swallowed errors now show toast feedback. New i18n keys: `forum.voteFailed`, `forum.deleteFailed`.
+  - Messages: `handleDeleteMessage` now shows toast on failure instead of silently ignoring. New i18n key: `messagesPage.failedToDelete`.
+  - News: Replaced `window.confirm` with `ConfirmModal` component for article deletion. Uses state-driven confirmation flow.
+  - Data Import API: Auth check (`requireAdmin`) now runs before body parsing. Invalid JSON returns 400 instead of 500.
+- **Phase 2 — API route hardening** (2026-02-13):
+  - Shared helpers: `apiError(message, status)` and `parseJsonBody(request, schema)` in `lib/api/validation.ts`.
+  - Messages GET: Added `messageQuerySchema` Zod validation for `type` and `search` query params.
+  - Data import: Refactored to use `parseJsonBody` helper.
+  - 5 new unit tests for `messageQuerySchema`.
+- **Phase 3 — Performance optimizations** (2026-02-13):
+  - Service-role client: module-level singleton (was creating new client per call).
+  - Admin context: eliminated double clan fetch by reusing `loadClans()` callback in init; localStorage restoration separated into dedicated one-time effect.
+  - Forum: `loadPosts` no longer depends on `categories` state; uses `categoriesRef` for enrichment to prevent unnecessary refetches.
+- **Phase 4 — Redundancy elimination** (2026-02-13):
+  - Forum: 3 inline `catMap` constructions replaced with one `useMemo`-backed catMap.
+  - Events: Hardcoded English strings replaced with i18n keys `events.eventCreated`, `events.eventUpdated`.
+  - CSS: ~70 duplicate lines removed from `:root` (already in `@theme`). `:root` now only has sidebar/gradient/transition/scrollbar variables.
 
 ## Notable Bug Fixes & Changes (Feb 2026)
 

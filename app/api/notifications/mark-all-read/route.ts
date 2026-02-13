@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import { standardLimiter } from "../../../../lib/rate-limit";
 
@@ -19,12 +20,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .eq("user_id", auth.userId)
       .eq("is_read", false);
     if (updateError) {
-      console.error("[notifications/mark-all-read]", updateError.message);
+      captureApiError("POST /api/notifications/mark-all-read", updateError);
       return NextResponse.json({ error: "Failed to mark notifications as read." }, { status: 500 });
     }
     return NextResponse.json({ data: { success: true } });
   } catch (err) {
-    console.error("[notifications/mark-all-read POST] Unexpected:", err);
+    captureApiError("POST /api/notifications/mark-all-read", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../lib/rate-limit";
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .ilike("game_username", gameUsername)
       .in("approval_status", ["pending", "approved"]);
     if (lookupError) {
-      console.error("[game-accounts POST] Lookup failed:", lookupError.message);
+      captureApiError("POST /api/game-accounts", lookupError);
       return NextResponse.json({ error: "Failed to check existing accounts." }, { status: 500 });
     }
     const existing = (existingAccounts ?? []) as readonly ExistingAccountRow[];
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (insertError.code === "23505") {
         return NextResponse.json({ error: "This game username is already taken." }, { status: 409 });
       }
-      console.error("[game-accounts POST] Insert failed:", insertError.message);
+      captureApiError("POST /api/game-accounts", insertError);
       return NextResponse.json({ error: "Failed to create game account." }, { status: 500 });
     }
     /* Auto-set as default if the user has no default game account yet */
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ data: insertedAccount }, { status: 201 });
   } catch (err) {
-    console.error("[game-accounts POST] Unexpected:", err);
+    captureApiError("POST /api/game-accounts", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -124,7 +125,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       supabase.from("profiles").select("default_game_account_id").eq("id", userId).maybeSingle(),
     ]);
     if (fetchError) {
-      console.error("[game-accounts GET]", fetchError.message);
+      captureApiError("GET /api/game-accounts", fetchError);
       return NextResponse.json({ error: "Failed to load game accounts." }, { status: 500 });
     }
     return NextResponse.json({
@@ -132,7 +133,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       default_game_account_id: (profile?.default_game_account_id as string | null) ?? null,
     });
   } catch (err) {
-    console.error("[game-accounts GET] Unexpected:", err);
+    captureApiError("GET /api/game-accounts", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -186,12 +187,12 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .update({ default_game_account_id: newDefaultId })
       .eq("id", userId);
     if (updateError) {
-      console.error("[game-accounts PATCH]", updateError.message);
+      captureApiError("PATCH /api/game-accounts", updateError);
       return NextResponse.json({ error: "Failed to update default game account." }, { status: 500 });
     }
     return NextResponse.json({ data: { default_game_account_id: newDefaultId } });
   } catch (err) {
-    console.error("[game-accounts PATCH] Unexpected:", err);
+    captureApiError("PATCH /api/game-accounts", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

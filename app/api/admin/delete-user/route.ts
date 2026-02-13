@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
 import { requireAdmin } from "../../../../lib/api/require-admin";
@@ -25,12 +26,12 @@ export async function POST(request: Request): Promise<Response> {
     const serviceClient = createSupabaseServiceRoleClient();
     const { error } = await serviceClient.auth.admin.deleteUser(parsed.data.userId);
     if (error) {
-      console.error("[delete-user] Failed:", error.message);
+      captureApiError("POST /api/admin/delete-user", error);
       return NextResponse.json({ error: "Failed to delete user." }, { status: 500 });
     }
     return NextResponse.json({ data: { success: true } });
   } catch (err) {
-    console.error("[delete-user POST] Unexpected:", err);
+    captureApiError("POST /api/admin/delete-user", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

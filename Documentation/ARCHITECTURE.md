@@ -234,73 +234,73 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 
 ## 5. Shared Components (`app/components/`)
 
-| Component              | File                            | Purpose                                                           |
-| ---------------------- | ------------------------------- | ----------------------------------------------------------------- |
+| Component              | File                            | Purpose                                                                                              |
+| ---------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | ClanAccessGate         | `clan-access-gate.tsx`          | Clan membership gate for scoped pages. Bypasses `/admin` routes. Syncs locale via `router.refresh()` |
-| MarkdownEditor         | `markdown-editor.tsx`           | Write/preview tabs, toolbar, image upload. Props: `storageBucket` |
-| BannerPicker           | `banner-picker.tsx`             | 51 game-asset presets + custom upload                             |
-| ConfirmModal           | `confirm-modal.tsx`             | Danger/warning/info variants, optional phrase confirmation        |
-| FormModal              | `form-modal.tsx`                | Shared modal wrapper (backdrop, form, status)                     |
-| AddCorrectionRuleModal | `add-correction-rule-modal.tsx` | Shared correction rule creation modal                             |
-| AddValidationRuleModal | `add-validation-rule-modal.tsx` | Shared validation rule creation modal                             |
-| DataState              | `data-state.tsx`                | Loading/empty/error state wrapper                                 |
-| PaginationBar          | `pagination-bar.tsx`            | Page controls (compact mode available)                            |
-| SortableColumnHeader   | `sortable-column-header.tsx`    | Clickable sort header with direction arrow                        |
-| NotificationBell       | `notification-bell.tsx`         | Header bell icon + dropdown panel                                 |
-| DatePicker             | `date-picker.tsx`               | Flatpickr wrapper (date or datetime)                              |
-| SearchInput            | `ui/search-input.tsx`           | Labeled search field                                              |
-| RadixSelect            | `ui/radix-select.tsx`           | Styled dropdown select                                            |
-| ComboboxInput          | `ui/combobox-input.tsx`         | Text input with suggestion dropdown                               |
-| IconButton             | `ui/icon-button.tsx`            | Icon-only action button                                           |
+| MarkdownEditor         | `markdown-editor.tsx`           | Write/preview tabs, toolbar, image upload. Props: `storageBucket`                                    |
+| BannerPicker           | `banner-picker.tsx`             | 51 game-asset presets + custom upload                                                                |
+| ConfirmModal           | `confirm-modal.tsx`             | Danger/warning/info variants, optional phrase confirmation                                           |
+| FormModal              | `form-modal.tsx`                | Shared modal wrapper (backdrop, form, status)                                                        |
+| AddCorrectionRuleModal | `add-correction-rule-modal.tsx` | Shared correction rule creation modal                                                                |
+| AddValidationRuleModal | `add-validation-rule-modal.tsx` | Shared validation rule creation modal                                                                |
+| DataState              | `data-state.tsx`                | Loading/empty/error state wrapper                                                                    |
+| PaginationBar          | `pagination-bar.tsx`            | Page controls (compact mode available)                                                               |
+| SortableColumnHeader   | `sortable-column-header.tsx`    | Clickable sort header with direction arrow                                                           |
+| NotificationBell       | `notification-bell.tsx`         | Header bell icon + dropdown panel                                                                    |
+| DatePicker             | `date-picker.tsx`               | Flatpickr wrapper (date or datetime)                                                                 |
+| SearchInput            | `ui/search-input.tsx`           | Labeled search field                                                                                 |
+| RadixSelect            | `ui/radix-select.tsx`           | Styled dropdown select                                                                               |
+| ComboboxInput          | `ui/combobox-input.tsx`         | Text input with suggestion dropdown                                                                  |
+| IconButton             | `ui/icon-button.tsx`            | Icon-only action button                                                                              |
 
 ## 6. Shared Libraries (`lib/`)
 
-| Module             | File                                | Purpose                                                                                                                                                  |
-| ------------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth helpers       | `api/require-auth.ts`               | Validates session, returns `{ userId, supabase }` or error                                                                                               |
-| Admin helpers      | `api/require-admin.ts`              | Validates admin role (wraps requireAuth)                                                                                                                 |
-| Zod schemas        | `api/validation.ts`                 | `uuidSchema`, `notificationSettingsSchema`, `chartQuerySchema`, `dateStringSchema`                                                                       |
-| Permissions        | `permissions.ts`                    | Role→permission map. `hasPermission()`, `canDo()`, `isAdmin()`                                                                                           |
+| Module             | File                                | Purpose                                                                                                                                                   |
+| ------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth helpers       | `api/require-auth.ts`               | Validates session, returns `{ userId, supabase }` or error                                                                                                |
+| Admin helpers      | `api/require-admin.ts`              | Validates admin role (wraps requireAuth)                                                                                                                  |
+| Zod schemas        | `api/validation.ts`                 | `uuidSchema`, `notificationSettingsSchema`, `chartQuerySchema`, `messageQuerySchema`, `dateStringSchema`, `apiError()`, `parseJsonBody()`                 |
+| Permissions        | `permissions.ts`                    | Role→permission map. `hasPermission()`, `canDo()`, `isAdmin()`                                                                                            |
 | Rate limiter       | `rate-limit.ts`                     | `createRateLimiter()` factory. Pre-built: `strictLimiter` (10/min), `standardLimiter` (30/min), `relaxedLimiter` (120/min). Isolated stores per instance. |
-| Domain types       | `types/domain.ts`                   | Shared interfaces: `InboxThread`, `SentMessage`, `ThreadMessage`, `ProfileSummary`, etc.                                                                 |
-| Markdown           | `markdown/app-markdown.tsx`         | Unified renderer (`variant="cms"` or `"forum"`)                                                                                                          |
-| Markdown toolbar   | `markdown/app-markdown-toolbar.tsx` | Formatting buttons, image upload                                                                                                                         |
-| Markdown sanitizer | `markdown/sanitize-markdown.ts`     | Normalizes content before rendering                                                                                                                      |
-| Date formatting    | `date-format.ts`                    | `formatLocalDateTime()`                                                                                                                                  |
-| Dashboard utils    | `dashboard-utils.ts`                | `toDateString()`, `extractAuthorName()`, `calculateTrend()`, `formatCompactNumber()`                                                                     |
-| Corrections        | `correction-applicator.ts`          | Applies correction rules to chest data                                                                                                                   |
-| Dashboard utils    | `dashboard-utils.ts`                | Score/trend/highlight helpers                                                                                                                            |
-| Error utils        | `supabase/error-utils.ts`           | Classifies Supabase errors → i18n keys                                                                                                                   |
-| User role hook     | `hooks/use-user-role.ts`            | React hook: fetches role, exposes permission helpers                                                                                                     |
-| Pagination hook    | `hooks/use-pagination.ts`           | Page state, page count, slice helpers                                                                                                                    |
-| Sortable hook      | `hooks/use-sortable.ts`             | Sort key + direction + generic comparator                                                                                                                |
-| Rule processing    | `hooks/use-rule-processing.ts`      | Evaluator/applicator/suggestion computation                                                                                                              |
+| Domain types       | `types/domain.ts`                   | Shared interfaces: `InboxThread`, `SentMessage`, `ThreadMessage`, `ProfileSummary`, etc.                                                                  |
+| Markdown           | `markdown/app-markdown.tsx`         | Unified renderer (`variant="cms"` or `"forum"`)                                                                                                           |
+| Markdown toolbar   | `markdown/app-markdown-toolbar.tsx` | Formatting buttons, image upload                                                                                                                          |
+| Markdown sanitizer | `markdown/sanitize-markdown.ts`     | Normalizes content before rendering                                                                                                                       |
+| Date formatting    | `date-format.ts`                    | `formatLocalDateTime()`                                                                                                                                   |
+| Dashboard utils    | `dashboard-utils.ts`                | `toDateString()`, `extractAuthorName()`, `calculateTrend()`, `formatCompactNumber()`                                                                      |
+| Corrections        | `correction-applicator.ts`          | Applies correction rules to chest data                                                                                                                    |
+| Dashboard utils    | `dashboard-utils.ts`                | Score/trend/highlight helpers                                                                                                                             |
+| Error utils        | `supabase/error-utils.ts`           | Classifies Supabase errors → i18n keys                                                                                                                    |
+| User role hook     | `hooks/use-user-role.ts`            | React hook: fetches role, exposes permission helpers                                                                                                      |
+| Pagination hook    | `hooks/use-pagination.ts`           | Page state, page count, slice helpers                                                                                                                     |
+| Sortable hook      | `hooks/use-sortable.ts`             | Sort key + direction + generic comparator                                                                                                                 |
+| Rule processing    | `hooks/use-rule-processing.ts`      | Evaluator/applicator/suggestion computation                                                                                                               |
 
 ## 7. API Route Index
 
-| Route                               | Methods                  | Auth         | Rate Limit | Purpose                         |
-| ----------------------------------- | ------------------------ | ------------ | ---------- | ------------------------------- |
-| `/api/messages`                     | GET, POST                | user         | standard   | Inbox (threaded) / Send message |
-| `/api/messages/[id]`                | PATCH, DELETE            | user         | standard   | Mark read / Soft-delete         |
-| `/api/messages/sent`                | GET                      | user         | standard   | Sent messages                   |
-| `/api/messages/thread/[threadId]`   | GET                      | user         | standard   | Full thread + auto mark-read    |
-| `/api/messages/search-recipients`   | GET                      | user         | standard   | Recipient search                |
-| `/api/notifications`                | GET                      | user         | relaxed    | User notifications              |
-| `/api/notifications/[id]`           | PATCH                    | user         | standard   | Mark notification read          |
-| `/api/notifications/mark-all-read`  | POST                     | user         | standard   | Mark all read                   |
-| `/api/notifications/fan-out`        | POST                     | user         | strict     | Fan-out to clan members         |
-| `/api/notification-settings`        | GET, PATCH               | user         | standard   | Notification preferences        |
-| `/api/charts`                       | GET                      | user         | relaxed    | Aggregated chest data           |
-| `/api/game-accounts`                | GET, POST, PATCH         | user         | standard   | Game account CRUD               |
+| Route                               | Methods                  | Auth         | Rate Limit       | Purpose                         |
+| ----------------------------------- | ------------------------ | ------------ | ---------------- | ------------------------------- |
+| `/api/messages`                     | GET, POST                | user         | standard         | Inbox (threaded) / Send message |
+| `/api/messages/[id]`                | PATCH, DELETE            | user         | standard         | Mark read / Soft-delete         |
+| `/api/messages/sent`                | GET                      | user         | standard         | Sent messages                   |
+| `/api/messages/thread/[threadId]`   | GET                      | user         | standard         | Full thread + auto mark-read    |
+| `/api/messages/search-recipients`   | GET                      | user         | standard         | Recipient search                |
+| `/api/notifications`                | GET                      | user         | relaxed          | User notifications              |
+| `/api/notifications/[id]`           | PATCH                    | user         | standard         | Mark notification read          |
+| `/api/notifications/mark-all-read`  | POST                     | user         | standard         | Mark all read                   |
+| `/api/notifications/fan-out`        | POST                     | user         | strict           | Fan-out to clan members         |
+| `/api/notification-settings`        | GET, PATCH               | user         | standard         | Notification preferences        |
+| `/api/charts`                       | GET                      | user         | relaxed          | Aggregated chest data           |
+| `/api/game-accounts`                | GET, POST, PATCH         | user         | standard         | Game account CRUD               |
 | `/api/site-content`                 | GET, PATCH               | public/admin | relaxed/standard | CMS text content                |
 | `/api/site-list-items`              | GET, PATCH               | public/admin | relaxed/standard | CMS list items                  |
-| `/api/auth/forgot-password`         | POST                     | public       | standard   | Password reset email            |
-| `/api/data-import/commit`           | POST                     | admin        | strict     | Commit imported data            |
-| `/api/admin/create-user`            | POST                     | admin        | strict     | Invite new user                 |
-| `/api/admin/delete-user`            | POST                     | admin        | strict     | Delete user                     |
-| `/api/admin/user-lookup`            | POST                     | admin        | strict     | Lookup user by email            |
-| `/api/admin/game-account-approvals` | GET, PATCH               | admin        | strict     | Approval queue                  |
-| `/api/admin/forum-categories`       | GET, POST, PATCH, DELETE | admin        | strict     | Forum category CRUD             |
+| `/api/auth/forgot-password`         | POST                     | public       | standard         | Password reset email            |
+| `/api/data-import/commit`           | POST                     | admin        | strict           | Commit imported data            |
+| `/api/admin/create-user`            | POST                     | admin        | strict           | Invite new user                 |
+| `/api/admin/delete-user`            | POST                     | admin        | strict           | Delete user                     |
+| `/api/admin/user-lookup`            | POST                     | admin        | strict           | Lookup user by email            |
+| `/api/admin/game-account-approvals` | GET, PATCH               | admin        | strict           | Approval queue                  |
+| `/api/admin/forum-categories`       | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD             |
 | `/api/design-system/assets`         | GET, PATCH               | admin        | relaxed/standard | Design asset library            |
 | `/api/design-system/ui-elements`    | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory            |
 | `/api/design-system/assignments`    | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments               |

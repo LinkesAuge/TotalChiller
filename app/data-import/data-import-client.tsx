@@ -1,1070 +1,54 @@
 "use client";
+/* eslint-disable react-hooks/refs -- hook return object accessed during render is safe */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { z } from "zod";
 import { useTranslations } from "next-intl";
-import { useSupabase } from "../hooks/use-supabase";
-import DatePicker from "../components/date-picker";
-import ComboboxInput from "../components/ui/combobox-input";
 import IconButton from "../components/ui/icon-button";
-import SearchInput from "../components/ui/search-input";
 import RadixSelect from "../components/ui/radix-select";
-import TableScroll from "../components/table-scroll";
-import type { ValidationRuleRow, CorrectionRuleRow } from "@/lib/types/domain";
-import { DATE_REGEX } from "@/lib/constants";
-import { useRuleProcessing } from "@/lib/hooks/use-rule-processing";
-import SortableColumnHeader from "../components/sortable-column-header";
-import FormModal from "../components/form-modal";
-
-interface CsvRow {
-  readonly date: string;
-  readonly player: string;
-  readonly source: string;
-  readonly chest: string;
-  readonly score: number;
-  readonly clan: string;
-}
-
-interface ParseError {
-  readonly line: number;
-  readonly message: string;
-}
-
-interface ParseResult {
-  readonly rows: CsvRow[];
-  readonly errors: ParseError[];
-  readonly headerErrors: string[];
-}
-
-interface CommitRow {
-  readonly collected_date: string;
-  readonly player: string;
-  readonly source: string;
-  readonly chest: string;
-  readonly score: number;
-  readonly clan: string;
-}
-
-interface CorrectionMatch {
-  readonly value: string;
-  readonly wasCorrected: boolean;
-  readonly ruleId?: string;
-  readonly from?: string;
-  readonly to?: string;
-  readonly ruleField?: string;
-}
-
-type RowEdits = Partial<CsvRow>;
-type CorrectionField = "player" | "source" | "chest" | "clan";
-type CorrectionMap = Record<number, Partial<Record<CorrectionField, CorrectionMatch>>>;
-type ImportSortKey = "index" | "date" | "player" | "source" | "chest" | "score" | "clan";
-
-interface IndexedRow {
-  readonly row: CsvRow;
-  readonly index: number;
-}
-
-const REQUIRED_HEADERS: readonly string[] = ["DATE", "PLAYER", "SOURCE", "CHEST", "SCORE", "CLAN"];
-
-const COMMIT_STATUS_TIMEOUT_MS: number = 5000;
-// Note: Sort options labels are translated in the component using t()
-const importSortOptions: readonly { value: ImportSortKey; labelKey: string }[] = [
-  { value: "index", labelKey: "tableHeaderIndex" },
-  { value: "date", labelKey: "tableHeaderDate" },
-  { value: "player", labelKey: "tableHeaderPlayer" },
-  { value: "source", labelKey: "tableHeaderSource" },
-  { value: "chest", labelKey: "tableHeaderChest" },
-  { value: "score", labelKey: "tableHeaderScore" },
-  { value: "clan", labelKey: "tableHeaderClan" },
-];
-
-const rowSchema = z.object({
-  date: z.string().regex(DATE_REGEX, "Invalid date format"),
-  player: z.string().min(1, "Player is required"),
-  source: z.string().min(1, "Source is required"),
-  chest: z.string().min(1, "Chest is required"),
-  score: z.number().int().nonnegative(),
-  clan: z.string().min(1, "Clan is required"),
-});
-
-function normalizeHeader(value: string): string {
-  return value.trim().toUpperCase();
-}
-
-function parseCsvLine(line: string): string[] {
-  const values: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (char === '"') {
-      const nextChar = line[index + 1];
-      if (inQuotes && nextChar === '"') {
-        current += '"';
-        index += 1;
-        continue;
-      }
-      inQuotes = !inQuotes;
-      continue;
-    }
-    if (char === "," && !inQuotes) {
-      values.push(current.trim());
-      current = "";
-      continue;
-    }
-    current += char;
-  }
-  values.push(current.trim());
-  return values;
-}
-
-function getNonEmptyLines(csvText: string): string[] {
-  return csvText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-}
-
-function parseScoreValue(rawValue: string): number | null {
-  const parsedScore = Number(rawValue);
-  if (Number.isNaN(parsedScore)) {
-    return null;
-  }
-  return parsedScore;
-}
-
-function parseCsvText(csvText: string): ParseResult {
-  const lines = getNonEmptyLines(csvText);
-  if (lines.length === 0) {
-    return { rows: [], errors: [], headerErrors: ["CSV file is empty."] };
-  }
-  const headerValues = parseCsvLine(lines[0] ?? "").map(normalizeHeader);
-  const headerErrors: string[] = [];
-  REQUIRED_HEADERS.forEach((header, index) => {
-    if ((headerValues[index] ?? "") !== header) {
-      headerErrors.push(`Expected ${header} at position ${index + 1}.`);
-    }
-  });
-  const rows: CsvRow[] = [];
-  const errors: ParseError[] = [];
-  for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
-    const values = parseCsvLine(lines[lineIndex] ?? "");
-    if (values.length < REQUIRED_HEADERS.length) {
-      errors.push({
-        line: lineIndex + 1,
-        message: "Missing required columns.",
-      });
-      continue;
-    }
-    const scoreValue = parseScoreValue(values[4] ?? "");
-    if (scoreValue === null) {
-      errors.push({
-        line: lineIndex + 1,
-        message: "Score must be a number.",
-      });
-      continue;
-    }
-    const rowCandidate: CsvRow = {
-      date: values[0] ?? "",
-      player: values[1] ?? "",
-      source: values[2] ?? "",
-      chest: values[3] ?? "",
-      score: scoreValue,
-      clan: values[5] ?? "",
-    };
-    const validation = rowSchema.safeParse(rowCandidate);
-    if (!validation.success) {
-      const issues = validation.error.issues.map((issue) => issue.message).join(", ");
-      errors.push({
-        line: lineIndex + 1,
-        message: issues,
-      });
-      continue;
-    }
-    rows.push(rowCandidate);
-  }
-  return { rows, errors, headerErrors };
-}
-
-function getRowValidationErrors(nextRows: readonly CsvRow[]): ParseError[] {
-  const errors: ParseError[] = [];
-  nextRows.forEach((row, index) => {
-    const validation = rowSchema.safeParse(row);
-    if (!validation.success) {
-      const issues = validation.error.issues.map((issue) => issue.message).join(", ");
-      errors.push({
-        line: index + 1,
-        message: issues,
-      });
-    }
-  });
-  return errors;
-}
-
-function compareImportValues(left: string | number, right: string | number, direction: "asc" | "desc"): number {
-  if (left === right) {
-    return 0;
-  }
-  if (typeof left === "number" && typeof right === "number") {
-    return direction === "asc" ? left - right : right - left;
-  }
-  const leftText = String(left);
-  const rightText = String(right);
-  return direction === "asc" ? leftText.localeCompare(rightText) : rightText.localeCompare(leftText);
-}
-
-function getImportSortValue(item: IndexedRow, key: ImportSortKey): string | number {
-  if (key === "index") {
-    return item.index;
-  }
-  if (key === "score") {
-    return item.row.score;
-  }
-  return item.row[key];
-}
+import { useDataImport } from "./use-data-import";
+import { DataImportTable } from "./data-import-table";
+import { DataImportFilters } from "./data-import-filters";
+import { BatchEditModal, CommitWarningModal, CorrectionRuleModal, ValidationRuleModal } from "./data-import-modals";
+import type { ImportSortKey } from "./data-import-types";
 
 /**
- * Handles CSV file upload, parsing, and preview rendering.
+ * Client-side data import: CSV upload, parsing, corrections, validation,
+ * filtering, batch edit, and commit. Composes useDataImport, DataImportFilters,
+ * and DataImportTable.
  */
 function DataImportClient(): JSX.Element {
   const t = useTranslations("dataImport");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const commitStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [originalRows, setOriginalRows] = useState<readonly CsvRow[]>([]);
-  const [rows, setRows] = useState<readonly CsvRow[]>([]);
-  const [errors, setErrors] = useState<readonly ParseError[]>([]);
-  const [headerErrors, setHeaderErrors] = useState<readonly string[]>([]);
-  const [validationRules, setValidationRules] = useState<readonly ValidationRuleRow[]>([]);
-  const [correctionRules, setCorrectionRules] = useState<readonly CorrectionRuleRow[]>([]);
-  const [_validationMessages, setValidationMessages] = useState<readonly string[]>([]);
-  const [_validationErrors, setValidationErrors] = useState<readonly string[]>([]);
-  const [availableClans, setAvailableClans] = useState<readonly string[]>([]);
-  const [fileName, setFileName] = useState<string>("");
-  const [statusMessage, setStatusMessage] = useState<string>("");
-  const [commitStatus, setCommitStatus] = useState<string>("");
-  const [isCommitting, setIsCommitting] = useState<boolean>(false);
-  const [_clanIdByName, setClanIdByName] = useState<Map<string, string>>(new Map());
-  const [manualEdits, setManualEdits] = useState<Record<number, RowEdits>>({});
-  const [selectedRows, setSelectedRows] = useState<readonly number[]>([]);
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(50);
-  const [isBatchOpsOpen, setIsBatchOpsOpen] = useState<boolean>(false);
-  const [filterPlayer, setFilterPlayer] = useState<string>("");
-  const [filterSource, setFilterSource] = useState<string>("");
-  const [filterChest, setFilterChest] = useState<string>("");
-  const [filterClan, setFilterClan] = useState<string>("");
-  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
-  const [filterDateTo, setFilterDateTo] = useState<string>("");
-  const [filterScoreMin, setFilterScoreMin] = useState<string>("");
-  const [filterScoreMax, setFilterScoreMax] = useState<string>("");
-  const [filterRowStatus, setFilterRowStatus] = useState<"all" | "valid" | "invalid">("all");
-  const [filterCorrectionStatus, setFilterCorrectionStatus] = useState<"all" | "corrected" | "uncorrected">("all");
-  const [importSortKey, setImportSortKey] = useState<ImportSortKey>("index");
-  const [importSortDirection, setImportSortDirection] = useState<"asc" | "desc">("asc");
-  const [isAutoCorrectEnabled, setIsAutoCorrectEnabled] = useState<boolean>(true);
-  const [isValidationEnabled, setIsValidationEnabled] = useState<boolean>(true);
-  const [isAddCorrectionRuleOpen, setIsAddCorrectionRuleOpen] = useState<boolean>(false);
-  const [isAddValidationRuleOpen, setIsAddValidationRuleOpen] = useState<boolean>(false);
-  const [correctionRuleRowIndex, setCorrectionRuleRowIndex] = useState<number | null>(null);
-  const [correctionRuleField, setCorrectionRuleField] = useState<"player" | "source" | "chest" | "clan" | "all">(
-    "player",
-  );
-  const [correctionRuleMatch, setCorrectionRuleMatch] = useState<string>("");
-  const [correctionRuleReplacement, setCorrectionRuleReplacement] = useState<string>("");
-  const [correctionRuleStatus, setCorrectionRuleStatus] = useState<string>("active");
-  const [correctionRuleMessage, setCorrectionRuleMessage] = useState<string>("");
-  const [validationRuleRowIndex, setValidationRuleRowIndex] = useState<number | null>(null);
-  const [validationRuleField, setValidationRuleField] = useState<"player" | "source" | "chest" | "clan">("player");
-  const [validationRuleMatch, setValidationRuleMatch] = useState<string>("");
-  const [validationRuleStatus, setValidationRuleStatus] = useState<string>("valid");
-  const [validationRuleMessage, setValidationRuleMessage] = useState<string>("");
-  const selectAllRef = useRef<HTMLInputElement | null>(null);
-  const [isBatchEditOpen, setIsBatchEditOpen] = useState<boolean>(false);
-  const [batchEditField, setBatchEditField] = useState<keyof CsvRow>("player");
-  const [batchEditValue, setBatchEditValue] = useState<string>("");
-  const [batchEditDate, setBatchEditDate] = useState<string>("");
-  const [batchEditClan, setBatchEditClan] = useState<string>("");
-  const [isCommitWarningOpen, setIsCommitWarningOpen] = useState<boolean>(false);
-  const [commitWarningInvalidRows, setCommitWarningInvalidRows] = useState<readonly number[]>([]);
-  const supabase = useSupabase();
+  const api = useDataImport();
 
-  const {
-    validationEvaluator,
-    correctionApplicator,
-    playerSuggestions,
-    sourceSuggestions,
-    chestSuggestions,
-    suggestionsForField,
-  } = useRuleProcessing(validationRules, correctionRules, availableClans);
+  const handleFilterChange = (setter: (v: string) => void, value: string): void => {
+    setter(value);
+    api.setPage(1);
+  };
 
-  const applyCorrectionsToRows = useCallback(
-    (inputRows: readonly CsvRow[]): { rows: CsvRow[]; correctionsByRow: CorrectionMap } => {
-      if (!isAutoCorrectEnabled) {
-        return { rows: [...inputRows], correctionsByRow: {} };
-      }
-      const correctionsByRow: CorrectionMap = {};
-      const correctedRows = inputRows.map((row, index) => {
-        let nextRow = row;
-        const nextCorrections: Partial<Record<CorrectionField, CorrectionMatch>> = {};
-        (["player", "source", "chest", "clan"] as const).forEach((field) => {
-          const result = correctionApplicator.applyToField({ field, value: row[field] });
-          if (result.wasCorrected) {
-            if (nextRow === row) {
-              nextRow = { ...row };
-            }
-            nextRow = { ...nextRow, [field]: result.value };
-            nextCorrections[field] = result;
-          }
-        });
-        if (Object.keys(nextCorrections).length > 0) {
-          correctionsByRow[index] = nextCorrections;
-        }
-        return nextRow;
-      });
-      return { rows: correctedRows, correctionsByRow };
-    },
-    [correctionApplicator, isAutoCorrectEnabled],
-  );
+  const handleFilterRowStatusChange = (value: "all" | "valid" | "invalid"): void => {
+    api.setFilterRowStatus(value);
+    api.setPage(1);
+  };
 
-  const evaluateValidationResults = useCallback(
-    (nextRows: readonly CsvRow[]): { warnings: string[]; errors: string[] } => {
-      if (!isValidationEnabled) {
-        return { warnings: [], errors: [] };
-      }
-      const warnings: string[] = [];
-      const errors: string[] = [];
-      const validationRows = applyCorrectionsToRows(nextRows).rows;
-      validationRows.forEach((row) => {
-        const result = validationEvaluator({
-          player: row.player,
-          source: row.source,
-          chest: row.chest,
-          clan: row.clan,
-        });
-        if (result.fieldStatus.player === "invalid") {
-          errors.push(`Invalid player: ${row.player}`);
-        }
-        if (result.fieldStatus.source === "invalid") {
-          errors.push(`Invalid source: ${row.source}`);
-        }
-        if (result.fieldStatus.chest === "invalid") {
-          errors.push(`Invalid chest: ${row.chest}`);
-        }
-        if (result.fieldStatus.clan === "invalid") {
-          errors.push(`Invalid clan: ${row.clan}`);
-        }
-      });
-      return { warnings, errors };
-    },
-    [applyCorrectionsToRows, isValidationEnabled, validationEvaluator],
-  );
+  const handleFilterCorrectionStatusChange = (value: "all" | "corrected" | "uncorrected"): void => {
+    api.setFilterCorrectionStatus(value);
+    api.setPage(1);
+  };
 
-  async function loadRulesForClans(clanNames: readonly string[]): Promise<void> {
-    const { data: clanRows } = await supabase
-      .from("clans")
-      .select("id,name")
-      .in("name", clanNames.length > 0 ? clanNames : ["__none__"]);
-    const { data: availableClanRows } = await supabase.from("clans").select("name").order("name");
-    const clanNameSet = new Set<string>([
-      ...clanNames,
-      ...(clanRows ?? []).map((clan) => clan.name),
-      ...(availableClanRows ?? []).map((clan) => clan.name),
-    ]);
-    setAvailableClans(Array.from(clanNameSet).sort((a, b) => a.localeCompare(b)));
-    setClanIdByName(new Map((clanRows ?? []).map((clan) => [clan.name, clan.id])));
-    const { data: validationData } = await supabase
-      .from("validation_rules")
-      .select("id,field,match_value,status")
-      .order("field");
-    setValidationRules(validationData ?? []);
-    const { data: correctionData } = await supabase
-      .from("correction_rules")
-      .select("id,field,match_value,replacement_value,status")
-      .order("field");
-    setCorrectionRules(correctionData ?? []);
-  }
+  const handleImportSortKeyChange = (value: ImportSortKey): void => {
+    api.setImportSortKey(value);
+    api.setImportSortDirection("asc");
+    api.setPage(1);
+  };
 
-  function _applyManualEdits(baseRows: readonly CsvRow[], edits: Record<number, RowEdits>): CsvRow[] {
-    return baseRows.map((row, index) => {
-      const rowEdits = edits[index];
-      if (!rowEdits) {
-        return row;
-      }
-      return { ...row, ...rowEdits };
-    });
-  }
+  const handleImportSortDirectionChange = (value: "asc" | "desc"): void => {
+    api.setImportSortDirection(value);
+    api.setPage(1);
+  };
 
-  function updateRowValue(index: number, field: keyof CsvRow, value: string): void {
-    setRows((current) => {
-      const updated = [...current];
-      const target = updated[index];
-      if (!target) {
-        return current;
-      }
-      const nextValue = field === "score" ? Number(value || 0) : value;
-      updated[index] = { ...target, [field]: nextValue };
-      const { warnings, errors } = evaluateValidationResults(updated);
-      setValidationMessages(warnings);
-      setValidationErrors(errors);
-      return updated;
-    });
-    setManualEdits((current) => ({
-      ...current,
-      [index]: { ...(current[index] ?? {}), [field]: value },
-    }));
-  }
-
-  function openCorrectionRuleModal(index: number): void {
-    const currentRow = correctionResults.rows[index];
-    const originalRow = originalRows[index];
-    if (!currentRow || !originalRow) {
-      return;
-    }
-    const defaultField: CorrectionField = "player";
-    setCorrectionRuleRowIndex(index);
-    setCorrectionRuleField(defaultField);
-    setCorrectionRuleMatch(originalRow[defaultField]);
-    setCorrectionRuleReplacement(currentRow[defaultField]);
-    setCorrectionRuleStatus("active");
-    setCorrectionRuleMessage("");
-    setIsAddCorrectionRuleOpen(true);
-  }
-
-  function updateCorrectionRuleField(nextField: "player" | "source" | "chest" | "clan" | "all"): void {
-    setCorrectionRuleField(nextField);
-    if (nextField === "all") {
-      return;
-    }
-    if (correctionRuleRowIndex === null) {
-      return;
-    }
-    const currentRow = correctionResults.rows[correctionRuleRowIndex];
-    const originalRow = originalRows[correctionRuleRowIndex];
-    if (!currentRow || !originalRow) {
-      return;
-    }
-    setCorrectionRuleMatch(originalRow[nextField]);
-    setCorrectionRuleReplacement(currentRow[nextField]);
-  }
-
-  function openValidationRuleModal(index: number): void {
-    const currentRow = correctionResults.rows[index];
-    if (!currentRow) {
-      return;
-    }
-    const defaultField: CorrectionField = "player";
-    setValidationRuleRowIndex(index);
-    setValidationRuleField(defaultField);
-    setValidationRuleMatch(currentRow[defaultField]);
-    setValidationRuleStatus("valid");
-    setValidationRuleMessage("");
-    setIsAddValidationRuleOpen(true);
-  }
-
-  function updateValidationRuleField(nextField: "player" | "source" | "chest" | "clan"): void {
-    setValidationRuleField(nextField);
-    if (validationRuleRowIndex === null) {
-      return;
-    }
-    const currentRow = correctionResults.rows[validationRuleRowIndex];
-    if (!currentRow) {
-      return;
-    }
-    setValidationRuleMatch(currentRow[nextField]);
-  }
-
-  function closeValidationRuleModal(): void {
-    setIsAddValidationRuleOpen(false);
-    setValidationRuleRowIndex(null);
-    setValidationRuleMessage("");
-  }
-
-  async function handleSaveValidationRuleFromRow(): Promise<void> {
-    if (validationRuleRowIndex === null) {
-      setValidationRuleMessage(t("selectRowFirst"));
-      return;
-    }
-    const currentRow = correctionResults.rows[validationRuleRowIndex];
-    if (!currentRow) {
-      setValidationRuleMessage(t("rowDataNotAvailable"));
-      return;
-    }
-    if (!validationRuleMatch.trim()) {
-      setValidationRuleMessage(t("valueRequired"));
-      return;
-    }
-    const payload = {
-      field: validationRuleField,
-      match_value: validationRuleMatch.trim(),
-      status: validationRuleStatus.trim() || "valid",
-    };
-    const { error } = await supabase.from("validation_rules").insert(payload);
-    if (error) {
-      setValidationRuleMessage(t("failedToAddRule", { type: "validation", error: error.message }));
-      return;
-    }
-    setValidationRuleMessage(t("ruleAdded", { type: "validation" }));
-    const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
-    await loadRulesForClans(clanNames);
-    closeValidationRuleModal();
-  }
-
-  function closeCorrectionRuleModal(): void {
-    setIsAddCorrectionRuleOpen(false);
-    setCorrectionRuleRowIndex(null);
-    setCorrectionRuleMessage("");
-  }
-
-  async function handleSaveCorrectionRuleFromRow(): Promise<void> {
-    if (correctionRuleRowIndex === null) {
-      setCorrectionRuleMessage(t("selectRowFirst"));
-      return;
-    }
-    const currentRow = correctionResults.rows[correctionRuleRowIndex];
-    if (!currentRow) {
-      setCorrectionRuleMessage(t("rowDataNotAvailable"));
-      return;
-    }
-    if (!correctionRuleMatch.trim() || !correctionRuleReplacement.trim()) {
-      setCorrectionRuleMessage(t("matchReplacementRequired"));
-      return;
-    }
-    const payload = {
-      field: correctionRuleField,
-      match_value: correctionRuleMatch.trim(),
-      replacement_value: correctionRuleReplacement.trim(),
-      status: correctionRuleStatus.trim() || "active",
-    };
-    const { error } = await supabase.from("correction_rules").insert(payload);
-    if (error) {
-      setCorrectionRuleMessage(t("failedToAddRule", { type: "correction", error: error.message }));
-      return;
-    }
-    setCorrectionRuleMessage(t("ruleAdded", { type: "correction" }));
-    const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
-    await loadRulesForClans(clanNames);
-    closeCorrectionRuleModal();
-  }
-
-  const correctionResults = useMemo(
-    () => applyCorrectionsToRows(rows),
-    [rows, correctionApplicator, isAutoCorrectEnabled],
-  );
-  const correctionStats = useMemo(() => {
-    const correctedFields = Object.values(correctionResults.correctionsByRow).reduce((count, rowCorrections) => {
-      return count + Object.keys(rowCorrections).length;
-    }, 0);
-    const correctedRows = Object.keys(correctionResults.correctionsByRow).length;
-    return { correctedFields, correctedRows };
-  }, [correctionResults.correctionsByRow]);
-
-  const indexedRows = useMemo(
-    () => correctionResults.rows.map((row, index) => ({ row, index })),
-    [correctionResults.rows],
-  );
-  const rowValidationResults = useMemo(() => {
-    if (!isValidationEnabled) {
-      return correctionResults.rows.map(() => ({
-        rowStatus: "neutral",
-        fieldStatus: { player: "neutral", source: "neutral", chest: "neutral", clan: "neutral" },
-      }));
-    }
-    return correctionResults.rows.map((row) =>
-      validationEvaluator({
-        player: row.player,
-        source: row.source,
-        chest: row.chest,
-        clan: row.clan,
-      }),
-    );
-  }, [correctionResults.rows, isValidationEnabled, validationEvaluator]);
-  const validationStats = useMemo(() => {
-    if (!isValidationEnabled) {
-      return { validatedRows: 0, validatedFields: 0, totalFields: 0 };
-    }
-    const validatedRows = rowValidationResults.filter((result) => result.rowStatus === "valid").length;
-    let validatedFields = 0;
-    rowValidationResults.forEach((result) => {
-      validatedFields += Object.values(result.fieldStatus).filter((status) => status === "valid").length;
-    });
-    return { validatedRows, validatedFields, totalFields: rowValidationResults.length * 4 };
-  }, [isValidationEnabled, rowValidationResults]);
-  const validatedRowsLabel: string | number = isValidationEnabled ? validationStats.validatedRows : "Off";
-  const correctedRowsLabel: string | number = isAutoCorrectEnabled ? correctionStats.correctedRows : "Off";
-  const filteredRows = useMemo(() => {
-    const normalizedPlayer = filterPlayer.trim().toLowerCase();
-    const normalizedSource = filterSource.trim().toLowerCase();
-    const normalizedChest = filterChest.trim().toLowerCase();
-    const normalizedClan = filterClan.trim().toLowerCase();
-    const minScore = Number(filterScoreMin);
-    const maxScore = Number(filterScoreMax);
-    const hasMinScore = filterScoreMin.trim() !== "" && !Number.isNaN(minScore);
-    const hasMaxScore = filterScoreMax.trim() !== "" && !Number.isNaN(maxScore);
-    return indexedRows.filter(({ row, index }) => {
-      if (filterCorrectionStatus !== "all") {
-        const hasCorrections = Boolean(correctionResults.correctionsByRow[index]);
-        if (filterCorrectionStatus === "corrected" && !hasCorrections) {
-          return false;
-        }
-        if (filterCorrectionStatus === "uncorrected" && hasCorrections) {
-          return false;
-        }
-      }
-      if (filterRowStatus !== "all") {
-        if (!isValidationEnabled) {
-          return false;
-        }
-        const rowStatus = rowValidationResults[index]?.rowStatus ?? "neutral";
-        if (filterRowStatus === "valid" && rowStatus !== "valid") {
-          return false;
-        }
-        if (filterRowStatus === "invalid" && rowStatus !== "invalid") {
-          return false;
-        }
-      }
-      if (normalizedPlayer && !row.player.toLowerCase().includes(normalizedPlayer)) {
-        return false;
-      }
-      if (normalizedSource && !row.source.toLowerCase().includes(normalizedSource)) {
-        return false;
-      }
-      if (normalizedChest && !row.chest.toLowerCase().includes(normalizedChest)) {
-        return false;
-      }
-      if (normalizedClan && !row.clan.toLowerCase().includes(normalizedClan)) {
-        return false;
-      }
-      if (filterDateFrom.trim() && row.date < filterDateFrom.trim()) {
-        return false;
-      }
-      if (filterDateTo.trim() && row.date > filterDateTo.trim()) {
-        return false;
-      }
-      if (hasMinScore && row.score < minScore) {
-        return false;
-      }
-      if (hasMaxScore && row.score > maxScore) {
-        return false;
-      }
-      return true;
-    });
-  }, [
-    correctionResults.correctionsByRow,
-    filterChest,
-    filterClan,
-    filterDateFrom,
-    filterDateTo,
-    filterPlayer,
-    filterCorrectionStatus,
-    filterRowStatus,
-    filterScoreMax,
-    filterScoreMin,
-    filterSource,
-    indexedRows,
-    isValidationEnabled,
-    rowValidationResults,
-  ]);
-  const sortedRows = useMemo(() => {
-    const sorted = [...filteredRows];
-    sorted.sort((left, right) => {
-      const leftValue = getImportSortValue(left, importSortKey);
-      const rightValue = getImportSortValue(right, importSortKey);
-      return compareImportValues(leftValue, rightValue, importSortDirection);
-    });
-    return sorted;
-  }, [filteredRows, importSortDirection, importSortKey]);
-  const overallCount: number = correctionResults.rows.length;
-  const filteredCount: number = sortedRows.length;
-  const totalPages: number = Math.max(1, Math.ceil(filteredCount / pageSize));
-  const pageStartIndex: number = (page - 1) * pageSize;
-  const pagedRows: readonly IndexedRow[] = sortedRows.slice(pageStartIndex, pageStartIndex + pageSize);
-  const invalidRowCount: number = commitWarningInvalidRows.length;
-  const commitAllCount: number = overallCount;
-  const commitSkipCount: number = Math.max(0, overallCount - invalidRowCount);
-
-  const areAllRowsSelected = useMemo(
-    () => rows.length > 0 && rows.every((_row, index) => selectedRows.includes(index)),
-    [rows, selectedRows],
-  );
-  const areSomeRowsSelected = useMemo(
-    () => selectedRows.length > 0 && !areAllRowsSelected,
-    [areAllRowsSelected, selectedRows.length],
-  );
-  const selectedRowSet = useMemo(() => new Set(selectedRows), [selectedRows]);
-
-  useEffect(() => {
-    const { warnings, errors: validationIssues } = evaluateValidationResults(rows);
-    setValidationMessages(warnings);
-    setValidationErrors(validationIssues);
-  }, [evaluateValidationResults, rows]);
-
-  useEffect(() => {
-    if (!selectAllRef.current) {
-      return;
-    }
-    selectAllRef.current.indeterminate = areSomeRowsSelected;
-  }, [areSomeRowsSelected]);
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [page, totalPages]);
-
-  useEffect(() => {
-    if (!isValidationEnabled && filterRowStatus !== "all") {
-      setFilterRowStatus("all");
-    }
-  }, [filterRowStatus, isValidationEnabled]);
-
-  useEffect(() => {
-    if (!isAutoCorrectEnabled && filterCorrectionStatus !== "all") {
-      setFilterCorrectionStatus("all");
-    }
-  }, [filterCorrectionStatus, isAutoCorrectEnabled]);
-
-  useEffect(() => {
-    if (isCommitting || !commitStatus) {
-      if (commitStatusTimeoutRef.current) {
-        clearTimeout(commitStatusTimeoutRef.current);
-        commitStatusTimeoutRef.current = null;
-      }
-      return;
-    }
-    if (commitStatusTimeoutRef.current) {
-      clearTimeout(commitStatusTimeoutRef.current);
-    }
-    commitStatusTimeoutRef.current = setTimeout(() => {
-      setCommitStatus("");
-      commitStatusTimeoutRef.current = null;
-    }, COMMIT_STATUS_TIMEOUT_MS);
-    return () => {
-      if (commitStatusTimeoutRef.current) {
-        clearTimeout(commitStatusTimeoutRef.current);
-        commitStatusTimeoutRef.current = null;
-      }
-    };
-  }, [commitStatus, isCommitting]);
-
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    setStatusMessage(t("parsingFile"));
-    const text = await file.text();
-    const result = parseCsvText(text);
-    const clanNames = Array.from(new Set(result.rows.map((row) => row.clan)));
-    await loadRulesForClans(clanNames);
-    const nextRows = result.rows;
-    setOriginalRows(result.rows);
-    setRows(nextRows);
-    setManualEdits({});
-    setSelectedRows([]);
-    setPage(1);
-    setFilterPlayer("");
-    setFilterSource("");
-    setFilterChest("");
-    setFilterClan("");
-    setFilterDateFrom("");
-    setFilterDateTo("");
-    setFilterScoreMin("");
-    setFilterScoreMax("");
-    setFilterRowStatus("all");
-    setFilterCorrectionStatus("all");
-    setImportSortKey("index");
-    setImportSortDirection("asc");
-    setErrors(result.errors);
-    setHeaderErrors(result.headerErrors);
-    setFileName(file.name);
-    const { warnings, errors: validationIssues } = evaluateValidationResults(nextRows);
-    setValidationMessages(warnings);
-    setValidationErrors(validationIssues);
-    setStatusMessage(t("parsedRows", { count: result.rows.length }));
-  }
-
-  function getCommitRows(inputRows: readonly CsvRow[]): CommitRow[] {
-    return inputRows.map((row) => ({
-      collected_date: row.date,
-      player: row.player,
-      source: row.source,
-      chest: row.chest,
-      score: row.score,
-      clan: row.clan,
-    }));
-  }
-
-  function getInvalidRowIndexes(): number[] {
-    if (!isValidationEnabled) {
-      return [];
-    }
-    return rowValidationResults
-      .map((result, index) => (result.rowStatus === "invalid" ? index : -1))
-      .filter((index) => index >= 0);
-  }
-
-  function toggleSelectRow(index: number): void {
-    setSelectedRows((current) =>
-      current.includes(index) ? current.filter((item) => item !== index) : [...current, index],
-    );
-  }
-
-  function toggleSelectAllRows(): void {
-    if (rows.length === 0) {
-      return;
-    }
-    if (areAllRowsSelected) {
-      setSelectedRows([]);
-      return;
-    }
-    setSelectedRows(rows.map((_row, index) => index));
-  }
-
-  function handlePageInputChange(nextValue: string): void {
-    const nextPage = Number(nextValue);
-    if (Number.isNaN(nextPage)) {
-      return;
-    }
-    const clampedPage = Math.min(Math.max(1, nextPage), totalPages);
-    setPage(clampedPage);
-  }
-
-  function resetImportFilters(): void {
-    setFilterPlayer("");
-    setFilterSource("");
-    setFilterChest("");
-    setFilterClan("");
-    setFilterDateFrom("");
-    setFilterDateTo("");
-    setFilterScoreMin("");
-    setFilterScoreMax("");
-    setFilterRowStatus("all");
-    setFilterCorrectionStatus("all");
-    setImportSortKey("index");
-    setImportSortDirection("asc");
-    setPage(1);
-  }
-
-  function toggleImportSort(nextKey: ImportSortKey): void {
-    if (importSortKey !== nextKey) {
-      setImportSortKey(nextKey);
-      setImportSortDirection("asc");
-      setPage(1);
-      return;
-    }
-    setImportSortDirection((current) => (current === "asc" ? "desc" : "asc"));
-  }
-
-  function getBatchPreviewValue(row: CsvRow, field: keyof CsvRow): string {
-    if (batchEditField !== field) {
-      return String(row[field]);
-    }
-    if (field === "date") {
-      return batchEditDate || row.date;
-    }
-    if (field === "clan") {
-      return batchEditClan || row.clan;
-    }
-    if (field === "score") {
-      return batchEditValue || String(row.score);
-    }
-    return batchEditValue || String(row[field]);
-  }
-
-  function openBatchEdit(): void {
-    if (selectedRows.length === 0) {
-      setStatusMessage(t("selectRowsForBatchEdit"));
-      return;
-    }
-    setBatchEditField("player");
-    setBatchEditValue("");
-    setBatchEditDate("");
-    setBatchEditClan("");
-    setIsBatchEditOpen(true);
-  }
-
-  function closeBatchEdit(): void {
-    setIsBatchEditOpen(false);
-  }
-
-  function confirmBatchEdit(): void {
-    if (selectedRows.length === 0) {
-      setStatusMessage(t("selectRowsForBatchEdit"));
-      return;
-    }
-    if (batchEditField === "date" && !batchEditDate) {
-      setStatusMessage(t("selectDateValue"));
-      return;
-    }
-    if (batchEditField === "clan" && !batchEditClan) {
-      setStatusMessage(t("selectClan"));
-      return;
-    }
-    if (batchEditField === "score") {
-      const parsedScore = Number(batchEditValue);
-      if (Number.isNaN(parsedScore)) {
-        setStatusMessage(t("scoreMustBeNumber"));
-        return;
-      }
-    }
-    if (batchEditField !== "date" && batchEditField !== "clan" && batchEditField !== "score" && !batchEditValue) {
-      setStatusMessage(t("enterValue"));
-      return;
-    }
-    const nextValue =
-      batchEditField === "date" ? batchEditDate : batchEditField === "clan" ? batchEditClan : batchEditValue;
-    const updatedRows = rows.map((row, index) => {
-      if (!selectedRowSet.has(index)) {
-        return row;
-      }
-      if (batchEditField === "score") {
-        return { ...row, score: Number(nextValue) };
-      }
-      return { ...row, [batchEditField]: nextValue };
-    });
-    setRows(updatedRows);
-    setManualEdits((current) => {
-      const nextEdits: Record<number, RowEdits> = { ...current };
-      selectedRows.forEach((index) => {
-        const existing = nextEdits[index] ?? {};
-        if (batchEditField === "score") {
-          nextEdits[index] = { ...existing, score: Number(nextValue) };
-          return;
-        }
-        nextEdits[index] = { ...existing, [batchEditField]: nextValue };
-      });
-      return nextEdits;
-    });
-    setIsBatchEditOpen(false);
-    setStatusMessage(t("batchEditsApplied"));
-  }
-
-  function handleRemoveSelectedRows(): void {
-    if (selectedRows.length === 0) {
-      return;
-    }
-    const selectedSet = new Set(selectedRows);
-    const keptIndices = rows.map((_, index) => index).filter((index) => !selectedSet.has(index));
-    const nextRows = rows.filter((_, index) => !selectedSet.has(index));
-    const nextOriginal = originalRows.filter((_, index) => !selectedSet.has(index));
-    const nextManual: Record<number, RowEdits> = {};
-    keptIndices.forEach((oldIndex, newIndex) => {
-      if (manualEdits[oldIndex]) {
-        nextManual[newIndex] = manualEdits[oldIndex];
-      }
-    });
-    setOriginalRows(nextOriginal);
-    setRows(nextRows);
-    setManualEdits(nextManual);
-    setSelectedRows([]);
-    const { warnings, errors: validationIssues } = evaluateValidationResults(nextRows);
-    setValidationMessages(warnings);
-    setValidationErrors(validationIssues);
-    setErrors(getRowValidationErrors(nextRows));
-  }
-
-  function canCommit(): boolean {
-    if (rows.length === 0) {
-      return false;
-    }
-    if (errors.length > 0) {
-      return false;
-    }
-    if (headerErrors.length > 0) {
-      return false;
-    }
-    if (rows.some((row) => !row.date)) {
-      return false;
-    }
-    return true;
-  }
-
-  function resetImportState(): void {
-    setOriginalRows([]);
-    setRows([]);
-    setErrors([]);
-    setHeaderErrors([]);
-    setValidationMessages([]);
-    setValidationErrors([]);
-    setManualEdits({});
-    setSelectedRows([]);
-    setPage(1);
-    setFilterPlayer("");
-    setFilterSource("");
-    setFilterChest("");
-    setFilterClan("");
-    setFilterDateFrom("");
-    setFilterDateTo("");
-    setFilterScoreMin("");
-    setFilterScoreMax("");
-    setFilterRowStatus("all");
-    setFilterCorrectionStatus("all");
-    setImportSortKey("index");
-    setImportSortDirection("asc");
-    setFileName("");
-    setStatusMessage("");
-    setBatchEditField("player");
-    setBatchEditValue("");
-    setBatchEditDate("");
-    setBatchEditClan("");
-    setIsBatchEditOpen(false);
-    setCommitWarningInvalidRows([]);
-    setIsCommitWarningOpen(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }
-
-  async function handleCommit(): Promise<void> {
-    if (!canCommit()) {
-      setCommitStatus(t("fixValidationErrors"));
-      return;
-    }
-    const invalidRowIndexes = getInvalidRowIndexes();
-    if (invalidRowIndexes.length > 0) {
-      setCommitWarningInvalidRows(invalidRowIndexes);
-      setIsCommitWarningOpen(true);
-      return;
-    }
-    await executeCommit(correctionResults.rows);
-  }
-
-  async function executeCommit(commitRows: readonly CsvRow[]): Promise<void> {
-    setIsCommitting(true);
-    setCommitStatus(t("committingRows"));
-    const payload = getCommitRows(commitRows);
-    const response = await fetch("/api/data-import/commit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rows: payload }),
-    });
-    if (!response.ok) {
-      const data = (await response.json()) as { error?: string };
-      setCommitStatus(data.error ?? t("commitFailed"));
-      setIsCommitting(false);
-      return;
-    }
-    const data = (await response.json()) as { insertedCount: number };
-    setCommitStatus(t("committedRows", { count: data.insertedCount }));
-    resetImportState();
-    setIsCommitting(false);
-  }
-
-  async function handleCommitSkipInvalid(): Promise<void> {
-    const invalidSet = new Set(commitWarningInvalidRows);
-    const filteredRows = correctionResults.rows.filter((_row, index) => !invalidSet.has(index));
-    setIsCommitWarningOpen(false);
-    if (filteredRows.length === 0) {
-      setCommitStatus(t("noValidRowsToCommit"));
-      return;
-    }
-    await executeCommit(filteredRows);
-  }
-
-  async function handleCommitForce(): Promise<void> {
-    setIsCommitWarningOpen(false);
-    await executeCommit(correctionResults.rows);
-  }
+  const handlePageSizeChange = (value: string): void => {
+    api.setPageSize(Number(value));
+    api.setPage(1);
+  };
 
   return (
     <>
@@ -1079,16 +63,22 @@ function DataImportClient(): JSX.Element {
           <div className="card-body">
             <div className="form-group">
               <label htmlFor="csvFile">{t("csvFileLabel")}</label>
-              <input id="csvFile" ref={fileInputRef} type="file" accept=".csv,.txt" onChange={handleFileChange} />
+              <input
+                id="csvFile"
+                ref={api.fileInputRef}
+                type="file"
+                accept=".csv,.txt"
+                onChange={api.handleFileChange}
+              />
             </div>
             <div className="list">
               <div className="list-item">
                 <span>{t("filename")}</span>
-                <span className="badge">{fileName || t("noFileSelected")}</span>
+                <span className="badge">{api.fileName || t("noFileSelected")}</span>
               </div>
             </div>
-            {statusMessage ? <p className="text-muted">{statusMessage}</p> : null}
-            {commitStatus ? <p className="text-muted">{commitStatus}</p> : null}
+            {api.statusMessage ? <p className="text-muted">{api.statusMessage}</p> : null}
+            {api.commitStatus ? <p className="text-muted">{api.commitStatus}</p> : null}
           </div>
         </section>
         <section className="card">
@@ -1098,229 +88,83 @@ function DataImportClient(): JSX.Element {
               <div className="card-subtitle">{t("importSummary")}</div>
             </div>
             <span className="badge">
-              {t("imported")}: {correctionResults.rows.length}
+              {t("imported")}: {api.correctionResults.rows.length}
             </span>
           </div>
           <div className="list">
             <div className="list-item">
               <span>{t("importedEntries")}</span>
-              <span className="badge">{correctionResults.rows.length}</span>
+              <span className="badge">{api.correctionResults.rows.length}</span>
             </div>
             <div className="list-item">
               <span>{t("correctionsApplied")}</span>
               <span className="badge">
-                {correctionStats.correctedFields} {t("fields")} • {correctionStats.correctedRows} {t("rows")}
+                {api.correctionStats.correctedFields} {t("fields")} • {api.correctionStats.correctedRows} {t("rows")}
               </span>
             </div>
             <div className="list-item">
               <span>{t("rowsValidated")}</span>
-              <span className="badge">{validationStats.validatedRows}</span>
+              <span className="badge">{api.validationStats.validatedRows}</span>
             </div>
             <div className="list-item">
               <span>{t("fieldsValidated")}</span>
               <span className="badge">
-                {validationStats.validatedFields} / {validationStats.totalFields}
+                {api.validationStats.validatedFields} / {api.validationStats.totalFields}
               </span>
             </div>
           </div>
         </section>
-        {isBatchOpsOpen ? (
-          <section className="card batch-ops">
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("searchFilters")}</div>
-                <div className="card-subtitle">{t("applyFilters")}</div>
-              </div>
-            </div>
-            <div className="card-section">
-              <div className="batch-ops-rows">
-                <div className="list inline admin-members-filters filter-bar batch-ops-row">
-                  <SearchInput
-                    id="importFilterPlayer"
-                    label={t("player")}
-                    value={filterPlayer}
-                    onChange={(value) => {
-                      setFilterPlayer(value);
-                      setPage(1);
-                    }}
-                    placeholder={t("searchPlayer")}
-                  />
-                  <SearchInput
-                    id="importFilterSource"
-                    label={t("source")}
-                    value={filterSource}
-                    onChange={(value) => {
-                      setFilterSource(value);
-                      setPage(1);
-                    }}
-                    placeholder={t("searchSource")}
-                  />
-                  <SearchInput
-                    id="importFilterChest"
-                    label={t("chest")}
-                    value={filterChest}
-                    onChange={(value) => {
-                      setFilterChest(value);
-                      setPage(1);
-                    }}
-                    placeholder={t("searchChest")}
-                  />
-                  <SearchInput
-                    id="importFilterClan"
-                    label={t("clan")}
-                    value={filterClan}
-                    onChange={(value) => {
-                      setFilterClan(value);
-                      setPage(1);
-                    }}
-                    placeholder={t("searchClan")}
-                  />
-                </div>
-                <div className="list inline admin-members-filters filter-bar batch-ops-row">
-                  <label htmlFor="importDateFrom" className="text-muted">
-                    {t("dateFrom")}
-                  </label>
-                  <input
-                    id="importDateFrom"
-                    type="date"
-                    value={filterDateFrom}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                      setFilterDateFrom(event.target.value);
-                      setPage(1);
-                    }}
-                  />
-                  <label htmlFor="importDateTo" className="text-muted">
-                    {t("dateTo")}
-                  </label>
-                  <input
-                    id="importDateTo"
-                    type="date"
-                    value={filterDateTo}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                      setFilterDateTo(event.target.value);
-                      setPage(1);
-                    }}
-                  />
-                  <label htmlFor="importScoreMin" className="text-muted">
-                    {t("scoreMin")}
-                  </label>
-                  <input
-                    id="importScoreMin"
-                    type="number"
-                    value={filterScoreMin}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                      setFilterScoreMin(event.target.value);
-                      setPage(1);
-                    }}
-                    placeholder="0"
-                  />
-                  <label htmlFor="importScoreMax" className="text-muted">
-                    {t("scoreMax")}
-                  </label>
-                  <input
-                    id="importScoreMax"
-                    type="number"
-                    value={filterScoreMax}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                      setFilterScoreMax(event.target.value);
-                      setPage(1);
-                    }}
-                    placeholder="9999"
-                  />
-                </div>
-                <div className="list inline admin-members-filters filter-bar batch-ops-row">
-                  <label htmlFor="importRowStatus" className="text-muted">
-                    {t("rowStatus")}
-                  </label>
-                  <RadixSelect
-                    id="importRowStatus"
-                    ariaLabel={t("rowStatus")}
-                    value={filterRowStatus}
-                    onValueChange={(value) => {
-                      setFilterRowStatus(value as "all" | "valid" | "invalid");
-                      setPage(1);
-                    }}
-                    options={[
-                      { value: "all", label: t("all") },
-                      { value: "valid", label: t("validOnly") },
-                      { value: "invalid", label: t("invalidOnly") },
-                    ]}
-                    disabled={!isValidationEnabled}
-                  />
-                  {!isValidationEnabled ? <span className="text-muted">{t("validationOff")}</span> : null}
-                  <label htmlFor="importCorrectionStatus" className="text-muted">
-                    {t("correction")}
-                  </label>
-                  <RadixSelect
-                    id="importCorrectionStatus"
-                    ariaLabel={t("correction")}
-                    value={filterCorrectionStatus}
-                    onValueChange={(value) => {
-                      setFilterCorrectionStatus(value as "all" | "corrected" | "uncorrected");
-                      setPage(1);
-                    }}
-                    options={[
-                      { value: "all", label: t("all") },
-                      { value: "corrected", label: t("correctedOnly") },
-                      { value: "uncorrected", label: t("notCorrected") },
-                    ]}
-                    disabled={!isAutoCorrectEnabled}
-                  />
-                  {!isAutoCorrectEnabled ? <span className="text-muted">{t("autoCorrectOff")}</span> : null}
-                  <label htmlFor="importSortKey" className="text-muted">
-                    {t("sortBy")}
-                  </label>
-                  <RadixSelect
-                    id="importSortKey"
-                    ariaLabel={t("sortBy")}
-                    value={importSortKey}
-                    onValueChange={(value) => {
-                      setImportSortKey(value as ImportSortKey);
-                      setImportSortDirection("asc");
-                      setPage(1);
-                    }}
-                    options={importSortOptions.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
-                  />
-                  <RadixSelect
-                    ariaLabel={t("sortDirection")}
-                    value={importSortDirection}
-                    onValueChange={(value) => {
-                      setImportSortDirection(value as "asc" | "desc");
-                      setPage(1);
-                    }}
-                    options={[
-                      { value: "asc", label: t("asc") },
-                      { value: "desc", label: t("desc") },
-                    ]}
-                  />
-                  <button className="button" type="button" onClick={resetImportFilters}>
-                    {t("reset")}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
+        {api.isBatchOpsOpen ? (
+          <DataImportFilters
+            filterPlayer={api.filterPlayer}
+            filterSource={api.filterSource}
+            filterChest={api.filterChest}
+            filterClan={api.filterClan}
+            filterDateFrom={api.filterDateFrom}
+            filterDateTo={api.filterDateTo}
+            filterScoreMin={api.filterScoreMin}
+            filterScoreMax={api.filterScoreMax}
+            filterRowStatus={api.filterRowStatus}
+            filterCorrectionStatus={api.filterCorrectionStatus}
+            importSortKey={api.importSortKey}
+            importSortDirection={api.importSortDirection}
+            isValidationEnabled={api.isValidationEnabled}
+            isAutoCorrectEnabled={api.isAutoCorrectEnabled}
+            onFilterPlayerChange={(v) => handleFilterChange(api.setFilterPlayer, v)}
+            onFilterSourceChange={(v) => handleFilterChange(api.setFilterSource, v)}
+            onFilterChestChange={(v) => handleFilterChange(api.setFilterChest, v)}
+            onFilterClanChange={(v) => handleFilterChange(api.setFilterClan, v)}
+            onFilterDateFromChange={(v) => handleFilterChange(api.setFilterDateFrom, v)}
+            onFilterDateToChange={(v) => handleFilterChange(api.setFilterDateTo, v)}
+            onFilterScoreMinChange={(v) => handleFilterChange(api.setFilterScoreMin, v)}
+            onFilterScoreMaxChange={(v) => handleFilterChange(api.setFilterScoreMax, v)}
+            onFilterRowStatusChange={handleFilterRowStatusChange}
+            onFilterCorrectionStatusChange={handleFilterCorrectionStatusChange}
+            onImportSortKeyChange={handleImportSortKeyChange}
+            onImportSortDirectionChange={handleImportSortDirectionChange}
+            onResetFilters={api.resetImportFilters}
+          />
         ) : null}
         <div className="table-toolbar">
-          <button className="button" type="button" onClick={() => setIsBatchOpsOpen((current) => !current)}>
-            {isBatchOpsOpen ? t("hideSearchFilters") : t("showSearchFilters")}
+          <button className="button" type="button" onClick={() => api.setIsBatchOpsOpen((current) => !current)}>
+            {api.isBatchOpsOpen ? t("hideSearchFilters") : t("showSearchFilters")}
           </button>
           <button
             className="button primary"
             type="button"
-            disabled={!canCommit() || isCommitting}
-            onClick={handleCommit}
+            disabled={!api.canCommit() || api.isCommitting}
+            onClick={api.handleCommit}
           >
-            {isCommitting ? t("committing") : t("commitData")}
+            {api.isCommitting ? t("committing") : t("commitData")}
           </button>
-          <button className="button" type="button" onClick={openBatchEdit} disabled={selectedRows.length === 0}>
+          <button className="button" type="button" onClick={api.openBatchEdit} disabled={api.selectedRows.length === 0}>
             {t("batchEdit")}
           </button>
           <IconButton
             ariaLabel={t("removeSelectedRows")}
-            onClick={handleRemoveSelectedRows}
+            onClick={api.handleRemoveSelectedRows}
             variant="danger"
-            disabled={selectedRows.length === 0}
+            disabled={api.selectedRows.length === 0}
           >
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -1343,8 +187,8 @@ function DataImportClient(): JSX.Element {
               <input
                 id="autoCorrectToggle"
                 type="checkbox"
-                checked={isAutoCorrectEnabled}
-                onChange={(event) => setIsAutoCorrectEnabled(event.target.checked)}
+                checked={api.isAutoCorrectEnabled}
+                onChange={(event) => api.setIsAutoCorrectEnabled(event.target.checked)}
               />
               {t("autoCorrect")}
             </label>
@@ -1352,8 +196,8 @@ function DataImportClient(): JSX.Element {
               <input
                 id="validationToggle"
                 type="checkbox"
-                checked={isValidationEnabled}
-                onChange={(event) => setIsValidationEnabled(event.target.checked)}
+                checked={api.isValidationEnabled}
+                onChange={(event) => api.setIsValidationEnabled(event.target.checked)}
               />
               {t("validation")}
             </label>
@@ -1367,11 +211,8 @@ function DataImportClient(): JSX.Element {
             <RadixSelect
               id="importPageSize"
               ariaLabel="Page size"
-              value={String(pageSize)}
-              onValueChange={(value) => {
-                setPageSize(Number(value));
-                setPage(1);
-              }}
+              value={String(api.pageSize)}
+              onValueChange={handlePageSizeChange}
               options={[
                 { value: "25", label: "25" },
                 { value: "50", label: "50" },
@@ -1381,9 +222,9 @@ function DataImportClient(): JSX.Element {
             />
           </div>
           <span className="text-muted">
-            {t("showing")} {filteredCount === 0 ? 0 : pageStartIndex + 1}–
-            {Math.min(pageStartIndex + pageSize, filteredCount)} {t("of")} {filteredCount}
-            {selectedRows.length > 0 ? ` • ${selectedRows.length} ${t("selected")}` : ""}
+            {t("showing")} {api.filteredCount === 0 ? 0 : api.pageStartIndex + 1}–
+            {Math.min(api.pageStartIndex + api.pageSize, api.filteredCount)} {t("of")} {api.filteredCount}
+            {api.selectedRows.length > 0 ? ` • ${api.selectedRows.length} ${t("selected")}` : ""}
           </span>
           <div className="pagination-actions">
             <div className="pagination-page-indicator">
@@ -1395,16 +236,16 @@ function DataImportClient(): JSX.Element {
                 className="pagination-page-input"
                 type="number"
                 min={1}
-                max={totalPages}
-                value={page}
-                onChange={(event) => handlePageInputChange(event.target.value)}
+                max={api.totalPages}
+                value={api.page}
+                onChange={(event) => api.handlePageInputChange(event.target.value)}
               />
-              <span className="text-muted">/ {totalPages}</span>
+              <span className="text-muted">/ {api.totalPages}</span>
             </div>
             <IconButton
               ariaLabel={t("previousPage")}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              disabled={page === 1}
+              onClick={() => api.setPage((current) => Math.max(1, current - 1))}
+              disabled={api.page === 1}
             >
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path
@@ -1418,8 +259,8 @@ function DataImportClient(): JSX.Element {
             </IconButton>
             <IconButton
               ariaLabel={t("nextPage")}
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              disabled={page >= totalPages}
+              onClick={() => api.setPage((current) => Math.min(api.totalPages, current + 1))}
+              disabled={api.page >= api.totalPages}
             >
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path
@@ -1433,572 +274,93 @@ function DataImportClient(): JSX.Element {
             </IconButton>
           </div>
         </div>
-        <TableScroll>
-          <section className="table data-import">
-            <header>
-              <span>
-                <SortableColumnHeader
-                  label={t("tableHeaderIndex")}
-                  sortKey="index"
-                  activeSortKey={importSortKey}
-                  direction={importSortDirection}
-                  onToggle={toggleImportSort}
-                  variant="triangle"
-                />
-              </span>
-              <span>
-                <input
-                  type="checkbox"
-                  ref={selectAllRef}
-                  checked={areAllRowsSelected}
-                  onChange={toggleSelectAllRows}
-                  aria-label={t("selectAllRows")}
-                />
-              </span>
-              <span>
-                <SortableColumnHeader
-                  label={t("tableHeaderDate")}
-                  sortKey="date"
-                  activeSortKey={importSortKey}
-                  direction={importSortDirection}
-                  onToggle={toggleImportSort}
-                  variant="triangle"
-                />
-              </span>
-              <span>
-                <SortableColumnHeader
-                  label={t("tableHeaderPlayer")}
-                  sortKey="player"
-                  activeSortKey={importSortKey}
-                  direction={importSortDirection}
-                  onToggle={toggleImportSort}
-                  variant="triangle"
-                />
-              </span>
-              <span>
-                <SortableColumnHeader
-                  label={t("tableHeaderSource")}
-                  sortKey="source"
-                  activeSortKey={importSortKey}
-                  direction={importSortDirection}
-                  onToggle={toggleImportSort}
-                  variant="triangle"
-                />
-              </span>
-              <span>
-                <SortableColumnHeader
-                  label={t("tableHeaderChest")}
-                  sortKey="chest"
-                  activeSortKey={importSortKey}
-                  direction={importSortDirection}
-                  onToggle={toggleImportSort}
-                  variant="triangle"
-                />
-              </span>
-              <span>
-                <SortableColumnHeader
-                  label={t("tableHeaderScore")}
-                  sortKey="score"
-                  activeSortKey={importSortKey}
-                  direction={importSortDirection}
-                  onToggle={toggleImportSort}
-                  variant="triangle"
-                />
-              </span>
-              <span>
-                <SortableColumnHeader
-                  label={t("tableHeaderClan")}
-                  sortKey="clan"
-                  activeSortKey={importSortKey}
-                  direction={importSortDirection}
-                  onToggle={toggleImportSort}
-                  variant="triangle"
-                />
-              </span>
-              <span>{t("tableHeaderActions")}</span>
-            </header>
-            {correctionResults.rows.length === 0 ? (
-              <div className="row">
-                <span>{t("noDataLoaded")}</span>
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-            ) : filteredCount === 0 ? (
-              <div className="row">
-                <span>{t("noRowsMatchFilters")}</span>
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-            ) : (
-              pagedRows.map((item) => {
-                const row = item.row;
-                const rowIndex = item.index;
-                const validation = rowValidationResults[rowIndex];
-                const rowStatus = validation?.rowStatus ?? "neutral";
-                const fieldStatus = validation?.fieldStatus ?? {
-                  player: "neutral",
-                  source: "neutral",
-                  chest: "neutral",
-                  clan: "neutral",
-                };
-                const correctionsForRow = correctionResults.correctionsByRow[rowIndex];
-                const playerClassName = [
-                  fieldStatus.player === "invalid" ? "validation-cell-invalid" : "",
-                  correctionsForRow?.player ? "correction-cell-corrected" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-                const sourceClassName = [
-                  fieldStatus.source === "invalid" ? "validation-cell-invalid" : "",
-                  correctionsForRow?.source ? "correction-cell-corrected" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-                const chestClassName = [
-                  fieldStatus.chest === "invalid" ? "validation-cell-invalid" : "",
-                  correctionsForRow?.chest ? "correction-cell-corrected" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-                const clanClassName = [
-                  fieldStatus.clan === "invalid" ? "select-trigger validation-cell-invalid" : "select-trigger",
-                  correctionsForRow?.clan ? "correction-cell-corrected" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-                return (
-                  <div
-                    className={`row ${rowStatus === "valid" ? "validation-valid" : ""} ${rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
-                    key={`${row.date}-${row.player}-${row.chest}-${rowIndex}`}
-                  >
-                    <span className="text-muted">{rowIndex + 1}</span>
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(rowIndex)}
-                      onChange={() => toggleSelectRow(rowIndex)}
-                    />
-                    <DatePicker value={row.date} onChange={(value) => updateRowValue(rowIndex, "date", value)} />
-                    <ComboboxInput
-                      value={row.player}
-                      className={playerClassName}
-                      onChange={(value) => updateRowValue(rowIndex, "player", value)}
-                      options={playerSuggestions}
-                    />
-                    <ComboboxInput
-                      value={row.source}
-                      className={sourceClassName}
-                      onChange={(value) => updateRowValue(rowIndex, "source", value)}
-                      options={sourceSuggestions}
-                    />
-                    <ComboboxInput
-                      value={row.chest}
-                      className={chestClassName}
-                      onChange={(value) => updateRowValue(rowIndex, "chest", value)}
-                      options={chestSuggestions}
-                    />
-                    <input
-                      value={String(row.score)}
-                      onChange={(event) => updateRowValue(rowIndex, "score", event.target.value)}
-                    />
-                    <RadixSelect
-                      ariaLabel="Clan"
-                      value={row.clan}
-                      onValueChange={(value) => updateRowValue(rowIndex, "clan", value)}
-                      triggerClassName={clanClassName}
-                      options={[
-                        ...(!availableClans.includes(row.clan) ? [{ value: row.clan, label: row.clan }] : []),
-                        ...availableClans.map((clan) => ({ value: clan, label: clan })),
-                      ]}
-                    />
-                    <div className="list inline action-icons">
-                      <IconButton ariaLabel={t("addCorrectionRule")} onClick={() => openCorrectionRuleModal(rowIndex)}>
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M3.5 10.5L8 6L12.5 10.5L7.5 15H3.5V10.5Z"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path d="M7.5 15H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                      </IconButton>
-                      <IconButton ariaLabel={t("addValidationRule")} onClick={() => openValidationRuleModal(rowIndex)}>
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M3.5 5.5L5 7L7.5 4.5"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path d="M8.5 5.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          <path
-                            d="M3.5 10.5L5 12L7.5 9.5"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path d="M8.5 10.5H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                      </IconButton>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </section>
-        </TableScroll>
+        <DataImportTable
+          correctionResults={api.correctionResults}
+          rowValidationResults={api.rowValidationResults}
+          pagedRows={api.pagedRows}
+          filteredCount={api.filteredCount}
+          availableClans={api.availableClans}
+          playerSuggestions={api.playerSuggestions}
+          sourceSuggestions={api.sourceSuggestions}
+          chestSuggestions={api.chestSuggestions}
+          selectedRows={api.selectedRows}
+          importSortKey={api.importSortKey}
+          importSortDirection={api.importSortDirection}
+          areAllRowsSelected={api.areAllRowsSelected}
+          selectAllRef={api.selectAllRef}
+          onToggleSelectRow={api.toggleSelectRow}
+          onToggleSelectAllRows={api.toggleSelectAllRows}
+          onUpdateRowValue={api.updateRowValue}
+          onOpenCorrectionRuleModal={api.openCorrectionRuleModal}
+          onOpenValidationRuleModal={api.openValidationRuleModal}
+          onToggleImportSort={api.toggleImportSort}
+        />
       </div>
-      <FormModal
-        isOpen={isAddCorrectionRuleOpen}
-        title={t("addCorrectionRuleTitle")}
-        subtitle={t("createRuleFromRow")}
-        statusMessage={correctionRuleMessage}
-        submitLabel={t("saveRule")}
-        cancelLabel={t("cancel")}
-        onSubmit={handleSaveCorrectionRuleFromRow}
-        onCancel={closeCorrectionRuleModal}
-        wide
-      >
-        <div className="form-grid">
-          <div className="form-group">
-            <label htmlFor="correctionRuleField">{t("field")}</label>
-            <RadixSelect
-              id="correctionRuleField"
-              ariaLabel={t("field")}
-              value={correctionRuleField}
-              onValueChange={(value) =>
-                updateCorrectionRuleField(value as "player" | "source" | "chest" | "clan" | "all")
-              }
-              options={[
-                { value: "player", label: t("player") },
-                { value: "source", label: t("source") },
-                { value: "chest", label: t("chest") },
-                { value: "clan", label: t("clan") },
-                { value: "all", label: t("all") },
-              ]}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="correctionRuleMatch">{t("matchValue")}</label>
-            <ComboboxInput
-              id="correctionRuleMatch"
-              value={correctionRuleMatch}
-              onChange={setCorrectionRuleMatch}
-              options={suggestionsForField[correctionRuleField] ?? []}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="correctionRuleReplacement">{t("replacementValue")}</label>
-            <ComboboxInput
-              id="correctionRuleReplacement"
-              value={correctionRuleReplacement}
-              onChange={setCorrectionRuleReplacement}
-              options={suggestionsForField[correctionRuleField] ?? []}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="correctionRuleStatus">{t("status")}</label>
-            <RadixSelect
-              id="correctionRuleStatus"
-              ariaLabel={t("status")}
-              value={correctionRuleStatus}
-              onValueChange={(value) => setCorrectionRuleStatus(value)}
-              options={[
-                { value: "active", label: t("active") },
-                { value: "inactive", label: t("inactive") },
-              ]}
-            />
-          </div>
-        </div>
-      </FormModal>
-      <FormModal
-        isOpen={isAddValidationRuleOpen}
-        title={t("addValidationRuleTitle")}
-        subtitle={t("createValidValue")}
-        statusMessage={validationRuleMessage}
-        submitLabel={t("saveRule")}
-        cancelLabel={t("cancel")}
-        onSubmit={handleSaveValidationRuleFromRow}
-        onCancel={closeValidationRuleModal}
-        wide
-      >
-        <div className="form-grid">
-          <div className="form-group">
-            <label htmlFor="validationRuleField">{t("field")}</label>
-            <RadixSelect
-              id="validationRuleField"
-              ariaLabel={t("field")}
-              value={validationRuleField}
-              onValueChange={(value) => updateValidationRuleField(value as "player" | "source" | "chest" | "clan")}
-              options={[
-                { value: "player", label: t("player") },
-                { value: "source", label: t("source") },
-                { value: "chest", label: t("chest") },
-                { value: "clan", label: t("clan") },
-              ]}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="validationRuleMatch">{t("value")}</label>
-            <ComboboxInput
-              id="validationRuleMatch"
-              value={validationRuleMatch}
-              onChange={setValidationRuleMatch}
-              options={suggestionsForField[validationRuleField] ?? []}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="validationRuleStatus">{t("status")}</label>
-            <RadixSelect
-              id="validationRuleStatus"
-              ariaLabel={t("status")}
-              value={validationRuleStatus}
-              onValueChange={(value) => setValidationRuleStatus(value)}
-              options={[
-                { value: "valid", label: t("valid") },
-                { value: "invalid", label: t("invalid") },
-              ]}
-            />
-          </div>
-        </div>
-      </FormModal>
-      {isBatchEditOpen ? (
-        <div className="modal-backdrop">
-          <div className="modal card wide tall">
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("batchEditTitle")}</div>
-                <div className="card-subtitle">{t("reviewChanges")}</div>
-              </div>
-            </div>
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="batchEditField">{t("column")}</label>
-                <RadixSelect
-                  id="batchEditField"
-                  ariaLabel={t("column")}
-                  value={batchEditField}
-                  onValueChange={(value) => setBatchEditField(value as keyof CsvRow)}
-                  options={[
-                    { value: "date", label: t("tableHeaderDate") },
-                    { value: "player", label: t("tableHeaderPlayer") },
-                    { value: "source", label: t("tableHeaderSource") },
-                    { value: "chest", label: t("tableHeaderChest") },
-                    { value: "score", label: t("tableHeaderScore") },
-                    { value: "clan", label: t("tableHeaderClan") },
-                  ]}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="batchEditValue">{t("newValue")}</label>
-                {batchEditField === "date" ? (
-                  <DatePicker value={batchEditDate} onChange={setBatchEditDate} />
-                ) : batchEditField === "clan" ? (
-                  <RadixSelect
-                    id="batchEditClan"
-                    ariaLabel="Batch edit clan"
-                    value={batchEditClan}
-                    onValueChange={setBatchEditClan}
-                    enableSearch
-                    searchPlaceholder={t("searchClan")}
-                    options={availableClans.map((clan) => ({ value: clan, label: clan }))}
-                  />
-                ) : (
-                  <input
-                    id="batchEditValue"
-                    type={batchEditField === "score" ? "number" : "text"}
-                    value={batchEditValue}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => setBatchEditValue(event.target.value)}
-                    placeholder={batchEditField === "score" ? "0" : t("newValue")}
-                  />
-                )}
-              </div>
-            </div>
-            <div className="modal-table-scroll">
-              <section className="table batch-preview">
-                <header>
-                  <span>{t("tableHeaderIndex")}</span>
-                  <span>{t("tableHeaderDate")}</span>
-                  <span>{t("tableHeaderPlayer")}</span>
-                  <span>{t("tableHeaderSource")}</span>
-                  <span>{t("tableHeaderChest")}</span>
-                  <span>{t("tableHeaderScore")}</span>
-                  <span>{t("tableHeaderClan")}</span>
-                </header>
-                {selectedRows.length === 0 ? (
-                  <div className="row">
-                    <span>{t("noRowsSelected")}</span>
-                    <span />
-                    <span />
-                    <span />
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                ) : (
-                  selectedRows.map((index) => {
-                    const row = correctionResults.rows[index];
-                    if (!row) {
-                      return null;
-                    }
-                    const nextValue =
-                      batchEditField === "date"
-                        ? batchEditDate
-                        : batchEditField === "clan"
-                          ? batchEditClan
-                          : batchEditValue;
-                    const previewRow: CsvRow = {
-                      ...row,
-                      [batchEditField]:
-                        batchEditField === "score"
-                          ? Number(nextValue || row.score)
-                          : batchEditField === "date" || batchEditField === "clan"
-                            ? nextValue || row[batchEditField]
-                            : nextValue || row[batchEditField],
-                    };
-                    const { rows: correctedRows, correctionsByRow } = applyCorrectionsToRows([previewRow]);
-                    const correctedPreview = correctedRows[0] ?? previewRow;
-                    const previewCorrections = correctionsByRow[0];
-                    const validationResult = isValidationEnabled
-                      ? validationEvaluator({
-                          player: correctedPreview.player,
-                          source: correctedPreview.source,
-                          chest: correctedPreview.chest,
-                          clan: correctedPreview.clan,
-                        })
-                      : {
-                          rowStatus: "neutral",
-                          fieldStatus: {
-                            player: "neutral",
-                            source: "neutral",
-                            chest: "neutral",
-                            clan: "neutral",
-                          },
-                        };
-                    const playerClassName = [
-                      validationResult.fieldStatus.player === "invalid" ? "validation-cell-invalid" : "",
-                      previewCorrections?.player ? "correction-cell-corrected" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ");
-                    const sourceClassName = [
-                      validationResult.fieldStatus.source === "invalid" ? "validation-cell-invalid" : "",
-                      previewCorrections?.source ? "correction-cell-corrected" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ");
-                    const chestClassName = [
-                      validationResult.fieldStatus.chest === "invalid" ? "validation-cell-invalid" : "",
-                      previewCorrections?.chest ? "correction-cell-corrected" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ");
-                    const clanClassName = [
-                      validationResult.fieldStatus.clan === "invalid" ? "validation-cell-invalid" : "",
-                      previewCorrections?.clan ? "correction-cell-corrected" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ");
-                    return (
-                      <div
-                        className={`row ${validationResult.rowStatus === "valid" ? "validation-valid" : ""} ${validationResult.rowStatus === "invalid" ? "validation-invalid" : ""}`.trim()}
-                        key={`batch-preview-${row.date}-${index}`}
-                      >
-                        <span className="text-muted">{index + 1}</span>
-                        <span className={validationResult.rowStatus === "invalid" ? "validation-cell-invalid" : ""}>
-                          {getBatchPreviewValue(correctedPreview, "date")}
-                        </span>
-                        <span className={playerClassName}>{getBatchPreviewValue(correctedPreview, "player")}</span>
-                        <span className={sourceClassName}>{getBatchPreviewValue(correctedPreview, "source")}</span>
-                        <span className={chestClassName}>{getBatchPreviewValue(correctedPreview, "chest")}</span>
-                        <span className={validationResult.rowStatus === "invalid" ? "validation-cell-invalid" : ""}>
-                          {getBatchPreviewValue(correctedPreview, "score")}
-                        </span>
-                        <span className={clanClassName}>{getBatchPreviewValue(correctedPreview, "clan")}</span>
-                      </div>
-                    );
-                  })
-                )}
-              </section>
-            </div>
-            <div className="list inline">
-              <button className="button primary" type="button" onClick={confirmBatchEdit}>
-                {t("applyChanges")}
-              </button>
-              <button className="button" type="button" onClick={closeBatchEdit}>
-                {t("cancel")}
-              </button>
-            </div>
-          </div>
-        </div>
+      <CorrectionRuleModal
+        t={t}
+        isOpen={api.isAddCorrectionRuleOpen}
+        statusMessage={api.correctionRuleMessage}
+        correctionRuleField={api.correctionRuleField}
+        correctionRuleMatch={api.correctionRuleMatch}
+        correctionRuleReplacement={api.correctionRuleReplacement}
+        correctionRuleStatus={api.correctionRuleStatus}
+        suggestionsForField={api.suggestionsForField}
+        onFieldChange={api.updateCorrectionRuleField}
+        onMatchChange={api.setCorrectionRuleMatch}
+        onReplacementChange={api.setCorrectionRuleReplacement}
+        onStatusChange={api.setCorrectionRuleStatus}
+        onSubmit={api.handleSaveCorrectionRuleFromRow}
+        onCancel={api.closeCorrectionRuleModal}
+      />
+      <ValidationRuleModal
+        t={t}
+        isOpen={api.isAddValidationRuleOpen}
+        statusMessage={api.validationRuleMessage}
+        validationRuleField={api.validationRuleField}
+        validationRuleMatch={api.validationRuleMatch}
+        validationRuleStatus={api.validationRuleStatus}
+        suggestionsForField={api.suggestionsForField}
+        onFieldChange={api.updateValidationRuleField}
+        onMatchChange={api.setValidationRuleMatch}
+        onStatusChange={api.setValidationRuleStatus}
+        onSubmit={api.handleSaveValidationRuleFromRow}
+        onCancel={api.closeValidationRuleModal}
+      />
+      {api.isBatchEditOpen ? (
+        <BatchEditModal
+          t={t}
+          selectedRows={api.selectedRows}
+          correctionResults={api.correctionResults}
+          batchEditField={api.batchEditField}
+          batchEditValue={api.batchEditValue}
+          batchEditDate={api.batchEditDate}
+          batchEditClan={api.batchEditClan}
+          availableClans={api.availableClans}
+          isValidationEnabled={api.isValidationEnabled}
+          getBatchPreviewValue={api.getBatchPreviewValue}
+          applyCorrectionsToRows={api.applyCorrectionsToRows}
+          validationEvaluator={api.validationEvaluator}
+          setBatchEditField={api.setBatchEditField}
+          setBatchEditValue={api.setBatchEditValue}
+          setBatchEditDate={api.setBatchEditDate}
+          setBatchEditClan={api.setBatchEditClan}
+          onConfirm={api.confirmBatchEdit}
+          onCancel={api.closeBatchEdit}
+        />
       ) : null}
-      {isCommitWarningOpen ? (
-        <div className="modal-backdrop">
-          <div className="modal card danger">
-            <div className="card-header">
-              <div>
-                <div className="danger-label">{t("validationWarning")}</div>
-                <div className="card-title">{t("invalidRowsDetected")}</div>
-                <div className="card-subtitle">{t("chooseProceed")}</div>
-              </div>
-            </div>
-            <div className="alert warn">{t("rowHasErrors", { count: invalidRowCount })}</div>
-            <div className="list">
-              <div className="list-item">
-                <span>{t("rowsValidated")}</span>
-                <span className="badge">{validatedRowsLabel}</span>
-              </div>
-              <div className="list-item">
-                <span>{t("rowsCorrected")}</span>
-                <span className="badge">{correctedRowsLabel}</span>
-              </div>
-              <div className="list-item">
-                <span>{t("commitIfSkipping")}</span>
-                <span className="badge">{commitSkipCount}</span>
-              </div>
-              <div className="list-item">
-                <span>{t("commitIfCommitting")}</span>
-                <span className="badge">{commitAllCount}</span>
-              </div>
-              <div className="list-item">
-                <span>{t("invalidRowNumbers")}</span>
-                <span className="badge">
-                  {commitWarningInvalidRows
-                    .slice(0, 12)
-                    .map((index) => index + 1)
-                    .join(", ")}
-                  {commitWarningInvalidRows.length > 12 ? "…" : ""}
-                </span>
-              </div>
-            </div>
-            <div className="list inline">
-              <button className="button" type="button" onClick={handleCommitSkipInvalid}>
-                {t("skipInvalidRows")}
-              </button>
-              <button className="button primary" type="button" onClick={handleCommitForce}>
-                {t("commitAnyway")}
-              </button>
-              <button className="button" type="button" onClick={() => setIsCommitWarningOpen(false)}>
-                {t("cancel")}
-              </button>
-            </div>
-          </div>
-        </div>
+      {api.isCommitWarningOpen ? (
+        <CommitWarningModal
+          t={t}
+          invalidRowCount={api.invalidRowCount}
+          validatedRowsLabel={api.validatedRowsLabel}
+          correctedRowsLabel={api.correctedRowsLabel}
+          commitSkipCount={api.commitSkipCount}
+          commitAllCount={api.commitAllCount}
+          commitWarningInvalidRows={api.commitWarningInvalidRows}
+          onSkipInvalid={api.handleCommitSkipInvalid}
+          onCommitAnyway={api.handleCommitForce}
+          onCancel={() => api.setIsCommitWarningOpen(false)}
+        />
       ) : null}
     </>
   );

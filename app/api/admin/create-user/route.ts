@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
 import { requireAdmin } from "../../../../lib/api/require-admin";
@@ -61,21 +62,21 @@ export async function POST(request: Request): Promise<Response> {
     const [usernameResult, emailResult, displayNameResult] = duplicateChecks;
 
     if (usernameResult?.error) {
-      console.error("[create-user] Username check failed:", usernameResult.error.message);
+      captureApiError("POST /api/admin/create-user", usernameResult.error);
       return NextResponse.json({ error: "Failed to validate username." }, { status: 500 });
     }
     if (usernameResult?.data) {
       return NextResponse.json({ error: "Username already exists." }, { status: 409 });
     }
     if (emailResult?.error) {
-      console.error("[create-user] Email check failed:", emailResult.error.message);
+      captureApiError("POST /api/admin/create-user", emailResult.error);
       return NextResponse.json({ error: "Failed to validate email." }, { status: 500 });
     }
     if (emailResult?.data) {
       return NextResponse.json({ error: "Email already exists." }, { status: 409 });
     }
     if (displayNameResult?.error) {
-      console.error("[create-user] Display name check failed:", displayNameResult.error.message);
+      captureApiError("POST /api/admin/create-user", displayNameResult.error);
       return NextResponse.json({ error: "Failed to validate nickname." }, { status: 500 });
     }
     if (displayNameResult?.data) {
@@ -84,7 +85,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail);
     if (inviteError || !inviteData.user) {
-      console.error("[create-user] Invite failed:", inviteError?.message);
+      captureApiError("POST /api/admin/create-user", inviteError ?? new Error("Invite failed"));
       return NextResponse.json({ error: "Failed to create user." }, { status: 500 });
     }
     const userId = inviteData.user.id;
@@ -105,12 +106,12 @@ export async function POST(request: Request): Promise<Response> {
       if (resolvedMessage) {
         return NextResponse.json({ error: resolvedMessage }, { status: 409 });
       }
-      console.error("[create-user] Profile upsert failed:", profileError.message);
+      captureApiError("POST /api/admin/create-user", profileError);
       return NextResponse.json({ error: "Failed to create user profile." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: userId } }, { status: 201 });
   } catch (err) {
-    console.error("[create-user POST] Unexpected:", err);
+    captureApiError("POST /api/admin/create-user", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

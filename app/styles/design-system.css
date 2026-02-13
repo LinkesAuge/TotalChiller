@@ -1,0 +1,589 @@
+/* Design System: CMS editor, editable components, pencil button, edit modal, icon picker, home cards */
+/* =============================
+   Home Page — About Us Card
+   ============================= */
+
+.home-about-card {
+  position: relative;
+  border: 1px solid var(--color-gold-a25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.home-about-bg {
+  position: absolute;
+  inset: 0;
+  background: url("/assets/ui/thc_hero.png") center center / cover no-repeat;
+  opacity: 0.32;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-about-card > .tooltip-head,
+.home-about-card > .card-body {
+  position: relative;
+  z-index: 1;
+}
+
+.home-about-body {
+  padding: 28px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #e8e0d0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.home-about-intro {
+  font-size: 1.1rem;
+  color: #f0eadc;
+}
+
+.home-about-section-title {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-gold);
+  font-weight: 600;
+}
+
+.home-about-requirements,
+.home-about-apply {
+  background: rgba(8, 16, 26, 0.55);
+  border: 1px solid var(--color-gold-a20);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.home-about-extras,
+.home-about-disclaimer {
+  background: rgba(8, 16, 26, 0.55);
+  border: 1px solid var(--color-gold-a20);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  font-size: 0.92rem;
+  color: #d0c8b8;
+}
+
+/* =============================
+   Home Page — Why Join Card
+   ============================= */
+
+.home-whyjoin-card {
+  position: relative;
+  border: 1px solid var(--color-gold-a25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.home-whyjoin-bg {
+  position: absolute;
+  inset: 0;
+  background: url("/assets/backgrounds/why_join_bg.png") center center / cover no-repeat;
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-whyjoin-card > .tooltip-head,
+.home-whyjoin-card > .card-body {
+  position: relative;
+  z-index: 1;
+}
+
+.home-whyjoin-card .editable-list-item {
+  background: rgba(8, 16, 26, 0.55);
+  border: 1px solid var(--color-gold-a20);
+}
+
+.home-whyjoin-body {
+  padding: 28px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #e8e0d0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* =============================
+   Editable Text Component
+   ============================= */
+
+.editable-text-wrap {
+  position: relative;
+}
+
+.editable-text-wrap.editable {
+  cursor: default;
+}
+
+/* Pencil button — absolute overlay for ALL editable elements */
+.editable-text-pencil {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--color-gold-a40);
+  background: rgba(8, 16, 26, 0.85);
+  color: var(--color-gold);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
+  z-index: 3;
+}
+
+.editable-text-wrap.editable:hover > .editable-text-pencil,
+.editable-text-pencil:focus {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.editable-text-pencil:hover {
+  background: var(--color-gold-a20);
+  border-color: var(--color-gold);
+}
+
+/* Badge-specific: center the pencil over the badge */
+.editable-text-wrap.badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.editable-text-wrap.badge > .editable-text-pencil {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+}
+
+.editable-text-wrap.badge.editable:hover {
+  opacity: 0.6;
+}
+
+.editable-text-editor {
+  padding: 12px;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.editable-text-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editable-text-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.editable-text-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-gold);
+  font-weight: 600;
+}
+
+.editable-text-input {
+  width: 100%;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-family: inherit;
+}
+
+.editable-text-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.editable-text-input:focus,
+.editable-text-textarea:focus {
+  outline: none;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 2px var(--color-edge);
+}
+
+.editable-text-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.editable-text-tab {
+  padding: 4px 14px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.editable-text-tab.active {
+  background: var(--color-edge);
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+.editable-text-tab:hover:not(.active) {
+  border-color: var(--color-edge-glow);
+  color: var(--color-text);
+}
+
+.editable-text-tab-spacer {
+  flex: 1;
+}
+
+.editable-text-preview {
+  padding: 12px 14px;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  min-height: 80px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.88rem;
+}
+
+.editable-text-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.editable-text-error {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: rgba(220, 50, 50, 0.15);
+  border: 1px solid rgba(220, 50, 50, 0.3);
+  border-radius: var(--radius-sm);
+  color: #e77;
+  font-size: 0.85rem;
+}
+
+/* =============================
+   Editable List — Full CMS Component
+   ============================= */
+
+.editable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.editable-list-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid transparent;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.editable-list-item.dragging {
+  opacity: 0.4;
+}
+.editable-list-item.drop-target {
+  border-color: var(--color-gold);
+  background: var(--color-gold-a08);
+}
+.editable-list-drag-handle {
+  cursor: grab;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  user-select: none;
+}
+.editable-list-item:hover .editable-list-drag-handle {
+  opacity: 0.6;
+}
+.editable-list-drag-handle:hover {
+  color: var(--color-gold);
+  opacity: 1 !important;
+}
+.editable-list-icon {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  width: 28px;
+  text-align: center;
+}
+.editable-list-icon-custom {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+.editable-list-content {
+  flex: 1;
+  min-width: 0;
+}
+.editable-list-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(201, 163, 74, 0.13);
+  color: var(--color-gold-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.editable-list-actions {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.editable-list-item:hover .editable-list-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+.editable-list-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--color-edge);
+  background: rgba(30, 10, 10, 0.9);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.editable-list-edit:hover {
+  background: var(--color-gold-a20);
+  color: var(--color-gold-2);
+  border-color: var(--color-gold-a40);
+}
+.editable-list-remove:hover {
+  background: rgba(220, 80, 80, 0.35);
+  color: #dc5050;
+  border-color: rgba(220, 80, 80, 0.7);
+}
+.editable-list-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  margin-top: 8px;
+  border: 1px dashed var(--color-edge);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.editable-list-add:hover {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+/* Error */
+.editable-list-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  background: rgba(220, 50, 50, 0.15);
+  border: 1px solid rgba(220, 50, 50, 0.3);
+  border-radius: var(--radius-sm);
+  color: #e77;
+  font-size: 0.82rem;
+}
+.editable-list-error-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #e77;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* Edit Modal */
+.editable-list-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.editable-list-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  max-width: 520px;
+  width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.editable-list-modal-title {
+  font-family: var(--font-heading);
+  color: var(--color-gold-2);
+  font-size: 1.1rem;
+  margin: 0;
+}
+.editable-list-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.editable-list-modal-label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+.editable-list-modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Icon picker */
+.editable-list-icon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.editable-list-icon-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-edge);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.editable-list-icon-option:hover {
+  border-color: var(--color-gold);
+  background: var(--color-gold-a10);
+}
+.editable-list-icon-option.active {
+  border-color: var(--color-gold-2);
+  background: var(--color-gold-a20);
+}
+
+/* Custom SVG Upload */
+.editable-list-svg-upload {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.editable-list-svg-upload-btn {
+  padding: 6px 14px;
+  border: 1px dashed var(--color-edge);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.editable-list-svg-upload-btn:hover {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+.editable-list-svg-upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.editable-list-svg-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-sm);
+}
+.editable-list-svg-preview-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+.editable-list-svg-preview-remove {
+  background: none;
+  border: none;
+  color: #e77;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px;
+}
+
+@media (max-width: 640px) {
+  .home-about-body {
+    padding: 18px 16px 20px;
+  }
+  .home-whyjoin-body {
+    padding: 18px 16px 20px;
+  }
+}

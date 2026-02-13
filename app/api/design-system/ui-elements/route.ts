@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAdmin } from "@/lib/api/require-admin";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
 import { standardLimiter, relaxedLimiter } from "@/lib/rate-limit";
@@ -78,13 +79,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error("[ui-elements GET]", error.message);
+      captureApiError("GET /api/design-system/ui-elements", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ data: data ?? [], count: count ?? 0 });
   } catch (err) {
-    console.error("[ui-elements GET] Unexpected:", err);
+    captureApiError("GET /api/design-system/ui-elements", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(data, { status: 201 });
   } catch (err) {
-    console.error("[ui-elements POST] Unexpected:", err);
+    captureApiError("POST /api/design-system/ui-elements", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -151,7 +152,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error("[ui-elements PATCH] Unexpected:", err);
+    captureApiError("PATCH /api/design-system/ui-elements", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -184,7 +185,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[ui-elements DELETE] Unexpected:", err);
+    captureApiError("DELETE /api/design-system/ui-elements", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

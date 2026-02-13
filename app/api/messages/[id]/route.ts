@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import { uuidSchema } from "../../../../lib/api/validation";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
@@ -32,7 +33,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       .eq("recipient_id", auth.userId)
       .is("deleted_at", null);
     if (updateError) {
-      console.error("[messages/[id] PATCH]", updateError.message);
+      captureApiError("PATCH /api/messages/[id]", updateError);
       return NextResponse.json({ error: "Failed to update message." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: parsed.data, is_read: true } });
@@ -65,7 +66,7 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
       .eq("message_id", parsed.data)
       .eq("recipient_id", auth.userId);
     if (deleteError) {
-      console.error("[messages/[id] DELETE]", deleteError.message);
+      captureApiError("DELETE /api/messages/[id]", deleteError);
       return NextResponse.json({ error: "Failed to delete message." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: parsed.data, deleted: true } });

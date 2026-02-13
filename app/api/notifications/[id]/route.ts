@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import { uuidSchema } from "../../../../lib/api/validation";
 import { standardLimiter } from "../../../../lib/rate-limit";
@@ -28,7 +29,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       .eq("id", parsed.data)
       .eq("user_id", auth.userId);
     if (updateError) {
-      console.error("[notifications/[id] PATCH]", updateError.message);
+      captureApiError("PATCH /api/notifications/[id]", updateError);
       return NextResponse.json({ error: "Failed to update notification." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: parsed.data, is_read: true } });

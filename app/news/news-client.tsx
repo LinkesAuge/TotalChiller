@@ -23,6 +23,7 @@ import DataState from "../components/data-state";
 import PaginationBar from "../components/pagination-bar";
 import { usePagination } from "@/lib/hooks/use-pagination";
 import { createLinkedForumPost } from "@/lib/forum-thread-sync";
+import ConfirmModal from "../components/confirm-modal";
 import NewsForm from "./news-form";
 import type { NewsFormValues } from "./news-form";
 
@@ -115,6 +116,9 @@ function NewsClient(): JSX.Element {
 
   /* ── Expanded article detail ── */
   const [expandedArticleId, setExpandedArticleId] = useState<string>("");
+
+  /* ── Delete confirmation ── */
+  const [deletingArticleId, setDeletingArticleId] = useState<string>("");
 
   const tags = useMemo(() => {
     return tagsInput
@@ -337,16 +341,18 @@ function NewsClient(): JSX.Element {
   }
 
   /* ── Delete ── */
-  async function handleDeleteArticle(articleId: string): Promise<void> {
-    if (!window.confirm(t("confirmDelete"))) return;
+  async function handleConfirmDeleteArticle(): Promise<void> {
+    if (!deletingArticleId) return;
     /* DB trigger (trg_article_delete_forum_post) auto-deletes the linked forum thread */
-    const { error } = await supabase.from("articles").delete().eq("id", articleId);
+    const { error } = await supabase.from("articles").delete().eq("id", deletingArticleId);
     if (error) {
       pushToast(`${t("deleteError")}: ${error.message}`);
+      setDeletingArticleId("");
       return;
     }
-    setArticles((c) => c.filter((a) => a.id !== articleId));
+    setArticles((c) => c.filter((a) => a.id !== deletingArticleId));
     setTotalCount((c) => Math.max(0, c - 1));
+    setDeletingArticleId("");
     pushToast(t("postDeleted"));
   }
 
@@ -541,10 +547,13 @@ function NewsClient(): JSX.Element {
                         }
                       }}
                     >
-                      <img
+                      <Image
                         src={article.banner_url || "/assets/banners/banner_gold_dragon.png"}
                         alt=""
                         className="news-card-banner-img"
+                        width={800}
+                        height={200}
+                        sizes="(max-width: 768px) 100vw, 50vw"
                       />
                       <div className="news-card-banner-overlay" />
                       {/* Decorative line */}
@@ -704,7 +713,7 @@ function NewsClient(): JSX.Element {
                           <button
                             className="news-action-btn danger"
                             type="button"
-                            onClick={() => handleDeleteArticle(article.id)}
+                            onClick={() => setDeletingArticleId(article.id)}
                             aria-label={t("deletePost")}
                             title={t("deletePost")}
                           >
@@ -736,6 +745,18 @@ function NewsClient(): JSX.Element {
           {/* (filters moved to top) */}
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        isOpen={!!deletingArticleId}
+        title={t("deletePost")}
+        message={t("confirmDelete")}
+        variant="danger"
+        confirmLabel={t("deletePost")}
+        cancelLabel={t("cancel")}
+        onConfirm={handleConfirmDeleteArticle}
+        onCancel={() => setDeletingArticleId("")}
+      />
     </>
   );
 }

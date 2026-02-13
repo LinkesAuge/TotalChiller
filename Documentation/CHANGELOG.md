@@ -6,6 +6,103 @@
 
 ---
 
+## 2026-02-13 — Code Review Phase 10: Minor Improvements
+
+- **Footer links**: Replaced 4 `<a href>` tags in `app/layout.tsx` footer with Next.js `<Link>` for client-side navigation.
+- **proxy.ts cleanup**: Removed 3 redundant path checks (`/api/site-content`, `/api/site-list-items`, `/favicon.ico`) — API paths are already excluded upstream, and `.ico` extension check already covers favicon. Added JSDoc explaining API exclusion.
+- **Rate-limit docs**: Documented the in-memory limitation of `lib/rate-limit.ts` — per-instance counters in serverless deployments.
+- **signOut**: Documented intentional `window.location.href` usage (full reload clears stale auth state; `router.push` would keep stale client state).
+- **Nav icon dedup**: Replaced inline SVG in unauthenticated home link with existing `NavItemIcon` component in `sidebar-nav.tsx`.
+
+---
+
+## 2026-02-13 — Code Review Phase 9: Testing Gaps
+
+- Added 194 new unit tests across 8 new test files (309 → 503 total tests, all passing).
+- `lib/markdown/sanitize-markdown.test.ts` (27 tests): line endings, bullet normalization, hard breaks, bold/italic.
+- `lib/markdown/renderers.test.ts` (34 tests): YouTube extraction, image/video URL detection.
+- `app/components/validation-evaluator.test.ts` (20 tests): rule matching, valid/invalid/neutral, case insensitivity.
+- `app/forum/forum-utils.test.ts` (11 tests): hot-rank calculation, score/age interactions.
+- `app/forum/forum-thumbnail.test.ts` (19 tests): YouTube/image/video thumbnail extraction from markdown.
+- `app/admin/admin-types.test.ts` (39 tests): formatLabel, formatRank, formatRole, buildFallbackUserDb, normalizeMembershipRow/Rows, resolveSection, sort options.
+- `lib/hooks/use-sortable.test.ts` (27 tests): compareValues for strings, numbers, nulls, mixed types.
+- `app/design-system/design-system-types.test.ts` (17 tests): formatFileSize for B/KB/MB/GB, edge cases.
+
+---
+
+## 2026-02-13 — Code Review Phase 8: CSS Architecture
+
+- Split `globals.css` (7455 lines) into 10 modular CSS files under `app/styles/`:
+  - `theme.css` (89L): `@theme`, `:root`, Tailwind directives, base reset.
+  - `layout.css` (688L): Sidebar, navigation, content layout, top-bar, footer.
+  - `components.css` (1923L): Buttons, cards, badges, tabs, forms, alerts, modals, combobox, toggle, checkbox, scrollbar, charts, hero, utilities.
+  - `tables.css` (553L): Table styles, member directory, expanded rows, status indicators.
+  - `cms.css` (246L): CMS markdown, shared CMS components, image fade-in.
+  - `events.css` (1516L): Calendar, event cards, day panel, upcoming/past events, banner picker.
+  - `messages.css` (236L): Messages layout, conversation list, email-style cards, reply form.
+  - `forum.css` (913L): Forum posts, comments, voting, markdown editor, upload UI.
+  - `news.css` (357L): News articles, banners, tags, filter toggle.
+  - `design-system.css` (590L): CMS editor, editable components, pencil button, edit modal, icon picker.
+- `globals.css` now contains only `@import` statements (30 lines).
+- Fixed orphan duplicate comment at end of `components.css`.
+
+---
+
+## 2026-02-13 — Code Review Phase 7: Error Boundaries & Loading States
+
+- Added `app/global-error.tsx` — root-level error boundary with its own `<html>`/`<body>` wrapper, reports to Sentry. Catches errors in the root layout itself.
+- Added loading skeleton to `auth-actions.tsx`: shows two circular skeleton placeholders while auth state loads instead of rendering nothing.
+- Existing coverage was already strong: 9 section-level `error.tsx` files and 9 `loading.tsx` files (all using `PageSkeleton`).
+
+---
+
+## 2026-02-13 — Code Review Phase 6: TypeScript & Code Quality
+
+- Created `lib/api/logger.ts` with `captureApiError` helper: logs to console + reports to Sentry with context tags.
+- Replaced ~60 bare `console.error` calls across 17 API route files with `captureApiError`, ensuring all caught server errors reach Sentry.
+- Verified `permissions.ts` and `role-access.ts` are properly layered (no overlap): `permissions.ts` is pure logic; `role-access.ts` is the Supabase integration wrapper.
+- No unused variables or imports found in feature client files after Phase 5 decomposition.
+
+---
+
+## 2026-02-13 — Code Review Phase 5: Oversized Component Decomposition
+
+- **data-import**: Split `data-import-client.tsx` (1364 → 372 lines) into `use-data-import.ts` (hook), `data-import-table.tsx`, `data-import-filters.tsx`, `data-import-modals.tsx`, `data-import-types.ts`.
+- **data-table**: Split `data-table-client.tsx` (1377 → 701 lines) into `use-data-table.ts` (hook), `data-table-filters.tsx`, `data-table-rows.tsx`.
+- **messages**: Split `messages-client.tsx` (831 → 51 lines) into `use-messages.ts` (hook), `messages-compose.tsx`, `messages-inbox.tsx`, `messages-thread.tsx`, `messages-types.ts`.
+- **events**: Split `events-client.tsx` (617 → 155 lines) into `use-events.ts` (hook), `events-form.tsx`, `events-list.tsx`.
+- **forum**: Split `forum-client.tsx` (534 → 232 lines) into `use-forum.ts` (hook); `forum-post-list.tsx` already existed.
+- Pattern: each feature now follows **hook + subcomponents + orchestrator** architecture.
+
+---
+
+## 2026-02-13 — Code Review Phase 4: Redundancy Elimination
+
+- **Forum catMap deduplication**: Replaced 3 inline `catMap` constructions (lines 144, 257, 380) with a single `useMemo`-backed `catMap` at the component level. Eliminates ~18 lines of duplicated loop code.
+- **Events hardcoded i18n strings**: Replaced `"Event updated."` / `"Event created."` with `t("eventUpdated")` / `t("eventCreated")`. New i18n keys: `events.eventCreated`, `events.eventUpdated` (DE/EN).
+- **CSS variable consolidation**: Removed ~70 lines of duplicate CSS variables from `:root` that were already defined in `@theme`. `:root` now only contains variables NOT in `@theme` (sidebar, gradient, transitions, scrollbar). `globals.css` reduced by ~60 net lines.
+
+## 2026-02-13 — Code Review Phase 3: Performance Optimizations
+
+- **Service-role client singleton**: `createSupabaseServiceRoleClient()` now returns a cached module-level singleton instead of creating a new Supabase client on every call. The service-role client is stateless (no cookies, no session), so sharing one instance is safe.
+- **Admin context deduplication**: Removed duplicate clan query from `init` effect. Now calls `loadClans()` (shared callback) instead of duplicating the query inline. Separated localStorage restoration of `selectedClanId` into a dedicated one-time effect with `hasRestoredClan` guard.
+- **Forum `loadPosts` stabilization**: Removed `categories` from the `useCallback` dependency array. The category enrichment now reads from a `categoriesRef` (via `useRef`) so `loadPosts` doesn't re-create when categories change — eliminating unnecessary refetches.
+
+## 2026-02-13 — Code Review Phase 2: API Route Hardening
+
+- **Shared API helpers**: Created `apiError(message, status)` and `parseJsonBody(request, schema)` in `lib/api/validation.ts`. `parseJsonBody` wraps `request.json()` + Zod safeParse + error response into one call. `apiError` standardizes the `{ error: message }` response shape.
+- **Messages GET Zod validation**: Added `messageQuerySchema` validating `type` (enum: all/private/broadcast/clan) and `search` (max 200 chars). Previously accepted any string for `type` and had no length limit on search.
+- **Data import refactor**: Applied `parseJsonBody` helper to `/api/data-import/commit`, eliminating manual JSON parsing.
+- **New unit tests**: 5 tests for `messageQuerySchema` (defaults, valid types, invalid type, search, search length limit).
+- **Test count**: 304 → 309 unit tests.
+
+## 2026-02-13 — Code Review Phase 1: Silent Error Fixes
+
+- **Forum error handling**: Added toast feedback to `handleVotePost`, `handleVoteComment`, `handleConfirmDelete`, `handleTogglePin`, `handleToggleLock`, `handleSubmitComment`, `handleSubmitReply`. All 8 previously silent Supabase operations now report failures via `pushToast`. New i18n keys: `forum.voteFailed`, `forum.deleteFailed` (DE/EN).
+- **Messages error handling**: Added `useToast` and `pushToast` feedback to `handleDeleteMessage`. Previously swallowed network failures silently. New i18n key: `messagesPage.failedToDelete` (DE/EN).
+- **News delete confirmation**: Replaced `window.confirm` with shared `ConfirmModal` component in `handleDeleteArticle` (now `handleConfirmDeleteArticle`). Uses state-driven `deletingArticleId` instead of blocking browser dialog.
+- **Data import auth ordering**: Moved `requireAdmin()` before `request.json()` parsing in `/api/data-import/commit`. Invalid JSON now returns 400 (not 500). Auth failures are rejected before body parsing.
+
 ## 2026-02-13 — Test Coverage: Forum Sync, Permissions, Display Helpers
 
 - **New test file `lib/forum-thread-sync.test.ts`** (8 tests): Covers `createLinkedForumPost()` — success path, error path, category lookup, null category, empty content coercion, and announcement source type. Uses Supabase mock chains.

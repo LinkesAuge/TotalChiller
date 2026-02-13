@@ -4,6 +4,10 @@ import getIsAdminAccess from "./lib/supabase/admin-access";
 import { routing, LOCALE_COOKIE } from "./i18n/routing";
 import { getSupabaseUrl, getSupabaseAnonKey } from "./lib/supabase/config";
 
+/**
+ * Public paths that bypass authentication.
+ * Note: API routes (`/api/...`) are excluded upstream before this check.
+ */
 function isPublicPath(pathname: string): boolean {
   return (
     pathname.startsWith("/home") ||
@@ -13,10 +17,7 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/privacy-policy") ||
     pathname.startsWith("/not-authorized") ||
     pathname.startsWith("/redesign") ||
-    pathname.startsWith("/api/site-content") ||
-    pathname.startsWith("/api/site-list-items") ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon.ico") ||
     pathname.startsWith("/sitemap") ||
     pathname.startsWith("/robots") ||
     pathname.startsWith("/assets") ||

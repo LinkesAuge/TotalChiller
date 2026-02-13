@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
 import { requireAdmin } from "../../../../lib/api/require-admin";
@@ -47,12 +48,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .order("name", { ascending: true });
 
     if (error) {
-      console.error("[forum-categories GET]", error.message);
+      captureApiError("GET /api/admin/forum-categories", error);
       return NextResponse.json({ error: "Failed to load categories." }, { status: 500 });
     }
     return NextResponse.json({ data: data ?? [] });
   } catch (err) {
-    console.error("[forum-categories GET] Unexpected:", err);
+    captureApiError("GET /api/admin/forum-categories", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -96,12 +97,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single();
 
     if (error) {
-      console.error("[forum-categories POST]", error.message);
+      captureApiError("POST /api/admin/forum-categories", error);
       return NextResponse.json({ error: "Failed to create category." }, { status: 500 });
     }
     return NextResponse.json({ data }, { status: 201 });
   } catch (err) {
-    console.error("[forum-categories POST] Unexpected:", err);
+    captureApiError("POST /api/admin/forum-categories", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -150,12 +151,12 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .single();
 
     if (error) {
-      console.error("[forum-categories PATCH]", error.message);
+      captureApiError("PATCH /api/admin/forum-categories", error);
       return NextResponse.json({ error: "Failed to update category." }, { status: 500 });
     }
     return NextResponse.json({ data });
   } catch (err) {
-    console.error("[forum-categories PATCH] Unexpected:", err);
+    captureApiError("PATCH /api/admin/forum-categories", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -179,12 +180,12 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     const { error } = await serviceClient.from("forum_categories").delete().eq("id", id);
 
     if (error) {
-      console.error("[forum-categories DELETE]", error.message);
+      captureApiError("DELETE /api/admin/forum-categories", error);
       return NextResponse.json({ error: "Failed to delete category." }, { status: 500 });
     }
     return NextResponse.json({ data: { success: true } });
   } catch (err) {
-    console.error("[forum-categories DELETE] Unexpected:", err);
+    captureApiError("DELETE /api/admin/forum-categories", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

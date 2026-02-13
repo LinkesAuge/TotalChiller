@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAdmin } from "../../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
+import { parseJsonBody } from "../../../../lib/api/validation";
 
 const COMMIT_ROW_SCHEMA = z.object({
   collected_date: z.string().min(1),
@@ -34,12 +36,10 @@ export async function POST(request: Request): Promise<Response> {
   if (blocked) return blocked;
 
   try {
-    const parsed = COMMIT_SCHEMA.safeParse(await request.json());
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input." }, { status: 400 });
-    }
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
+    const parsed = await parseJsonBody(request, COMMIT_SCHEMA);
+    if (parsed.error) return parsed.error;
     const rows: CommitRowInput[] = parsed.data.rows;
     const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
     const serviceClient = createSupabaseServiceRoleClient();
@@ -48,7 +48,7 @@ export async function POST(request: Request): Promise<Response> {
       .select("id,name")
       .in("name", clanNames);
     if (clanFetchError) {
-      console.error("[data-import/commit] Clan fetch failed:", clanFetchError.message);
+      captureApiError("POST /api/data-import/commit", clanFetchError);
       return NextResponse.json({ error: "Failed to resolve clan names." }, { status: 500 });
     }
     const existingClanNames = new Set((existingClans ?? []).map((clan) => clan.name));
@@ -58,7 +58,7 @@ export async function POST(request: Request): Promise<Response> {
         .from("clans")
         .insert(missingClanNames.map((name) => ({ name })));
       if (clanInsertError) {
-        console.error("[data-import/commit] Clan insert failed:", clanInsertError.message);
+        captureApiError("POST /api/data-import/commit", clanInsertError);
         return NextResponse.json({ error: "Failed to create missing clans." }, { status: 500 });
       }
     }
@@ -67,7 +67,7 @@ export async function POST(request: Request): Promise<Response> {
       .select("id,name")
       .in("name", clanNames);
     if (clanReloadError) {
-      console.error("[data-import/commit] Clan reload failed:", clanReloadError.message);
+      captureApiError("POST /api/data-import/commit", clanReloadError);
       return NextResponse.json({ error: "Failed to resolve clan names." }, { status: 500 });
     }
     const clanIdByName = new Map<string, string>((finalClans ?? []).map((clan) => [clan.name, clan.id]));
@@ -86,12 +86,12 @@ export async function POST(request: Request): Promise<Response> {
     }
     const { error } = await serviceClient.from("chest_entries").insert(payload);
     if (error) {
-      console.error("[data-import/commit] Insert failed:", error.message);
+      captureApiError("POST /api/data-import/commit", error);
       return NextResponse.json({ error: "Failed to import data." }, { status: 500 });
     }
     return NextResponse.json({ insertedCount: payload.length }, { status: 201 });
   } catch (err) {
-    console.error("[data-import/commit POST] Unexpected:", err);
+    captureApiError("POST /api/data-import/commit", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

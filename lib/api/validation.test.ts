@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { uuidSchema, notificationSettingsSchema, chartQuerySchema } from "./validation";
+import { uuidSchema, notificationSettingsSchema, chartQuerySchema, messageQuerySchema } from "./validation";
 
 /* ------------------------------------------------------------------ */
 /*  uuidSchema                                                         */
@@ -169,5 +169,43 @@ describe("chartQuerySchema", () => {
       source: "DataSource",
     });
     expect(result.success).toBe(true);
+  });
+});
+
+/* ── messageQuerySchema ── */
+
+describe("messageQuerySchema", () => {
+  it("defaults to type=all and search='' when empty", () => {
+    const result = messageQuerySchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.type).toBe("all");
+      expect(result.data.search).toBe("");
+    }
+  });
+
+  it("accepts valid type values", () => {
+    for (const type of ["all", "private", "broadcast", "clan"]) {
+      const result = messageQuerySchema.safeParse({ type });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it("rejects invalid type value", () => {
+    const result = messageQuerySchema.safeParse({ type: "invalid" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a search term", () => {
+    const result = messageQuerySchema.safeParse({ search: "hello" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.search).toBe("hello");
+    }
+  });
+
+  it("rejects search term exceeding 200 characters", () => {
+    const result = messageQuerySchema.safeParse({ search: "x".repeat(201) });
+    expect(result.success).toBe(false);
   });
 });

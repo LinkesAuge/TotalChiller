@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAdmin } from "../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter, relaxedLimiter } from "../../../lib/rate-limit";
@@ -73,7 +74,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .eq("section_key", section_key)
       .eq("field_key", field_key);
     if (error) {
-      console.error("[site-content PATCH] Delete failed:", error.message);
+      captureApiError("PATCH /api/site-content", error);
       return NextResponse.json({ error: "Failed to delete content." }, { status: 500 });
     }
     return NextResponse.json({ data: { success: true, deleted: true } });
@@ -93,7 +94,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     { onConflict: "page,section_key,field_key" },
   );
   if (error) {
-    console.error("[site-content PATCH] Upsert failed:", error.message);
+    captureApiError("PATCH /api/site-content", error);
     return NextResponse.json({ error: "Failed to save content." }, { status: 500 });
   }
   return NextResponse.json({ data: { success: true } });

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { after } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
 import { requireAdmin } from "../../../../lib/api/require-admin";
@@ -60,7 +61,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         .update({ approval_status: "approved" })
         .eq("id", body.game_account_id);
       if (updateError) {
-        console.error("[game-account-approvals PATCH]", updateError.message);
+        captureApiError("PATCH /api/admin/game-account-approvals", updateError);
         return NextResponse.json({ error: "Failed to approve account." }, { status: 500 });
       }
       after(async () => {
@@ -103,12 +104,12 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     });
     const { error: deleteError } = await serviceClient.from("game_accounts").delete().eq("id", body.game_account_id);
     if (deleteError) {
-      console.error("[game-account-approvals PATCH]", deleteError.message);
+      captureApiError("PATCH /api/admin/game-account-approvals", deleteError);
       return NextResponse.json({ error: "Failed to reject account." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: body.game_account_id, approval_status: "rejected", deleted: true } });
   } catch (err) {
-    console.error("[game-account-approvals PATCH] Unexpected:", err);
+    captureApiError("PATCH /api/admin/game-account-approvals", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .eq("approval_status", "pending")
       .order("created_at", { ascending: true });
     if (fetchError) {
-      console.error("[game-account-approvals GET]", fetchError.message);
+      captureApiError("GET /api/admin/game-account-approvals", fetchError);
       return NextResponse.json({ error: "Failed to load pending approvals." }, { status: 500 });
     }
     const accounts = pendingAccounts ?? [];
@@ -163,7 +164,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }));
     return NextResponse.json({ data: result });
   } catch (err) {
-    console.error("[game-account-approvals GET] Unexpected:", err);
+    captureApiError("GET /api/admin/game-account-approvals", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Cinzel, Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -122,13 +123,13 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
                     />
                     <span className="app-footer-text">{t("footer", "tagline")}</span>
                     <div className="app-footer-links">
-                      <a href="/home">{t("footer", "home")}</a>
+                      <Link href="/home">{t("footer", "home")}</Link>
                       <span>&bull;</span>
-                      <a href="/about">{t("footer", "about")}</a>
+                      <Link href="/about">{t("footer", "about")}</Link>
                       <span>&bull;</span>
-                      <a href="/contact">{t("footer", "contact")}</a>
+                      <Link href="/contact">{t("footer", "contact")}</Link>
                       <span>&bull;</span>
-                      <a href="/privacy-policy">{t("footer", "privacy")}</a>
+                      <Link href="/privacy-policy">{t("footer", "privacy")}</Link>
                     </div>
                     <div className="app-footer-sub">
                       © {new Date().getFullYear()} [THC] Chiller &amp; Killer &bull; {t("footer", "builtWith")}

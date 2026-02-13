@@ -23,10 +23,22 @@ const initialAuthState: AuthActionState = {
   status: "",
 };
 
+/** Skeleton placeholder shown while auth state loads. */
+function AuthSkeleton(): JSX.Element {
+  return (
+    <div className="user-actions-bar" aria-busy="true">
+      <div className="skeleton" style={{ width: 28, height: 28, borderRadius: "50%" }} />
+      <div className="skeleton" style={{ width: 28, height: 28, borderRadius: "50%" }} />
+    </div>
+  );
+}
+
 /**
  * Shows the current user and provides a sign-out action.
+ * Renders a skeleton while the initial auth check is in progress.
  */
-function AuthActions(): JSX.Element | null {
+function AuthActions(): JSX.Element {
+  const [isLoading, setIsLoading] = useState(true);
   const [authState, setAuthState] = useState<AuthActionState>(initialAuthState);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,6 +56,7 @@ function AuthActions(): JSX.Element | null {
       const userId = data.user?.id;
       if (!userId) {
         setAuthState({ email: userEmail, userDb: "", username: "", displayName: "", status: "" });
+        setIsLoading(false);
         return;
       }
       const { data: profile } = await supabase
@@ -58,6 +71,7 @@ function AuthActions(): JSX.Element | null {
         displayName: profile?.display_name ?? "",
         status: "",
       });
+      setIsLoading(false);
     }
     void loadUser();
     return () => {
@@ -87,6 +101,7 @@ function AuthActions(): JSX.Element | null {
     setActivePanel(null);
   }
 
+  /** Full page reload after sign-out ensures all server components re-render without stale auth. */
   async function handleSignOut(): Promise<void> {
     setAuthState((state) => ({ ...state, status: "Signing out..." }));
     await supabase.auth.signOut();
@@ -102,8 +117,11 @@ function AuthActions(): JSX.Element | null {
     return base.slice(0, 2).toUpperCase();
   }
 
+  if (isLoading) {
+    return <AuthSkeleton />;
+  }
   if (!authState.email) {
-    return null;
+    return <AuthSkeleton />;
   }
 
   return (

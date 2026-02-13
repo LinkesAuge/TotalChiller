@@ -3,6 +3,12 @@ import { NextResponse } from "next/server";
 /**
  * Simple in-memory sliding-window rate limiter.
  *
+ * **Limitation**: State is stored in process memory, so each serverless
+ * function instance / edge worker maintains its own counter. In a
+ * multi-instance deployment (e.g. Vercel serverless) the effective limit
+ * is per-instance, not global. For strict global rate limiting, use an
+ * external store (Redis, Upstash, etc.).
+ *
  * Usage:
  *   const limiter = createRateLimiter({ windowMs: 60_000, max: 20 });
  *   // In route handler:

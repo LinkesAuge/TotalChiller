@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../lib/api/require-auth";
 import { notificationSettingsSchema } from "../../../lib/api/validation";
 import { standardLimiter } from "../../../lib/rate-limit";
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .select("messages_enabled,news_enabled,events_enabled,system_enabled")
       .single();
     if (insertError) {
-      console.error("[notification-settings GET]", insertError.message);
+      captureApiError("GET /api/notification-settings", insertError);
       return NextResponse.json({ error: "Failed to load notification settings." }, { status: 500 });
     }
     return NextResponse.json({ data: created });
@@ -89,7 +90,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .select("messages_enabled,news_enabled,events_enabled,system_enabled")
       .single();
     if (upsertError) {
-      console.error("[notification-settings PATCH]", upsertError.message);
+      captureApiError("PATCH /api/notification-settings", upsertError);
       return NextResponse.json({ error: "Failed to update notification settings." }, { status: 500 });
     }
     return NextResponse.json({ data: updated });

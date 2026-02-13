@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAdmin } from "@/lib/api/require-admin";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
 import { standardLimiter, relaxedLimiter } from "@/lib/rate-limit";
@@ -51,13 +52,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error("[design-assets GET]", error.message);
+      captureApiError("GET /api/design-system/assets", error);
       return NextResponse.json({ error: "Failed to load assets." }, { status: 500 });
     }
 
     return NextResponse.json({ data: data ?? [], count: count ?? 0 });
   } catch (err) {
-    console.error("[design-assets GET] Unexpected:", err);
+    captureApiError("GET /api/design-system/assets", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -86,13 +87,13 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const { data, error } = await supabase.from("design_assets").update(updates).eq("id", id).select().single();
 
     if (error) {
-      console.error("[design-assets PATCH]", error.message);
+      captureApiError("PATCH /api/design-system/assets", error);
       return NextResponse.json({ error: "Failed to update asset." }, { status: 500 });
     }
 
     return NextResponse.json({ data });
   } catch (err) {
-    console.error("[design-assets PATCH] Unexpected:", err);
+    captureApiError("PATCH /api/design-system/assets", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

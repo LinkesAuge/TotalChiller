@@ -4,6 +4,7 @@ import { requireAuth } from "../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import getIsContentManager from "../../../lib/supabase/role-access";
 import { standardLimiter } from "../../../lib/rate-limit";
+import { messageQuerySchema } from "../../../lib/api/validation";
 
 /* ── Schemas ── */
 
@@ -44,8 +45,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
     const userId = auth.userId;
-    const typeFilter = request.nextUrl.searchParams.get("type") ?? "all";
-    const search = request.nextUrl.searchParams.get("search")?.trim() ?? "";
+    const queryParams = messageQuerySchema.safeParse({
+      type: request.nextUrl.searchParams.get("type") ?? undefined,
+      search: request.nextUrl.searchParams.get("search") ?? undefined,
+    });
+    if (!queryParams.success) {
+      return NextResponse.json({ error: "Invalid query parameters." }, { status: 400 });
+    }
+    const typeFilter = queryParams.data.type;
+    const search = queryParams.data.search;
 
     const svc = createSupabaseServiceRoleClient();
 

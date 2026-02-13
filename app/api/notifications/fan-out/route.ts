@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .eq("is_active", true)
       .eq("is_shadow", false);
     if (membershipError) {
-      console.error("[notifications/fan-out]", membershipError.message);
+      captureApiError("POST /api/notifications/fan-out", membershipError);
       return NextResponse.json({ error: "Failed to load clan memberships." }, { status: 500 });
     }
     const recipientIds = Array.from(

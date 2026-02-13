@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAdmin } from "../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter, relaxedLimiter } from "../../../lib/rate-limit";
@@ -196,7 +197,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
           .update({ sort_order: item.sort_order, updated_by: userId, updated_at: new Date().toISOString() })
           .eq("id", item.id);
         if (error) {
-          console.error("[site-list-items reorder]", item.id, error.message);
+          captureApiError("PATCH /api/site-list-items", error);
           failCount++;
         }
       }

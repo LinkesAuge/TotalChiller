@@ -1,0 +1,88 @@
+/* Theme: @theme block, :root variables, Tailwind imports, base reset, html/body */
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";
+
+@theme {
+  --color-bg: #080d14;
+  --color-surface: rgba(18, 39, 58, 0.7);
+  --color-surface-solid: #12273a;
+  --color-surface-2: rgba(15, 34, 51, 0.8);
+  --color-surface-hover: rgba(25, 50, 75, 0.8);
+  --color-edge: rgba(201, 163, 74, 0.15);
+  --color-edge-glow: rgba(201, 163, 74, 0.3);
+  --color-gold: #c9a34a;
+  --color-gold-2: #e4c778;
+  --color-gold-3: #f5dda3;
+  --color-gold-dark: #8a6d2f;
+  --color-gold-glow: rgba(228, 199, 120, 0.15);
+  --color-gold-a04: rgba(201, 163, 74, 0.04);
+  --color-gold-a06: rgba(201, 163, 74, 0.06);
+  --color-gold-a08: rgba(201, 163, 74, 0.08);
+  --color-gold-a10: rgba(201, 163, 74, 0.1);
+  --color-gold-a12: rgba(201, 163, 74, 0.12);
+  --color-gold-a18: rgba(201, 163, 74, 0.18);
+  --color-gold-a20: rgba(201, 163, 74, 0.2);
+  --color-gold-a25: rgba(201, 163, 74, 0.25);
+  --color-gold-a35: rgba(201, 163, 74, 0.35);
+  --color-gold-a40: rgba(201, 163, 74, 0.4);
+  --color-gold-a45: rgba(201, 163, 74, 0.45);
+  --color-gold-a50: rgba(201, 163, 74, 0.5);
+  --color-text: #f2e6c9;
+  --color-text-2: #b8a888;
+  --color-text-muted: #8a7b65;
+  --color-accent-red: #c94a3a;
+  --color-accent-green: #4a9960;
+  --color-accent-blue: #4a6ea0;
+  --color-overlay-dark: rgba(10, 20, 32, 0.85);
+  --color-overlay-darker: rgba(10, 20, 32, 0.95);
+  --color-danger-light: #e06060;
+  --color-parchment: #f0e6d2;
+  --color-parchment-2: #e5d9c3;
+  --color-parchment-dark: #3a3020;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  --font-heading: "Cinzel", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root {
+  /* Variables NOT in @theme — layout, gradients, transitions, scrollbar */
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 60px;
+  --color-bg-gradient: radial-gradient(ellipse at 30% 0%, #152238 0%, #0a1220 50%, #080d14 100%);
+  --shadow-glow: 0 0 20px var(--color-gold-glow);
+  --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --scrollbar-size: 8px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 15px;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  background: var(--color-bg);
+  background-image: var(--color-bg-gradient);
+  background-attachment: fixed;
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}

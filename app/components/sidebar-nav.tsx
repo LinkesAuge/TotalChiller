@@ -194,18 +194,7 @@ function SidebarNav(): JSX.Element {
           >
             <div className="nav-icon-glow" />
             <span className="nav-icon" style={{ color: pathname === "/home" ? "var(--color-gold-2)" : undefined }}>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d={ICONS.home} />
-              </svg>
+              <NavItemIcon item={{ href: "/home", labelKey: "home", iconKey: "home" }} />
             </span>
             <span className={`nav-label${isOpen ? "" : " collapsed"}`}>{t("home")}</span>
           </Link>

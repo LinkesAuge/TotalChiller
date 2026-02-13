@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAdmin } from "@/lib/api/require-admin";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
 import { standardLimiter } from "@/lib/rate-limit";
@@ -73,13 +74,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single();
 
     if (error) {
-      console.error("[preview-upload POST] DB update failed:", error.message);
+      captureApiError("POST /api/design-system/preview-upload", error);
       return NextResponse.json({ error: "Failed to update element preview" }, { status: 500 });
     }
 
     return NextResponse.json({ data, path: publicPath });
   } catch (err) {
-    console.error("[preview-upload POST] Unexpected:", err);
+    captureApiError("POST /api/design-system/preview-upload", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

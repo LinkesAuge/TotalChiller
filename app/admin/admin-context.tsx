@@ -100,26 +100,13 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
   /* ── Initialize once ── */
   useEffect(() => {
     async function init(): Promise<void> {
-      /* Parallelize independent init queries */
-      const [{ data: clanData }, { data: defClan }, { data: authData }, approvalsRes] = await Promise.all([
-        supabase.from("clans").select("id,name,description,is_unassigned").order("name"),
+      /* Parallelize independent init queries (reuses loadClans for clan data) */
+      const [, { data: defClan }, { data: authData }, approvalsRes] = await Promise.all([
+        loadClans(),
         supabase.from("clans").select("id").eq("is_default", true).maybeSingle(),
         supabase.auth.getUser(),
         fetch("/api/admin/game-account-approvals").catch(() => null),
       ]);
-
-      // Clans
-      const clanRows = clanData ?? [];
-      setClans(clanRows);
-      const unassigned = clanRows.find((c) => c.is_unassigned);
-      setUnassignedClanId(unassigned?.id ?? "");
-
-      // Restore selected clan
-      if (clanRows.length > 0) {
-        const stored = window.localStorage.getItem("tc.currentClanId") ?? "";
-        const match = stored ? clanRows.find((c) => c.id === stored) : undefined;
-        setSelectedClanId(match?.id ?? clanRows[0]!.id);
-      }
 
       // Default clan
       setDefaultClanId(defClan?.id ?? "");
@@ -138,7 +125,17 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       }
     }
     void init();
-  }, [supabase]);
+  }, [supabase, loadClans]);
+
+  /* ── Restore selected clan from localStorage on first load ── */
+  const [hasRestoredClan, setHasRestoredClan] = useState(false);
+  useEffect(() => {
+    if (hasRestoredClan || clans.length === 0) return;
+    const stored = window.localStorage.getItem("tc.currentClanId") ?? "";
+    const match = stored ? clans.find((c) => c.id === stored) : undefined;
+    setSelectedClanId(match?.id ?? clans[0]!.id);
+    setHasRestoredClan(true);
+  }, [clans, hasRestoredClan]);
 
   /* ── Sync active section from URL ── */
   useEffect(() => {

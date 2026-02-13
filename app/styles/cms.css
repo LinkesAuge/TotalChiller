@@ -1,0 +1,246 @@
+/* CMS: CmsMarkdown, CMS shared components, image fade-in */
+/* ─── CmsMarkdown (.cms-md) ─── */
+/* CMS Markdown always inherits parent styles — no hardcoded font-size/color.
+   This is the primary difference from .forum-md which sets its own 0.88rem. */
+.cms-md {
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.cms-md p {
+  margin: 0 0 8px;
+}
+.cms-md p:last-child {
+  margin-bottom: 0;
+}
+.cms-md p:only-child {
+  margin: 0;
+}
+.cms-md h1,
+.cms-md h2,
+.cms-md h3,
+.cms-md h4 {
+  color: var(--color-gold-2);
+  margin: 16px 0 8px;
+  font-weight: 600;
+}
+.cms-md h1 {
+  font-size: 1.3em;
+}
+.cms-md h2 {
+  font-size: 1.15em;
+}
+.cms-md h3 {
+  font-size: 1.05em;
+}
+.cms-md h4 {
+  font-size: 1em;
+}
+.cms-md strong {
+  color: var(--color-gold-2);
+  font-weight: 600;
+}
+.cms-md em {
+  font-style: italic;
+}
+.cms-md ul,
+.cms-md ol {
+  margin: 4px 0 8px 20px;
+  padding: 0;
+}
+.cms-md li {
+  margin-bottom: 3px;
+}
+.cms-md li > p {
+  margin: 0;
+}
+.cms-md li > p + p {
+  margin-top: 4px;
+}
+.cms-md hr {
+  border: none;
+  border-top: 1px solid var(--color-edge);
+  margin: 16px 0;
+}
+/* Links */
+.cms-md-link {
+  color: var(--color-gold);
+  text-decoration: underline;
+  text-decoration-color: var(--color-edge-glow);
+  transition: color 200ms;
+}
+.cms-md-link:hover {
+  color: var(--color-gold-2);
+}
+/* Code */
+.cms-md-code-inline {
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--color-gold-2);
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-family: "Courier New", monospace;
+  font-size: 0.9em;
+}
+.cms-md-pre {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.cms-md-code-block {
+  font-family: "Courier New", monospace;
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+/* Blockquote */
+.cms-md-blockquote {
+  border-left: 3px solid var(--color-gold);
+  margin: 8px 0;
+  padding: 6px 12px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+/* Table */
+.cms-md-table-wrap {
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.cms-md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+.cms-md-table th,
+.cms-md-table td {
+  padding: 6px 10px;
+  border: 1px solid var(--color-edge);
+  text-align: left;
+}
+.cms-md-table th {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--color-gold-2);
+  font-weight: 600;
+}
+.cms-md-table tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.1);
+}
+/* Media */
+.cms-md-media {
+  display: block;
+  margin: 10px 0;
+}
+.cms-md-image {
+  max-width: 100%;
+  max-height: 500px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+.cms-md-video {
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── CMS Shared Components ─── */
+
+/* Loading Skeleton */
+.cms-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+.cms-skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cms-skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, var(--color-gold-a06) 25%, var(--color-gold-a12) 50%, var(--color-gold-a06) 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: cms-skeleton-shimmer 1.5s infinite;
+}
+.cms-skeleton-line-short {
+  width: 35%;
+}
+.cms-skeleton-line-medium {
+  width: 70%;
+}
+@keyframes cms-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ─── Image fade-in on load (CSS-only) ─── */
+@keyframes img-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+img[loading="lazy"] {
+  animation: img-fade-in 0.35s ease-in both;
+}
+
+/* Error Banner */
+.cms-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  background: rgba(220, 50, 50, 0.1);
+  border: 1px solid rgba(220, 50, 50, 0.25);
+  border-radius: var(--radius-sm);
+  color: #e88;
+  font-size: 0.9rem;
+}
+.cms-error-banner-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.cms-error-banner-text {
+  flex: 1;
+}
+.cms-error-banner-retry {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border: 1px solid rgba(220, 50, 50, 0.4);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #e88;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.cms-error-banner-retry:hover {
+  background: rgba(220, 50, 50, 0.15);
+}
+
+/* CMS Section */
+.cms-section {
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-gold-2);
+  flex: 1;
+  margin: 0;
+}

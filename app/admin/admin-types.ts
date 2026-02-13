@@ -28,6 +28,7 @@ export interface MembershipRow {
   readonly clan_id: string;
   readonly game_account_id: string;
   readonly is_active: boolean;
+  readonly is_shadow: boolean;
   readonly rank: string | null;
   readonly game_accounts: GameAccountRow | null;
 }
@@ -38,6 +39,7 @@ export type MembershipQueryRow = Omit<MembershipRow, "game_accounts"> & {
 
 export interface MembershipEditState {
   readonly is_active?: boolean;
+  readonly is_shadow?: boolean;
   readonly rank?: string | null;
   readonly clan_id?: string;
 }

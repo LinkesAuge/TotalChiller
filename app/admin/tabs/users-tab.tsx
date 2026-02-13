@@ -147,7 +147,7 @@ export default function UsersTab(): ReactElement {
     }
     const { data: membershipData, error: membershipError } = await supabase
       .from("game_account_clan_memberships")
-      .select("id,clan_id,game_account_id,is_active,rank,game_accounts(id,user_id,game_username)")
+      .select("id,clan_id,game_account_id,is_active,is_shadow,rank,game_accounts(id,user_id,game_username)")
       .in("game_account_id", accountIds);
     if (membershipError) {
       setUserStatus(`Failed to load memberships: ${membershipError.message}`);
@@ -1161,6 +1161,11 @@ export default function UsersTab(): ReactElement {
                                     <div>{membership.rank ? formatRank(membership.rank, locale) : "-"}</div>
                                     <div>
                                       {membership.is_active ? tAdmin("common.active") : tAdmin("common.inactive")}
+                                      {membership.is_shadow ? (
+                                        <span className="badge shadow-badge" title={tAdmin("clans.shadowTooltip")}>
+                                          Shadow
+                                        </span>
+                                      ) : null}
                                     </div>
                                     <div className="list inline action-icons">
                                       {isAccountEditing ? (

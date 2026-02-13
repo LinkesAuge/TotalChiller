@@ -95,7 +95,7 @@ async function ProfileContent(): Promise<JSX.Element> {
   const { data: membershipData } = accountIds.length
     ? await supabase
         .from("game_account_clan_memberships")
-        .select("clan_id,is_active,game_account_id")
+        .select("clan_id,is_active,is_shadow,game_account_id")
         .in("game_account_id", accountIds)
         .eq("is_active", true)
         .order("clan_id")
@@ -188,10 +188,18 @@ async function ProfileContent(): Promise<JSX.Element> {
                 memberships.map((membership) => {
                   const clanName = clansById[membership.clan_id]?.name ?? membership.clan_id;
                   const account = gameAccounts.find((a) => a.id === membership.game_account_id);
+                  const isShadow = (membership as Record<string, unknown>).is_shadow === true;
                   return (
                     <div className="list-item" key={`${membership.clan_id}-${membership.game_account_id}`}>
                       <div>
-                        <div>{clanName}</div>
+                        <div>
+                          {clanName}
+                          {isShadow ? (
+                            <span className="badge shadow-badge" style={{ marginLeft: "8px" }}>
+                              {t("shadowMembership")}
+                            </span>
+                          ) : null}
+                        </div>
                         {account ? <div className="text-muted">{account.game_username}</div> : null}
                       </div>
                       <span className="badge">{roleLabel}</span>

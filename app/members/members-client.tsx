@@ -83,6 +83,7 @@ function MembersClient(): JSX.Element {
           "id, rank, is_active, clan_id, " + "game_accounts!inner(id, game_username, user_id), " + "clans!inner(name)",
         )
         .eq("is_active", true)
+        .eq("is_shadow", false)
         .eq("clan_id", clanContext.clanId)
         .order("rank", { ascending: true });
       if (error || !data) {
@@ -192,19 +193,19 @@ function MembersClient(): JSX.Element {
     return rankOptions.filter((rank) => counts.has(rank)).map((rank) => ({ rank, count: counts.get(rank) ?? 0 }));
   }, [members]);
 
-  /** Rank badge colour derived from rank key. */
+  /** Rank badge colour derived from rank key. Brighter tones for readability on dark rows. */
   function getRankColor(rank: string): string {
     switch (rank) {
       case "leader":
-        return "var(--color-gold)";
+        return "#e4c778";
       case "superior":
-        return "var(--color-gold-dark)";
+        return "#d4a54a";
       case "officer":
-        return "var(--color-accent-blue)";
+        return "#6ba3d6";
       case "veteran":
-        return "var(--color-accent-green)";
+        return "#5ec07e";
       default:
-        return "var(--color-text-muted)";
+        return "#b0a08a";
     }
   }
 

@@ -732,6 +732,7 @@
     "clanMemberships": "Clan Memberships",
     "activeClans": "Active clans",
     "noActiveMemberships": "No active memberships",
+    "shadowMembership": "Shadow",
     "joinAClan": "Join a clan",
     "gameAccount": "Game account",
     "gameAccounts": "Game Accounts",
@@ -874,7 +875,10 @@
       "noAccountsMatch": "No game accounts match the filters",
       "adjustSearch": "Adjust search",
       "searchPlaceholder": "Game account, username, email, or user id",
-      "gameUsername": "Game username"
+      "gameUsername": "Game username",
+      "toggleShadow": "Toggle shadow membership",
+      "shadowTooltip": "Shadow: hidden from member counts, directory, and broadcasts",
+      "assignAsShadow": "Assign as shadow"
     },
     "members": {
       "gameAccount": "Game Account",

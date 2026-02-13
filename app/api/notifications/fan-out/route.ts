@@ -59,7 +59,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .from("game_account_clan_memberships")
       .select("game_accounts(user_id)")
       .eq("clan_id", body.clan_id)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .eq("is_shadow", false);
     if (membershipError) {
       console.error("[notifications/fan-out]", membershipError.message);
       return NextResponse.json({ error: "Failed to load clan memberships." }, { status: 500 });

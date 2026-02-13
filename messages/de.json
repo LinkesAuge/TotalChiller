@@ -732,6 +732,7 @@
     "clanMemberships": "Clan-Mitgliedschaften",
     "activeClans": "Aktive Clans",
     "noActiveMemberships": "Keine aktiven Mitgliedschaften",
+    "shadowMembership": "Schatten",
     "joinAClan": "Einem Clan beitreten",
     "gameAccount": "Spielkonto",
     "gameAccounts": "Spielkonten",
@@ -874,7 +875,10 @@
       "noAccountsMatch": "Keine Spielkonten entsprechen den Filtern",
       "adjustSearch": "Suche anpassen",
       "searchPlaceholder": "Spielkonto, Benutzername, E-Mail oder Benutzer-ID",
-      "gameUsername": "Spiel-Benutzername"
+      "gameUsername": "Spiel-Benutzername",
+      "toggleShadow": "Schatten-Mitgliedschaft umschalten",
+      "shadowTooltip": "Schatten: Ausgeblendet aus Mitgliederzahl, Verzeichnis und Nachrichten",
+      "assignAsShadow": "Als Schatten zuweisen"
     },
     "members": {
       "gameAccount": "Spielkonto",

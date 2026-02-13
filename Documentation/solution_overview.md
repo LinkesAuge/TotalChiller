@@ -32,7 +32,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 
 - **users**: profile, status, language.
 - **game_accounts**: per-user game accounts with approval workflow (`approval_status`: pending/approved/rejected).
-- **game_account_clan_memberships**: clan membership per game account (rank, status).
+- **game_account_clan_memberships**: clan membership per game account (rank, status, `is_shadow`). Shadow memberships grant full data access but are hidden from public displays (member directory, counts, broadcasts).
 - **clans**: metadata.
 - **user_roles**: one global role per user (owner, admin, moderator, editor, member, guest). Permission map in `lib/permissions.ts`.
 - **chest_entries**: CSV data with audit fields.

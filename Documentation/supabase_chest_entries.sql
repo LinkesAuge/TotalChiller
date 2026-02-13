@@ -113,6 +113,7 @@ create table if not exists public.game_account_clan_memberships (
   clan_id uuid not null references public.clans(id) on delete cascade,
   rank text,
   is_active boolean not null default true,
+  is_shadow boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (game_account_id, clan_id)
@@ -362,7 +363,7 @@ create table if not exists public.scoring_rules (
 
 create table if not exists public.chest_entries (
   id uuid primary key default gen_random_uuid(),
-  clan_id uuid not null references public.clans(id) on delete restrict,
+  clan_id uuid not null references public.clans(id) on delete cascade,
   collected_date date not null,
   player text not null,
   source text not null,
@@ -948,10 +949,7 @@ create policy "clans_delete_by_role"
 on public.clans
 for delete
 to authenticated
-using (
-  public.has_role(ARRAY['owner'])
-  and public.is_clan_member(clans.id)
-);
+using (public.is_any_admin());
 
 create or replace function public.set_updated_at()
 returns trigger

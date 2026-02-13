@@ -133,7 +133,8 @@ export function useEventsData(
         .from("game_account_clan_memberships")
         .select("game_account_id, game_accounts!inner(id, game_username)")
         .eq("clan_id", clanId)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_shadow", false);
       if (cancelled || error || !data) return;
       const accounts: GameAccountOption[] = [];
       for (const row of data as Record<string, unknown>[]) {

@@ -190,7 +190,8 @@ function DashboardClient(): JSX.Element {
           .from("game_account_clan_memberships")
           .select("id", { count: "exact", head: true })
           .eq("clan_id", activeClanId)
-          .eq("is_active", true),
+          .eq("is_active", true)
+          .eq("is_shadow", false),
       ]);
       const tw = thisWeek?.summary ?? {
         totalChests: 0,

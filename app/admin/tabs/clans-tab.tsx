@@ -43,6 +43,7 @@ function getMembershipEditValueStub(
 ): MembershipEditState {
   return {
     is_active: membershipEdits[membership.id]?.is_active ?? membership.is_active,
+    is_shadow: membershipEdits[membership.id]?.is_shadow ?? membership.is_shadow,
     rank: membershipEdits[membership.id]?.rank ?? membership.rank ?? "",
     clan_id: membershipEdits[membership.id]?.clan_id ?? membership.clan_id,
   };
@@ -93,6 +94,7 @@ export default function ClansTab(): ReactElement {
     search: "",
     filter: "unassigned" as "unassigned" | "current" | "other" | "all",
     status: "",
+    assignAsShadow: false,
   });
   const [gameAccountEdits, setGameAccountEdits] = useState<Record<string, GameAccountEditState>>({});
   const [activeGameAccountId, setActiveGameAccountId] = useState("");
@@ -144,7 +146,7 @@ export default function ClansTab(): ReactElement {
       }
       const { data, error } = await supabase
         .from("game_account_clan_memberships")
-        .select("id,clan_id,game_account_id,is_active,rank,game_accounts(id,user_id,game_username)")
+        .select("id,clan_id,game_account_id,is_active,is_shadow,rank,game_accounts(id,user_id,game_username)")
         .eq("clan_id", clanId)
         .order("game_account_id");
       if (error) {
@@ -325,9 +327,13 @@ export default function ClansTab(): ReactElement {
       setStatus("Deletion phrase does not match.");
       return;
     }
-    const { error } = await supabase.from("clans").delete().eq("id", selectedClanId);
+    const { data, error } = await supabase.from("clans").delete().eq("id", selectedClanId).select();
     if (error) {
       setStatus(`Failed to delete clan: ${error.message}`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      setStatus("Clan could not be deleted. You may lack the required permissions.");
       return;
     }
     clanDelete.close();
@@ -338,14 +344,16 @@ export default function ClansTab(): ReactElement {
   /* ── Membership edit ── */
   function updateMembershipEdit(id: string, field: keyof MembershipEditState, value: string): void {
     const membership = memberships.find((m) => m.id === id);
-    const baseMembership = membership ?? ({ is_active: true, rank: "", clan_id: selectedClanId } as MembershipRow);
+    const baseMembership =
+      membership ?? ({ is_active: true, is_shadow: false, rank: "", clan_id: selectedClanId } as MembershipRow);
     setMembershipEdits((current) => {
       const existing = current[id] ?? {
         is_active: baseMembership.is_active,
+        is_shadow: baseMembership.is_shadow,
         rank: baseMembership.rank ?? "",
         clan_id: baseMembership.clan_id,
       };
-      const nextValue = field === "is_active" ? value === "true" : value;
+      const nextValue = field === "is_active" || field === "is_shadow" ? value === "true" : value;
       return { ...current, [id]: { ...existing, [field]: nextValue } };
     });
     setMembershipErrors((current) => {
@@ -386,6 +394,7 @@ export default function ClansTab(): ReactElement {
     if (!edits || edits[field] === undefined) return false;
     const nextValue = edits[field];
     if (field === "is_active") return Boolean(nextValue) !== membership.is_active;
+    if (field === "is_shadow") return Boolean(nextValue) !== membership.is_shadow;
     if (field === "rank") return String(nextValue ?? "") !== String(membership.rank ?? "");
     if (field === "clan_id") return String(nextValue ?? "") !== membership.clan_id;
     return false;
@@ -410,13 +419,15 @@ export default function ClansTab(): ReactElement {
       setStatus("You must be logged in to update memberships.");
       return;
     }
-    let membershipPayload: { clan_id: string; is_active: boolean; rank: string | null } | null = null;
+    let membershipPayload: { clan_id: string; is_active: boolean; is_shadow: boolean; rank: string | null } | null =
+      null;
     if (edits) {
       const nextEdits = getMembershipEditValue(membership);
       const nextClanId = nextEdits.clan_id ?? membership.clan_id;
       membershipPayload = {
         clan_id: nextClanId,
         is_active: nextEdits.is_active ?? membership.is_active,
+        is_shadow: nextEdits.is_shadow ?? membership.is_shadow,
         rank: nextEdits.rank ?? membership.rank,
       };
       const { error } = await supabase
@@ -516,6 +527,7 @@ export default function ClansTab(): ReactElement {
       search: "",
       filter: "unassigned",
       status: "",
+      assignAsShadow: false,
     }));
     void loadAssignableGameAccounts();
   }
@@ -600,6 +612,7 @@ export default function ClansTab(): ReactElement {
       game_account_id,
       clan_id: selectedClanId,
       is_active: true,
+      is_shadow: assignAccounts.assignAsShadow,
       rank: "soldier",
     }));
     const { error } = await supabase
@@ -1006,8 +1019,18 @@ export default function ClansTab(): ReactElement {
               <span>{tAdmin("common.actions")}</span>
             </header>
             {sortedMemberships.map((membership, index) => (
-              <div className="row" key={membership.id}>
-                <span className="text-muted">{index + 1}</span>
+              <div
+                className={`row${(getMembershipEditValue(membership).is_shadow ?? membership.is_shadow) ? " is-shadow" : ""}`}
+                key={membership.id}
+              >
+                <span className="text-muted">
+                  {index + 1}
+                  {membership.is_shadow ? (
+                    <span className="badge shadow-badge" title={tAdmin("clans.shadowTooltip")}>
+                      S
+                    </span>
+                  ) : null}
+                </span>
                 <div>
                   {membership.game_accounts?.id ? (
                     activeGameAccountId === membership.game_accounts.id ? (
@@ -1041,18 +1064,11 @@ export default function ClansTab(): ReactElement {
                   )}
                 </div>
                 <div>
-                  <div>
-                    {membership.game_accounts?.user_id
-                      ? (profilesById[membership.game_accounts.user_id]?.email ?? "-")
-                      : "-"}
-                  </div>
-                  <div className="text-muted">
-                    {membership.game_accounts?.user_id
-                      ? (profilesById[membership.game_accounts.user_id]?.display_name ??
-                        profilesById[membership.game_accounts.user_id]?.username ??
-                        "-")
-                      : "-"}
-                  </div>
+                  {membership.game_accounts?.user_id
+                    ? (profilesById[membership.game_accounts.user_id]?.display_name ??
+                      profilesById[membership.game_accounts.user_id]?.username ??
+                      "-")
+                    : "-"}
                 </div>
                 <RadixSelect
                   ariaLabel={tAdmin("common.clan")}
@@ -1104,6 +1120,29 @@ export default function ClansTab(): ReactElement {
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                       <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </IconButton>
+                  <IconButton
+                    ariaLabel={tAdmin("clans.toggleShadow")}
+                    onClick={() => {
+                      const current = getMembershipEditValue(membership).is_shadow ?? membership.is_shadow;
+                      updateMembershipEdit(membership.id, "is_shadow", current ? "false" : "true");
+                    }}
+                    variant={
+                      (getMembershipEditValue(membership).is_shadow ?? membership.is_shadow) ? "active" : undefined
+                    }
+                  >
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.4" />
+                      <path
+                        d="M3 14C3 11.2 5.2 9 8 9C10.8 9 13 11.2 13 14"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        strokeLinecap="round"
+                      />
+                      {(getMembershipEditValue(membership).is_shadow ?? membership.is_shadow) ? (
+                        <path d="M2 2L14 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      ) : null}
                     </svg>
                   </IconButton>
                   {membership.game_accounts?.id ? (
@@ -1238,6 +1277,16 @@ export default function ClansTab(): ReactElement {
                 />
               </div>
               <span className="text-muted">{assignAccounts.selectedIds.length} selected</span>
+              <label
+                style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", marginLeft: "auto" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={assignAccounts.assignAsShadow}
+                  onChange={(e) => setAssignAccounts((a) => ({ ...a, assignAsShadow: e.target.checked }))}
+                />
+                <span className="text-muted">{tAdmin("clans.assignAsShadow")}</span>
+              </label>
             </div>
             {assignAccounts.status ? <div className="alert info">{assignAccounts.status}</div> : null}
             {filteredAssignableAccounts.length === 0 ? (

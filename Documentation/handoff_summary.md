@@ -47,6 +47,15 @@ This file is a compact context transfer for a new chat.
 - **Core model shift**: `user → game_account → clan`.
   - New tables: `game_accounts`, `game_account_clan_memberships`.
   - RLS updated to use game-account memberships.
+- **Shadow Memberships** (Feb 2026)
+  - `is_shadow` boolean column on `game_account_clan_memberships` (default `false`).
+  - Shadow memberships grant full RLS data access (view clan content, chest entries, events, etc.) but are hidden from: member directory, dashboard member count, clan broadcast recipients, notification fan-out, and event organizer dropdown.
+  - Admin clan management: shadow toggle icon per row (person with strike-through), "Assign as shadow" checkbox in assign modal. Shadow rows rendered dimmed with "S" badge.
+  - Users tab: shadow badge shown next to membership status.
+  - Profile page: "Shadow" badge on shadow memberships.
+  - Sidebar clan selector and clan access gate: shadow memberships still included (needed for debugging access).
+  - Migration: `Documentation/migrations/shadow_membership.sql`.
+  - i18n: `admin.clans.toggleShadow`, `admin.clans.shadowTooltip`, `admin.clans.assignAsShadow`, `profile.shadowMembership`.
 - **Game Account Approval System**
   - `game_accounts.approval_status` column: `pending`, `approved`, `rejected`.
   - Users can self-request game accounts (created with `pending` status via `/api/game-accounts`).
@@ -305,6 +314,8 @@ This file is a compact context transfer for a new chat.
 - **Events RLS fix**: Old events RLS policies used `is_clan_admin()` (owner/admin only). Updated to `has_permission('event:create')` etc., enabling moderators and editors to create/edit/delete events. Applied via the `roles_permissions_cleanup.sql` migration.
 - **Supabase error handling**: New `lib/supabase/error-utils.ts` classifies Supabase errors (RLS/permission, auth, network, unknown) and maps them to user-friendly i18n messages. Events page now shows "You don't have permission" instead of raw "row-level security policy" errors.
 - **Clan Management**: Fixed init effect re-running, game account deletion refreshing membership list, race condition guards for concurrent fetches.
+- **Clan delete silent failure** (Feb 2026): Deleting a clan via the admin UI reported "Clan deleted" but the clan persisted. Three causes: (1) the `clans_delete_by_role` RLS policy only allowed `owner` role, not `admin` — Supabase silently returns no error when RLS blocks a delete; (2) `chest_entries.clan_id` used `ON DELETE RESTRICT`, blocking deletion of any clan with chest data; (3) the frontend only checked for `error` and didn't verify rows were actually deleted. Fix: updated RLS policy to use `is_any_admin()`, changed FK to `ON DELETE CASCADE`, and added `.select()` chain to the delete call to check `data.length`. Migration: `clans_delete_policy_fix.sql`.
+- **Clan management UI tightening** (Feb 2026): Narrowed Clan, Rank, and Status columns to use space more effectively. Fixed grid cell overflow (Status dropdown overlapping Actions column) by adding `overflow: hidden; min-width: 0` to all grid cells and `width: 100%; max-width: 100%` to select triggers. Benutzer column simplified to show only display name/username (no email). Row vertical padding reduced to 3px for compact layout. Icon button hover clipping fixed by disabling `transform: translateY(-1px)` for `.table .icon-button`.
 - **Proxy API route**: All `/api/` paths bypass the proxy auth redirect — each route handles its own auth (401/403 JSON).
 - **Password update page**: Redirects to dashboard after 2 seconds on success.
 - **Create-user route**: Fixed duplicate variable declaration in `app/api/admin/create-user/route.ts`.
@@ -556,3 +567,4 @@ The `NavItemIcon` component automatically renders `<Image>` when `vipIcon` is se
 
 - All RLS fixes (chest_entries admin access, global rules) are included in the base SQL and migration files.
 - **Enable RLS on `clans` table**: `alter table public.clans enable row level security;` (policies exist but RLS was never enabled on some older setups).
+- **Clan delete fix**: Two issues fixed. (1) The `clans_delete_by_role` RLS policy only allowed `owner` role — updated to use `is_clan_admin()` (owner + admin). (2) `chest_entries.clan_id` FK was `ON DELETE RESTRICT`, blocking deletion of clans with entries — changed to `ON DELETE CASCADE`. Migration: `Documentation/migrations/clans_delete_policy_fix.sql`. Frontend also chains `.select()` after delete to detect silent RLS failures.

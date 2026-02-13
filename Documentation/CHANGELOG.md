@@ -196,20 +196,18 @@ Plan: `Documentation/plans/2026-02-12-redundancy-reduction-plan.md`.
 
 ## Pending — Navigation Icons (Medieval Theme Overhaul)
 
-**Status**: Preview page created, awaiting icon selection before integration.
+**Status**: Awaiting icon selection before integration. Preview page (`icon-preview.html`) was deleted during dead code cleanup.
 
 - ~260 game-style PNG icons available in `/assets/game/icons/`.
-- Preview page: `public/icon-preview.html` (Tab 1: suggested nav replacements, Tab 2: full gallery, Tab 3: shields/decorations).
 - **Bug**: Dashboard and Home share the same house SVG path — dashboard needs a distinct icon.
 
 **Task list**:
 
-1. Review `/icon-preview.html` in browser, pick one icon per nav item.
+1. Browse `/assets/game/icons/` directly and pick one icon per nav item.
 2. Fix Dashboard icon (critical — duplicate of Home icon).
 3. Decide approach: (A) All PNG game icons, or (B) Hybrid SVG+PNG.
 4. Update `sidebar-nav.tsx` — either change `ICONS[key]` SVG path or add `vipIcon` property.
 5. Test at both sidebar widths (280px expanded, 60px collapsed).
-6. Remove `public/icon-preview.html` before production.
 
 **Suggested icon mapping** (from preview page):
 

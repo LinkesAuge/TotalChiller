@@ -21,6 +21,7 @@
 - Recurring events store a single DB row; occurrences computed client-side.
 - Forum categories managed via admin API with service role client (bypasses RLS).
 - All API routes handle their own authentication (no proxy auth redirect for `/api/` paths).
+- `ClanAccessGate` bypasses clan membership checks for `/admin` paths (admin pages have their own auth guards). Locale sync uses `router.refresh()` (not `window.location.reload()`) with a `useRef` guard to prevent repeated syncs.
 
 ## Architecture Decisions
 
@@ -28,7 +29,7 @@
 - **Auth**: Supabase Auth with PKCE. First-login detection redirects to `/profile`.
 - **Backend**: Supabase PostgreSQL with RLS for data isolation. Service role client for operations that bypass RLS.
 - **Permissions**: Static TypeScript permission map (`lib/permissions.ts`) mirrored in SQL (`has_permission()` function). No dynamic role/permission tables.
-- **Rate limiting**: Custom in-memory sliding window. Each limiter instance gets an isolated store (prevents cross-endpoint contamination). Three tiers: strict (10/min), standard (30/min), relaxed (60/min).
+- **Rate limiting**: Custom in-memory sliding window. Each limiter instance gets an isolated store (prevents cross-endpoint contamination). Three tiers: strict (10/min), standard (30/min), relaxed (120/min).
 - **Markdown**: Unified system — one renderer (`AppMarkdown`), one sanitizer (`sanitizeMarkdown`), one toolbar (`AppMarkdownToolbar`). Variant prop controls CSS scope ("cms" vs "forum").
 - **i18n**: `next-intl` with German and English. All strings in `messages/en.json` + `messages/de.json`.
 - **Testing**: Vitest for unit tests (colocated `*.test.ts`), Playwright for E2E (pre-authenticated storageState for 6 roles).
@@ -122,4 +123,5 @@ See `Documentation/runbook.md` section 1 for the full migration order. All SQL f
 - Sidebar: 280px expanded, 60px collapsed.
 - All API routes bypass proxy auth redirect and handle their own auth.
 - CMS APIs listed in `isPublicPath()` for historical reasons (redundant but kept).
+- `ClanAccessGate.isPublicPath()` also includes `/admin` routes — admin users may not have game accounts/clan membership but still need panel access.
 - `recurrence_parent_id` column on events is deprecated and dropped in v2 migration.

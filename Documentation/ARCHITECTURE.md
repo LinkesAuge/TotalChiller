@@ -12,7 +12,7 @@
 
 | Layer          | Technology                                                    |
 | -------------- | ------------------------------------------------------------- |
-| Framework      | Next.js 15 (App Router, server + client components)           |
+| Framework      | Next.js 16 (App Router, server + client components)           |
 | Language       | TypeScript (strict: `noUncheckedIndexedAccess`)               |
 | Database       | Supabase (PostgreSQL + RLS + Storage)                         |
 | Auth           | Supabase Auth (email/password, PKCE)                          |
@@ -236,6 +236,7 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 
 | Component              | File                            | Purpose                                                           |
 | ---------------------- | ------------------------------- | ----------------------------------------------------------------- |
+| ClanAccessGate         | `clan-access-gate.tsx`          | Clan membership gate for scoped pages. Bypasses `/admin` routes. Syncs locale via `router.refresh()` |
 | MarkdownEditor         | `markdown-editor.tsx`           | Write/preview tabs, toolbar, image upload. Props: `storageBucket` |
 | BannerPicker           | `banner-picker.tsx`             | 51 game-asset presets + custom upload                             |
 | ConfirmModal           | `confirm-modal.tsx`             | Danger/warning/info variants, optional phrase confirmation        |
@@ -260,7 +261,7 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 | Admin helpers      | `api/require-admin.ts`              | Validates admin role (wraps requireAuth)                                                                                                                 |
 | Zod schemas        | `api/validation.ts`                 | `uuidSchema`, `notificationSettingsSchema`, `chartQuerySchema`, `dateStringSchema`                                                                       |
 | Permissions        | `permissions.ts`                    | Role→permission map. `hasPermission()`, `canDo()`, `isAdmin()`                                                                                           |
-| Rate limiter       | `rate-limit.ts`                     | `createRateLimiter()` factory. Pre-built: `strictLimiter` (10/min), `standardLimiter` (30/min), `relaxedLimiter` (60/min). Isolated stores per instance. |
+| Rate limiter       | `rate-limit.ts`                     | `createRateLimiter()` factory. Pre-built: `strictLimiter` (10/min), `standardLimiter` (30/min), `relaxedLimiter` (120/min). Isolated stores per instance. |
 | Domain types       | `types/domain.ts`                   | Shared interfaces: `InboxThread`, `SentMessage`, `ThreadMessage`, `ProfileSummary`, etc.                                                                 |
 | Markdown           | `markdown/app-markdown.tsx`         | Unified renderer (`variant="cms"` or `"forum"`)                                                                                                          |
 | Markdown toolbar   | `markdown/app-markdown-toolbar.tsx` | Formatting buttons, image upload                                                                                                                         |
@@ -291,8 +292,8 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 | `/api/notification-settings`        | GET, PATCH               | user         | standard   | Notification preferences        |
 | `/api/charts`                       | GET                      | user         | relaxed    | Aggregated chest data           |
 | `/api/game-accounts`                | GET, POST, PATCH         | user         | standard   | Game account CRUD               |
-| `/api/site-content`                 | GET, PATCH               | public/admin | standard   | CMS text content                |
-| `/api/site-list-items`              | GET, PATCH               | public/admin | standard   | CMS list items                  |
+| `/api/site-content`                 | GET, PATCH               | public/admin | relaxed/standard | CMS text content                |
+| `/api/site-list-items`              | GET, PATCH               | public/admin | relaxed/standard | CMS list items                  |
 | `/api/auth/forgot-password`         | POST                     | public       | standard   | Password reset email            |
 | `/api/data-import/commit`           | POST                     | admin        | strict     | Commit imported data            |
 | `/api/admin/create-user`            | POST                     | admin        | strict     | Invite new user                 |
@@ -300,10 +301,10 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 | `/api/admin/user-lookup`            | POST                     | admin        | strict     | Lookup user by email            |
 | `/api/admin/game-account-approvals` | GET, PATCH               | admin        | strict     | Approval queue                  |
 | `/api/admin/forum-categories`       | GET, POST, PATCH, DELETE | admin        | strict     | Forum category CRUD             |
-| `/api/design-system/assets`         | GET, PATCH               | admin        | standard   | Design asset library            |
-| `/api/design-system/ui-elements`    | GET, POST, PATCH, DELETE | admin        | standard   | UI element inventory            |
-| `/api/design-system/assignments`    | GET, POST, DELETE        | admin        | standard   | Asset assignments               |
-| `/api/design-system/preview-upload` | POST                     | admin        | standard   | Screenshot upload               |
+| `/api/design-system/assets`         | GET, PATCH               | admin        | relaxed/standard | Design asset library            |
+| `/api/design-system/ui-elements`    | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory            |
+| `/api/design-system/assignments`    | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments               |
+| `/api/design-system/preview-upload` | POST                     | admin        | standard         | Screenshot upload               |
 
 ## 8. Database Table Index
 

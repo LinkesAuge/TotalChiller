@@ -58,7 +58,7 @@ When you finish a work session, update these docs:
 
 ## Pending Work / Next Steps
 
-- **Icon overhaul**: Pick icons, update `sidebar-nav.tsx`. See `CHANGELOG.md` "Pending — Navigation Icons" for full task list + icon mapping.
+- **Icon overhaul**: Browse `/assets/game/icons/`, pick icons, update `sidebar-nav.tsx`. See `CHANGELOG.md` "Pending — Navigation Icons" for full task list + icon mapping. (Note: `icon-preview.html` was deleted during dead code cleanup.)
 - **Forum PostgREST joins**: Migrate forum to use embedded joins for author names (FK constraints already added).
 - **WebSocket notifications**: Replace 60s polling with real-time.
 - **Rule modal migration**: Refactor `data-table-client.tsx` and `data-import-client.tsx` to use new shared `AddCorrectionRuleModal`/`AddValidationRuleModal` components (created in `app/components/`).

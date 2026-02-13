@@ -44,7 +44,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .from("forum_categories")
       .select("*")
       .eq("clan_id", clanId)
-      .order("sort_order", { ascending: true });
+      .order("name", { ascending: true });
 
     if (error) {
       console.error("[forum-categories GET]", error.message);

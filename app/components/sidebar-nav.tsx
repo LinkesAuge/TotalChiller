@@ -164,7 +164,7 @@ function SidebarNav(): JSX.Element {
         .from("forum_categories")
         .select("id, name, slug, sort_order")
         .eq("clan_id", clanContext!.clanId)
-        .order("sort_order", { ascending: true });
+        .order("name", { ascending: true });
       if (!active) return;
       if (error || !data) {
         setForumCategories([]);

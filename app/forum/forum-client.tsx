@@ -73,7 +73,7 @@ function ForumClient(): JSX.Element {
         .from("forum_categories")
         .select("*")
         .eq("clan_id", clanContext.clanId)
-        .order("sort_order", { ascending: true });
+        .order("name", { ascending: true });
       if (error) {
         const isTableMissing = error.message.includes("schema cache") || error.code === "PGRST204";
         if (isTableMissing) {

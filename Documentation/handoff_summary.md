@@ -351,15 +351,28 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ### Unit Tests (Vitest)
 
-- **52 tests** across **4 test files** in `lib/`. Runs via `npm run test:unit`.
-- Config: `vitest.config.ts` with `@/` path alias.
+- **304 tests** across **17 test files** in `lib/` and `app/`. Runs via `npm run test:unit`.
+- Config: `vitest.config.ts` with `@/` path alias, `environment: "node"`.
 
-| File                               | Tests | Description                             |
-| ---------------------------------- | ----- | --------------------------------------- |
-| `lib/supabase/error-utils.test.ts` | 12    | Error classification + i18n key mapping |
-| `lib/permissions.test.ts`          | 30    | Roles, validation, permission helpers   |
-| `lib/date-format.test.ts`          | 5     | Formatting, locale, edge cases          |
-| `lib/rate-limit.test.ts`           | 5     | Rate limiting, blocking, IP tracking    |
+| File                                   | Tests | Description                                                 |
+| -------------------------------------- | ----- | ----------------------------------------------------------- |
+| `app/events/events-utils.test.ts`      | 53    | Date/time formatting, recurrence expansion, display helpers |
+| `lib/permissions.test.ts`              | 35    | Roles, validation, permission helpers incl. forum perms     |
+| `lib/messages-schemas.test.ts`         | 23    | SEND_SCHEMA validation for messages API                     |
+| `lib/forum-categories-schemas.test.ts` | 23    | UUID, create/update category schema validation              |
+| `lib/api/validation.test.ts`           | 26    | UUID, notification settings, chart query schemas            |
+| `lib/dashboard-utils.test.ts`          | 25    | Trends, formatting, author extraction                       |
+| `lib/correction-applicator.test.ts`    | 21    | Correction rule application logic                           |
+| `lib/fan-out-schema.test.ts`           | 18    | Fan-out notification schema validation                      |
+| `lib/create-user-schema.test.ts`       | 14    | Admin create-user schema validation                         |
+| `lib/supabase/error-utils.test.ts`     | 12    | Error classification + i18n key mapping                     |
+| `lib/rate-limit.test.ts`               | 12    | Rate limiting, blocking, IP tracking, window expiry         |
+| `lib/supabase/check-role.test.ts`      | 9     | User role resolution                                        |
+| `lib/forum-thread-sync.test.ts`        | 8     | Forum post creation with Supabase mock                      |
+| `lib/supabase/role-access.test.ts`     | 7     | Content manager access checks                               |
+| `lib/supabase/admin-access.test.ts`    | 7     | Admin access checks                                         |
+| `lib/supabase/config.test.ts`          | 6     | Supabase URL/key configuration                              |
+| `lib/date-format.test.ts`              | 5     | Formatting, locale, edge cases                              |
 
 ### E2E Tests (Playwright)
 
@@ -447,7 +460,9 @@ Production audit score: **84/100 (B)**, up from 43/100. Key areas:
 - Forum comment count is a cached integer on `forum_posts.comment_count`. It is incremented on new comment/reply and decremented on delete (accounting for cascade-deleted nested replies). The post list is reloaded when navigating back from detail view to ensure fresh counts.
 - **Forum Thread Auto-Linking** (Feb 2026): Creating an event or announcement auto-creates a linked forum thread. Bidirectional linking via `forum_post_id` on events/articles and `source_type`/`source_id` on forum_posts. Database triggers handle bidirectional delete cascade and edit sync (all `SECURITY DEFINER`). "Events" and "Ankündigungen" categories seeded per clan. Deep-link: `/forum?post=<id>` opens the post directly. Prominent "Discuss in Forum" button on expanded events. "View in Events/Announcements" links on forum threads. Editing a forum thread stays in detail view. Announcements edit form opens inline below the edited article. Migration: `forum_thread_linking.sql`. Helper: `lib/forum-thread-sync.ts` (create only; update/delete handled by DB triggers).
 - **Forum permissions fix** (Feb 2026): Members can now delete their own forum comments/posts. Added `forum:delete:own` to the member role in both TypeScript and SQL `has_permission()`. Forum create/edit/delete operations now show toast error feedback on failure. Migration: `member_forum_delete_permission.sql`.
+- **Forum comment count DB trigger** (Feb 2026): `comment_count` on `forum_posts` is now maintained by `SECURITY DEFINER` triggers (`trg_forum_comment_insert_count`, `trg_forum_comment_delete_count`) instead of client-side updates. This resolves silent failures when non-authors tried to update the count (blocked by RLS). Migration: `forum_comment_count_trigger.sql`.
 - Forum categories are sorted alphabetically by name. Admin reorder (move up/down) UI removed since it conflicted with alphabetical ordering. Categories managed via `/api/admin/forum-categories`.
+- **Code quality refactoring** (Feb 2026): (1) Replaced 294 raw `rgba()` color values in `globals.css` with CSS variables (`--color-gold-a04` through `--color-gold-a50`, `--color-overlay-dark`, `--color-overlay-darker`, `--color-danger-light`). (2) Extracted `DayPanelEventCard` and `UpcomingEventCard` into separate `React.memo`-wrapped components with `useCallback` handlers. (3) Extracted `NewsForm` from `news-client.tsx` into `news-form.tsx` using a grouped `NewsFormValues` interface.
 - Default game account (`profiles.default_game_account_id`) takes priority over localStorage in sidebar selector.
 - A decorative gold gradient divider line sits below the top bar on all pages.
 - Global `option` CSS ensures dark-themed native `<select>` dropdown menus where RadixSelect is not used.

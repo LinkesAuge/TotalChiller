@@ -69,6 +69,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
     "data:view",
     "forum:create",
     "forum:edit:own",
+    "forum:delete:own",
     "message:send:private",
     "profile:edit:own",
   ],
@@ -136,6 +137,14 @@ test.describe("Permission map — role definitions", () => {
 
   test("member does NOT have event:create", () => {
     expect(ROLE_PERMISSIONS.member).not.toContain("event:create");
+  });
+
+  test("member has forum:delete:own", () => {
+    expect(ROLE_PERMISSIONS.member).toContain("forum:delete:own");
+  });
+
+  test("member has forum:edit:own", () => {
+    expect(ROLE_PERMISSIONS.member).toContain("forum:edit:own");
   });
 });
 
@@ -272,6 +281,8 @@ test.describe("Permission matrix — comprehensive cross-check", () => {
     "forum:pin": { owner: true, admin: true, moderator: true, editor: false, member: false, guest: false },
     "profile:edit:own": { owner: true, admin: true, moderator: false, editor: false, member: true, guest: true },
     "admin_panel:view": { owner: true, admin: true, moderator: true, editor: false, member: false, guest: false },
+    "forum:delete:own": { owner: true, admin: true, moderator: false, editor: true, member: true, guest: false },
+    "forum:create": { owner: true, admin: true, moderator: true, editor: true, member: true, guest: false },
   };
 
   for (const [permission, expected] of Object.entries(matrix)) {

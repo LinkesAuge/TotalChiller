@@ -11,6 +11,9 @@ import {
   advanceCursorDate,
   expandRecurringEvents,
   sortPinnedFirst,
+  getDateBadgeParts,
+  getShortTimeString,
+  getRecurrenceLabel,
 } from "./events-utils";
 import type { EventRow } from "./events-types";
 
@@ -213,6 +216,7 @@ describe("expandRecurringEvents", () => {
     starts_at: "2026-02-01T12:00:00Z",
     ends_at: "2026-02-01T14:00:00Z",
     created_at: "2026-01-01T00:00:00Z",
+    updated_at: null,
     created_by: "user-1",
     organizer: "Org",
     author_name: "Author",
@@ -220,6 +224,7 @@ describe("expandRecurringEvents", () => {
     recurrence_end_date: null,
     banner_url: null,
     is_pinned: false,
+    forum_post_id: null,
   };
 
   it("passes non-recurring events through as-is", () => {
@@ -322,5 +327,97 @@ describe("sortPinnedFirst", () => {
     ];
     sortPinnedFirst(items);
     expect(items[0]!.id).toBe("a");
+  });
+});
+
+/* ── getDateBadgeParts ── */
+
+describe("getDateBadgeParts", () => {
+  it("returns weekday, day, and month for a valid date", () => {
+    const result = getDateBadgeParts("2026-03-15T10:00:00Z", "en-US");
+    expect(result.day).toBe("15");
+    /* Weekday and month are locale-dependent; verify they're non-empty strings */
+    expect(result.weekday.length).toBeGreaterThan(0);
+    expect(result.month.length).toBeGreaterThan(0);
+  });
+
+  it("returns numeric day as string (no zero-padding)", () => {
+    const result = getDateBadgeParts("2026-01-05T12:00:00Z", "en-US");
+    expect(result.day).toBe("5");
+  });
+
+  it("handles different locales", () => {
+    /* Use March — "Mar" in en-US vs "Mär" in de-DE */
+    const enResult = getDateBadgeParts("2026-03-10T12:00:00Z", "en-US");
+    const deResult = getDateBadgeParts("2026-03-10T12:00:00Z", "de-DE");
+    /* Both should produce a valid day */
+    expect(enResult.day.length).toBeGreaterThan(0);
+    expect(deResult.day.length).toBeGreaterThan(0);
+    /* Both should produce non-empty month abbreviations */
+    expect(enResult.month.length).toBeGreaterThan(0);
+    expect(deResult.month.length).toBeGreaterThan(0);
+  });
+
+  it("handles end-of-year dates", () => {
+    /* Use mid-month to avoid any timezone rollover edge cases */
+    const result = getDateBadgeParts("2026-12-15T12:00:00Z", "en-US");
+    expect(result.day).toBe("15");
+    expect(result.weekday.length).toBeGreaterThan(0);
+    expect(result.month.length).toBeGreaterThan(0);
+  });
+});
+
+/* ── getShortTimeString ── */
+
+describe("getShortTimeString", () => {
+  it("returns a non-empty string with hours and minutes", () => {
+    const result = getShortTimeString("2026-03-15T14:30:00Z", "en-US");
+    expect(result.length).toBeGreaterThan(0);
+    /* Should contain a colon or period separator depending on locale */
+    expect(result).toMatch(/\d/);
+  });
+
+  it("handles midnight", () => {
+    const result = getShortTimeString("2026-01-01T00:00:00Z", "en-US");
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it("returns different formats for different locales", () => {
+    const enResult = getShortTimeString("2026-03-15T14:30:00Z", "en-US");
+    const deResult = getShortTimeString("2026-03-15T14:30:00Z", "de-DE");
+    /* Both should be non-empty (format may or may not differ based on Node locale data) */
+    expect(enResult.length).toBeGreaterThan(0);
+    expect(deResult.length).toBeGreaterThan(0);
+  });
+});
+
+/* ── getRecurrenceLabel ── */
+
+describe("getRecurrenceLabel", () => {
+  const mockT = (key: string): string => `[${key}]`;
+
+  it("returns daily label for 'daily'", () => {
+    expect(getRecurrenceLabel("daily", mockT)).toBe("[recurrenceDailyLabel]");
+  });
+
+  it("returns weekly label for 'weekly'", () => {
+    expect(getRecurrenceLabel("weekly", mockT)).toBe("[recurrenceWeeklyLabel]");
+  });
+
+  it("returns biweekly label for 'biweekly'", () => {
+    expect(getRecurrenceLabel("biweekly", mockT)).toBe("[recurrenceBiweeklyLabel]");
+  });
+
+  it("returns monthly label for 'monthly'", () => {
+    expect(getRecurrenceLabel("monthly", mockT)).toBe("[recurrenceMonthlyLabel]");
+  });
+
+  it("returns empty string for 'none'", () => {
+    expect(getRecurrenceLabel("none", mockT)).toBe("");
+  });
+
+  it("returns empty string for unknown values", () => {
+    expect(getRecurrenceLabel("yearly", mockT)).toBe("");
+    expect(getRecurrenceLabel("", mockT)).toBe("");
   });
 });

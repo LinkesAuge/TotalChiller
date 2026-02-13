@@ -10,7 +10,6 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
 import { formatLocalDateTime } from "../../lib/date-format";
 import { extractAuthorName } from "../../lib/dashboard-utils";
-import { BANNER_PRESETS } from "@/lib/constants/banner-presets";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
@@ -18,14 +17,14 @@ import { useToast } from "../components/toast-provider";
 import RadixSelect from "../components/ui/radix-select";
 import DatePicker from "../components/date-picker";
 import SearchInput from "../components/ui/search-input";
-import BannerPicker from "../components/banner-picker";
-import MarkdownEditor from "../components/markdown-editor";
 import dynamic from "next/dynamic";
 import SectionHero from "../components/section-hero";
 import DataState from "../components/data-state";
 import PaginationBar from "../components/pagination-bar";
 import { usePagination } from "@/lib/hooks/use-pagination";
 import { createLinkedForumPost } from "@/lib/forum-thread-sync";
+import NewsForm from "./news-form";
+import type { NewsFormValues } from "./news-form";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
@@ -361,104 +360,38 @@ function NewsClient(): JSX.Element {
   }
   const hasActiveFilters = tagFilter !== "all" || searchTerm.trim() !== "" || dateFrom !== "" || dateTo !== "";
 
-  /* ── Shared form JSX ── */
+  /* ── Form field updater ── */
+  const formValues: NewsFormValues = { title, content, status, isPinned, tagsInput, bannerUrl };
+  function handleFieldChange(field: keyof NewsFormValues, value: string | boolean): void {
+    const setters: Record<keyof NewsFormValues, (v: never) => void> = {
+      title: setTitle as (v: never) => void,
+      content: setContent as (v: never) => void,
+      status: setStatus as (v: never) => void,
+      isPinned: setIsPinned as (v: never) => void,
+      tagsInput: setTagsInput as (v: never) => void,
+      bannerUrl: setBannerUrl as (v: never) => void,
+    };
+    setters[field](value as never);
+  }
+
+  /** Render the shared news form component. */
   function renderForm(): JSX.Element {
     return (
-      <section className="card col-span-full" ref={editFormRef}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">{editingId ? t("editPost") : t("createPost")}</div>
-            <div className="card-subtitle">{t("visibleToClan")}</div>
-          </div>
-        </div>
-        <form onSubmit={handleSubmit} className="pt-0 px-4 pb-4">
-          {/* Title */}
-          <div className="form-group">
-            <label htmlFor="newsTitle">{t("titleLabel")}</label>
-            <input
-              id="newsTitle"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("titlePlaceholder")}
-            />
-          </div>
-
-          {/* Banner selection */}
-          <div className="form-group">
-            <label id="newsBannerLabel">{t("bannerLabel")}</label>
-            <BannerPicker
-              presets={BANNER_PRESETS}
-              value={bannerUrl}
-              onChange={setBannerUrl}
-              onUpload={handleBannerUpload}
-              isUploading={isBannerUploading}
-              fileRef={bannerFileRef}
-              labelId="newsBannerLabel"
-            />
-          </div>
-
-          {/* Content editor */}
-          <div className="form-group">
-            <label htmlFor="newsContent">{t("contentLabel")}</label>
-            <MarkdownEditor
-              id="newsContent"
-              value={content}
-              onChange={setContent}
-              supabase={supabase}
-              userId={currentUserId}
-              placeholder={t("contentPlaceholder")}
-              rows={14}
-              minHeight={250}
-            />
-          </div>
-
-          {/* Status, Tags, Pin */}
-          <div className="form-grid">
-            <div className="form-group mb-0">
-              <label htmlFor="newsStatus">{t("status")}</label>
-              <RadixSelect
-                id="newsStatus"
-                ariaLabel={t("status")}
-                value={status}
-                onValueChange={(v) => setStatus(v as "draft" | "pending" | "published")}
-                options={[
-                  { value: "draft", label: t("draft") },
-                  { value: "pending", label: t("pending") },
-                  { value: "published", label: t("published") },
-                ]}
-              />
-            </div>
-            <div className="form-group mb-0">
-              <label htmlFor="newsTags">{t("tags")}</label>
-              <input
-                id="newsTags"
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-                placeholder={t("tagsPlaceholder")}
-              />
-            </div>
-          </div>
-          <div className="list inline mt-3">
-            <label className="text-muted inline-flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={isPinned}
-                onChange={(e) => setIsPinned(e.target.checked)}
-                style={{ accentColor: "var(--color-gold)" }}
-              />
-              {t("pinLabel")}
-            </label>
-          </div>
-          <div className="list inline mt-4">
-            <button className="button primary" type="submit" disabled={isSaving}>
-              {isSaving ? t("saving") : editingId ? t("save") : t("createPost")}
-            </button>
-            <button className="button" type="button" onClick={resetForm}>
-              {t("cancel")}
-            </button>
-          </div>
-        </form>
-      </section>
+      <NewsForm
+        editFormRef={editFormRef}
+        isEditing={!!editingId}
+        values={formValues}
+        onFieldChange={handleFieldChange}
+        isSaving={isSaving}
+        isBannerUploading={isBannerUploading}
+        bannerFileRef={bannerFileRef}
+        onBannerUpload={handleBannerUpload}
+        onSubmit={handleSubmit}
+        onCancel={resetForm}
+        supabase={supabase}
+        userId={currentUserId}
+        t={t}
+      />
     );
   }
 

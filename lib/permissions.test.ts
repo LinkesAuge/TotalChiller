@@ -73,6 +73,28 @@ describe("hasPermission", () => {
     expect(hasPermission("member", "event:create")).toBe(false);
   });
 
+  it("member can delete own forum posts", () => {
+    expect(hasPermission("member", "forum:delete:own")).toBe(true);
+  });
+
+  it("member can edit own forum posts", () => {
+    expect(hasPermission("member", "forum:edit:own")).toBe(true);
+  });
+
+  it("member can create forum posts", () => {
+    expect(hasPermission("member", "forum:create")).toBe(true);
+  });
+
+  it("editor can delete own forum posts", () => {
+    expect(hasPermission("editor", "forum:delete:own")).toBe(true);
+  });
+
+  it("guest cannot access forum", () => {
+    expect(hasPermission("guest", "forum:create")).toBe(false);
+    expect(hasPermission("guest", "forum:edit:own")).toBe(false);
+    expect(hasPermission("guest", "forum:delete:own")).toBe(false);
+  });
+
   it("guest only has profile:edit:own", () => {
     expect(hasPermission("guest", "profile:edit:own")).toBe(true);
     expect(hasPermission("guest", "article:create")).toBe(false);

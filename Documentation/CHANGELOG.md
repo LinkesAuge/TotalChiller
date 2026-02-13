@@ -6,6 +6,26 @@
 
 ---
 
+## 2026-02-13 — Test Coverage: Forum Sync, Permissions, Display Helpers
+
+- **New test file `lib/forum-thread-sync.test.ts`** (8 tests): Covers `createLinkedForumPost()` — success path, error path, category lookup, null category, empty content coercion, and announcement source type. Uses Supabase mock chains.
+- **Permissions tests expanded**: Added 5 Vitest tests (`lib/permissions.test.ts`) for `forum:delete:own`, `forum:edit:own`, and `forum:create` across member/editor/guest roles. Added 14 Playwright tests (`tests/permissions-unit.spec.ts`) including `forum:delete:own` and `forum:create` in the comprehensive permission matrix.
+- **Fixed outdated Playwright permissions inline map**: The `member` role in `tests/permissions-unit.spec.ts` was missing `forum:delete:own` — synced with `lib/permissions.ts`.
+- **Display helper tests** (13 tests in `events-utils.test.ts`): `getDateBadgeParts()` (4 tests — valid dates, no zero-padding, locales, December), `getShortTimeString()` (3 tests — basic, midnight, locales), `getRecurrenceLabel()` (6 tests — all 4 recurrence types + "none" + unknown).
+- **Test suite totals**: 304 Vitest unit tests across 17 files; 410 Playwright permission tests. All passing.
+
+---
+
+## 2026-02-13 — Code Quality: CSS Variables, Component Extraction, Memoization
+
+- **CSS variables for raw colors**: Replaced 294 raw `rgba(201,163,74,…)` gold opacity values, `rgba(10,20,32,…)` dark overlays, and `#e06060` danger colors with CSS custom properties. Added 15 new variables (`--color-gold-a04` through `--color-gold-a50`, `--color-overlay-dark`, `--color-overlay-darker`, `--color-danger-light`) to both `@theme` and `:root` in `globals.css`.
+- **Extracted DayPanelEventCard**: Moved the event card rendered inside `EventDayPanel`'s `.map()` loop into a separate `React.memo`-wrapped component (`day-panel-event-card.tsx`). All inline click/keyboard handlers now use `useCallback` for stable references.
+- **Extracted UpcomingEventCard**: Same treatment for the card in `UpcomingEventsSidebar` → `upcoming-event-card.tsx` with `React.memo` and memoized handlers.
+- **Extracted NewsForm**: Moved the `renderForm()` JSX from `news-client.tsx` into a standalone `news-form.tsx` component using a grouped `NewsFormValues` interface and a generic `onFieldChange` dispatcher.
+- **Fixed test mock**: Added missing `updated_at` and `forum_post_id` fields to `baseEvent` in `events-utils.test.ts`.
+
+---
+
 ## 2026-02-13 — Code Review Fixes: Permissions, Error Handling, Deduplication
 
 - **Fix: members can now delete own forum comments/replies**: Added `forum:delete:own` to the `member` role in both TypeScript (`lib/permissions.ts`) and SQL (`has_permission()`). Previously the UI showed the delete button but RLS silently blocked the action. Migration: `member_forum_delete_permission.sql`.

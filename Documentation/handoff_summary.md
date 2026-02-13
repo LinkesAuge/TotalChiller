@@ -106,7 +106,7 @@ This file is a compact context transfer for a new chat.
 - **Clan context selector**
   - Sidebar bottom section: native `<select>` dropdown for selecting active clan + game account (moved from navbar).
   - Stored in `localStorage`; active clan/account selection is visible in the sidebar.
-  - Files: `app/components/sidebar-shell.tsx`, `app/components/use-clan-context.ts`
+  - Files: `app/components/sidebar-shell.tsx`, `app/hooks/use-clan-context.ts`
 - **Admin gating**
   - "Verwaltung" (Administration) nav section visible to all authenticated users. Non-admins who click admin links are redirected to `/not-authorized?reason=admin` with a context-specific access denied message.
   - Admin page routes protected by `proxy.ts` middleware (`is_any_admin` RPC check).
@@ -321,7 +321,7 @@ This file is a compact context transfer for a new chat.
   - `clan_id` column is nullable on `validation_rules` and `correction_rules`.
   - Any admin can manage rules; all authenticated users can read them.
   - Validation evaluator no longer indexes by clan ID.
-  - `app/components/validation-evaluator.ts`, `lib/correction-applicator.ts`
+  - `lib/validation-evaluator.ts`, `lib/correction-applicator.ts`
 
 ## Project Audit & Test Coverage Improvement (2026-02-11)
 

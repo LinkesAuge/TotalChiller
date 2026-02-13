@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useModalReset } from "../hooks/use-modal-reset";
 import FormModal from "./form-modal";
 import RadixSelect from "./ui/radix-select";
 import ComboboxInput from "./ui/combobox-input";
@@ -36,15 +37,12 @@ export default function AddValidationRuleModal({
   const [status, setStatus] = useState<string>("valid");
   const [message, setMessage] = useState<string>("");
 
-  /* Reset state when modal opens with new initial values */
-  const [prevOpen, setPrevOpen] = useState(false);
-  if (isOpen && !prevOpen) {
+  useModalReset(isOpen, () => {
     setField(initialField);
     setMatch(initialMatch);
     setStatus("valid");
     setMessage("");
-  }
-  if (isOpen !== prevOpen) setPrevOpen(isOpen);
+  });
 
   function handleFieldChange(nextField: ValidationField): void {
     setField(nextField);

@@ -14,7 +14,7 @@ import { useSearchParams } from "next/navigation";
 import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
-import useClanContext from "../components/use-clan-context";
+import useClanContext from "../hooks/use-clan-context";
 import { usePagination } from "@/lib/hooks/use-pagination";
 import { useToast } from "../components/toast-provider";
 import { computeHotRank, resolveAuthorNames } from "./forum-utils";

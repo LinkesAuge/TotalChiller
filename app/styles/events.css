@@ -1646,34 +1646,3 @@
   object-fit: cover;
   max-height: 72px;
 }
-
-/* Clan selector in sidebar */
-/* Sidebar clan selector (bottom section) */
-.sidebar-clan-select {
-  position: relative;
-  z-index: 1;
-  padding: 0 6px 6px;
-}
-
-.sidebar-clan-select select {
-  width: 100%;
-  padding: 5px 28px 5px 8px;
-  font-size: 0.72rem;
-  border-radius: 5px;
-  border: 1px solid var(--color-edge-glow);
-  background-color: rgba(8, 14, 22, 0.8);
-  color: var(--color-text-2);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23c9a34a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 10px 6px;
-  appearance: none;
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-
-.sidebar-clan-select select:hover,
-.sidebar-clan-select select:focus {
-  border-color: var(--color-gold);
-  outline: none;
-}

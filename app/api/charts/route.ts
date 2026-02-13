@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../lib/api/require-auth";
 import { relaxedLimiter } from "../../../lib/rate-limit";
-import { chartQuerySchema } from "../../../lib/api/validation";
+import { chartQuerySchema, escapeLikePattern } from "../../../lib/api/validation";
 import type {
   ScoreOverTimePoint,
   TopPlayerPoint,
@@ -72,10 +73,10 @@ export async function GET(request: Request): Promise<Response> {
       query = query.lte("collected_date", dateTo);
     }
     if (playerFilter) {
-      query = query.ilike("player", `%${playerFilter}%`);
+      query = query.ilike("player", `%${escapeLikePattern(playerFilter)}%`);
     }
     if (sourceFilter) {
-      query = query.ilike("source", `%${sourceFilter}%`);
+      query = query.ilike("source", `%${escapeLikePattern(sourceFilter)}%`);
     }
     query = query.order("collected_date", { ascending: true });
     /* ── Build game accounts query for personal score ── */
@@ -89,7 +90,8 @@ export async function GET(request: Request): Promise<Response> {
     /* ── Fetch chest entries and game accounts in parallel ── */
     const [chestResult, accountResult] = await Promise.all([query, accountsQuery]);
     if (chestResult.error) {
-      return NextResponse.json({ error: chestResult.error.message }, { status: 500 });
+      captureApiError("GET /api/charts", chestResult.error);
+      return NextResponse.json({ error: "Failed to load chest data." }, { status: 500 });
     }
     const entries = (chestResult.data ?? []) as readonly ChestRow[];
     let personalUsernames: readonly string[] = [];
@@ -120,7 +122,8 @@ export async function GET(request: Request): Promise<Response> {
       summary,
     };
     return NextResponse.json(payload);
-  } catch {
+  } catch (err) {
+    captureApiError("GET /api/charts", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { captureApiError } from "@/lib/api/logger";
+import { apiError, messageQuerySchema } from "@/lib/api/validation";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
@@ -18,8 +20,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
     const userId = auth.userId;
-    const typeFilter = request.nextUrl.searchParams.get("type") ?? "all";
-    const search = request.nextUrl.searchParams.get("search")?.trim() ?? "";
+    const rawParams = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const parsed = messageQuerySchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return apiError("Invalid query parameters.", 400);
+    }
+    const { type: typeFilter, search } = parsed.data;
 
     const svc = createSupabaseServiceRoleClient();
 
@@ -39,7 +45,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const { data: msgData, error: msgErr } = await msgQuery;
     if (msgErr) {
-      return NextResponse.json({ error: msgErr.message }, { status: 500 });
+      captureApiError("GET /api/messages/sent", msgErr);
+      return apiError("Failed to load sent messages.", 500);
     }
 
     let messages = (msgData ?? []) as Array<{
@@ -123,7 +130,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json({ data: sentMessages, profiles: profilesById });
-  } catch {
-    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+  } catch (err) {
+    captureApiError("GET /api/messages/sent", err);
+    return apiError("Internal server error.", 500);
   }
 }

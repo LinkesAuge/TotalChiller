@@ -1,51 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useSupabase } from "./hooks/use-supabase";
-import {
-  toDateString,
-  getMonday,
-  calculateTrend,
-  formatCompactNumber,
-  formatRelativeTime,
-  extractAuthorName,
-} from "../lib/dashboard-utils";
-import useClanContext from "./components/use-clan-context";
+import { useDashboardData } from "./hooks/use-dashboard-data";
+import { formatCompactNumber, formatRelativeTime } from "../lib/dashboard-utils";
+import useClanContext from "./hooks/use-clan-context";
 import DataState from "./components/data-state";
-import type { ChartsApiResponse } from "./charts/chart-types";
-import type { ArticleSummary, EventSummary } from "@/lib/types/domain";
-
-interface DashboardStats {
-  readonly personalScore: number;
-  readonly clanScore: number;
-  readonly totalChests: number;
-  readonly activeMembers: number;
-  readonly personalTrend: number;
-  readonly clanTrend: number;
-  readonly chestTrend: number;
-  readonly topPlayerName: string;
-  readonly topPlayerScore: number;
-  readonly topChestType: string;
-}
 
 /* ── Constants ── */
 
 const EVENT_COLORS: readonly string[] = ["#c94a3a", "#4a6ea0", "#4a9960", "#c9a34a", "#8a6ea0"];
-const EMPTY_STATS: DashboardStats = {
-  personalScore: 0,
-  clanScore: 0,
-  totalChests: 0,
-  activeMembers: 0,
-  personalTrend: 0,
-  clanTrend: 0,
-  chestTrend: 0,
-  topPlayerName: "—",
-  topPlayerScore: 0,
-  topChestType: "—",
-};
 
 /* ── Helpers ── */
 
@@ -73,159 +39,11 @@ function formatCountdown(startsAt: string, tDashboard: ReturnType<typeof useTran
  */
 function DashboardClient(): JSX.Element {
   const t = useTranslations("dashboard");
-  const supabase = useSupabase();
   const clanContext = useClanContext();
 
-  /* ── Announcements state ── */
-  const [announcements, setAnnouncements] = useState<readonly ArticleSummary[]>([]);
-  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState<boolean>(true);
-
-  /* ── Events state ── */
-  const [events, setEvents] = useState<readonly EventSummary[]>([]);
-  const [isLoadingEvents, setIsLoadingEvents] = useState<boolean>(true);
-
-  /* ── Stats state ── */
-  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
-  const [isLoadingStats, setIsLoadingStats] = useState<boolean>(true);
-
-  /* ── Date ranges ── */
-  const { thisWeekStart, lastWeekStart, lastWeekEnd, todayStr } = useMemo(() => {
-    const now = new Date();
-    const monday = getMonday(now);
-    const prevMonday = new Date(monday);
-    prevMonday.setDate(prevMonday.getDate() - 7);
-    return {
-      thisWeekStart: toDateString(monday),
-      lastWeekStart: toDateString(prevMonday),
-      lastWeekEnd: toDateString(new Date(monday.getTime() - 86400000)),
-      todayStr: toDateString(now),
-    };
-  }, []);
-
-  /* ── Load announcements (with FK join) ── */
-  useEffect(() => {
-    async function loadAnnouncements(): Promise<void> {
-      if (!clanContext?.clanId) {
-        setAnnouncements([]);
-        setIsLoadingAnnouncements(false);
-        return;
-      }
-      setIsLoadingAnnouncements(true);
-      const { data, error } = await supabase
-        .from("articles")
-        .select(
-          "id,title,content,type,is_pinned,status,tags,created_at,created_by," +
-            "author:profiles!articles_created_by_profiles_fkey(display_name,username)",
-        )
-        .eq("clan_id", clanContext.clanId)
-        .eq("status", "published")
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(5);
-      setIsLoadingAnnouncements(false);
-      if (error) return;
-      setAnnouncements(
-        ((data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => ({
-          ...row,
-          author_name: extractAuthorName(row.author as { display_name: string | null; username: string | null } | null),
-        })) as ArticleSummary[],
-      );
-    }
-    void loadAnnouncements();
-  }, [clanContext?.clanId, supabase]);
-
-  /* ── Load events (with FK join) ── */
-  useEffect(() => {
-    async function loadEvents(): Promise<void> {
-      if (!clanContext?.clanId) {
-        setEvents([]);
-        setIsLoadingEvents(false);
-        return;
-      }
-      setIsLoadingEvents(true);
-      const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from("events")
-        .select(
-          "id,title,description,location,starts_at,ends_at,created_by," +
-            "author:profiles!events_created_by_profiles_fkey(display_name,username)",
-        )
-        .eq("clan_id", clanContext.clanId)
-        .gte("ends_at", now)
-        .order("starts_at", { ascending: true })
-        .limit(5);
-      setIsLoadingEvents(false);
-      if (error) return;
-      setEvents(
-        ((data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => ({
-          ...row,
-          author_name: extractAuthorName(row.author as { display_name: string | null; username: string | null } | null),
-        })) as EventSummary[],
-      );
-    }
-    void loadEvents();
-  }, [clanContext?.clanId, supabase]);
-
-  /* ── Load stats from charts API ── */
-  const activeClanId = clanContext?.clanId;
-
-  useEffect(() => {
-    async function loadStats(): Promise<void> {
-      if (!activeClanId) {
-        setStats(EMPTY_STATS);
-        setIsLoadingStats(false);
-        return;
-      }
-      setIsLoadingStats(true);
-      const fetchCharts = async (dateFrom: string, dateTo: string): Promise<ChartsApiResponse | null> => {
-        const params = new URLSearchParams({ clanId: activeClanId, dateFrom, dateTo });
-        const res = await fetch(`/api/charts?${params.toString()}`);
-        if (!res.ok) return null;
-        return (await res.json()) as ChartsApiResponse;
-      };
-      const [thisWeek, lastWeek, memberResult] = await Promise.all([
-        fetchCharts(thisWeekStart, todayStr),
-        fetchCharts(lastWeekStart, lastWeekEnd),
-        supabase
-          .from("game_account_clan_memberships")
-          .select("id", { count: "exact", head: true })
-          .eq("clan_id", activeClanId)
-          .eq("is_active", true)
-          .eq("is_shadow", false),
-      ]);
-      const tw = thisWeek?.summary ?? {
-        totalChests: 0,
-        totalScore: 0,
-        avgScore: 0,
-        topChestType: "—",
-        uniquePlayers: 0,
-      };
-      const lw = lastWeek?.summary ?? {
-        totalChests: 0,
-        totalScore: 0,
-        avgScore: 0,
-        topChestType: "—",
-        uniquePlayers: 0,
-      };
-      const personalTotal = (thisWeek?.personalScore ?? []).reduce((sum, p) => sum + p.totalScore, 0);
-      const prevPersonalTotal = (lastWeek?.personalScore ?? []).reduce((sum, p) => sum + p.totalScore, 0);
-      const topPlayer = thisWeek?.topPlayers?.[0];
-      setStats({
-        personalScore: personalTotal,
-        clanScore: tw.totalScore,
-        totalChests: tw.totalChests,
-        activeMembers: memberResult.count ?? 0,
-        personalTrend: calculateTrend(personalTotal, prevPersonalTotal),
-        clanTrend: calculateTrend(tw.totalScore, lw.totalScore),
-        chestTrend: calculateTrend(tw.totalChests, lw.totalChests),
-        topPlayerName: topPlayer?.player ?? "—",
-        topPlayerScore: topPlayer?.totalScore ?? 0,
-        topChestType: tw.topChestType,
-      });
-      setIsLoadingStats(false);
-    }
-    void loadStats();
-  }, [activeClanId, thisWeekStart, todayStr, lastWeekStart, lastWeekEnd, supabase]);
+  const { announcements, events, stats, isLoadingAnnouncements, isLoadingEvents, isLoadingStats } = useDashboardData({
+    clanId: clanContext?.clanId,
+  });
 
   /* ── Tag color helper ── */
   const tagColorMap = useMemo(() => {

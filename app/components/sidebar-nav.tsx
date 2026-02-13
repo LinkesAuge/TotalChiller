@@ -9,7 +9,7 @@ import { useSupabase } from "../hooks/use-supabase";
 import { useAuth } from "@/app/hooks/use-auth";
 import { ADMIN_SECTIONS } from "@/app/admin/admin-sections";
 import { useSidebar } from "./sidebar-context";
-import useClanContext from "./use-clan-context";
+import useClanContext from "../hooks/use-clan-context";
 
 /** Lightweight forum category type for sidebar sub-items. */
 import type { ForumCategory } from "@/lib/types/domain";

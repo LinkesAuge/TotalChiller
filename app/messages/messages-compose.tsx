@@ -4,11 +4,10 @@ import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import RadixSelect from "../components/ui/radix-select";
 import MarkdownEditor from "../components/markdown-editor";
+import { MESSAGE_IMAGES_BUCKET } from "@/lib/constants";
 import type { RecipientResult } from "@/lib/types/domain";
 import type { SelectedRecipient } from "./messages-types";
 import type { UseMessagesResult } from "./use-messages";
-
-const MESSAGE_IMAGE_BUCKET = "message-images";
 
 export interface MessagesComposeProps {
   readonly userId: string;
@@ -208,7 +207,7 @@ export function MessagesCompose({ userId, api }: MessagesComposeProps): JSX.Elem
             userId={userId}
             placeholder={composeMode === "direct" ? t("messagePlaceholder") : t("broadcastPlaceholder")}
             rows={8}
-            storageBucket={MESSAGE_IMAGE_BUCKET}
+            storageBucket={MESSAGE_IMAGES_BUCKET}
           />
         </div>
 

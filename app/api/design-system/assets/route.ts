@@ -1,13 +1,22 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
+import { apiError, escapeLikePattern } from "@/lib/api/validation";
 import { requireAdmin } from "@/lib/api/require-admin";
+import { requireAuth } from "@/lib/api/require-auth";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
 import { standardLimiter, relaxedLimiter } from "@/lib/rate-limit";
 
 /* ------------------------------------------------------------------ */
 /*  Schemas                                                            */
 /* ------------------------------------------------------------------ */
+
+const assetsQuerySchema = z.object({
+  category: z.string().optional(),
+  search: z.string().max(200, "Search term too long.").optional(),
+  limit: z.coerce.number().int().min(1).max(2500).default(200),
+  offset: z.coerce.number().int().min(0).default(0),
+});
 
 const patchSchema = z.object({
   id: z.string().uuid(),
@@ -26,13 +35,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (blocked) return blocked;
 
   try {
-    const params = request.nextUrl.searchParams;
-    const category = params.get("category");
-    const search = params.get("search");
-    const rawLimit = parseInt(params.get("limit") ?? "200", 10);
-    const rawOffset = parseInt(params.get("offset") ?? "0", 10);
-    const limit = Math.min(Number.isNaN(rawLimit) ? 200 : rawLimit, 2500);
-    const offset = Number.isNaN(rawOffset) ? 0 : rawOffset;
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const rawParams = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const parsed = assetsQuerySchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return apiError("Invalid query parameters.", 400);
+    }
+    const { category, search, limit, offset } = parsed.data;
 
     const supabase = createSupabaseServiceRoleClient();
     let query = supabase
@@ -46,20 +56,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       query = query.eq("category", category);
     }
     if (search) {
-      query = query.ilike("filename", `%${search}%`);
+      query = query.ilike("filename", `%${escapeLikePattern(search)}%`);
     }
 
     const { data, error, count } = await query;
 
     if (error) {
       captureApiError("GET /api/design-system/assets", error);
-      return NextResponse.json({ error: "Failed to load assets." }, { status: 500 });
+      return apiError("Failed to load assets.", 500);
     }
 
     return NextResponse.json({ data: data ?? [], count: count ?? 0 });
   } catch (err) {
     captureApiError("GET /api/design-system/assets", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return apiError("Internal server error", 500);
   }
 }
 

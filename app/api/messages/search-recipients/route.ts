@@ -1,9 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
+import { apiError, escapeLikePattern } from "@/lib/api/validation";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
 
 import type { RecipientResult } from "@/lib/types/domain";
+
+const searchRecipientsQuerySchema = z.object({
+  q: z.string().max(200, "Search term too long.").optional(),
+});
 
 /**
  * GET /api/messages/search-recipients?q=searchTerm
@@ -17,14 +24,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
     const currentUserId = auth.userId;
-    const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
+    const rawParams = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const parsed = searchRecipientsQuerySchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return apiError("Invalid query parameters.", 400);
+    }
+    const query = (parsed.data.q ?? "").trim();
     if (query.length < 2) {
       return NextResponse.json({ data: [] });
     }
 
     const serviceClient = createSupabaseServiceRoleClient();
-    const escapedQuery = query.replace(/[%_\\]/g, "\\$&");
-    const searchPattern = `%${escapedQuery}%`;
+    const searchPattern = `%${escapeLikePattern(query)}%`;
 
     /* Search profiles and game accounts in parallel (independent queries) */
     const [{ data: profileMatches }, { data: gameAccountMatches }] = await Promise.all([
@@ -108,7 +119,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json({ data: results.slice(0, 15) });
-  } catch {
-    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+  } catch (err) {
+    captureApiError("GET /api/messages/search-recipients", err);
+    return apiError("Internal server error.", 500);
   }
 }

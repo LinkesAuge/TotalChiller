@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import AuthActions from "../components/auth-actions";
-import PageTopBar from "../components/page-top-bar";
+import PageShell from "../components/page-shell";
 
 export const metadata: Metadata = {
   title: "Not Authorized",
@@ -23,26 +22,23 @@ async function NotAuthorizedPage({ searchParams }: NotAuthorizedPageProps): Prom
   const t = await getTranslations("notAuthorized");
   const messageKey = isAdminDenied ? "adminMessage" : "message";
   return (
-    <>
-      <PageTopBar title={t("title")} actions={<AuthActions />} />
-      <div className="content-inner">
-        <div className="grid">
-          <div className="alert warn col-span-full">{t(messageKey)}</div>
-          <section className="card">
-            <div className="list flex gap-3">
-              {!isAdminDenied && (
-                <Link className="button primary" href="/profile">
-                  {t("goProfile")}
-                </Link>
-              )}
-              <Link className={isAdminDenied ? "button primary" : "button"} href="/home">
-                {t("goHome")}
+    <PageShell title={t("title")}>
+      <div className="grid">
+        <div className="alert warn col-span-full">{t(messageKey)}</div>
+        <section className="card">
+          <div className="list flex gap-3">
+            {!isAdminDenied && (
+              <Link className="button primary" href="/profile">
+                {t("goProfile")}
               </Link>
-            </div>
-          </section>
-        </div>
+            )}
+            <Link className={isAdminDenied ? "button primary" : "button"} href="/home">
+              {t("goHome")}
+            </Link>
+          </div>
+        </section>
       </div>
-    </>
+    </PageShell>
   );
 }
 

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
 import SectionHero from "../components/section-hero";
-import useClanContext from "../components/use-clan-context";
+import useClanContext from "../hooks/use-clan-context";
 import ForumPostForm from "./forum-post-form";
 import ForumPostDetail from "./forum-post-detail";
 import ForumPostList from "./forum-post-list";

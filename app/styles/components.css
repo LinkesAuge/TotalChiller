@@ -662,7 +662,7 @@ select {
 }
 
 option {
-  background: #12273a;
+  background: var(--color-surface-solid);
   color: #f2e6c9;
 }
 
@@ -1892,30 +1892,4 @@ input[type="checkbox"]:disabled {
 .tab-group-btn.active {
   background: var(--color-edge);
   color: var(--color-gold-2);
-}
-
-/* ═══════════════════════════════════════════════════════
-   Events calendar overview — visual overhaul
-   ═══════════════════════════════════════════════════════ */
-
-.event-calendar-card {
-  overflow: hidden;
-  min-width: 0;
-  border: 1px solid var(--color-gold-a18);
-}
-
-.event-calendar-body {
-  position: relative;
-  padding: 16px 18px 18px;
-  background:
-    radial-gradient(ellipse at 20% 0%, var(--color-gold-a04) 0%, transparent 60%),
-    linear-gradient(180deg, rgba(10, 22, 34, 0.95) 0%, rgba(8, 16, 26, 0.98) 100%);
-}
-
-.event-calendar-layout {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
 }

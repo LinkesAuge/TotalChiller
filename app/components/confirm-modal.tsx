@@ -65,12 +65,14 @@ export default function ConfirmModal({
   const isDisabled = isConfirmDisabled ?? (confirmPhrase ? phraseValue !== confirmPhrase : false);
 
   return (
-    <div className="modal-backdrop">
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
       <div className={cardClass}>
         <div className="card-header">
           <div>
             {zoneLabel ? <div className={`${variant}-label`}>{zoneLabel}</div> : null}
-            <div className="card-title">{title}</div>
+            <div id="confirm-modal-title" className="card-title">
+              {title}
+            </div>
             {subtitle ? <div className="card-subtitle">{subtitle}</div> : null}
           </div>
         </div>

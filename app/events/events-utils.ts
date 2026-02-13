@@ -73,11 +73,6 @@ export function formatDateRange(startsAt: string, endsAt: string, locale: string
   return `${startDate} ${startTime} – ${endDate} ${endTime}`;
 }
 
-/** @deprecated Use `toDateString` from `@/lib/dashboard-utils` directly. Re-exported for backward compatibility. */
-export function toDateKey(date: Date): string {
-  return toDateString(date);
-}
-
 export function parseDateKey(dateKey: string): Date | null {
   const [yearRaw, monthRaw, dayRaw] = dateKey.split("-");
   const year = Number(yearRaw);
@@ -100,7 +95,7 @@ export function getDateRangeKeys(startIso: string, endIso: string): readonly str
   const keys: string[] = [];
   let guard = 0;
   while (cursor <= limit && guard < 120) {
-    keys.push(toDateKey(cursor));
+    keys.push(toDateString(cursor));
     cursor.setDate(cursor.getDate() + 1);
     guard += 1;
   }
@@ -161,7 +156,7 @@ export function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon
       const occEnd = new Date(cursor.getTime() + durationMs);
       results.push({
         id: ev.id,
-        displayKey: `${ev.id}:${toDateKey(occStart)}:${guard}`,
+        displayKey: `${ev.id}:${toDateString(occStart)}:${guard}`,
         title: ev.title,
         description: ev.description,
         location: ev.location,

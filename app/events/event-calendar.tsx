@@ -4,14 +4,8 @@ import Image from "next/image";
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { CalendarDay, DisplayEvent } from "./events-types";
 import { EVENT_COLORS, WEEKDAY_LABELS } from "./events-types";
-import {
-  formatDuration,
-  formatDateRange,
-  isMultiDayEvent,
-  sortPinnedFirst,
-  toDateKey,
-  getShortTimeString,
-} from "./events-utils";
+import { toDateString } from "@/lib/dashboard-utils";
+import { formatDuration, formatDateRange, isMultiDayEvent, sortPinnedFirst, getShortTimeString } from "./events-utils";
 import DayPanelEventCard from "./day-panel-event-card";
 
 /** How many event cards to show before requiring "show more". */
@@ -86,8 +80,8 @@ function cellTimeLabel(
   if (!isMultiDayEvent(event.starts_at, event.ends_at)) {
     return getShortTimeString(event.starts_at, locale);
   }
-  const startKey = toDateKey(new Date(event.starts_at));
-  const endKey = toDateKey(new Date(event.ends_at));
+  const startKey = toDateString(new Date(event.starts_at));
+  const endKey = toDateString(new Date(event.ends_at));
   if (cellDateKey === startKey) {
     return t("fromTime", { time: getShortTimeString(event.starts_at, locale) });
   }

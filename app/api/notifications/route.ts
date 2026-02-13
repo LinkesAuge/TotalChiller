@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../lib/api/require-auth";
 import { relaxedLimiter } from "../../../lib/rate-limit";
 
@@ -53,7 +54,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const rows = notifications ?? [];
     const unreadCount = rows.filter((notification) => !notification.is_read).length;
     return NextResponse.json({ data: rows, unread_count: unreadCount });
-  } catch {
+  } catch (err) {
+    captureApiError("GET /api/notifications", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

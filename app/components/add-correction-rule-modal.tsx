@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useModalReset } from "../hooks/use-modal-reset";
 import FormModal from "./form-modal";
 import RadixSelect from "./ui/radix-select";
 import ComboboxInput from "./ui/combobox-input";
@@ -39,16 +40,13 @@ export default function AddCorrectionRuleModal({
   const [status, setStatus] = useState<string>("active");
   const [message, setMessage] = useState<string>("");
 
-  /* Reset state when modal opens with new initial values */
-  const [prevOpen, setPrevOpen] = useState(false);
-  if (isOpen && !prevOpen) {
+  useModalReset(isOpen, () => {
     setField(initialField);
     setMatch(initialMatch);
     setReplacement(initialReplacement);
     setStatus("active");
     setMessage("");
-  }
-  if (isOpen !== prevOpen) setPrevOpen(isOpen);
+  });
 
   function handleFieldChange(nextField: CorrectionField): void {
     setField(nextField);

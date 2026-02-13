@@ -37,7 +37,8 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       return NextResponse.json({ error: "Failed to update message." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: parsed.data, is_read: true } });
-  } catch {
+  } catch (err) {
+    captureApiError("PATCH /api/messages/[id]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
@@ -70,7 +71,8 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
       return NextResponse.json({ error: "Failed to delete message." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: parsed.data, deleted: true } });
-  } catch {
+  } catch (err) {
+    captureApiError("DELETE /api/messages/[id]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

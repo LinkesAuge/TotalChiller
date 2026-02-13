@@ -34,7 +34,7 @@ d:\Chiller\
 │   ├── api/                # Server-side API routes (see §7)
 │   ├── admin/              # Admin panel (modular tabs, see §4.9)
 │   ├── components/         # Shared UI components (see §5)
-│   ├── hooks/              # App-level React hooks (use-auth, use-supabase)
+│   ├── hooks/              # App-level React hooks (use-auth, use-supabase, use-clan-context, use-modal-reset, use-dashboard-data)
 │   ├── [feature]/          # Feature pages (page.tsx + feature-client.tsx)
 │   ├── globals.css         # All CSS (Fortress Sanctum design system)
 │   ├── layout.tsx          # Root layout (sidebar, providers, fonts)
@@ -50,7 +50,9 @@ d:\Chiller\
 │   ├── rate-limit.ts       # Rate limiter factory (isolated stores per instance)
 │   ├── date-format.ts      # Date formatting helpers
 │   ├── correction-applicator.ts  # Correction rule engine
-│   └── constants.ts        # Global constants (DATE_REGEX, etc.)
+│   ├── validation-evaluator.ts   # Validation rule engine (moved from app/components)
+│   ├── string-utils.ts           # Shared string normalization helpers
+│   └── constants.ts        # Global constants (DATE_REGEX, bucket names, etc.)
 ├── messages/               # i18n translation files (en.json, de.json)
 ├── tests/                  # Playwright E2E specs + auth helpers
 ├── scripts/                # Utility scripts (asset scanner, UI scanner)
@@ -200,13 +202,13 @@ Modular tab-based admin. Slim orchestrator (`admin-client.tsx`, ~140 lines) with
 
 ### 4.10 Data Import & Chest Database
 
-| File                                      | Purpose                                          |
-| ----------------------------------------- | ------------------------------------------------ |
-| `app/data-import/data-import-client.tsx`  | CSV import with preview, corrections, validation |
-| `app/data-table/data-table-client.tsx`    | Chest database viewer/editor                     |
-| `app/api/data-import/commit/route.ts`     | `POST` commit import data                        |
-| `lib/correction-applicator.ts`            | Correction rule engine                           |
-| `app/components/validation-evaluator.tsx` | Validation rule evaluator                        |
+| File                                     | Purpose                                          |
+| ---------------------------------------- | ------------------------------------------------ |
+| `app/data-import/data-import-client.tsx` | CSV import with preview, corrections, validation |
+| `app/data-table/data-table-client.tsx`   | Chest database viewer/editor                     |
+| `app/api/data-import/commit/route.ts`    | `POST` commit import data                        |
+| `lib/correction-applicator.ts`           | Correction rule engine                           |
+| `lib/validation-evaluator.ts`            | Validation rule evaluator                        |
 
 **DB tables**: `chest_entries`, `validation_rules`, `correction_rules`, `clans`
 

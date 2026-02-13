@@ -6,14 +6,13 @@ import { useSupabase } from "../hooks/use-supabase";
 import MarkdownEditor from "../components/markdown-editor";
 import DataState from "../components/data-state";
 import { formatLocalDateTime } from "@/lib/date-format";
+import { MESSAGE_IMAGES_BUCKET } from "@/lib/constants";
 import type { ThreadMessage } from "@/lib/types/domain";
 import type { UseMessagesResult } from "./use-messages";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-16 rounded" />,
 });
-
-const MESSAGE_IMAGE_BUCKET = "message-images";
 
 export interface MessagesThreadProps {
   readonly userId: string;
@@ -178,7 +177,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
                     userId={userId}
                     placeholder={t("composeReply")}
                     rows={6}
-                    storageBucket={MESSAGE_IMAGE_BUCKET}
+                    storageBucket={MESSAGE_IMAGES_BUCKET}
                   />
                 </div>
                 <div className="flex gap-2 items-center">

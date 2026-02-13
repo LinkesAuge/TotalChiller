@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { ValidationRuleRow, CorrectionRuleRow } from "@/lib/types/domain";
-import { createValidationEvaluator } from "@/app/components/validation-evaluator";
+import { createValidationEvaluator } from "@/lib/validation-evaluator";
 import createCorrectionApplicator from "@/lib/correction-applicator";
 
 /**

@@ -292,7 +292,7 @@
   background: rgba(220, 50, 50, 0.15);
   border: 1px solid rgba(220, 50, 50, 0.3);
   border-radius: var(--radius-sm);
-  color: #e77;
+  color: var(--color-danger-light);
   font-size: 0.85rem;
 }
 
@@ -441,14 +441,14 @@
   background: rgba(220, 50, 50, 0.15);
   border: 1px solid rgba(220, 50, 50, 0.3);
   border-radius: var(--radius-sm);
-  color: #e77;
+  color: var(--color-danger-light);
   font-size: 0.82rem;
 }
 .editable-list-error-close {
   margin-left: auto;
   background: none;
   border: none;
-  color: #e77;
+  color: var(--color-danger-light);
   cursor: pointer;
   font-size: 0.9rem;
 }
@@ -573,7 +573,7 @@
 .editable-list-svg-preview-remove {
   background: none;
   border: none;
-  color: #e77;
+  color: var(--color-danger-light);
   cursor: pointer;
   font-size: 0.85rem;
   padding: 2px;

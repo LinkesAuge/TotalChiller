@@ -53,9 +53,11 @@ function MarkdownEditor({
 
   return (
     <>
-      <div className="forum-editor-tabs">
+      <div className="forum-editor-tabs" role="tablist">
         <button
           type="button"
+          role="tab"
+          aria-selected={!isPreviewMode}
           className={`forum-editor-tab${!isPreviewMode ? " active" : ""}`}
           onClick={() => setIsPreviewMode(false)}
         >
@@ -63,6 +65,8 @@ function MarkdownEditor({
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={isPreviewMode}
           className={`forum-editor-tab${isPreviewMode ? " active" : ""}`}
           onClick={() => setIsPreviewMode(true)}
         >
@@ -70,7 +74,7 @@ function MarkdownEditor({
         </button>
       </div>
       {isPreviewMode ? (
-        <div className="forum-editor-preview p-4" style={{ minHeight }}>
+        <div className="forum-editor-preview p-4" role="tabpanel" style={{ minHeight }}>
           {value.trim() ? (
             <AppMarkdown content={value} />
           ) : (
@@ -78,7 +82,7 @@ function MarkdownEditor({
           )}
         </div>
       ) : (
-        <>
+        <div role="tabpanel">
           <AppMarkdownToolbar
             textareaRef={textareaRef}
             value={value}
@@ -96,8 +100,12 @@ function MarkdownEditor({
             rows={rows}
             className="text-[0.88rem] leading-relaxed"
             style={{ minHeight, fontFamily: "var(--font-body)" }}
-            onPaste={(e) => handleImagePaste(e, supabase, userId, (md) => onChange(value + md), setIsImageUploading, storageBucket)}
-            onDrop={(e) => handleImageDrop(e, supabase, userId, (md) => onChange(value + md), setIsImageUploading, storageBucket)}
+            onPaste={(e) =>
+              handleImagePaste(e, supabase, userId, (md) => onChange(value + md), setIsImageUploading, storageBucket)
+            }
+            onDrop={(e) =>
+              handleImageDrop(e, supabase, userId, (md) => onChange(value + md), setIsImageUploading, storageBucket)
+            }
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -109,7 +117,7 @@ function MarkdownEditor({
             </p>
           )}
           <p className="mt-1 text-[0.72rem] text-text-muted">{t("markdownHint")}</p>
-        </>
+        </div>
       )}
     </>
   );

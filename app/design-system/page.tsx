@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
-import AuthActions from "../components/auth-actions";
-import PageTopBar from "../components/page-top-bar";
+import PageShell from "../components/page-shell";
 import PageSkeleton from "../components/page-skeleton";
 import DesignSystemClient from "./design-system-client";
 
@@ -15,12 +14,9 @@ export const metadata: Metadata = {
 async function DesignSystemContent(): Promise<JSX.Element> {
   const t = await getTranslations("designSystem");
   return (
-    <>
-      <PageTopBar breadcrumb={t("breadcrumb")} title={t("pageTitle")} actions={<AuthActions />} />
-      <div className="content-inner">
-        <DesignSystemClient />
-      </div>
-    </>
+    <PageShell breadcrumb={t("breadcrumb")} title={t("pageTitle")}>
+      <DesignSystemClient />
+    </PageShell>
   );
 }
 

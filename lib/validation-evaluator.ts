@@ -1,3 +1,5 @@
+import { normalizeString } from "@/lib/string-utils";
+
 interface ValidationRuleEntry {
   readonly field: string | null;
   readonly match_value: string | null;
@@ -30,10 +32,6 @@ interface ValidationRowResult {
   readonly fieldStatus: Record<ValidationFieldKey, "valid" | "invalid" | "neutral">;
 }
 
-function normalizeValue(value: string): string {
-  return value.trim().toLowerCase();
-}
-
 function buildRuleGroup(): ValidationRuleGroup {
   return { valid: new Set<string>(), invalid: new Set<string>() };
 }
@@ -48,7 +46,7 @@ function buildRuleIndex(rules: readonly ValidationRuleEntry[]): ValidationFieldG
   rules.forEach((rule) => {
     const field = (rule.field ?? "").toLowerCase() as ValidationFieldKey;
     const status = (rule.status ?? "").toLowerCase();
-    const matchValue = normalizeValue(rule.match_value ?? "");
+    const matchValue = normalizeString(rule.match_value ?? "");
     if (!matchValue || (field !== "player" && field !== "source" && field !== "chest" && field !== "clan")) {
       return;
     }
@@ -65,7 +63,7 @@ function evaluateField(rules: ValidationRuleGroup | undefined, value: string): "
   if (!rules) {
     return "neutral";
   }
-  const normalized = normalizeValue(value);
+  const normalized = normalizeString(value);
   const hasValidList = rules.valid.size > 0;
   const hasInvalidList = rules.invalid.size > 0;
   if (hasValidList && !rules.valid.has(normalized)) {

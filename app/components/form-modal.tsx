@@ -52,11 +52,13 @@ export default function FormModal({
   }
 
   return (
-    <div className="modal-backdrop">
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="form-modal-title">
       <div className={`modal card${wide ? " wide" : ""}`}>
         <div className="card-header">
           <div>
-            <div className="card-title">{title}</div>
+            <div id="form-modal-title" className="card-title">
+              {title}
+            </div>
             {subtitle ? <div className="card-subtitle">{subtitle}</div> : null}
           </div>
         </div>

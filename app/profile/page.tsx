@@ -11,9 +11,7 @@ export const metadata: Metadata = {
 };
 import DisplayNameEditor from "./display-name-editor";
 import GameAccountManager from "./game-account-manager";
-import AuthActions from "../components/auth-actions";
-import PageTopBar from "../components/page-top-bar";
-import SectionHero from "../components/section-hero";
+import PageShell from "../components/page-shell";
 import type { GameAccountView } from "@/lib/types/domain";
 import { buildFallbackUserDb, formatRole } from "@/app/admin/admin-types";
 
@@ -124,94 +122,97 @@ async function ProfileContent(): Promise<JSX.Element> {
   const clanLabel = primaryClan?.name ?? t("noClanAssigned");
 
   return (
-    <>
-      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
-      <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_captain.png" />
-      <div className="content-inner settings-layout">
-        <div className="settings-grid">
-          <section className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("accountTitle")}</div>
-                <div className="card-subtitle">{t("accountSubtitle")}</div>
-              </div>
-              <span className="badge">{roleLabel}</span>
+    <PageShell
+      breadcrumb={t("breadcrumb")}
+      title={t("title")}
+      heroTitle={t("heroTitle")}
+      heroSubtitle={t("heroSubtitle")}
+      bannerSrc="/assets/banners/banner_captain.png"
+      contentClassName="settings-layout"
+    >
+      <div className="settings-grid">
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <div className="card-title">{t("accountTitle")}</div>
+              <div className="card-subtitle">{t("accountSubtitle")}</div>
             </div>
-            <div className="list">
-              <div className="list-item">
-                <span>{t("username")}</span>
-                <strong>{userView.usernameDisplay}</strong>
-              </div>
-              <div className="list-item">
-                <span>{t("nickname")}</span>
-                <strong>{userView.displayName}</strong>
-              </div>
-              <div className="list-item">
-                <span>{t("email")}</span>
-                <strong>{userView.email}</strong>
-              </div>
-              <div className="list-item">
-                <span>{t("primaryClan")}</span>
-                <strong>{clanLabel}</strong>
-              </div>
+            <span className="badge">{roleLabel}</span>
+          </div>
+          <div className="list">
+            <div className="list-item">
+              <span>{t("username")}</span>
+              <strong>{userView.usernameDisplay}</strong>
             </div>
-          </section>
-          <section className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("editNickname")}</div>
-                <div className="card-subtitle">{t("visibleToMembers")}</div>
-              </div>
+            <div className="list-item">
+              <span>{t("nickname")}</span>
+              <strong>{userView.displayName}</strong>
             </div>
-            <DisplayNameEditor userId={userId} email={userEmail} initialDisplayName={userView.displayName} />
-          </section>
-          <GameAccountManager
-            userId={userId}
-            initialAccounts={gameAccounts}
-            initialDefaultId={(ensuredProfile?.default_game_account_id as string | null) ?? null}
-          />
-          <section className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("clanMemberships")}</div>
-                <div className="card-subtitle">{t("activeClans")}</div>
-              </div>
-              <span className="badge">{memberships.length}</span>
+            <div className="list-item">
+              <span>{t("email")}</span>
+              <strong>{userView.email}</strong>
             </div>
-            <div className="list">
-              {memberships.length === 0 ? (
-                <div className="list-item">
-                  <span>{t("noActiveMemberships")}</span>
-                  <span className="badge">{t("joinAClan")}</span>
-                </div>
-              ) : (
-                memberships.map((membership) => {
-                  const clanName = clansById[membership.clan_id]?.name ?? membership.clan_id;
-                  const account = gameAccounts.find((a) => a.id === membership.game_account_id);
-                  const isShadow = (membership as Record<string, unknown>).is_shadow === true;
-                  return (
-                    <div className="list-item" key={`${membership.clan_id}-${membership.game_account_id}`}>
+            <div className="list-item">
+              <span>{t("primaryClan")}</span>
+              <strong>{clanLabel}</strong>
+            </div>
+          </div>
+        </section>
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <div className="card-title">{t("editNickname")}</div>
+              <div className="card-subtitle">{t("visibleToMembers")}</div>
+            </div>
+          </div>
+          <DisplayNameEditor userId={userId} email={userEmail} initialDisplayName={userView.displayName} />
+        </section>
+        <GameAccountManager
+          userId={userId}
+          initialAccounts={gameAccounts}
+          initialDefaultId={(ensuredProfile?.default_game_account_id as string | null) ?? null}
+        />
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <div className="card-title">{t("clanMemberships")}</div>
+              <div className="card-subtitle">{t("activeClans")}</div>
+            </div>
+            <span className="badge">{memberships.length}</span>
+          </div>
+          <div className="list">
+            {memberships.length === 0 ? (
+              <div className="list-item">
+                <span>{t("noActiveMemberships")}</span>
+                <span className="badge">{t("joinAClan")}</span>
+              </div>
+            ) : (
+              memberships.map((membership) => {
+                const clanName = clansById[membership.clan_id]?.name ?? membership.clan_id;
+                const account = gameAccounts.find((a) => a.id === membership.game_account_id);
+                const isShadow = (membership as Record<string, unknown>).is_shadow === true;
+                return (
+                  <div className="list-item" key={`${membership.clan_id}-${membership.game_account_id}`}>
+                    <div>
                       <div>
-                        <div>
-                          {clanName}
-                          {isShadow ? (
-                            <span className="badge shadow-badge" style={{ marginLeft: "8px" }}>
-                              {t("shadowMembership")}
-                            </span>
-                          ) : null}
-                        </div>
-                        {account ? <div className="text-muted">{account.game_username}</div> : null}
+                        {clanName}
+                        {isShadow ? (
+                          <span className="badge shadow-badge" style={{ marginLeft: "8px" }}>
+                            {t("shadowMembership")}
+                          </span>
+                        ) : null}
                       </div>
-                      <span className="badge">{roleLabel}</span>
+                      {account ? <div className="text-muted">{account.game_username}</div> : null}
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-        </div>
+                    <span className="badge">{roleLabel}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
       </div>
-    </>
+    </PageShell>
   );
 }
 

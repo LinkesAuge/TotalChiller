@@ -33,7 +33,8 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       return NextResponse.json({ error: "Failed to update notification." }, { status: 500 });
     }
     return NextResponse.json({ data: { id: parsed.data, is_read: true } });
-  } catch {
+  } catch (err) {
+    captureApiError("PATCH /api/notifications/[id]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

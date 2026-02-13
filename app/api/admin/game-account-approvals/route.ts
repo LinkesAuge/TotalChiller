@@ -65,14 +65,17 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ error: "Failed to approve account." }, { status: 500 });
       }
       after(async () => {
-        await Promise.all([
-          serviceClient.from("messages").insert({
+        const { data: msg } = await serviceClient
+          .from("messages")
+          .insert({
             sender_id: null,
-            recipient_id: accountUserId,
             message_type: "system",
             subject: "Game Account Approved",
             content: `Your game account "${gameUsername}" has been approved. You can now be assigned to a clan.`,
-          }),
+          })
+          .select("id")
+          .single();
+        const inserts: PromiseLike<unknown>[] = [
           serviceClient.from("notifications").insert({
             user_id: accountUserId,
             type: "approval",
@@ -80,19 +83,28 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
             body: `Your game account "${gameUsername}" has been approved.`,
             reference_id: body.game_account_id,
           }),
-        ]);
+        ];
+        if (msg) {
+          inserts.push(
+            serviceClient.from("message_recipients").insert({ message_id: msg.id, recipient_id: accountUserId }),
+          );
+        }
+        await Promise.all(inserts);
       });
       return NextResponse.json({ data: { id: body.game_account_id, approval_status: "approved" } });
     }
     after(async () => {
-      await Promise.all([
-        serviceClient.from("messages").insert({
+      const { data: msg } = await serviceClient
+        .from("messages")
+        .insert({
           sender_id: null,
-          recipient_id: accountUserId,
           message_type: "system",
           subject: "Game Account Rejected",
           content: `Your game account request for "${gameUsername}" has been rejected. You may try again with a different game account.`,
-        }),
+        })
+        .select("id")
+        .single();
+      const inserts: PromiseLike<unknown>[] = [
         serviceClient.from("notifications").insert({
           user_id: accountUserId,
           type: "approval",
@@ -100,7 +112,13 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
           body: `Your request for "${gameUsername}" has been rejected.`,
           reference_id: body.game_account_id,
         }),
-      ]);
+      ];
+      if (msg) {
+        inserts.push(
+          serviceClient.from("message_recipients").insert({ message_id: msg.id, recipient_id: accountUserId }),
+        );
+      }
+      await Promise.all(inserts);
     });
     const { error: deleteError } = await serviceClient.from("game_accounts").delete().eq("id", body.game_account_id);
     if (deleteError) {

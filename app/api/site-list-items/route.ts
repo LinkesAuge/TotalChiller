@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
+import { apiError, sitePageQuerySchema } from "@/lib/api/validation";
 import { requireAdmin } from "../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter, relaxedLimiter } from "../../../lib/rate-limit";
@@ -58,10 +59,12 @@ const PATCH_SCHEMA = z.discriminatedUnion("action", [
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = relaxedLimiter.check(request);
   if (blocked) return blocked;
-  const page = request.nextUrl.searchParams.get("page");
-  if (!page) {
-    return NextResponse.json({ error: "Missing ?page= parameter" }, { status: 400 });
+  const rawParams = Object.fromEntries(request.nextUrl.searchParams.entries());
+  const parsed = sitePageQuerySchema.safeParse(rawParams);
+  if (!parsed.success) {
+    return apiError("Invalid query parameters.", 400);
   }
+  const { page } = parsed.data;
   try {
     const supabase = createSupabaseServiceRoleClient();
     const { data, error } = await supabase
@@ -75,7 +78,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       console.warn("[site-list-items GET] DB error:", error.message);
       return NextResponse.json([]);
     }
-    return NextResponse.json(data ?? []);
+    const response = NextResponse.json(data ?? []);
+    response.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    return response;
   } catch (err) {
     console.warn("[site-list-items GET] Unexpected error:", err);
     return NextResponse.json([]);
@@ -190,14 +195,19 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       const { items } = body;
 
       /* Batch update sort_order for all provided items */
+      const now = new Date().toISOString();
+      const results = await Promise.all(
+        items.map((item) =>
+          supabase
+            .from("site_list_items")
+            .update({ sort_order: item.sort_order, updated_by: userId, updated_at: now })
+            .eq("id", item.id),
+        ),
+      );
       let failCount = 0;
-      for (const item of items) {
-        const { error } = await supabase
-          .from("site_list_items")
-          .update({ sort_order: item.sort_order, updated_by: userId, updated_at: new Date().toISOString() })
-          .eq("id", item.id);
-        if (error) {
-          captureApiError("PATCH /api/site-list-items", error);
+      for (const result of results) {
+        if (result.error) {
+          captureApiError("PATCH /api/site-list-items", result.error);
           failCount++;
         }
       }

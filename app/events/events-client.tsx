@@ -1,9 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import AuthActions from "../components/auth-actions";
-import PageTopBar from "../components/page-top-bar";
-import SectionHero from "../components/section-hero";
+import PageShell from "../components/page-shell";
 import { EventDeleteModal, TemplateDeleteModal } from "./event-modals";
 import { ManageTemplates } from "./manage-templates";
 import { PastEventsList } from "./past-events-list";
@@ -75,14 +73,13 @@ function EventsClient(): JSX.Element {
 
   return (
     <>
-      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
-      <SectionHero
-        title={t("heroTitle")}
-        subtitle={t("heroSubtitle")}
+      <PageShell
+        breadcrumb={t("breadcrumb")}
+        title={t("title")}
+        heroTitle={t("heroTitle")}
+        heroSubtitle={t("heroSubtitle")}
         bannerSrc="/assets/banners/banner_ragnarok_clan_event_708x123.png"
-      />
-
-      <div className="content-inner">
+      >
         <div className="grid">
           <EventsList eventsState={eventsState} />
 
@@ -139,7 +136,7 @@ function EventsClient(): JSX.Element {
             />
           )}
         </div>
-      </div>
+      </PageShell>
 
       <EventDeleteModal
         isOpen={Boolean(deleteEventId)}

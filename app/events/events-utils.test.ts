@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
+import { toDateString } from "@/lib/dashboard-utils";
 import {
   toLocalDateTimeString,
   formatDuration,
   formatDurationFromHours,
   isMultiDayEvent,
   formatDateRange,
-  toDateKey,
   parseDateKey,
   getDateRangeKeys,
   advanceCursorDate,
@@ -118,15 +118,15 @@ describe("formatDurationFromHours", () => {
   });
 });
 
-/* ── toDateKey / parseDateKey ── */
+/* ── toDateString / parseDateKey ── */
 
-describe("toDateKey", () => {
+describe("toDateString", () => {
   it("produces YYYY-MM-DD from a Date", () => {
-    expect(toDateKey(new Date(2026, 0, 5))).toBe("2026-01-05");
+    expect(toDateString(new Date(2026, 0, 5))).toBe("2026-01-05");
   });
 
   it("zero-pads month and day", () => {
-    expect(toDateKey(new Date(2026, 2, 3))).toBe("2026-03-03");
+    expect(toDateString(new Date(2026, 2, 3))).toBe("2026-03-03");
   });
 });
 

@@ -1,3 +1,5 @@
+import { normalizeString } from "./string-utils";
+
 interface CorrectionRule {
   readonly id: string;
   readonly field: string;
@@ -19,10 +21,6 @@ interface CorrectionApplicator {
   readonly applyToField: (args: { field: string; value: string }) => CorrectionMatch;
 }
 
-function normalizeCorrectionValue(value: string): string {
-  return value.trim().toLowerCase();
-}
-
 function isActiveCorrectionRule(rule: CorrectionRule): boolean {
   return (rule.status ?? "active").toLowerCase() === "active";
 }
@@ -31,11 +29,11 @@ function createCorrectionApplicator(rules: readonly CorrectionRule[]): Correctio
   const fieldRules = new Map<string, Map<string, CorrectionRule>>();
   const allRules = new Map<string, CorrectionRule>();
   rules.filter(isActiveCorrectionRule).forEach((rule) => {
-    const normalizedMatch = normalizeCorrectionValue(rule.match_value);
+    const normalizedMatch = normalizeString(rule.match_value);
     if (!normalizedMatch) {
       return;
     }
-    const targetField = normalizeCorrectionValue(rule.field);
+    const targetField = normalizeString(rule.field);
     if (targetField === "all") {
       if (!allRules.has(normalizedMatch)) {
         allRules.set(normalizedMatch, rule);
@@ -52,8 +50,8 @@ function createCorrectionApplicator(rules: readonly CorrectionRule[]): Correctio
   });
 
   function applyToField({ field, value }: { field: string; value: string }): CorrectionMatch {
-    const normalizedField = normalizeCorrectionValue(field);
-    const normalizedValue = normalizeCorrectionValue(value);
+    const normalizedField = normalizeString(field);
+    const normalizedValue = normalizeString(value);
     if (!normalizedValue) {
       return { value, wasCorrected: false };
     }

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
 
@@ -64,7 +65,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    captureApiError("POST /api/auth/forgot-password", error);
+    return NextResponse.json({ error: "Password reset failed. Please try again." }, { status: 400 });
   }
 
   /*

@@ -22,6 +22,7 @@ import {
 } from "react";
 import { useTranslations } from "next-intl";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { FORUM_IMAGES_BUCKET } from "@/lib/constants";
 
 /* ─── Toolbar actions ─── */
 
@@ -38,7 +39,7 @@ interface ToolbarAction {
  * Builds the toolbar actions array using translated labels.
  * Superset of both original CMS and Forum toolbar actions.
  */
-function buildToolbarActions(t: ReturnType<typeof useTranslations>): ToolbarAction[] {
+function buildToolbarActions(): ToolbarAction[] {
   return [
     { key: "bold", icon: "B", prefix: "**", suffix: "**", placeholder: "bold text" },
     { key: "italic", icon: "I", prefix: "_", suffix: "_", placeholder: "italic text" },
@@ -59,7 +60,6 @@ function buildToolbarActions(t: ReturnType<typeof useTranslations>): ToolbarActi
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const DEFAULT_STORAGE_BUCKET = "forum-images";
 
 /* ─── Props ─── */
 
@@ -76,7 +76,7 @@ interface AppMarkdownToolbarProps {
 }
 
 /** Generate a unique storage path for an uploaded file. */
-function generateStoragePath(userId: string, fileName: string): string {
+export function generateStoragePath(userId: string, fileName: string): string {
   const timestamp = Date.now();
   const sanitized = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
   return `${userId}/${timestamp}_${sanitized}`;
@@ -92,10 +92,10 @@ function AppMarkdownToolbar({
   onChange,
   supabase,
   userId,
-  storageBucket = DEFAULT_STORAGE_BUCKET,
+  storageBucket = FORUM_IMAGES_BUCKET,
 }: AppMarkdownToolbarProps): JSX.Element {
   const t = useTranslations("cmsToolbar");
-  const toolbarActions = useMemo(() => buildToolbarActions(t), [t]);
+  const toolbarActions = useMemo(() => buildToolbarActions(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -255,7 +255,7 @@ export function handleImagePaste(
   userId: string,
   insertFn: (markdown: string) => void,
   setUploading: (v: boolean) => void,
-  bucket: string = DEFAULT_STORAGE_BUCKET,
+  bucket: string = FORUM_IMAGES_BUCKET,
 ): void {
   if (!supabase || !userId) return;
   const items = e.clipboardData?.items;
@@ -292,7 +292,7 @@ export function handleImageDrop(
   userId: string,
   insertFn: (markdown: string) => void,
   setUploading: (v: boolean) => void,
-  bucket: string = DEFAULT_STORAGE_BUCKET,
+  bucket: string = FORUM_IMAGES_BUCKET,
 ): void {
   if (!supabase || !userId) return;
   const files = e.dataTransfer?.files;

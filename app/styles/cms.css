@@ -206,7 +206,7 @@ img[loading="lazy"] {
   background: rgba(220, 50, 50, 0.1);
   border: 1px solid rgba(220, 50, 50, 0.25);
   border-radius: var(--radius-sm);
-  color: #e88;
+  color: var(--color-danger-light);
   font-size: 0.9rem;
 }
 .cms-error-banner-icon {
@@ -222,7 +222,7 @@ img[loading="lazy"] {
   border: 1px solid rgba(220, 50, 50, 0.4);
   border-radius: var(--radius-sm);
   background: transparent;
-  color: #e88;
+  color: var(--color-danger-light);
   font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.15s ease;

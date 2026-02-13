@@ -41,7 +41,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Failed to load notification settings." }, { status: 500 });
     }
     return NextResponse.json({ data: created });
-  } catch {
+  } catch (err) {
+    captureApiError("GET /api/notification-settings", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
@@ -94,7 +95,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Failed to update notification settings." }, { status: 500 });
     }
     return NextResponse.json({ data: updated });
-  } catch {
+  } catch (err) {
+    captureApiError("PATCH /api/notification-settings", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

@@ -30,9 +30,14 @@ export default function SortableColumnHeader<K extends string>({
   variant = "chevron",
 }: SortableColumnHeaderProps<K>): ReactElement {
   const isActive = activeSortKey === sortKey;
+  const ariaSort: "ascending" | "descending" | "none" = isActive
+    ? direction === "asc"
+      ? "ascending"
+      : "descending"
+    : "none";
 
   return (
-    <button className="table-sort-button" type="button" onClick={() => onToggle(sortKey)}>
+    <button className="table-sort-button" type="button" onClick={() => onToggle(sortKey)} aria-sort={ariaSort}>
       <span>{label}</span>
       {isActive ? (
         <svg

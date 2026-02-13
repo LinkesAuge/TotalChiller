@@ -159,114 +159,135 @@ export function useSiteContent(page: string): SiteContentHook {
 
   const { userId: authUserId } = useAuth();
   useEffect(() => {
+    let cancelled = false;
     void loadData();
-    void checkIsAdmin(supabase).then(setCanEdit);
+    void checkIsAdmin(supabase).then((isAdmin) => {
+      if (!cancelled) setCanEdit(isAdmin);
+    });
     setUserId(authUserId ?? undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [supabase, loadData, authUserId]);
 
   /* ── Text content helpers ── */
 
-  function c(section: string, field: string, fallback: string): string {
-    const entry = content[section]?.[field];
-    if (entry) {
-      const val = locale === "en" ? entry.en : entry.de;
-      if (val) return val;
-    }
-    return fallback;
-  }
+  const c = useCallback(
+    (section: string, field: string, fallback: string): string => {
+      const entry = content[section]?.[field];
+      if (entry) {
+        const val = locale === "en" ? entry.en : entry.de;
+        if (val) return val;
+      }
+      return fallback;
+    },
+    [content, locale],
+  );
 
-  function cEn(section: string, field: string): string {
-    return content[section]?.[field]?.en ?? "";
-  }
+  const cEn = useCallback(
+    (section: string, field: string): string => {
+      return content[section]?.[field]?.en ?? "";
+    },
+    [content],
+  );
 
-  async function saveField(section: string, field: string, valueDe: string, valueEn: string): Promise<void> {
-    const res = await fetch("/api/site-content", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        page,
-        section_key: section,
-        field_key: field,
-        content_de: valueDe,
-        content_en: valueEn,
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `Speichern fehlgeschlagen (${res.status})`);
-    }
-    /* Optimistic update only after successful save */
-    setContent((prev) => ({
-      ...prev,
-      [section]: {
-        ...(prev[section] ?? {}),
-        [field]: { de: valueDe, en: valueEn },
-      },
-    }));
-  }
+  const saveField = useCallback(
+    async (section: string, field: string, valueDe: string, valueEn: string): Promise<void> => {
+      const res = await fetch("/api/site-content", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page,
+          section_key: section,
+          field_key: field,
+          content_de: valueDe,
+          content_en: valueEn,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Speichern fehlgeschlagen (${res.status})`);
+      }
+      /* Optimistic update only after successful save */
+      setContent((prev) => ({
+        ...prev,
+        [section]: {
+          ...(prev[section] ?? {}),
+          [field]: { de: valueDe, en: valueEn },
+        },
+      }));
+    },
+    [page],
+  );
 
   /* ── List helpers ── */
 
-  async function addListItem(
-    sectionKey: string,
-    textDe: string,
-    textEn: string,
-    extra?: Partial<Pick<ListItem, "badge_de" | "badge_en" | "link_url" | "icon" | "icon_type">>,
-  ): Promise<ListItem> {
-    const res = await fetch("/api/site-list-items", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "create",
-        page,
-        section_key: sectionKey,
-        text_de: textDe,
-        text_en: textEn,
-        ...extra,
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `Erstellen fehlgeschlagen (${res.status})`);
-    }
-    const { item } = await res.json();
-    /* Update local state */
-    setLists((prev) => ({
-      ...prev,
-      [sectionKey]: [...(prev[sectionKey] ?? []), item],
-    }));
-    return item;
-  }
-
-  async function updateListItem(
-    id: string,
-    updates: Partial<Omit<ListItem, "id" | "page" | "section_key" | "sort_order">>,
-  ): Promise<void> {
-    const res = await fetch("/api/site-list-items", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", id, ...updates }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `Aktualisieren fehlgeschlagen (${res.status})`);
-    }
-    const { item } = await res.json();
-    /* Update local state */
-    setLists((prev) => {
-      const newLists = { ...prev };
-      for (const [key, items] of Object.entries(newLists)) {
-        const idx = items.findIndex((i) => i.id === id);
-        if (idx !== -1) {
-          newLists[key] = [...items.slice(0, idx), item, ...items.slice(idx + 1)];
-          break;
-        }
+  const addListItem = useCallback(
+    async (
+      sectionKey: string,
+      textDe: string,
+      textEn: string,
+      extra?: Partial<Pick<ListItem, "badge_de" | "badge_en" | "link_url" | "icon" | "icon_type">>,
+    ): Promise<ListItem> => {
+      const res = await fetch("/api/site-list-items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          page,
+          section_key: sectionKey,
+          text_de: textDe,
+          text_en: textEn,
+          ...extra,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Erstellen fehlgeschlagen (${res.status})`);
       }
-      return newLists;
-    });
-  }
+      const { item } = await res.json();
+      /* Update local state */
+      setLists((prev) => ({
+        ...prev,
+        [sectionKey]: [...(prev[sectionKey] ?? []), item],
+      }));
+      return item;
+    },
+    [page],
+  );
 
-  async function removeListItem(id: string): Promise<void> {
+  const updateListItem = useCallback(
+    async (
+      id: string,
+      updates: Partial<Omit<ListItem, "id" | "page" | "section_key" | "sort_order">>,
+    ): Promise<void> => {
+      const res = await fetch("/api/site-list-items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", id, ...updates }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Aktualisieren fehlgeschlagen (${res.status})`);
+      }
+      const { item } = await res.json();
+      /* Update local state */
+      setLists((prev) => {
+        const newLists = { ...prev };
+        for (const [key, items] of Object.entries(newLists)) {
+          const idx = items.findIndex((i) => i.id === id);
+          if (idx !== -1) {
+            newLists[key] = [...items.slice(0, idx), item, ...items.slice(idx + 1)];
+            break;
+          }
+        }
+        return newLists;
+      });
+    },
+    [],
+  );
+
+  const removeListItem = useCallback(async (id: string): Promise<void> => {
     const res = await fetch("/api/site-list-items", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -288,9 +309,9 @@ export function useSiteContent(page: string): SiteContentHook {
       }
       return newLists;
     });
-  }
+  }, []);
 
-  async function reorderListItems(items: Array<{ id: string; sort_order: number }>): Promise<void> {
+  const reorderListItems = useCallback(async (items: Array<{ id: string; sort_order: number }>): Promise<void> => {
     const res = await fetch("/api/site-list-items", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -314,7 +335,7 @@ export function useSiteContent(page: string): SiteContentHook {
       }
       return newLists;
     });
-  }
+  }, []);
 
   return {
     content,

@@ -52,6 +52,7 @@ function BannerPicker({
           type="button"
           className={`banner-picker-option banner-picker-none${value === "" ? " selected" : ""}`}
           onClick={() => onChange("")}
+          aria-pressed={value === ""}
         >
           {t("noBanner")}
         </button>
@@ -63,6 +64,7 @@ function BannerPicker({
             className={`banner-picker-option${value === preset.src ? " selected" : ""}`}
             onClick={() => onChange(preset.src)}
             title={preset.label}
+            aria-pressed={value === preset.src}
           >
             <Image src={preset.src} alt={preset.label} width={148} height={52} />
           </button>
@@ -72,6 +74,7 @@ function BannerPicker({
           type="button"
           className={`banner-picker-option banner-picker-upload${isCustom ? " selected" : ""}`}
           onClick={() => fileRef.current?.click()}
+          aria-pressed={isCustom}
         >
           {isCustom ? (
             <img src={value} alt="Custom" className="banner-picker-custom-thumb" />

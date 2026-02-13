@@ -1,13 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
+import { apiError, uuidSchema } from "@/lib/api/validation";
 import { requireAdmin } from "@/lib/api/require-admin";
+import { requireAuth } from "@/lib/api/require-auth";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
 import { standardLimiter, relaxedLimiter } from "@/lib/rate-limit";
 
 /* ------------------------------------------------------------------ */
 /*  Schemas                                                            */
 /* ------------------------------------------------------------------ */
+
+const assignmentsQuerySchema = z.object({
+  ui_element_id: uuidSchema.optional(),
+  asset_id: uuidSchema.optional(),
+});
 
 const createSchema = z.object({
   ui_element_id: z.string().uuid(),
@@ -30,9 +37,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (blocked) return blocked;
 
   try {
-    const params = request.nextUrl.searchParams;
-    const uiElementId = params.get("ui_element_id");
-    const assetId = params.get("asset_id");
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const rawParams = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const parsed = assignmentsQuerySchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return apiError("Invalid query parameters.", 400);
+    }
+    const { ui_element_id: uiElementId, asset_id: assetId } = parsed.data;
 
     const supabase = createSupabaseServiceRoleClient();
     let query = supabase
@@ -57,13 +69,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (error) {
       captureApiError("GET /api/design-system/assignments", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError("Failed to load assignments.", 500);
     }
 
     return NextResponse.json({ data: data ?? [] });
   } catch (err) {
     captureApiError("GET /api/design-system/assignments", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return apiError("Internal server error", 500);
   }
 }
 
@@ -94,7 +106,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      captureApiError("POST /api/design-system/assignments", error);
+      return NextResponse.json({ error: "Failed to create assignment." }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 201 });
@@ -127,7 +140,8 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     const { error } = await supabase.from("asset_assignments").delete().eq("id", parsed.data.id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      captureApiError("DELETE /api/design-system/assignments", error);
+      return NextResponse.json({ error: "Failed to delete assignment." }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

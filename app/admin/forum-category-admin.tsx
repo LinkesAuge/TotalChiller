@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
-import useClanContext from "../components/use-clan-context";
+import useClanContext from "../hooks/use-clan-context";
 
 /* ─── Types ─── */
 

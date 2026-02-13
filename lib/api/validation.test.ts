@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { uuidSchema, notificationSettingsSchema, chartQuerySchema, messageQuerySchema } from "./validation";
+import {
+  uuidSchema,
+  notificationSettingsSchema,
+  chartQuerySchema,
+  messageQuerySchema,
+  escapeLikePattern,
+} from "./validation";
 
 /* ------------------------------------------------------------------ */
 /*  uuidSchema                                                         */
@@ -207,5 +213,35 @@ describe("messageQuerySchema", () => {
   it("rejects search term exceeding 200 characters", () => {
     const result = messageQuerySchema.safeParse({ search: "x".repeat(201) });
     expect(result.success).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  escapeLikePattern                                                  */
+/* ------------------------------------------------------------------ */
+
+describe("escapeLikePattern", () => {
+  it("escapes percent signs", () => {
+    expect(escapeLikePattern("100%")).toBe("100\\%");
+  });
+
+  it("escapes underscores", () => {
+    expect(escapeLikePattern("some_field")).toBe("some\\_field");
+  });
+
+  it("escapes backslashes", () => {
+    expect(escapeLikePattern("path\\to")).toBe("path\\\\to");
+  });
+
+  it("escapes all special characters together", () => {
+    expect(escapeLikePattern("%_\\")).toBe("\\%\\_\\\\");
+  });
+
+  it("leaves normal text unchanged", () => {
+    expect(escapeLikePattern("hello world")).toBe("hello world");
+  });
+
+  it("handles empty string", () => {
+    expect(escapeLikePattern("")).toBe("");
   });
 });

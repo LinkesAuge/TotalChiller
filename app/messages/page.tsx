@@ -3,10 +3,8 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import createSupabaseServerClient from "../../lib/supabase/server-client";
-import AuthActions from "../components/auth-actions";
-import PageTopBar from "../components/page-top-bar";
+import PageShell from "../components/page-shell";
 import PageSkeleton from "../components/page-skeleton";
-import SectionHero from "../components/section-hero";
 import MessagesClient from "./messages-client";
 
 export const metadata: Metadata = {
@@ -29,13 +27,15 @@ async function MessagesContent({ initialRecipientId }: { readonly initialRecipie
   }
   const t = await getTranslations("messagesPage");
   return (
-    <>
-      <PageTopBar breadcrumb={t("breadcrumb")} title={t("title")} actions={<AuthActions />} />
-      <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_captain.png" />
-      <div className="content-inner">
-        <MessagesClient userId={data.user.id} initialRecipientId={initialRecipientId} />
-      </div>
-    </>
+    <PageShell
+      breadcrumb={t("breadcrumb")}
+      title={t("title")}
+      heroTitle={t("heroTitle")}
+      heroSubtitle={t("heroSubtitle")}
+      bannerSrc="/assets/banners/banner_captain.png"
+    >
+      <MessagesClient userId={data.user.id} initialRecipientId={initialRecipientId} />
+    </PageShell>
   );
 }
 

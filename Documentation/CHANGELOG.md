@@ -6,6 +6,47 @@
 
 ---
 
+## 2026-02-13 — Code Review Phase 11: Comprehensive Codebase Optimization
+
+### Bugs & Security (Critical)
+
+- **Fixed game-account-approvals message bug**: System notifications for approve/reject were silently lost because the route used the old `recipient_id`-on-messages schema instead of the v2 `message_recipients` table. Both approve and reject paths now insert into `messages` then `message_recipients`.
+- **Created `escapeLikePattern()` helper** in `lib/api/validation.ts` and applied to all `.ilike()` / `.or(…ilike…)` filters in 5 API routes (`charts`, `design-system/ui-elements`, `design-system/assets`, `messages/search-recipients`) to prevent LIKE wildcard injection.
+- **Replaced raw `error.message` leakage** in 19 client-facing API error responses across 8 files with generic error strings. Added `captureApiError` logging where missing.
+- **Added `requireAuth()` guard** to all 3 design-system GET routes (ui-elements, assets, assignments) that were previously unprotected.
+
+### Redundancy Elimination & Modularity
+
+- **Created `PageShell` component** (`app/components/page-shell.tsx`) replacing the repeated PageTopBar + SectionHero + AuthActions + content-inner pattern across 10 pages.
+- **Created `lib/string-utils.ts`** with `normalizeString()` and replaced duplicate inline normalization in `correction-applicator.ts` and `validation-evaluator.ts`.
+- **Centralized storage bucket constants** (`FORUM_IMAGES_BUCKET`, `MESSAGE_IMAGES_BUCKET`) in `lib/constants.ts`, removing 5 local constant definitions across news, events, messages, and markdown toolbar.
+- **Extracted `useModalReset` hook** (`app/hooks/use-modal-reset.ts`) from the shared open-transition pattern in both rule modals.
+- **Removed deprecated `toDateKey`** from `events-utils.ts`, migrating all call sites to `toDateString` from `lib/dashboard-utils`.
+- **Exported `generateStoragePath`** from markdown toolbar and reused it for event banner uploads.
+
+### API Route Improvements
+
+- **Fixed 13 empty `catch` blocks** across API routes to properly capture errors via `captureApiError`.
+- **Added Zod query param validation** to 8 API routes: design-system (3 routes), messages/sent, messages/search-recipients, site-content, site-list-items.
+- **Created `sitePageQuerySchema`** in `lib/api/validation.ts` for reuse across site-content and site-list-items routes.
+- **Parallelized site-list-items reorder** — replaced sequential `for...await` loop with `Promise.all()`.
+- **Added caching headers** (`s-maxage=60, stale-while-revalidate=300`) to site-content and site-list-items GET responses.
+
+### Performance & Code Quality
+
+- **Extracted `useNews` hook** (`app/news/use-news.ts`) from `news-client.tsx`, reducing component to JSX-only.
+- **Extracted `useChartsData` hook** (`app/charts/use-charts-data.ts`) and **`useDashboardData` hook** (`app/hooks/use-dashboard-data.ts`) from their client components.
+- **Split `use-events.ts`** (929 → 356 lines) into `use-events-form.ts` (471L) and `use-events-templates.ts` (242L).
+- **Split `use-data-table.ts`** into `use-data-table-types.ts`, `use-data-table-filters.ts` (203L), and `use-data-table-batch.ts` (270L).
+- **Added ARIA attributes** to 5 shared components: ConfirmModal, FormModal, BannerPicker, SortableColumnHeader, MarkdownEditor.
+- **Memoized `useSiteContent` callbacks** with `useCallback`.
+- **CSS cleanup**: Removed duplicate `.event-calendar-*` block from components.css, moved `.sidebar-clan-select` to layout.css, replaced 7 hardcoded hex colors with CSS variables, removed duplicate `border-top` in news hover rule.
+- **Fixed `banner_event_exhange` typo** in banner-presets.ts.
+- **Moved `validation-evaluator.ts`** from `app/components/` to `lib/` (domain logic, not a component).
+- **Moved `use-clan-context.ts`** from `app/components/` to `app/hooks/` (proper hook location).
+
+---
+
 ## 2026-02-13 — Code Review Phase 10: Minor Improvements
 
 - **Footer links**: Replaced 4 `<a href>` tags in `app/layout.tsx` footer with Next.js `<Link>` for client-side navigation.
@@ -21,7 +62,7 @@
 - Added 194 new unit tests across 8 new test files (309 → 503 total tests, all passing).
 - `lib/markdown/sanitize-markdown.test.ts` (27 tests): line endings, bullet normalization, hard breaks, bold/italic.
 - `lib/markdown/renderers.test.ts` (34 tests): YouTube extraction, image/video URL detection.
-- `app/components/validation-evaluator.test.ts` (20 tests): rule matching, valid/invalid/neutral, case insensitivity.
+- `lib/validation-evaluator.test.ts` (20 tests): rule matching, valid/invalid/neutral, case insensitivity.
 - `app/forum/forum-utils.test.ts` (11 tests): hot-rank calculation, score/age interactions.
 - `app/forum/forum-thumbnail.test.ts` (19 tests): YouTube/image/video thumbnail extraction from markdown.
 - `app/admin/admin-types.test.ts` (39 tests): formatLabel, formatRank, formatRole, buildFallbackUserDb, normalizeMembershipRow/Rows, resolveSection, sort options.

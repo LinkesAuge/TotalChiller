@@ -1,5 +1,6 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { z } from "zod";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import getIsContentManager from "../../../lib/supabase/role-access";
@@ -67,7 +68,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .limit(INBOX_LIMIT);
 
     if (recErr) {
-      return NextResponse.json({ error: recErr.message }, { status: 500 });
+      captureApiError("GET /api/messages", recErr);
+      return NextResponse.json({ error: "Failed to load inbox." }, { status: 500 });
     }
 
     const entries = recipientEntries ?? [];
@@ -96,7 +98,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const { data: msgData, error: msgErr } = await msgQuery;
     if (msgErr) {
-      return NextResponse.json({ error: msgErr.message }, { status: 500 });
+      captureApiError("GET /api/messages", msgErr);
+      return NextResponse.json({ error: "Failed to load messages." }, { status: 500 });
     }
 
     let filteredMessages = (msgData ?? []) as Array<{
@@ -178,7 +181,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     return NextResponse.json({ data: threads, profiles: profilesById });
-  } catch {
+  } catch (err) {
+    captureApiError("GET /api/messages", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
@@ -228,7 +232,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       /* Global broadcast: all users except sender */
       const { data: allProfiles, error: profileError } = await svc.from("profiles").select("id").neq("id", senderId);
       if (profileError) {
-        return NextResponse.json({ error: profileError.message }, { status: 500 });
+        captureApiError("POST /api/messages", profileError);
+        return NextResponse.json({ error: "Failed to resolve recipients." }, { status: 500 });
       }
       resolvedRecipientIds = (allProfiles ?? []).map((p) => p.id as string);
     } else if (body.message_type === "clan") {
@@ -247,7 +252,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         .eq("is_active", true)
         .eq("is_shadow", false);
       if (membershipError) {
-        return NextResponse.json({ error: membershipError.message }, { status: 500 });
+        captureApiError("POST /api/messages", membershipError);
+        return NextResponse.json({ error: "Failed to resolve clan members." }, { status: 500 });
       }
       resolvedRecipientIds = Array.from(
         new Set(
@@ -306,7 +312,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single();
 
     if (insertError || !insertedMsg) {
-      return NextResponse.json({ error: insertError?.message ?? "Failed to create message." }, { status: 500 });
+      if (insertError) captureApiError("POST /api/messages", insertError);
+      return NextResponse.json({ error: "Failed to create message." }, { status: 500 });
     }
 
     const messageId = insertedMsg.id as string;
@@ -322,7 +329,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const batch = recipientRows.slice(i, i + BATCH_SIZE);
       const { error: batchError } = await svc.from("message_recipients").insert(batch);
       if (batchError) {
-        return NextResponse.json({ error: batchError.message }, { status: 500 });
+        captureApiError("POST /api/messages", batchError);
+        return NextResponse.json({ error: "Failed to deliver message." }, { status: 500 });
       }
     }
 
@@ -355,7 +363,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json({ data: insertedMsg, recipient_count: resolvedRecipientIds.length }, { status: 201 });
-  } catch {
+  } catch (err) {
+    captureApiError("POST /api/messages", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

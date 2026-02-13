@@ -5,6 +5,15 @@ import { DATE_REGEX } from "../constants";
 /* ── Shared helpers ── */
 
 /**
+ * Escapes special characters (`%`, `_`, `\`) in a string before using it
+ * in a Supabase `.ilike()` or `.or(…ilike…)` filter.
+ * Prevents users from injecting LIKE wildcards into search queries.
+ */
+export function escapeLikePattern(input: string): string {
+  return input.replace(/[%_\\]/g, "\\$&");
+}
+
+/**
  * Builds a standardized API error response.
  * All API routes should use this for consistent error shapes.
  */
@@ -68,6 +77,11 @@ export const chartQuerySchema = z.object({
 export const messageQuerySchema = z.object({
   type: z.enum(["all", "private", "broadcast", "clan"]).default("all"),
   search: z.string().max(200, "Search term too long.").optional().default(""),
+});
+
+/** Site content / list items GET query params schema (page required). */
+export const sitePageQuerySchema = z.object({
+  page: z.string().min(1, "Page is required."),
 });
 
 export type NotificationSettingsBody = z.infer<typeof notificationSettingsSchema>;

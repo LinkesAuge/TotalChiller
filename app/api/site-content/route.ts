@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
+import { apiError, sitePageQuerySchema } from "@/lib/api/validation";
 import { requireAdmin } from "../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter, relaxedLimiter } from "../../../lib/rate-limit";
@@ -22,10 +23,12 @@ const PATCH_SCHEMA = z.object({
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const blocked = relaxedLimiter.check(request);
   if (blocked) return blocked;
-  const page = request.nextUrl.searchParams.get("page");
-  if (!page) {
-    return NextResponse.json({ error: "Missing ?page= parameter" }, { status: 400 });
+  const rawParams = Object.fromEntries(request.nextUrl.searchParams.entries());
+  const parsed = sitePageQuerySchema.safeParse(rawParams);
+  if (!parsed.success) {
+    return apiError("Invalid query parameters.", 400);
   }
+  const { page } = parsed.data;
   try {
     const supabase = createSupabaseServiceRoleClient();
     const { data, error } = await supabase
@@ -37,7 +40,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       console.warn("[site-content GET] DB error:", error.message);
       return NextResponse.json([]);
     }
-    return NextResponse.json(data ?? []);
+    const response = NextResponse.json(data ?? []);
+    response.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    return response;
   } catch (err) {
     /* Graceful fallback — page will use translation file defaults */
     console.warn("[site-content GET] Unexpected error:", err);

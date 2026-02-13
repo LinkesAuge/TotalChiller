@@ -194,8 +194,6 @@
   border-color: var(--color-gold-a45);
   background: linear-gradient(180deg, var(--color-gold-a12), var(--color-gold-a06));
   box-shadow: 0 0 10px var(--color-gold-a10);
-
-  border-top: 1px solid var(--color-gold-a10);
 }
 
 /* Tags */

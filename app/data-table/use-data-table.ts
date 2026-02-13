@@ -1,50 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import { useToast } from "../components/toast-provider";
 import type { ValidationRuleRow, CorrectionRuleRow } from "@/lib/types/domain";
 import { DATE_REGEX } from "@/lib/constants";
 import { useRuleProcessing } from "@/lib/hooks/use-rule-processing";
+import { useDataTableFilters } from "./use-data-table-filters";
+import { useDataTableBatch } from "./use-data-table-batch";
+import type { ChestEntryRow, EditableRow, RowValues, SortDirection, SortKey } from "./use-data-table-types";
 
-/** Row shape from chest_entries with clan name. */
-export interface ChestEntryRow {
-  readonly id: string;
-  readonly collected_date: string;
-  readonly player: string;
-  readonly source: string;
-  readonly chest: string;
-  readonly score: number;
-  readonly clan_id: string;
-  readonly clan_name: string;
-}
-
-/** Editable fields for inline edit. */
-export interface EditableRow {
-  readonly collected_date: string;
-  readonly player: string;
-  readonly source: string;
-  readonly chest: string;
-  readonly score: string;
-  readonly clan_id: string;
-}
-
-/** Validated row values for save. */
-export interface RowValues {
-  collected_date: string;
-  player: string;
-  source: string;
-  chest: string;
-  score: number;
-  clan_id: string;
-}
-
-/** Sort direction for table columns. */
-export type SortDirection = "asc" | "desc" | null;
-
-/** Sortable column keys. */
-export type SortKey = "collected_date" | "player" | "source" | "chest" | "score" | "clan";
+export type {
+  ChestEntryRow,
+  EditableRow,
+  FilterOption,
+  RowValues,
+  SortDirection,
+  SortKey,
+} from "./use-data-table-types";
 
 interface ChestEntryQueryRow {
   readonly id: string;
@@ -71,12 +45,6 @@ interface LoadRowsParams {
   readonly allowRetry?: boolean;
 }
 
-/** Filter option for selects. */
-export interface FilterOption {
-  readonly value: string;
-  readonly label: string;
-}
-
 /**
  * Custom hook for data table state, data loading, filtering, editing, and CRUD.
  * Encapsulates all business logic for the chest entries table.
@@ -90,34 +58,15 @@ export function useDataTable() {
   const [editMap, setEditMap] = useState<Record<string, EditableRow>>({});
   const [status, setStatus] = useState<string>("");
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
-  const [searchTerm, setSearchTerm] = useState<string>("");
   const [isBatchOpsOpen, setIsBatchOpsOpen] = useState<boolean>(false);
-  const [filterPlayer, setFilterPlayer] = useState<string>("");
-  const [filterSource, setFilterSource] = useState<string>("");
-  const [filterChest, setFilterChest] = useState<string>("");
-  const [filterClanId, setFilterClanId] = useState<string>("all");
-  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
-  const [filterDateTo, setFilterDateTo] = useState<string>("");
-  const [filterScoreMin, setFilterScoreMin] = useState<string>("");
-  const [filterScoreMax, setFilterScoreMax] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);
   const [availableClans, setAvailableClans] = useState<readonly { id: string; name: string }[]>([]);
   const [validationRules, setValidationRules] = useState<readonly ValidationRuleRow[]>([]);
   const [correctionRules, setCorrectionRules] = useState<readonly CorrectionRuleRow[]>([]);
-  const [isBatchEditOpen, setIsBatchEditOpen] = useState<boolean>(false);
-  const [batchEditField, setBatchEditField] = useState<keyof EditableRow>("player");
-  const [batchEditValue, setBatchEditValue] = useState<string>("");
-  const [batchEditDate, setBatchEditDate] = useState<string>("");
-  const [batchEditClanId, setBatchEditClanId] = useState<string>("");
-  const [isBatchDeleteConfirmOpen, setIsBatchDeleteConfirmOpen] = useState<boolean>(false);
-  const [isBatchDeleteInputOpen, setIsBatchDeleteInputOpen] = useState<boolean>(false);
-  const [batchDeleteInput, setBatchDeleteInput] = useState<string>("");
-  const [filterRowStatus, setFilterRowStatus] = useState<"all" | "valid" | "invalid">("all");
-  const [filterCorrectionStatus, setFilterCorrectionStatus] = useState<"all" | "corrected" | "uncorrected">("all");
   const [isAddCorrectionRuleOpen, setIsAddCorrectionRuleOpen] = useState<boolean>(false);
   const [correctionRuleRowId, setCorrectionRuleRowId] = useState<string | null>(null);
   const [correctionRuleField, setCorrectionRuleField] = useState<"player" | "source" | "chest" | "clan" | "all">(
@@ -137,17 +86,7 @@ export function useDataTable() {
   const [retryPage, setRetryPage] = useState<number | null>(null);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / pageSize)), [totalCount, pageSize]);
-  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const selectedRows = useMemo(() => rows.filter((row) => selectedSet.has(row.id)), [rows, selectedSet]);
-  const selectAllRef = useRef<HTMLInputElement | null>(null);
-  const areAllRowsSelected = useMemo(
-    () => rows.length > 0 && rows.every((row) => selectedSet.has(row.id)),
-    [rows, selectedSet],
-  );
-  const areSomeRowsSelected = useMemo(
-    () => rows.some((row) => selectedSet.has(row.id)) && !areAllRowsSelected,
-    [areAllRowsSelected, rows, selectedSet],
-  );
+
   const clanNameById = useMemo(() => {
     return availableClans.reduce<Record<string, string>>((acc, clan) => {
       acc[clan.id] = clan.name;
@@ -169,42 +108,6 @@ export function useDataTable() {
       return acc;
     }, {});
   }, [availableClans]);
-  const playerFilterOptions = useMemo((): FilterOption[] => {
-    const values = new Set<string>();
-    validationRules.forEach((rule) => {
-      if (rule.field.toLowerCase() === "player" && rule.match_value.trim()) values.add(rule.match_value.trim());
-    });
-    return [
-      { value: "", label: t("all") },
-      ...Array.from(values)
-        .sort()
-        .map((v) => ({ value: v, label: v })),
-    ];
-  }, [validationRules, t]);
-  const sourceFilterOptions = useMemo((): FilterOption[] => {
-    const values = new Set<string>();
-    validationRules.forEach((rule) => {
-      if (rule.field.toLowerCase() === "source" && rule.match_value.trim()) values.add(rule.match_value.trim());
-    });
-    return [
-      { value: "", label: t("all") },
-      ...Array.from(values)
-        .sort()
-        .map((v) => ({ value: v, label: v })),
-    ];
-  }, [validationRules, t]);
-  const chestFilterOptions = useMemo((): FilterOption[] => {
-    const values = new Set<string>();
-    validationRules.forEach((rule) => {
-      if (rule.field.toLowerCase() === "chest" && rule.match_value.trim()) values.add(rule.match_value.trim());
-    });
-    return [
-      { value: "", label: t("all") },
-      ...Array.from(values)
-        .sort()
-        .map((v) => ({ value: v, label: v })),
-    ];
-  }, [validationRules, t]);
 
   const getRowValue = useCallback(
     (row: ChestEntryRow, field: keyof EditableRow): string => {
@@ -251,29 +154,15 @@ export function useDataTable() {
       return acc;
     }, {});
   }, [clanNameById, correctionApplicator, rows]);
-  const clientFilteredRows = useMemo(() => {
-    return rows.filter((row) => {
-      if (filterRowStatus !== "all") {
-        const rowStatus = rowValidationResults[row.id]?.rowStatus ?? "neutral";
-        if (filterRowStatus === "valid" && rowStatus !== "valid") {
-          return false;
-        }
-        if (filterRowStatus === "invalid" && rowStatus !== "invalid") {
-          return false;
-        }
-      }
-      if (filterCorrectionStatus !== "all") {
-        const hasCorrections = rowCorrectionMatches[row.id] ?? false;
-        if (filterCorrectionStatus === "corrected" && !hasCorrections) {
-          return false;
-        }
-        if (filterCorrectionStatus === "uncorrected" && hasCorrections) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [filterCorrectionStatus, filterRowStatus, rowCorrectionMatches, rowValidationResults, rows]);
+
+  const filters = useDataTableFilters({
+    validationRules,
+    t,
+    setPage,
+    rows,
+    rowValidationResults,
+    rowCorrectionMatches,
+  });
 
   const loadRows = useCallback(
     async ({ pageNumber, allowRetry = true }: LoadRowsParams): Promise<void> => {
@@ -284,36 +173,36 @@ export function useDataTable() {
         .select("id,collected_date,player,source,chest,score,clan_id,clans(name)", { count: "exact" })
         .order("collected_date", { ascending: false })
         .range(fromIndex, toIndex);
-      if (searchTerm.trim()) {
-        const pattern = `%${searchTerm.trim()}%`;
+      if (filters.searchTerm.trim()) {
+        const pattern = `%${filters.searchTerm.trim()}%`;
         query.or(`player.ilike.${pattern},source.ilike.${pattern},chest.ilike.${pattern}`);
       }
-      if (filterPlayer.trim()) {
-        query.ilike("player", `%${filterPlayer.trim()}%`);
+      if (filters.filterPlayer.trim()) {
+        query.ilike("player", `%${filters.filterPlayer.trim()}%`);
       }
-      if (filterSource.trim()) {
-        query.ilike("source", `%${filterSource.trim()}%`);
+      if (filters.filterSource.trim()) {
+        query.ilike("source", `%${filters.filterSource.trim()}%`);
       }
-      if (filterChest.trim()) {
-        query.ilike("chest", `%${filterChest.trim()}%`);
+      if (filters.filterChest.trim()) {
+        query.ilike("chest", `%${filters.filterChest.trim()}%`);
       }
-      if (filterClanId !== "all") {
-        query.eq("clan_id", filterClanId);
+      if (filters.filterClanId !== "all") {
+        query.eq("clan_id", filters.filterClanId);
       }
-      if (filterDateFrom.trim()) {
-        query.gte("collected_date", filterDateFrom.trim());
+      if (filters.filterDateFrom.trim()) {
+        query.gte("collected_date", filters.filterDateFrom.trim());
       }
-      if (filterDateTo.trim()) {
-        query.lte("collected_date", filterDateTo.trim());
+      if (filters.filterDateTo.trim()) {
+        query.lte("collected_date", filters.filterDateTo.trim());
       }
-      if (filterScoreMin.trim()) {
-        const minValue = Number(filterScoreMin);
+      if (filters.filterScoreMin.trim()) {
+        const minValue = Number(filters.filterScoreMin);
         if (!Number.isNaN(minValue)) {
           query.gte("score", minValue);
         }
       }
-      if (filterScoreMax.trim()) {
-        const maxValue = Number(filterScoreMax);
+      if (filters.filterScoreMax.trim()) {
+        const maxValue = Number(filters.filterScoreMax);
         if (!Number.isNaN(maxValue)) {
           query.lte("score", maxValue);
         }
@@ -350,16 +239,16 @@ export function useDataTable() {
       setTotalCount(count ?? 0);
     },
     [
-      filterChest,
-      filterClanId,
-      filterDateFrom,
-      filterDateTo,
-      filterPlayer,
-      filterScoreMax,
-      filterScoreMin,
-      filterSource,
+      filters.filterChest,
+      filters.filterClanId,
+      filters.filterDateFrom,
+      filters.filterDateTo,
+      filters.filterPlayer,
+      filters.filterScoreMax,
+      filters.filterScoreMin,
+      filters.filterSource,
+      filters.searchTerm,
       pageSize,
-      searchTerm,
       supabase,
     ],
   );
@@ -433,28 +322,6 @@ export function useDataTable() {
     }
   }, [pushToast, status]);
 
-  useEffect(() => {
-    if (!selectAllRef.current) {
-      return;
-    }
-    selectAllRef.current.indeterminate = areSomeRowsSelected;
-  }, [areSomeRowsSelected]);
-
-  const toggleSelect = useCallback((id: string): void => {
-    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
-  }, []);
-
-  const toggleSelectAllRows = useCallback((): void => {
-    if (rows.length === 0) {
-      return;
-    }
-    if (areAllRowsSelected) {
-      setSelectedIds([]);
-      return;
-    }
-    setSelectedIds(rows.map((row) => row.id));
-  }, [areAllRowsSelected, rows]);
-
   const toggleSort = useCallback((nextKey: SortKey): void => {
     setSortKey((current) => {
       if (current !== nextKey) {
@@ -509,40 +376,6 @@ export function useDataTable() {
     },
     [getSortValue, sortDirection, sortKey],
   );
-
-  const openBatchEdit = useCallback((): void => {
-    if (selectedIds.length === 0) {
-      pushToast(t("selectRowsForBatchEdit"));
-      return;
-    }
-    setIsBatchEditOpen(true);
-  }, [pushToast, selectedIds.length, t]);
-
-  const closeBatchEdit = useCallback((): void => {
-    setIsBatchEditOpen(false);
-  }, []);
-
-  const handleBatchFieldChange = useCallback((nextField: keyof EditableRow): void => {
-    setBatchEditField(nextField);
-    setBatchEditValue("");
-    setBatchEditDate("");
-    setBatchEditClanId("");
-  }, []);
-
-  const clearFilters = useCallback((): void => {
-    setSearchTerm("");
-    setFilterPlayer("");
-    setFilterSource("");
-    setFilterChest("");
-    setFilterClanId("all");
-    setFilterDateFrom("");
-    setFilterDateTo("");
-    setFilterScoreMin("");
-    setFilterScoreMax("");
-    setFilterRowStatus("all");
-    setFilterCorrectionStatus("all");
-    setPage(1);
-  }, []);
 
   const updateEditValue = useCallback((id: string, field: keyof EditableRow, value: string): void => {
     const existing: EditableRow = {
@@ -604,25 +437,23 @@ export function useDataTable() {
     [getNextPageAfterDelete, loadRows],
   );
 
-  const getBatchPreviewValue = useCallback(
-    (row: ChestEntryRow, field: keyof EditableRow): string => {
-      const baseValue = getRowValue(row, field);
-      if (batchEditField !== field) {
-        return baseValue;
-      }
-      if (field === "collected_date") {
-        return batchEditDate ? batchEditDate : baseValue;
-      }
-      if (field === "clan_id") {
-        return batchEditClanId ? batchEditClanId : baseValue;
-      }
-      if (batchEditValue === "") {
-        return baseValue;
-      }
-      return batchEditValue;
-    },
-    [batchEditDate, batchEditField, batchEditClanId, batchEditValue, getRowValue],
-  );
+  const batch = useDataTableBatch({
+    rows,
+    selectedIds,
+    setSelectedIds,
+    editMap,
+    updateEditValue,
+    getRowValue,
+    getCurrentUserId,
+    insertAuditLogs,
+    supabase,
+    refreshAfterDelete,
+    setStatus,
+    setRows,
+    setTotalCount,
+    t,
+    pushToast,
+  });
 
   const validateRow = useCallback((values: RowValues): string | null => {
     const nextDate = values.collected_date;
@@ -851,105 +682,6 @@ export function useDataTable() {
     [totalPages],
   );
 
-  const confirmBatchEdit = useCallback((): void => {
-    if (selectedRows.length === 0) {
-      setStatus(t("selectRowsForBatchEdit"));
-      return;
-    }
-    if (batchEditField === "collected_date" && !batchEditDate) {
-      setStatus(t("selectDateValue"));
-      return;
-    }
-    if (batchEditField === "clan_id" && !batchEditClanId) {
-      setStatus(t("selectClan"));
-      return;
-    }
-    if (batchEditField !== "collected_date" && batchEditField !== "clan_id" && batchEditValue === "") {
-      setStatus(t("enterValue"));
-      return;
-    }
-    const nextValue =
-      batchEditField === "collected_date"
-        ? batchEditDate
-        : batchEditField === "clan_id"
-          ? batchEditClanId
-          : batchEditValue;
-    selectedRows.forEach((row) => {
-      updateEditValue(row.id, batchEditField, nextValue);
-    });
-    setIsBatchEditOpen(false);
-    setStatus(t("batchEditsApplied"));
-  }, [batchEditClanId, batchEditDate, batchEditField, batchEditValue, selectedRows, t, updateEditValue]);
-
-  const handleBatchDelete = useCallback((): void => {
-    if (selectedIds.length === 0) {
-      setStatus(t("selectRowsToDelete"));
-      return;
-    }
-    setIsBatchDeleteConfirmOpen(true);
-  }, [selectedIds.length, t]);
-
-  const closeBatchDeleteConfirm = useCallback((): void => {
-    setIsBatchDeleteConfirmOpen(false);
-  }, []);
-
-  const openBatchDeleteInput = useCallback((): void => {
-    setIsBatchDeleteConfirmOpen(false);
-    setIsBatchDeleteInputOpen(true);
-    setBatchDeleteInput("");
-  }, []);
-
-  const closeBatchDeleteInput = useCallback((): void => {
-    setIsBatchDeleteInputOpen(false);
-    setBatchDeleteInput("");
-  }, []);
-
-  const confirmBatchDelete = useCallback(async (): Promise<void> => {
-    const confirmationPhrase = "DELETE ROWS";
-    if (batchDeleteInput.trim().toUpperCase() !== confirmationPhrase) {
-      setStatus(t("confirmationPhraseMismatch"));
-      return;
-    }
-    setIsBatchDeleteInputOpen(false);
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      setStatus(t("mustBeLoggedInBatchDelete"));
-      return;
-    }
-    const selectedRowsForDelete = rows.filter((row) => selectedIds.includes(row.id));
-    const { error } = await supabase.from("chest_entries").delete().in("id", selectedIds);
-    if (error) {
-      setStatus(t("batchDeleteFailed", { error: error.message }));
-      return;
-    }
-    await insertAuditLogs(
-      selectedRowsForDelete.map((row) => ({
-        clan_id: row.clan_id,
-        actor_id: userId,
-        action: "delete",
-        entity: "chest_entries",
-        entity_id: row.id,
-        diff: {
-          collected_date: row.collected_date,
-          player: row.player,
-          source: row.source,
-          chest: row.chest,
-          score: row.score,
-        },
-      })),
-    );
-    const deleteIdSet = new Set(selectedIds);
-    const remainingRows = rows.filter((row) => !deleteIdSet.has(row.id));
-    setStatus(t("rowsDeleted"));
-    setSelectedIds([]);
-    if (remainingRows.length > 0) {
-      setRows(remainingRows);
-      setTotalCount((current) => Math.max(0, current - selectedIds.length));
-      return;
-    }
-    refreshAfterDelete(selectedIds.length);
-  }, [batchDeleteInput, getCurrentUserId, insertAuditLogs, refreshAfterDelete, rows, selectedIds, supabase, t]);
-
   const handleSaveAllRows = useCallback(async (): Promise<void> => {
     const editIds = Object.keys(editMap);
     if (editIds.length === 0) {
@@ -1141,50 +873,6 @@ export function useDataTable() {
     validationRuleStatus,
   ]);
 
-  const setFilterPlayerWithPage = useCallback((value: string) => {
-    setFilterPlayer(value);
-    setPage(1);
-  }, []);
-  const setFilterSourceWithPage = useCallback((value: string) => {
-    setFilterSource(value);
-    setPage(1);
-  }, []);
-  const setFilterChestWithPage = useCallback((value: string) => {
-    setFilterChest(value);
-    setPage(1);
-  }, []);
-  const setFilterClanIdWithPage = useCallback((value: string) => {
-    setFilterClanId(value);
-    setPage(1);
-  }, []);
-  const setFilterDateFromWithPage = useCallback((value: string) => {
-    setFilterDateFrom(value);
-    setPage(1);
-  }, []);
-  const setFilterDateToWithPage = useCallback((value: string) => {
-    setFilterDateTo(value);
-    setPage(1);
-  }, []);
-  const setFilterScoreMinWithPage = useCallback((value: string) => {
-    setFilterScoreMin(value);
-    setPage(1);
-  }, []);
-  const setFilterScoreMaxWithPage = useCallback((value: string) => {
-    setFilterScoreMax(value);
-    setPage(1);
-  }, []);
-  const setSearchTermWithPage = useCallback((value: string) => {
-    setSearchTerm(value);
-    setPage(1);
-  }, []);
-  const setFilterRowStatusWithPage = useCallback((value: "all" | "valid" | "invalid") => {
-    setFilterRowStatus(value);
-    setPage(1);
-  }, []);
-  const setFilterCorrectionStatusWithPage = useCallback((value: "all" | "corrected" | "uncorrected") => {
-    setFilterCorrectionStatus(value);
-    setPage(1);
-  }, []);
   const setPageSizeWithReset = useCallback((value: number) => {
     setPageSize(value);
     setPage(1);
@@ -1192,22 +880,22 @@ export function useDataTable() {
 
   return {
     rows,
-    selectedIds,
+    selectedIds: batch.selectedIds,
     editMap,
     rowErrors,
-    searchTerm,
+    searchTerm: filters.searchTerm,
     isBatchOpsOpen,
     setIsBatchOpsOpen,
-    filterPlayer,
-    filterSource,
-    filterChest,
-    filterClanId,
-    filterDateFrom,
-    filterDateTo,
-    filterScoreMin,
-    filterScoreMax,
-    filterRowStatus,
-    filterCorrectionStatus,
+    filterPlayer: filters.filterPlayer,
+    filterSource: filters.filterSource,
+    filterChest: filters.filterChest,
+    filterClanId: filters.filterClanId,
+    filterDateFrom: filters.filterDateFrom,
+    filterDateTo: filters.filterDateTo,
+    filterScoreMin: filters.filterScoreMin,
+    filterScoreMax: filters.filterScoreMax,
+    filterRowStatus: filters.filterRowStatus,
+    filterCorrectionStatus: filters.filterCorrectionStatus,
     page,
     setPage,
     pageSize,
@@ -1216,30 +904,30 @@ export function useDataTable() {
     sortKey,
     sortDirection,
     availableClans,
-    clientFilteredRows,
-    selectedRows,
-    selectedSet,
-    selectAllRef,
-    areAllRowsSelected,
-    areSomeRowsSelected,
-    playerFilterOptions,
-    sourceFilterOptions,
-    chestFilterOptions,
+    clientFilteredRows: filters.clientFilteredRows,
+    selectedRows: batch.selectedRows,
+    selectedSet: batch.selectedSet,
+    selectAllRef: batch.selectAllRef,
+    areAllRowsSelected: batch.areAllRowsSelected,
+    areSomeRowsSelected: batch.areSomeRowsSelected,
+    playerFilterOptions: filters.playerFilterOptions,
+    sourceFilterOptions: filters.sourceFilterOptions,
+    chestFilterOptions: filters.chestFilterOptions,
     rowValidationResults,
     validationEvaluator,
     playerSuggestions,
     sourceSuggestions,
     chestSuggestions,
     suggestionsForField,
-    isBatchEditOpen,
-    batchEditField,
-    batchEditValue,
-    batchEditDate,
-    batchEditClanId,
-    isBatchDeleteConfirmOpen,
-    isBatchDeleteInputOpen,
-    batchDeleteInput,
-    setBatchDeleteInput,
+    isBatchEditOpen: batch.isBatchEditOpen,
+    batchEditField: batch.batchEditField,
+    batchEditValue: batch.batchEditValue,
+    batchEditDate: batch.batchEditDate,
+    batchEditClanId: batch.batchEditClanId,
+    isBatchDeleteConfirmOpen: batch.isBatchDeleteConfirmOpen,
+    isBatchDeleteInputOpen: batch.isBatchDeleteInputOpen,
+    batchDeleteInput: batch.batchDeleteInput,
+    setBatchDeleteInput: batch.setBatchDeleteInput,
     isAddCorrectionRuleOpen,
     correctionRuleField,
     correctionRuleMatch,
@@ -1256,37 +944,37 @@ export function useDataTable() {
     validationRuleStatus,
     setValidationRuleStatus,
     validationRuleMessage,
-    setFilterPlayerWithPage,
-    setFilterSourceWithPage,
-    setFilterChestWithPage,
-    setFilterClanIdWithPage,
-    setFilterDateFromWithPage,
-    setFilterDateToWithPage,
-    setFilterScoreMinWithPage,
-    setFilterScoreMaxWithPage,
-    setSearchTermWithPage,
-    setFilterRowStatusWithPage,
-    setFilterCorrectionStatusWithPage,
+    setFilterPlayerWithPage: filters.setFilterPlayerWithPage,
+    setFilterSourceWithPage: filters.setFilterSourceWithPage,
+    setFilterChestWithPage: filters.setFilterChestWithPage,
+    setFilterClanIdWithPage: filters.setFilterClanIdWithPage,
+    setFilterDateFromWithPage: filters.setFilterDateFromWithPage,
+    setFilterDateToWithPage: filters.setFilterDateToWithPage,
+    setFilterScoreMinWithPage: filters.setFilterScoreMinWithPage,
+    setFilterScoreMaxWithPage: filters.setFilterScoreMaxWithPage,
+    setSearchTermWithPage: filters.setSearchTermWithPage,
+    setFilterRowStatusWithPage: filters.setFilterRowStatusWithPage,
+    setFilterCorrectionStatusWithPage: filters.setFilterCorrectionStatusWithPage,
     setPageSizeWithReset,
-    toggleSelect,
-    toggleSelectAllRows,
+    toggleSelect: batch.toggleSelect,
+    toggleSelectAllRows: batch.toggleSelectAllRows,
     toggleSort,
     sortRows,
-    openBatchEdit,
-    closeBatchEdit,
-    handleBatchFieldChange,
-    clearFilters,
+    openBatchEdit: batch.openBatchEdit,
+    closeBatchEdit: batch.closeBatchEdit,
+    handleBatchFieldChange: batch.handleBatchFieldChange,
+    clearFilters: filters.clearFilters,
     updateEditValue,
     clearRowEdits,
     handleSaveRow,
     handleDeleteRow,
     handlePageInputChange,
-    confirmBatchEdit,
-    handleBatchDelete,
-    closeBatchDeleteConfirm,
-    openBatchDeleteInput,
-    closeBatchDeleteInput,
-    confirmBatchDelete,
+    confirmBatchEdit: batch.confirmBatchEdit,
+    handleBatchDelete: batch.handleBatchDelete,
+    closeBatchDeleteConfirm: batch.closeBatchDeleteConfirm,
+    openBatchDeleteInput: batch.openBatchDeleteInput,
+    closeBatchDeleteInput: batch.closeBatchDeleteInput,
+    confirmBatchDelete: batch.confirmBatchDelete,
     handleSaveAllRows,
     openCorrectionRuleModal,
     updateCorrectionRuleField,
@@ -1297,9 +985,9 @@ export function useDataTable() {
     closeValidationRuleModal,
     handleSaveValidationRuleFromRow,
     getRowValue,
-    getBatchPreviewValue,
-    setBatchEditDate,
-    setBatchEditClanId,
-    setBatchEditValue,
+    getBatchPreviewValue: batch.getBatchPreviewValue,
+    setBatchEditDate: batch.setBatchEditDate,
+    setBatchEditClanId: batch.setBatchEditClanId,
+    setBatchEditValue: batch.setBatchEditValue,
   };
 }

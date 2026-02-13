@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../../../lib/api/require-auth";
 import { uuidSchema } from "../../../../../lib/api/validation";
 import createSupabaseServiceRoleClient from "../../../../../lib/supabase/service-role-client";
@@ -42,7 +43,8 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
       .order("created_at", { ascending: true });
 
     if (msgErr) {
-      return NextResponse.json({ error: msgErr.message }, { status: 500 });
+      captureApiError("GET /api/messages/thread/[threadId]", msgErr);
+      return NextResponse.json({ error: "Failed to load thread." }, { status: 500 });
     }
 
     const messages = (threadMsgs ?? []) as Array<{
@@ -153,7 +155,8 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     });
 
     return NextResponse.json({ data: threadMessages, profiles: profilesById });
-  } catch {
+  } catch (err) {
+    captureApiError("GET /api/messages/thread/[threadId]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

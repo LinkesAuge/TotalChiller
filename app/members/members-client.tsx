@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import { useSupabase } from "../hooks/use-supabase";
-import useClanContext from "../components/use-clan-context";
+import useClanContext from "../hooks/use-clan-context";
 import { formatRank, formatRole, rankOptions } from "../admin/admin-types";
 import DataState from "../components/data-state";
 

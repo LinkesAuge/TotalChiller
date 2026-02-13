@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import type { RefObject } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
 });
+import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
 import { UpArrow, DownArrow, CommentIcon } from "./forum-icons";
 import { formatTimeAgo, type TFunction } from "./forum-utils";
 import type { ForumPost, ForumComment } from "./forum-types";
@@ -15,14 +17,13 @@ export interface ForumPostDetailProps {
   readonly selectedPost: ForumPost;
   readonly comments: ForumComment[];
   readonly commentText: string;
-  readonly replyText: string;
   readonly replyingTo: string;
   readonly deletingPostId: string;
   readonly currentUserId: string;
+  readonly supabase: SupabaseClient;
   readonly canManage: boolean;
   readonly t: TFunction;
   readonly onCommentTextChange: (value: string) => void;
-  readonly onReplyTextChange: (value: string) => void;
   readonly onReplyClick: (commentId: string) => void;
   readonly onReplyCancel: () => void;
   readonly onSubmitComment: () => void;
@@ -37,6 +38,7 @@ export interface ForumPostDetailProps {
   readonly onToggleLock: (post: ForumPost) => void;
   readonly onEditComment: (commentId: string, newContent: string) => void;
   readonly onDeleteComment: (commentId: string) => void;
+  readonly onCommentInsert: (markdown: string) => void;
   readonly detailRef?: RefObject<HTMLElement | null>;
 }
 
@@ -56,6 +58,7 @@ function CommentItem({
   isReply,
   selectedPost,
   currentUserId,
+  supabase,
   canManage,
   t,
   onVoteComment,
@@ -67,6 +70,7 @@ function CommentItem({
   readonly isReply: boolean;
   readonly selectedPost: ForumPost;
   readonly currentUserId: string;
+  readonly supabase: SupabaseClient;
   readonly canManage: boolean;
   readonly t: TFunction;
   readonly onVoteComment: (commentId: string, voteType: number) => void;
@@ -77,6 +81,8 @@ function CommentItem({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editContent, setEditContent] = useState<string>("");
   const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
+  const [isEditPreview, setIsEditPreview] = useState<boolean>(false);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isAuthor = currentUserId === comment.author_id;
   const canEditThis = canManage || isAuthor;
@@ -86,6 +92,7 @@ function CommentItem({
     setEditContent(comment.content);
     setIsEditing(true);
     setIsConfirmingDelete(false);
+    setIsEditPreview(false);
   }
 
   function handleSaveEdit(): void {
@@ -98,6 +105,7 @@ function CommentItem({
   function handleCancelEdit(): void {
     setIsEditing(false);
     setEditContent("");
+    setIsEditPreview(false);
   }
 
   function handleConfirmDelete(): void {
@@ -135,7 +143,69 @@ function CommentItem({
         </div>
         {isEditing ? (
           <div className="forum-comment-edit-form">
-            <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={3} />
+            <div className="forum-editor-tabs">
+              <button
+                type="button"
+                className={`forum-editor-tab${!isEditPreview ? " active" : ""}`}
+                onClick={() => setIsEditPreview(false)}
+              >
+                {t("write")}
+              </button>
+              <button
+                type="button"
+                className={`forum-editor-tab${isEditPreview ? " active" : ""}`}
+                onClick={() => setIsEditPreview(true)}
+              >
+                {t("preview")}
+              </button>
+            </div>
+            {isEditPreview ? (
+              <div className="forum-editor-preview">
+                {editContent.trim() ? (
+                  <AppMarkdown content={editContent} />
+                ) : (
+                  <p style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>{t("previewEmpty")}</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <AppMarkdownToolbar
+                  textareaRef={editTextareaRef}
+                  value={editContent}
+                  onChange={setEditContent}
+                  supabase={supabase}
+                  userId={currentUserId}
+                />
+                <textarea
+                  ref={editTextareaRef}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={6}
+                  onPaste={(e) =>
+                    handleImagePaste(
+                      e,
+                      supabase,
+                      currentUserId,
+                      (md) => setEditContent((prev) => prev + md),
+                      () => {},
+                    )
+                  }
+                  onDrop={(e) =>
+                    handleImageDrop(
+                      e,
+                      supabase,
+                      currentUserId,
+                      (md) => setEditContent((prev) => prev + md),
+                      () => {},
+                    )
+                  }
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                />
+              </>
+            )}
             <div className="forum-comment-edit-actions">
               <button
                 className="button primary py-1 px-3"
@@ -202,14 +272,13 @@ export default function ForumPostDetail({
   selectedPost,
   comments,
   commentText,
-  replyText,
   replyingTo,
   deletingPostId,
   currentUserId,
+  supabase,
   canManage,
   t,
   onCommentTextChange,
-  onReplyTextChange,
   onReplyClick,
   onReplyCancel,
   onSubmitComment,
@@ -224,10 +293,114 @@ export default function ForumPostDetail({
   onToggleLock,
   onEditComment,
   onDeleteComment,
+  onCommentInsert,
   detailRef,
 }: ForumPostDetailProps): JSX.Element {
   const isAuthor = currentUserId === selectedPost.author_id;
   const canModerate = canManage || isAuthor;
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const commentFormRef = useRef<HTMLDivElement>(null);
+  const [isCommentPreview, setIsCommentPreview] = useState<boolean>(false);
+  const isReplyToComment = replyingTo !== "" && replyingTo !== "thread";
+
+  /** Finds the author name of the comment being replied to. */
+  function getReplyTargetName(): string {
+    if (!isReplyToComment) return "";
+    function findInTree(list: ForumComment[]): string {
+      for (const c of list) {
+        if (c.id === replyingTo) return c.authorName ?? "";
+        const found = findInTree(c.replies ?? []);
+        if (found) return found;
+      }
+      return "";
+    }
+    return findInTree(comments);
+  }
+
+  /** Opens the editor form, scrolls to it, and focuses the textarea. */
+  function handleReplyClick(targetId: string): void {
+    onReplyClick(targetId);
+    setIsCommentPreview(false);
+    setTimeout(() => {
+      commentFormRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      commentTextareaRef.current?.focus();
+    }, 50);
+  }
+
+  /** Renders the shared editor form (used at thread level and inline under comments). */
+  function renderEditorForm(replyTargetName: string | null): JSX.Element {
+    const isReply = replyTargetName !== null;
+    const handleSubmit = isReply ? onSubmitReply : onSubmitComment;
+    return (
+      <div className="forum-form" ref={commentFormRef}>
+        {isReply && (
+          <div className="forum-reply-indicator">
+            <span>{t("replyingToLabel", { name: replyTargetName })}</span>
+            <button type="button" className="forum-reply-indicator-cancel" onClick={onReplyCancel}>
+              {t("cancelReply")}
+            </button>
+          </div>
+        )}
+        <div className="forum-editor-tabs">
+          <button
+            type="button"
+            className={`forum-editor-tab${!isCommentPreview ? " active" : ""}`}
+            onClick={() => setIsCommentPreview(false)}
+          >
+            {t("write")}
+          </button>
+          <button
+            type="button"
+            className={`forum-editor-tab${isCommentPreview ? " active" : ""}`}
+            onClick={() => setIsCommentPreview(true)}
+          >
+            {t("preview")}
+          </button>
+        </div>
+        {isCommentPreview ? (
+          <div className="forum-editor-preview">
+            {commentText.trim() ? (
+              <AppMarkdown content={commentText} />
+            ) : (
+              <p style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>{t("previewEmpty")}</p>
+            )}
+          </div>
+        ) : (
+          <>
+            <AppMarkdownToolbar
+              textareaRef={commentTextareaRef}
+              value={commentText}
+              onChange={onCommentTextChange}
+              supabase={supabase}
+              userId={currentUserId}
+            />
+            <textarea
+              ref={commentTextareaRef}
+              value={commentText}
+              onChange={(e) => onCommentTextChange(e.target.value)}
+              placeholder={isReply ? t("replyPlaceholder") : t("commentPlaceholder")}
+              rows={8}
+              onPaste={(e) => handleImagePaste(e, supabase, currentUserId, onCommentInsert, () => {})}
+              onDrop={(e) => handleImageDrop(e, supabase, currentUserId, onCommentInsert, () => {})}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            />
+          </>
+        )}
+        <p className="forum-editor-hint">{t("markdownHint")}</p>
+        <div className="forum-form-row">
+          <button className="button primary" onClick={handleSubmit} disabled={!commentText.trim()}>
+            {isReply ? t("submitReply") : t("submitComment")}
+          </button>
+          <button className="button" onClick={onReplyCancel}>
+            {t("cancel")}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -326,29 +499,22 @@ export default function ForumPostDetail({
 
       {/* Comments Section */}
       <section className="forum-comments-section">
-        <h3>
-          {t("comments")} ({selectedPost.comment_count})
-        </h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 style={{ margin: 0 }}>
+            {t("comments")} ({selectedPost.comment_count})
+          </h3>
+          {!selectedPost.is_locked && (
+            <button className="button primary" onClick={() => handleReplyClick("thread")} type="button">
+              {t("submitComment")}
+            </button>
+          )}
+        </div>
 
-        {/* Add comment form */}
-        {!selectedPost.is_locked && (
-          <div className="forum-form mb-4">
-            <textarea
-              value={commentText}
-              onChange={(e) => onCommentTextChange(e.target.value)}
-              placeholder={t("commentPlaceholder")}
-              rows={3}
-            />
-            <div className="forum-form-row">
-              <button className="button primary" onClick={onSubmitComment} disabled={!commentText.trim()}>
-                {t("submitComment")}
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Thread-level comment form (shown when clicking "Comment" button) */}
+        {replyingTo === "thread" && !selectedPost.is_locked && <div className="mb-4">{renderEditorForm(null)}</div>}
 
         {/* Comment list */}
-        {comments.length === 0 && <p className="text-text-muted text-[0.84rem]">{t("noComments")}</p>}
+        {comments.length === 0 && !replyingTo && <p className="text-text-muted text-[0.84rem]">{t("noComments")}</p>}
         {comments.map((comment) => (
           <div key={comment.id}>
             <CommentItem
@@ -356,10 +522,11 @@ export default function ForumPostDetail({
               isReply={false}
               selectedPost={selectedPost}
               currentUserId={currentUserId}
+              supabase={supabase}
               canManage={canManage}
               t={t}
               onVoteComment={onVoteComment}
-              onReplyClick={onReplyClick}
+              onReplyClick={handleReplyClick}
               onEditComment={onEditComment}
               onDeleteComment={onDeleteComment}
             />
@@ -370,41 +537,19 @@ export default function ForumPostDetail({
                   isReply={true}
                   selectedPost={selectedPost}
                   currentUserId={currentUserId}
+                  supabase={supabase}
                   canManage={canManage}
                   t={t}
                   onVoteComment={onVoteComment}
-                  onReplyClick={onReplyClick}
+                  onReplyClick={handleReplyClick}
                   onEditComment={onEditComment}
                   onDeleteComment={onDeleteComment}
                 />
               </div>
             ))}
-            {/* Reply form */}
+            {/* Inline reply form under this comment */}
             {replyingTo === comment.id && !selectedPost.is_locked && (
-              <div className="forum-reply pt-2 pb-2">
-                <div className="forum-form p-2.5">
-                  <textarea
-                    value={replyText}
-                    onChange={(e) => onReplyTextChange(e.target.value)}
-                    placeholder={t("replyPlaceholder")}
-                    rows={2}
-                    className="min-h-12"
-                  />
-                  <div className="forum-form-row">
-                    <button
-                      className="button primary py-1 px-3"
-                      onClick={onSubmitReply}
-                      disabled={!replyText.trim()}
-                      style={{ fontSize: "0.75rem" }}
-                    >
-                      {t("submitReply")}
-                    </button>
-                    <button className="button py-1 px-3 text-xs" onClick={onReplyCancel}>
-                      {t("cancel")}
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <div className="forum-reply pt-2 pb-2">{renderEditorForm(comment.authorName ?? "")}</div>
             )}
           </div>
         ))}

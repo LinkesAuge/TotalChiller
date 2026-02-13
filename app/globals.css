@@ -6146,6 +6146,36 @@ input[type="checkbox"]:disabled {
   font-style: italic;
 }
 
+.forum-reply-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--color-gold);
+  background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+  border-left: 3px solid var(--color-gold);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.forum-reply-indicator-cancel {
+  margin-left: auto;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.forum-reply-indicator-cancel:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
 /* Toolbar */
 .forum-md-toolbar {
   display: flex;

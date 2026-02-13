@@ -1245,7 +1245,9 @@ export default function ClansTab(): ReactElement {
               <div>
                 <div className="card-title">{tAdmin("gameAccounts.assignTitle")}</div>
                 <div className="card-subtitle">
-                  {selectedClan ? `Assign to ${selectedClan.name}` : tAdmin("gameAccounts.selectClan")}
+                  {selectedClan
+                    ? tAdmin("gameAccounts.assignTo", { clan: selectedClan.name })
+                    : tAdmin("gameAccounts.selectClan")}
                 </div>
               </div>
             </div>

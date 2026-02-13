@@ -34,8 +34,9 @@ A Reddit-like discussion forum for [THC] Chiller & Killer, enabling members to c
 
 - **Forum List View**: Category tabs, sort toggle, post cards with vote arrows
 - **Post Detail View**: Full post content, vote buttons, comment thread
-- **Create Post Form**: Title, content (textarea), category selector
-- **Comment Form**: Textarea with submit button
+- **Create Post Form**: Title, content (textarea with markdown toolbar + preview), category selector
+- **Unified Comment/Reply Form**: Single form at top of comments section with markdown toolbar, Write/Preview tabs, image upload/paste/drop, and markdown hint. Contextually handles top-level comments and replies — clicking "Reply" on a comment shows a "Replying to [username]" indicator and scrolls to the form.
+- **Comment Edit Form**: Inline markdown toolbar with Write/Preview tabs and image support
 - **Vote Button**: Up/down arrows with score display
 
 ### Data Flow

@@ -145,8 +145,9 @@ This file is a compact context transfer for a new chat.
 - **Forum System** (full Reddit-style forum)
   - Categories managed via admin API route `/api/admin/forum-categories` (service role client, bypasses RLS).
   - Posts: title, content (markdown), category, pinning, voting (up/down), view count.
-  - Comments: threaded replies with voting. Rich markdown editor shared with Announcements.
-  - **Comment edit/delete**: Users can edit and delete their own comments; admins/moderators can edit/delete any comment. Inline edit form replaces comment text; inline delete confirmation. "Edited" indicator shown on modified comments.
+  - Comments: threaded replies with voting. All comment/reply forms use the same rich `AppMarkdownToolbar` as thread creation (Write/Preview tabs, full formatting toolbar, image upload via file picker/paste/drop, markdown hint).
+  - **Unified comment/reply form**: A single editor form that appears contextually — at the top of comments when clicking "Comment", or inline under a comment when clicking "Reply". Shows a "Replying to [username]" indicator with cancel button when in reply mode. Form is hidden by default; both modes share a single `commentText` state. Scrolls to and focuses the form when activated.
+  - **Comment edit/delete**: Users can edit and delete their own comments; admins/moderators can edit/delete any comment. Inline edit form with full markdown toolbar replaces comment text; inline delete confirmation. "Edited" indicator shown on modified comments.
   - **Post edit/delete permissions**: Authors can edit/delete their own posts; moderators/admins can edit/delete any post. RLS policies use `has_permission()` for enforcement.
   - `AppMarkdown` renderer (variant="forum"): auto-embeds YouTube, images, videos, code, tables. Preview mode for list views.
   - Post thumbnails (140x100px, stretches to card height): extracts first media from content for list previews.

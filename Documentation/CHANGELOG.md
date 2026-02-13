@@ -6,6 +6,18 @@
 
 ---
 
+## 2026-02-13 — Forum Comment/Reply Markdown Toolbar & Contextual Editor
+
+- **Contextual comment/reply form**: Editor form is **hidden by default**. Clicking "Comment" at the top of the comments section opens the form there (thread-level). Clicking "Reply" on a comment opens the form **inline under that comment**. Both modes share a single `commentText` state and the same editor component (extracted into `renderEditorForm`).
+- Form shows a gold-accented "Replying to [username]" indicator with cancel button when in reply mode. Scrolls to and focuses the textarea when activated. Cancel or submit hides the form.
+- Added `AppMarkdownToolbar` with Write/Preview tabs to the **comment/reply form** and **comment edit form** — same advanced formatting as thread creation: bold, italic, strikethrough, heading, quote, code blocks, links, image URL, video, lists, divider, and image upload (file picker, paste, drag-and-drop).
+- Eliminated the separate `replyText` state and inline reply form — replaced with the unified contextual system.
+- Added `replyingToLabel` and `cancelReply` translation keys (EN/DE).
+- Added `.forum-reply-indicator` CSS with gold accent styling.
+- Minor i18n fix: replaced hardcoded English "Assign to" string in clans-tab with proper translation key.
+
+---
+
 ## 2026-02-13 — E2E Test Suite Stabilization
 
 Fixed all 26 pre-existing E2E test failures. Full suite now passes: **372 passed, 0 failed, 10 skipped** (9.2m runtime).

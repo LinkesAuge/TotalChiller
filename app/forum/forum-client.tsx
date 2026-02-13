@@ -50,10 +50,9 @@ function ForumClient(): JSX.Element {
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
   const [isImageUploading, setIsImageUploading] = useState<boolean>(false);
 
-  /* Comment form */
+  /* Comment form (unified: top-level comments and replies share one text field) */
   const [commentText, setCommentText] = useState<string>("");
   const [replyingTo, setReplyingTo] = useState<string>("");
-  const [replyText, setReplyText] = useState<string>("");
 
   /* Delete confirmation */
   const [deletingPostId, setDeletingPostId] = useState<string>("");
@@ -391,7 +390,6 @@ function ForumClient(): JSX.Element {
     setViewMode("detail");
     setCommentText("");
     setReplyingTo("");
-    setReplyText("");
     void loadComments(post.id);
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -408,6 +406,7 @@ function ForumClient(): JSX.Element {
     });
     if (!error) {
       setCommentText("");
+      setReplyingTo("");
       await supabase
         .from("forum_posts")
         .update({
@@ -420,15 +419,15 @@ function ForumClient(): JSX.Element {
   }
 
   async function handleSubmitReply(): Promise<void> {
-    if (!currentUserId || !selectedPost || !replyText.trim() || !replyingTo) return;
+    if (!currentUserId || !selectedPost || !commentText.trim() || !replyingTo) return;
     const { error } = await supabase.from("forum_comments").insert({
       post_id: selectedPost.id,
       parent_comment_id: replyingTo,
       author_id: currentUserId,
-      content: replyText.trim(),
+      content: commentText.trim(),
     });
     if (!error) {
-      setReplyText("");
+      setCommentText("");
       setReplyingTo("");
       await supabase
         .from("forum_posts")
@@ -580,21 +579,20 @@ function ForumClient(): JSX.Element {
             selectedPost={selectedPost}
             comments={comments}
             commentText={commentText}
-            replyText={replyText}
             replyingTo={replyingTo}
             deletingPostId={deletingPostId}
             currentUserId={currentUserId}
+            supabase={supabase}
             canManage={canManage}
             t={t}
             onCommentTextChange={setCommentText}
-            onReplyTextChange={setReplyText}
             onReplyClick={(commentId) => {
               setReplyingTo(commentId);
-              setReplyText("");
+              setCommentText("");
             }}
             onReplyCancel={() => {
               setReplyingTo("");
-              setReplyText("");
+              setCommentText("");
             }}
             onSubmitComment={handleSubmitComment}
             onSubmitReply={handleSubmitReply}
@@ -608,6 +606,7 @@ function ForumClient(): JSX.Element {
             onToggleLock={handleToggleLock}
             onEditComment={handleEditComment}
             onDeleteComment={handleDeleteComment}
+            onCommentInsert={(md) => setCommentText((prev) => prev + md)}
             detailRef={detailRef}
           />
         </div>

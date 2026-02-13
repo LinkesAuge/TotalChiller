@@ -840,7 +840,7 @@
       "file": "File",
       "mode": "Mode",
       "ignoreDuplicates": "Ignore duplicates",
-      "selectAll": "Select all rules on this page",
+      "selectAll": "Select all on this page",
       "selectRule": "Select rule",
       "deleteSelected": "Delete selected",
       "applyImport": "Apply import",

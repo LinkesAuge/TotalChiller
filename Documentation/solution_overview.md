@@ -189,7 +189,7 @@ This document captures the agreed updates to the PRD, the proposed solution, and
 - Admin tabs include Clans & Members, Users, Validation, Corrections, Logs, Approvals, Data Import, Chest Database, Forum, Design System.
 - Membership table now manages game accounts (game username, clan, rank, status).
 - Roles are assigned globally via `user_roles`.
-- Clan Management supports assign‑to‑clan modal and batch save/cancel.
+- Clan Management supports assign‑to‑clan modal (paginated, 25 per page, with search, category filter, select-all-on-page, and scroll containment) and batch save/cancel.
 - Reusable UI primitives for filters/actions:
   - `icon-button` for icon-only actions.
   - `search-input` for labeled search fields.

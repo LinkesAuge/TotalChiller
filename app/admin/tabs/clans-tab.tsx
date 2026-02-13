@@ -9,10 +9,12 @@ import LabeledSelect from "../../components/ui/labeled-select";
 import TableScroll from "../../components/table-scroll";
 import { useAdminContext } from "../admin-context";
 import SortableColumnHeader from "@/app/components/sortable-column-header";
+import PaginationBar from "@/app/components/pagination-bar";
 import DangerConfirmModal from "../components/danger-confirm-modal";
 import FormModal from "@/app/components/form-modal";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
 import { useSortable, compareValues } from "@/lib/hooks/use-sortable";
+import { usePagination } from "@/lib/hooks/use-pagination";
 import type {
   MembershipRow,
   MembershipQueryRow,
@@ -246,6 +248,32 @@ export default function ClansTab(): ReactElement {
       return target.includes(normalizedSearch);
     });
   }, [assignAccounts.accounts, assignAccounts.filter, assignAccounts.search, selectedClanId, unassignedClanId]);
+
+  const assignPagination = usePagination(filteredAssignableAccounts.length, 25);
+
+  /** Reset page when filter or search changes */
+  useEffect(() => {
+    assignPagination.setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignAccounts.filter, assignAccounts.search]);
+
+  const paginatedAssignableAccounts = useMemo(
+    () => filteredAssignableAccounts.slice(assignPagination.startIndex, assignPagination.endIndex),
+    [filteredAssignableAccounts, assignPagination.startIndex, assignPagination.endIndex],
+  );
+
+  /** Toggle select-all for accounts on the current page */
+  function toggleSelectAllOnPage(): void {
+    const pageIds = paginatedAssignableAccounts.map((a) => a.id);
+    const allSelected = pageIds.every((id) => assignAccounts.selectedIds.includes(id));
+    setAssignAccounts((a) => {
+      if (allSelected) {
+        return { ...a, selectedIds: a.selectedIds.filter((id) => !pageIds.includes(id)) };
+      }
+      const merged = new Set([...a.selectedIds, ...pageIds]);
+      return { ...a, selectedIds: Array.from(merged) };
+    });
+  }
 
   /* ── Clan modal ── */
   async function handleSaveClan(): Promise<void> {
@@ -1173,7 +1201,7 @@ export default function ClansTab(): ReactElement {
       {/* Assign accounts modal */}
       {assignAccounts.isOpen ? (
         <div className="modal-backdrop">
-          <div className="modal card">
+          <div className="modal card assign-modal">
             <div className="card-header">
               <div>
                 <div className="card-title">{tAdmin("gameAccounts.assignTitle")}</div>
@@ -1219,25 +1247,45 @@ export default function ClansTab(): ReactElement {
                 </div>
               </div>
             ) : (
-              <div className="list">
-                {filteredAssignableAccounts.map((account) => {
-                  const clanName =
-                    clans.find((c) => c.id === account.clan_id)?.name ??
-                    (account.clan_id ? tAdmin("common.unknown") : "Unassigned");
-                  const isSelected = assignAccounts.selectedIds.includes(account.id);
-                  return (
-                    <label key={account.id} className="list-item" style={{ cursor: "pointer" }}>
-                      <input type="checkbox" checked={isSelected} onChange={() => toggleAssignSelection(account.id)} />
-                      <div>
-                        <div>{account.game_username}</div>
-                        <div className="text-muted">
-                          {account.user_display || account.user_email || account.user_id}
+              <div className="assign-modal-list">
+                <label className="list-item assign-select-all" style={{ cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={
+                      paginatedAssignableAccounts.length > 0 &&
+                      paginatedAssignableAccounts.every((a) => assignAccounts.selectedIds.includes(a.id))
+                    }
+                    onChange={toggleSelectAllOnPage}
+                  />
+                  <span className="text-muted">
+                    {tAdmin("common.selectAll")} ({paginatedAssignableAccounts.length})
+                  </span>
+                </label>
+                <div className="list assign-modal-scroll">
+                  {paginatedAssignableAccounts.map((account) => {
+                    const clanName =
+                      clans.find((c) => c.id === account.clan_id)?.name ??
+                      (account.clan_id ? tAdmin("common.unknown") : "Unassigned");
+                    const isSelected = assignAccounts.selectedIds.includes(account.id);
+                    return (
+                      <label key={account.id} className="list-item" style={{ cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleAssignSelection(account.id)}
+                        />
+                        <div>
+                          <div>{account.game_username}</div>
+                          <div className="text-muted">
+                            {account.user_display || account.user_email || account.user_id}
+                          </div>
                         </div>
-                      </div>
-                      <span className="badge">{clanName}</span>
-                    </label>
-                  );
-                })}
+                        <span className="badge">{clanName}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <PaginationBar pagination={assignPagination} idPrefix="assign" compact />
               </div>
             )}
             <div className="list inline">

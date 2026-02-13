@@ -2649,6 +2649,33 @@ select:disabled,
   width: 100%;
 }
 
+.modal.assign-modal {
+  max-width: 620px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.assign-modal-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.assign-modal-scroll {
+  overflow-y: auto;
+  max-height: 45vh;
+  min-height: 120px;
+  scrollbar-gutter: stable;
+}
+
+.assign-select-all {
+  border-bottom: 1px solid var(--color-edge);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
 .modal.danger {
   border: 1px solid rgba(201, 74, 58, 0.6);
   background: rgba(54, 22, 18, 0.92);

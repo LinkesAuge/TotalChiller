@@ -63,6 +63,8 @@ function EventsClient(): JSX.Element {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selectedDateKey, setSelectedDateKey] = useState<string>(() => toDateKey(new Date()));
+  /** Incremented on every day-cell click so EventDayPanel resets even when the same day is re-selected. */
+  const [dateSelectNonce, setDateSelectNonce] = useState(0);
 
   /* ── Template state ── */
   const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
@@ -582,6 +584,7 @@ function EventsClient(): JSX.Element {
 
   function handleDateSelect(dayKey: string, day: CalendarDay): void {
     setSelectedDateKey(dayKey);
+    setDateSelectNonce((n) => n + 1);
     if (!day.isCurrentMonth) {
       setCalendarMonth(new Date(day.date.getFullYear(), day.date.getMonth(), 1));
     }
@@ -636,6 +639,7 @@ function EventsClient(): JSX.Element {
                 />
                 <EventDayPanel
                   selectedDateLabel={selectedDateLabel}
+                  selectionNonce={dateSelectNonce}
                   selectedDayEvents={selectedDayEvents}
                   onEditEvent={handleEditEventById}
                   onDeleteEvent={requestDeleteEvent}

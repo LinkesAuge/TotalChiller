@@ -31,6 +31,8 @@ export interface EventCalendarProps {
 
 export interface EventDayPanelProps {
   readonly selectedDateLabel: string;
+  /** Incremented on every day-cell click so the panel resets even when the same day is re-selected. */
+  readonly selectionNonce: number;
   readonly selectedDayEvents: readonly DisplayEvent[];
   readonly onEditEvent: (eventId: string) => void;
   readonly onDeleteEvent: (eventId: string) => void;
@@ -398,6 +400,7 @@ function dateBadgeParts(isoString: string, locale: string): { weekday: string; d
 
 export function EventDayPanel({
   selectedDateLabel,
+  selectionNonce,
   selectedDayEvents,
   onEditEvent,
   onDeleteEvent,
@@ -409,7 +412,11 @@ export function EventDayPanel({
   const panelRef = useRef<HTMLElement>(null);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(DAY_PANEL_PAGE_SIZE);
-  const [prevDate, setPrevDate] = useState(selectedDateLabel);
+  /* Initialize to -1 so the auto-expand block fires on the first render
+     (nonce starts at 0), fixing today's events staying collapsed on page load.
+     Subsequent clicks always increment nonce, so re-clicking the same day
+     also triggers the expansion. */
+  const [prevNonce, setPrevNonce] = useState(-1);
 
   /** Toggle expand/collapse for a single event card. */
   function toggleExpand(displayKey: string): void {
@@ -424,9 +431,9 @@ export function EventDayPanel({
     });
   }
 
-  /** Reset visible count and expansion when selected day changes. Auto-expand first event. */
-  if (prevDate !== selectedDateLabel) {
-    setPrevDate(selectedDateLabel);
+  /** Reset visible count and expansion when selected day changes or the same day is re-clicked. */
+  if (prevNonce !== selectionNonce) {
+    setPrevNonce(selectionNonce);
     setVisibleCount(DAY_PANEL_PAGE_SIZE);
     const sorted = sortPinnedFirst(selectedDayEvents);
     const firstKey = sorted[0]?.displayKey;

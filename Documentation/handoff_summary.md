@@ -156,7 +156,7 @@ This file is a compact context transfer for a new chat.
   - Visual design: post cards with gold left-border hover accent, detail view with gold top-border, comments wrapped in styled panel with card-like comment items, gold-accented reply indent borders.
   - Forum Management tab in admin panel for category CRUD and reordering.
   - Files: `app/forum/forum-client.tsx`, `app/forum/forum-post-detail.tsx`, `app/forum/forum-post-list.tsx`, `app/forum/forum-types.ts`, `app/forum/page.tsx`, `app/api/admin/forum-categories/route.ts`, `app/admin/forum-category-admin.tsx`
-  - Migrations: `forum_tables.sql`, `forum_storage.sql`, `forum_seed_categories.sql`, `forum_rls_permissions.sql`
+  - Migrations: `forum_tables.sql`, `forum_storage.sql`, `forum_seed_categories.sql`, `forum_rls_permissions.sql`, `forum_thread_linking.sql`
 - **Announcements (redesigned with banners, rich editor, edit tracking)**
   - Visually rich cards with banner headers (160px), gold title overlay (1.5rem), expandable content preview (280px).
   - Banner system: uses shared `BannerPicker` component with 51 game-asset presets + custom upload to Supabase Storage.
@@ -439,11 +439,12 @@ Production audit score: **84/100 (B)**, up from 43/100. Key areas:
 - i18n uses `next-intl` with `messages/en.json` and `messages/de.json`. All UI strings are translated.
 - Announcements page uses server-side pagination with Supabase `.range()` and `{ count: "exact" }`.
 - Announcements content uses `AppMarkdown` for rendering (sanitization applied universally via `sanitizeMarkdown()`).
-- Announcements editing sets `updated_by` instead of `created_by` to protect original authorship. Edit info shown in card meta.
+- Announcements editing sets `updated_by` instead of `created_by` to protect original authorship. Edit info shown in card meta. Edit form opens inline below the edited article (not at the top) and auto-scrolls into view.
 - Forum categories are managed via a server-side API route (`/api/admin/forum-categories`) with service role client to bypass RLS restrictions.
 - Forum posts support markdown with rich media embeds, thumbnail extraction, and pinned-first sorting.
 - Forum RLS policies use `has_permission()` for update/delete (migration: `forum_rls_permissions.sql`). Moderators/admins can edit/delete any post or comment; regular users can only manage their own. Members have `forum:edit:own` but not `forum:delete:own`; editors have both.
 - Forum comment count is a cached integer on `forum_posts.comment_count`. It is incremented on new comment/reply and decremented on delete (accounting for cascade-deleted nested replies). The post list is reloaded when navigating back from detail view to ensure fresh counts.
+- **Forum Thread Auto-Linking** (Feb 2026): Creating an event or announcement auto-creates a linked forum thread. Bidirectional linking via `forum_post_id` on events/articles and `source_type`/`source_id` on forum_posts. Database triggers handle bidirectional delete cascade and edit sync (all `SECURITY DEFINER`). "Events" and "Ankündigungen" categories seeded per clan. Deep-link: `/forum?post=<id>` opens the post directly. Prominent "Discuss in Forum" button on expanded events. "View in Events/Announcements" links on forum threads. Editing a forum thread stays in detail view. Announcements edit form opens inline below the edited article. Migration: `forum_thread_linking.sql`. Helper: `lib/forum-thread-sync.ts`.
 - Default game account (`profiles.default_game_account_id`) takes priority over localStorage in sidebar selector.
 - A decorative gold gradient divider line sits below the top bar on all pages.
 - Global `option` CSS ensures dark-themed native `<select>` dropdown menus where RadixSelect is not used.

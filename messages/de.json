@@ -441,7 +441,8 @@
     "customBanner": "Eigenes hochladen",
     "readMore": "Weiterlesen ›",
     "showLess": "‹ Weniger anzeigen",
-    "editedBy": "bearbeitet von {name} am {date}"
+    "editedBy": "bearbeitet von {name} am {date}",
+    "goToThread": "Zum Diskussionsthread"
   },
   "events": {
     "breadcrumb": "TotalChiller \u2022 Clan-Plattform",
@@ -580,7 +581,8 @@
     "unpinEvent": "Event lösen",
     "pinned": "Angeheftet",
     "pinFailed": "Pin-Status konnte nicht aktualisiert werden.",
-    "confirmDeleteSidebar": "Dieses Event löschen?"
+    "confirmDeleteSidebar": "Dieses Event löschen?",
+    "goToThread": "Zum Diskussionsthread"
   },
   "charts": {
     "breadcrumb": "TotalChiller \u2022 Analysen",
@@ -1613,7 +1615,12 @@
     "preview": "Vorschau",
     "previewEmpty": "Noch nichts zum Anzeigen.",
     "markdownHint": "Unterstützt Markdown: **fett**, _kursiv_, [Links](url), ![Bilder](url), YouTube-Links, Code-Blöcke, Listen und mehr.",
-    "emptyTitle": "Willkommen im Forum"
+    "emptyTitle": "Willkommen im Forum",
+    "sourceEvent": "Event",
+    "sourceAnnouncement": "Ankündigung",
+    "goToEvent": "Im Kalender ansehen",
+    "goToAnnouncement": "In Ankündigungen ansehen",
+    "deleteLinkedWarning": "Dadurch wird auch das verknüpfte {type} gelöscht."
   },
   "designSystem": {
     "title": "Design-System Asset-Manager",

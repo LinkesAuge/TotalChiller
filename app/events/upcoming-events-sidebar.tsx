@@ -194,17 +194,14 @@ export function UpcomingEventsSidebar({
                         </div>
                       )}
                     </div>
-                    {canManage && (
-                      <div className="upcoming-event-actions">
-                        <button
-                          className={`upcoming-event-pin${entry.is_pinned ? " active" : ""}`}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onTogglePin(entry.id, entry.is_pinned);
-                          }}
-                          aria-label={entry.is_pinned ? t("unpinEvent") : t("pinEvent")}
-                          title={entry.is_pinned ? t("unpinEvent") : t("pinEvent")}
+                    <div className="upcoming-event-actions">
+                      {entry.forum_post_id && (
+                        <a
+                          className="upcoming-event-thread"
+                          href={`/forum?post=${entry.forum_post_id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={t("goToThread")}
+                          title={t("goToThread")}
                         >
                           <svg
                             width="14"
@@ -217,61 +214,89 @@ export function UpcomingEventsSidebar({
                             strokeLinejoin="round"
                             aria-hidden="true"
                           >
-                            <path d="M12 2l2.09 6.26L21 9.27l-5 4.87L17.18 21 12 17.27 6.82 21 8 14.14l-5-4.87 6.91-1.01L12 2z" />
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                           </svg>
-                        </button>
-                        <button
-                          className="upcoming-event-edit"
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditEvent(entry.id);
-                          }}
-                          aria-label={t("editEvent")}
-                          title={t("editEvent")}
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
+                        </a>
+                      )}
+                      {canManage && (
+                        <>
+                          <button
+                            className={`upcoming-event-pin${entry.is_pinned ? " active" : ""}`}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onTogglePin(entry.id, entry.is_pinned);
+                            }}
+                            aria-label={entry.is_pinned ? t("unpinEvent") : t("pinEvent")}
+                            title={entry.is_pinned ? t("unpinEvent") : t("pinEvent")}
                           >
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                        </button>
-                        <button
-                          className="upcoming-event-delete"
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteEvent(entry.id);
-                          }}
-                          aria-label={t("deleteEvent")}
-                          title={t("deleteEvent")}
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M12 2l2.09 6.26L21 9.27l-5 4.87L17.18 21 12 17.27 6.82 21 8 14.14l-5-4.87 6.91-1.01L12 2z" />
+                            </svg>
+                          </button>
+                          <button
+                            className="upcoming-event-edit"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEditEvent(entry.id);
+                            }}
+                            aria-label={t("editEvent")}
+                            title={t("editEvent")}
                           >
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                          <button
+                            className="upcoming-event-delete"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteEvent(entry.id);
+                            }}
+                            aria-label={t("deleteEvent")}
+                            title={t("deleteEvent")}
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </article>
               );

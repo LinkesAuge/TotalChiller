@@ -6,6 +6,28 @@
 
 ---
 
+## 2026-02-13 — Forum Thread Auto-Linking for Events & Announcements
+
+- **Auto-created forum threads**: Creating an event or announcement now automatically creates a linked discussion thread in the forum. The thread mirrors the title and content of the source.
+- **Bidirectional linking**: Events and articles store a `forum_post_id` FK; forum posts store `source_type` and `source_id` for reverse lookup.
+- **Sync on edit**: Editing an event or announcement updates the linked forum thread's title and content.
+- **Bidirectional cascade delete**: Deleting an event/announcement auto-deletes the linked forum thread, and vice versa. Handled by database triggers (`trg_event_delete_forum_post`, `trg_article_delete_forum_post`, `trg_forum_post_delete_source`). Triggers null out `source_id` before cascading to prevent infinite loops.
+- **Bidirectional edit sync**: Editing an event/announcement syncs title and content to the linked forum thread, and editing the forum thread syncs back to the source event/article. Handled by `AFTER UPDATE` triggers with `IS DISTINCT FROM` guards to break infinite loops. All client-side sync code removed in favor of triggers.
+- **SECURITY DEFINER on all trigger functions**: All six sync trigger functions use `SECURITY DEFINER SET search_path = public` to bypass RLS when cross-updating tables. Without this, triggers silently failed when a user lacked direct UPDATE permission on the target table.
+- **"Go to thread" buttons**: Events calendar (day panel and upcoming sidebar) and announcements page show a discussion icon/button linking directly to the forum thread. Deep-link support: navigating to `/forum?post=<id>` now opens the post detail view directly.
+- **Prominent "Discuss in Forum" button**: Expanded event cards in the calendar show a gold-styled button below the description linking to the discussion thread (in addition to the icon in the header row).
+- **Navigate from forum back to source**: Forum post detail view shows a "Im Kalender ansehen" / "In Ankündigungen ansehen" button (with calendar/bell icon) for linked threads. Source badges in list and detail views are now clickable links to `/events` or `/news`.
+- **Source badges in forum**: Linked forum posts display an "Event" or "Announcement" badge in both list and detail views.
+- **New forum categories**: "Events" and "Ankündigungen" categories seeded for all clans.
+- **Backmigration**: Existing events and announcements without forum threads get one auto-created during migration.
+- **Database migration**: `forum_thread_linking.sql` adds columns, seeds categories, creates bidirectional delete and edit sync triggers (all SECURITY DEFINER), and backmigrates existing data.
+- **Shared helper**: `lib/forum-thread-sync.ts` provides `createLinkedForumPost`, `updateLinkedForumPost`, and `deleteLinkedForumPost` utilities.
+- **Translations**: Added `goToThread`, `sourceEvent`, `sourceAnnouncement`, `goToEvent`, `goToAnnouncement`, `deleteLinkedWarning` keys in EN and DE.
+- **Forum post edit stays in detail view**: Editing a forum thread now returns to the detail view with updated content instead of navigating back to the list.
+- **Announcements inline edit form**: Editing an announcement now opens the form directly below the edited article (instead of at the top of the page) and auto-scrolls to it.
+
+---
+
 ## 2026-02-13 — Forum Comment/Reply Markdown Toolbar & Contextual Editor
 
 - **Contextual comment/reply form**: Editor form is **hidden by default**. Clicking "Comment" at the top of the comments section opens the form there (thread-level). Clicking "Reply" on a comment opens the form **inline under that comment**. Both modes share a single `commentText` state and the same editor component (extracted into `renderEditorForm`).

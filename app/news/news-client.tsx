@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { z } from "zod";
 import { useTranslations, useLocale } from "next-intl";
@@ -24,6 +24,7 @@ import SectionHero from "../components/section-hero";
 import DataState from "../components/data-state";
 import PaginationBar from "../components/pagination-bar";
 import { usePagination } from "@/lib/hooks/use-pagination";
+import { createLinkedForumPost } from "@/lib/forum-thread-sync";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
@@ -57,6 +58,7 @@ interface ArticleRow {
   readonly banner_url: string | null;
   readonly updated_by: string | null;
   readonly editor_name: string | null;
+  readonly forum_post_id: string | null;
 }
 
 const ARTICLE_SCHEMA = z.object({
@@ -97,6 +99,7 @@ function NewsClient(): JSX.Element {
   const [dateTo, setDateTo] = useState<string>("");
 
   /* ── Form state ── */
+  const editFormRef = useRef<HTMLElement>(null);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<string>("");
@@ -133,7 +136,7 @@ function NewsClient(): JSX.Element {
     const toIndex = fromIndex + pagination.pageSize - 1;
     /* Select with embedded profile joins for author + editor names */
     const selectCols =
-      "id,title,content,type,is_pinned,status,tags,created_at,updated_at,created_by,banner_url,updated_by," +
+      "id,title,content,type,is_pinned,status,tags,created_at,updated_at,created_by,banner_url,updated_by,forum_post_id," +
       "author:profiles!articles_created_by_profiles_fkey(display_name,username)," +
       "editor:profiles!articles_updated_by_profiles_fkey(display_name,username)";
     let query = supabase.from("articles").select(selectCols, { count: "exact" }).eq("clan_id", clanContext.clanId);
@@ -210,6 +213,9 @@ function NewsClient(): JSX.Element {
     setTagsInput(article.tags.join(", "));
     setBannerUrl(article.banner_url ?? "");
     setIsFormOpen(true);
+    requestAnimationFrame(() => {
+      editFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   /* ── Banner upload ── */
@@ -290,7 +296,24 @@ function NewsClient(): JSX.Element {
           body: parsed.data.content.slice(0, 100),
         }),
       });
+      /* Create linked forum thread */
+      const { forumPostId } = await createLinkedForumPost(supabase, {
+        clanId: clanContext.clanId,
+        authorId: userId,
+        title: parsed.data.title,
+        content: parsed.data.content,
+        sourceType: "announcement",
+        sourceId: insertedData.id as string,
+        categorySlug: "announcements",
+      });
+      if (forumPostId) {
+        await supabase
+          .from("articles")
+          .update({ forum_post_id: forumPostId })
+          .eq("id", insertedData.id as string);
+      }
     }
+    /* Edit sync is handled by DB trigger trg_article_update_sync_forum */
     pushToast(editingId ? t("postUpdated") : t("postCreated"));
     resetForm();
     await loadArticles();
@@ -299,6 +322,7 @@ function NewsClient(): JSX.Element {
   /* ── Delete ── */
   async function handleDeleteArticle(articleId: string): Promise<void> {
     if (!window.confirm(t("confirmDelete"))) return;
+    /* DB trigger (trg_article_delete_forum_post) auto-deletes the linked forum thread */
     const { error } = await supabase.from("articles").delete().eq("id", articleId);
     if (error) {
       pushToast(`${t("deleteError")}: ${error.message}`);
@@ -319,6 +343,107 @@ function NewsClient(): JSX.Element {
   }
   const hasActiveFilters = tagFilter !== "all" || searchTerm.trim() !== "" || dateFrom !== "" || dateTo !== "";
 
+  /* ── Shared form JSX ── */
+  function renderForm(): JSX.Element {
+    return (
+      <section className="card col-span-full" ref={editFormRef}>
+        <div className="card-header">
+          <div>
+            <div className="card-title">{editingId ? t("editPost") : t("createPost")}</div>
+            <div className="card-subtitle">{t("visibleToClan")}</div>
+          </div>
+        </div>
+        <form onSubmit={handleSubmit} className="pt-0 px-4 pb-4">
+          {/* Title */}
+          <div className="form-group">
+            <label htmlFor="newsTitle">{t("titleLabel")}</label>
+            <input
+              id="newsTitle"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("titlePlaceholder")}
+            />
+          </div>
+
+          {/* Banner selection */}
+          <div className="form-group">
+            <label id="newsBannerLabel">{t("bannerLabel")}</label>
+            <BannerPicker
+              presets={BANNER_PRESETS}
+              value={bannerUrl}
+              onChange={setBannerUrl}
+              onUpload={handleBannerUpload}
+              isUploading={isBannerUploading}
+              fileRef={bannerFileRef}
+              labelId="newsBannerLabel"
+            />
+          </div>
+
+          {/* Content editor */}
+          <div className="form-group">
+            <label htmlFor="newsContent">{t("contentLabel")}</label>
+            <MarkdownEditor
+              id="newsContent"
+              value={content}
+              onChange={setContent}
+              supabase={supabase}
+              userId={currentUserId}
+              placeholder={t("contentPlaceholder")}
+              rows={14}
+              minHeight={250}
+            />
+          </div>
+
+          {/* Status, Tags, Pin */}
+          <div className="form-grid">
+            <div className="form-group mb-0">
+              <label htmlFor="newsStatus">{t("status")}</label>
+              <RadixSelect
+                id="newsStatus"
+                ariaLabel={t("status")}
+                value={status}
+                onValueChange={(v) => setStatus(v as "draft" | "pending" | "published")}
+                options={[
+                  { value: "draft", label: t("draft") },
+                  { value: "pending", label: t("pending") },
+                  { value: "published", label: t("published") },
+                ]}
+              />
+            </div>
+            <div className="form-group mb-0">
+              <label htmlFor="newsTags">{t("tags")}</label>
+              <input
+                id="newsTags"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder={t("tagsPlaceholder")}
+              />
+            </div>
+          </div>
+          <div className="list inline mt-3">
+            <label className="text-muted inline-flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={isPinned}
+                onChange={(e) => setIsPinned(e.target.checked)}
+                style={{ accentColor: "var(--color-gold)" }}
+              />
+              {t("pinLabel")}
+            </label>
+          </div>
+          <div className="list inline mt-4">
+            <button className="button primary" type="submit" disabled={isSaving}>
+              {isSaving ? t("saving") : editingId ? t("save") : t("createPost")}
+            </button>
+            <button className="button" type="button" onClick={resetForm}>
+              {t("cancel")}
+            </button>
+          </div>
+        </form>
+      </section>
+    );
+  }
+
   /* ── Render ── */
   return (
     <>
@@ -336,104 +461,8 @@ function NewsClient(): JSX.Element {
         )}
 
         <div className="grid">
-          {/* ═══ Create / Edit Form ═══ */}
-          {isFormOpen && canManage && (
-            <section className="card col-span-full">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">{editingId ? t("editPost") : t("createPost")}</div>
-                  <div className="card-subtitle">{t("visibleToClan")}</div>
-                </div>
-              </div>
-              <form onSubmit={handleSubmit} className="pt-0 px-4 pb-4">
-                {/* Title */}
-                <div className="form-group">
-                  <label htmlFor="newsTitle">{t("titleLabel")}</label>
-                  <input
-                    id="newsTitle"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder={t("titlePlaceholder")}
-                  />
-                </div>
-
-                {/* Banner selection */}
-                <div className="form-group">
-                  <label id="newsBannerLabel">{t("bannerLabel")}</label>
-                  <BannerPicker
-                    presets={BANNER_PRESETS}
-                    value={bannerUrl}
-                    onChange={setBannerUrl}
-                    onUpload={handleBannerUpload}
-                    isUploading={isBannerUploading}
-                    fileRef={bannerFileRef}
-                    labelId="newsBannerLabel"
-                  />
-                </div>
-
-                {/* Content editor */}
-                <div className="form-group">
-                  <label htmlFor="newsContent">{t("contentLabel")}</label>
-                  <MarkdownEditor
-                    id="newsContent"
-                    value={content}
-                    onChange={setContent}
-                    supabase={supabase}
-                    userId={currentUserId}
-                    placeholder={t("contentPlaceholder")}
-                    rows={14}
-                    minHeight={250}
-                  />
-                </div>
-
-                {/* Status, Tags, Pin */}
-                <div className="form-grid">
-                  <div className="form-group mb-0">
-                    <label htmlFor="newsStatus">{t("status")}</label>
-                    <RadixSelect
-                      id="newsStatus"
-                      ariaLabel={t("status")}
-                      value={status}
-                      onValueChange={(v) => setStatus(v as "draft" | "pending" | "published")}
-                      options={[
-                        { value: "draft", label: t("draft") },
-                        { value: "pending", label: t("pending") },
-                        { value: "published", label: t("published") },
-                      ]}
-                    />
-                  </div>
-                  <div className="form-group mb-0">
-                    <label htmlFor="newsTags">{t("tags")}</label>
-                    <input
-                      id="newsTags"
-                      value={tagsInput}
-                      onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder={t("tagsPlaceholder")}
-                    />
-                  </div>
-                </div>
-                <div className="list inline mt-3">
-                  <label className="text-muted inline-flex items-center gap-1.5">
-                    <input
-                      type="checkbox"
-                      checked={isPinned}
-                      onChange={(e) => setIsPinned(e.target.checked)}
-                      style={{ accentColor: "var(--color-gold)" }}
-                    />
-                    {t("pinLabel")}
-                  </label>
-                </div>
-                <div className="list inline mt-4">
-                  <button className="button primary" type="submit" disabled={isSaving}>
-                    {isSaving ? t("saving") : editingId ? t("save") : t("createPost")}
-                  </button>
-                  <button className="button" type="button" onClick={resetForm}>
-                    {t("cancel")}
-                  </button>
-                </div>
-              </form>
-            </section>
-          )}
+          {/* ═══ Create Form (top position — only for new posts) ═══ */}
+          {isFormOpen && !editingId && canManage && renderForm()}
 
           {/* ═══ Pagination ═══ */}
           <div className="col-span-full">
@@ -449,127 +478,142 @@ function NewsClient(): JSX.Element {
           >
             {articles.map((article) => {
               const isExpanded = expandedArticleId === article.id;
+              const isBeingEdited = isFormOpen && editingId === article.id;
               return (
-                <article key={article.id} className="news-card col-span-full">
-                  {/* Banner header */}
-                  <div
-                    className="news-card-banner"
-                    onClick={() => setExpandedArticleId(isExpanded ? "" : article.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setExpandedArticleId(isExpanded ? "" : article.id);
-                      }
-                    }}
-                  >
-                    <img
-                      src={article.banner_url || "/assets/banners/banner_gold_dragon.png"}
-                      alt=""
-                      className="news-card-banner-img"
-                    />
-                    <div className="news-card-banner-overlay" />
-                    {/* Decorative line */}
-                    <Image
-                      src="/assets/vip/components_decor_6.png"
-                      alt=""
-                      className="news-card-decor"
-                      width={240}
-                      height={12}
-                    />
-                    {/* Title + meta over banner */}
-                    <div className="news-card-banner-content">
-                      <h3 className="news-card-title">{article.title}</h3>
-                      <div className="news-card-meta">
-                        <span>{formatLocalDateTime(article.created_at, locale)}</span>
-                        {article.author_name && (
-                          <>
-                            <span className="news-card-meta-sep">&bull;</span>
-                            <span>{t("author", { name: article.author_name })}</span>
-                          </>
-                        )}
-                        {article.editor_name && article.updated_at && (
-                          <>
-                            <span className="news-card-meta-sep">&bull;</span>
-                            <span className="news-card-edited">
-                              {t("editedBy", {
-                                name: article.editor_name,
-                                date: formatLocalDateTime(article.updated_at, locale),
-                              })}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {/* Badges */}
-                    <div className="news-card-badges">
-                      {article.is_pinned && <span className="news-card-badge pinned">{t("pinned")}</span>}
-                      <span className="news-card-badge status">
-                        {t(article.status as "draft" | "pending" | "published")}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Content preview (truncated) — always visible */}
-                  {!isExpanded && article.content && (
+                <React.Fragment key={article.id}>
+                  <article className="news-card col-span-full">
+                    {/* Banner header */}
                     <div
-                      className="news-card-preview"
-                      onClick={() => setExpandedArticleId(article.id)}
+                      className="news-card-banner"
+                      onClick={() => setExpandedArticleId(isExpanded ? "" : article.id)}
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          setExpandedArticleId(article.id);
+                          setExpandedArticleId(isExpanded ? "" : article.id);
                         }
                       }}
                     >
-                      <AppMarkdown content={article.content} />
-                      <div className="news-card-fade" />
-                      <span className="news-card-read-more">{t("readMore")}</span>
-                    </div>
-                  )}
-
-                  {/* Expanded full content */}
-                  {isExpanded && (
-                    <div className="news-card-body">
-                      <AppMarkdown content={article.content} />
-                      <div className="news-card-collapse-row">
-                        <button
-                          className="news-card-collapse-btn"
-                          type="button"
-                          onClick={() => setExpandedArticleId("")}
-                        >
-                          {t("showLess")}
-                        </button>
+                      <img
+                        src={article.banner_url || "/assets/banners/banner_gold_dragon.png"}
+                        alt=""
+                        className="news-card-banner-img"
+                      />
+                      <div className="news-card-banner-overlay" />
+                      {/* Decorative line */}
+                      <Image
+                        src="/assets/vip/components_decor_6.png"
+                        alt=""
+                        className="news-card-decor"
+                        width={240}
+                        height={12}
+                      />
+                      {/* Title + meta over banner */}
+                      <div className="news-card-banner-content">
+                        <h3 className="news-card-title">{article.title}</h3>
+                        <div className="news-card-meta">
+                          <span>{formatLocalDateTime(article.created_at, locale)}</span>
+                          {article.author_name && (
+                            <>
+                              <span className="news-card-meta-sep">&bull;</span>
+                              <span>{t("author", { name: article.author_name })}</span>
+                            </>
+                          )}
+                          {article.editor_name && article.updated_at && (
+                            <>
+                              <span className="news-card-meta-sep">&bull;</span>
+                              <span className="news-card-edited">
+                                {t("editedBy", {
+                                  name: article.editor_name,
+                                  date: formatLocalDateTime(article.updated_at, locale),
+                                })}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {/* Badges */}
+                      <div className="news-card-badges">
+                        {article.is_pinned && <span className="news-card-badge pinned">{t("pinned")}</span>}
+                        <span className="news-card-badge status">
+                          {t(article.status as "draft" | "pending" | "published")}
+                        </span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Tags */}
-                  {article.tags.length > 0 && (
-                    <div className="news-card-tags">
-                      {article.tags.map((tag) => (
-                        <span className="news-card-tag" key={tag}>
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                    {/* Content preview (truncated) — always visible */}
+                    {!isExpanded && article.content && (
+                      <div
+                        className="news-card-preview"
+                        onClick={() => setExpandedArticleId(article.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setExpandedArticleId(article.id);
+                          }
+                        }}
+                      >
+                        <AppMarkdown content={article.content} />
+                        <div className="news-card-fade" />
+                        <span className="news-card-read-more">{t("readMore")}</span>
+                      </div>
+                    )}
 
-                  {/* Actions */}
-                  {canManage && (
+                    {/* Expanded full content */}
+                    {isExpanded && (
+                      <div className="news-card-body">
+                        <AppMarkdown content={article.content} />
+                        <div className="news-card-collapse-row">
+                          <button
+                            className="news-card-collapse-btn"
+                            type="button"
+                            onClick={() => setExpandedArticleId("")}
+                          >
+                            {t("showLess")}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tags */}
+                    {article.tags.length > 0 && (
+                      <div className="news-card-tags">
+                        {article.tags.map((tag) => (
+                          <span className="news-card-tag" key={tag}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Actions */}
                     <div className="news-card-actions">
-                      <button className="button" type="button" onClick={() => handleEditArticle(article)}>
-                        {t("editPost")}
-                      </button>
-                      <button className="button danger" type="button" onClick={() => handleDeleteArticle(article.id)}>
-                        {t("deletePost")}
-                      </button>
+                      {article.forum_post_id && (
+                        <a className="button" href={`/forum?post=${article.forum_post_id}`}>
+                          {t("goToThread")}
+                        </a>
+                      )}
+                      {canManage && (
+                        <>
+                          <button className="button" type="button" onClick={() => handleEditArticle(article)}>
+                            {t("editPost")}
+                          </button>
+                          <button
+                            className="button danger"
+                            type="button"
+                            onClick={() => handleDeleteArticle(article.id)}
+                          >
+                            {t("deletePost")}
+                          </button>
+                        </>
+                      )}
                     </div>
-                  )}
-                </article>
+                  </article>
+                  {isBeingEdited && canManage && renderForm()}
+                </React.Fragment>
               );
             })}
           </DataState>

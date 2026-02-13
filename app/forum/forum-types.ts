@@ -12,6 +12,8 @@ export interface ForumPost {
   readonly comment_count: number;
   readonly created_at: string;
   readonly updated_at: string;
+  readonly source_type: string | null;
+  readonly source_id: string | null;
   /* resolved client-side */
   readonly authorName?: string;
   readonly categoryName?: string;

@@ -429,6 +429,16 @@ export default function ForumPostDetail({
           <div className="flex-1">
             <div className="forum-post-meta">
               {selectedPost.categoryName && <span className="forum-cat-badge">{selectedPost.categoryName}</span>}
+              {selectedPost.source_type === "event" && (
+                <a href="/events" className="forum-badge-source event">
+                  {t("sourceEvent")}
+                </a>
+              )}
+              {selectedPost.source_type === "announcement" && (
+                <a href="/news" className="forum-badge-source announcement">
+                  {t("sourceAnnouncement")}
+                </a>
+              )}
               <span>
                 {t("by")} <strong style={{ color: "var(--color-text)" }}>{selectedPost.authorName}</strong>
               </span>
@@ -454,6 +464,46 @@ export default function ForumPostDetail({
           >
             <CommentIcon /> {selectedPost.comment_count} {t("comments")}
           </span>
+          {selectedPost.source_type === "event" && (
+            <a className="forum-source-link event" href="/events">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              {t("goToEvent")}
+            </a>
+          )}
+          {selectedPost.source_type === "announcement" && (
+            <a className="forum-source-link announcement" href="/news">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+              </svg>
+              {t("goToAnnouncement")}
+            </a>
+          )}
           {canModerate && (
             <>
               <button className="forum-mod-btn" onClick={() => onEditPost(selectedPost)} type="button">
@@ -486,6 +536,13 @@ export default function ForumPostDetail({
           <p className="pt-0 px-4 pb-2" style={{ fontSize: "0.84rem", color: "var(--color-text-2)" }}>
             {t("deleteConfirmText")}
           </p>
+          {selectedPost.source_type && (
+            <p className="pt-0 px-4 pb-2" style={{ fontSize: "0.84rem", color: "var(--color-accent-red)" }}>
+              {t("deleteLinkedWarning", {
+                type: selectedPost.source_type === "event" ? t("sourceEvent") : t("sourceAnnouncement"),
+              })}
+            </p>
+          )}
           <div className="flex gap-2 pt-0 px-4 pb-4">
             <button className="button danger" onClick={onConfirmDelete}>
               {t("deleteConfirmButton")}

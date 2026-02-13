@@ -29,6 +29,7 @@ import {
   toLocalDateTimeString,
 } from "./events-utils";
 import DataState from "../components/data-state";
+import { createLinkedForumPost } from "@/lib/forum-thread-sync";
 
 /**
  * Full events client component with CRUD, templates, role-gating, calendar, and past/upcoming.
@@ -398,7 +399,24 @@ function EventsClient(): JSX.Element {
           body: parsed.data.description?.slice(0, 100) ?? null,
         }),
       });
+      /* Create linked forum thread */
+      const { forumPostId } = await createLinkedForumPost(supabase, {
+        clanId: clanContext.clanId,
+        authorId: userId,
+        title: parsed.data.title,
+        content: parsed.data.description ?? "",
+        sourceType: "event",
+        sourceId: insertedData.id as string,
+        categorySlug: "events",
+      });
+      if (forumPostId) {
+        await supabase
+          .from("events")
+          .update({ forum_post_id: forumPostId })
+          .eq("id", insertedData.id as string);
+      }
     }
+    /* Edit sync is handled by DB trigger trg_event_update_sync_forum */
     pushToast(editingId ? "Event updated." : "Event created.");
     resetForm();
     await reloadEvents();
@@ -410,6 +428,7 @@ function EventsClient(): JSX.Element {
 
   async function confirmDeleteEvent(): Promise<void> {
     if (!deleteEventId) return;
+    /* DB trigger (trg_event_delete_forum_post) auto-deletes the linked forum thread */
     const { error } = await supabase.from("events").delete().eq("id", deleteEventId);
     setDeleteEventId("");
     if (error) {

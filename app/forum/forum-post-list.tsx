@@ -172,6 +172,16 @@ export default function ForumPostList({
               <div className="forum-post-body">
                 <div className="forum-post-meta">
                   {post.categoryName && <span className="forum-cat-badge">{post.categoryName}</span>}
+                  {post.source_type === "event" && (
+                    <a href="/events" className="forum-badge-source event" onClick={(e) => e.stopPropagation()}>
+                      {t("sourceEvent")}
+                    </a>
+                  )}
+                  {post.source_type === "announcement" && (
+                    <a href="/news" className="forum-badge-source announcement" onClick={(e) => e.stopPropagation()}>
+                      {t("sourceAnnouncement")}
+                    </a>
+                  )}
                   <span>
                     {t("by")} {post.authorName}
                   </span>

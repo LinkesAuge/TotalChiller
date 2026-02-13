@@ -26,6 +26,7 @@ function ForumClient(): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlCategorySlug = searchParams.get("category") ?? "";
+  const urlPostId = searchParams.get("post") ?? "";
 
   /* State */
   const [categories, setCategories] = useState<ForumCategory[]>([]);
@@ -239,6 +240,45 @@ function ForumClient(): JSX.Element {
     [supabase, currentUserId, tablesReady],
   );
 
+  /* ─── Deep-link: open post from ?post= query param ─── */
+  useEffect(() => {
+    if (!urlPostId || !clanContext || !tablesReady) return;
+    if (viewMode === "detail" && selectedPost?.id === urlPostId) return;
+    async function openLinkedPost(): Promise<void> {
+      const { data, error } = await supabase.from("forum_posts").select("*").eq("id", urlPostId).maybeSingle();
+      if (error || !data) return;
+      const raw = data as ForumPost;
+      const nameMap = await resolveAuthorNames(supabase, [raw.author_id]);
+      const catMap: Record<string, { name: string; slug: string }> = {};
+      for (const cat of categories) {
+        catMap[cat.id] = { name: cat.name, slug: cat.slug };
+      }
+      let userVote = 0;
+      if (currentUserId) {
+        const { data: votes } = await supabase
+          .from("forum_votes")
+          .select("vote_type")
+          .eq("post_id", raw.id)
+          .eq("user_id", currentUserId)
+          .maybeSingle();
+        userVote = (votes?.vote_type as number) ?? 0;
+      }
+      const enriched: ForumPost = {
+        ...raw,
+        authorName: nameMap[raw.author_id] ?? "Unknown",
+        categoryName: raw.category_id ? (catMap[raw.category_id]?.name ?? "") : "",
+        categorySlug: raw.category_id ? (catMap[raw.category_id]?.slug ?? "") : "",
+        userVote,
+      };
+      setSelectedPost(enriched);
+      setViewMode("detail");
+      setCommentText("");
+      setReplyingTo("");
+      void loadComments(enriched.id);
+    }
+    void openLinkedPost();
+  }, [urlPostId, clanContext, tablesReady, categories, supabase, currentUserId, loadComments]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ─── Voting ─── */
   async function handleVotePost(postId: string, voteType: number): Promise<void> {
     if (!currentUserId) return;
@@ -314,6 +354,33 @@ function ForumClient(): JSX.Element {
         updatePayload.is_pinned = formPinned;
       }
       await supabase.from("forum_posts").update(updatePayload).eq("id", editingPostId);
+      /* Stay in detail view with refreshed data */
+      const savedId = editingPostId;
+      resetForm();
+      if (selectedPost) {
+        const catMap: Record<string, { name: string; slug: string }> = {};
+        for (const cat of categories) {
+          catMap[cat.id] = { name: cat.name, slug: cat.slug };
+        }
+        const updatedPost: ForumPost = {
+          ...selectedPost,
+          title: updatePayload.title as string,
+          content: (updatePayload.content as string) ?? "",
+          category_id: (updatePayload.category_id as string) ?? selectedPost.category_id,
+          categoryName: updatePayload.category_id
+            ? (catMap[updatePayload.category_id as string]?.name ?? selectedPost.categoryName)
+            : selectedPost.categoryName,
+          categorySlug: updatePayload.category_id
+            ? (catMap[updatePayload.category_id as string]?.slug ?? selectedPost.categorySlug)
+            : selectedPost.categorySlug,
+          is_pinned: (updatePayload.is_pinned as boolean) ?? selectedPost.is_pinned,
+          updated_at: updatePayload.updated_at as string,
+        };
+        setSelectedPost(updatedPost);
+        setViewMode("detail");
+        void loadComments(savedId);
+      }
+      void loadPosts();
     } else {
       const insertPayload: Record<string, unknown> = {
         clan_id: clanContext.clanId,
@@ -326,11 +393,11 @@ function ForumClient(): JSX.Element {
         insertPayload.is_pinned = true;
       }
       await supabase.from("forum_posts").insert(insertPayload);
+      resetForm();
+      setViewMode("list");
+      pagination.setPage(1);
+      void loadPosts();
     }
-    resetForm();
-    setViewMode("list");
-    pagination.setPage(1);
-    void loadPosts();
   }
 
   function resetForm(): void {

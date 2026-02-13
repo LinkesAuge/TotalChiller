@@ -5041,6 +5041,28 @@ input[type="checkbox"]:disabled {
   margin-top: 4px;
 }
 
+/* Prominent "Go to thread" button inside expanded event card */
+.day-panel-discuss-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--color-gold);
+  background: rgba(201, 163, 74, 0.1);
+  border: 1px solid rgba(201, 163, 74, 0.22);
+  transition: all var(--transition-fast);
+}
+.day-panel-discuss-btn:hover {
+  background: rgba(201, 163, 74, 0.22);
+  border-color: rgba(201, 163, 74, 0.45);
+  color: var(--color-gold-2);
+}
+
 .day-panel-expanded-footer {
   display: flex;
   align-items: center;
@@ -5307,6 +5329,7 @@ input[type="checkbox"]:disabled {
   opacity: 1;
 }
 
+.upcoming-event-thread,
 .upcoming-event-edit,
 .upcoming-event-delete {
   display: inline-flex;
@@ -5322,6 +5345,7 @@ input[type="checkbox"]:disabled {
   transition: all var(--transition-fast);
 }
 
+.upcoming-event-thread:hover,
 .upcoming-event-edit:hover {
   border-color: rgba(201, 163, 74, 0.5);
   color: var(--color-gold-2);
@@ -5852,6 +5876,64 @@ input[type="checkbox"]:disabled {
 .forum-badge-locked {
   background: rgba(255, 77, 77, 0.12);
   color: var(--color-accent-red);
+}
+.forum-badge-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.forum-badge-source.event {
+  background: rgba(74, 110, 160, 0.18);
+  color: #7ab0e0;
+}
+.forum-badge-source.event:hover {
+  background: rgba(74, 110, 160, 0.32);
+}
+.forum-badge-source.announcement {
+  background: rgba(201, 163, 74, 0.15);
+  color: var(--color-gold);
+}
+.forum-badge-source.announcement:hover {
+  background: rgba(201, 163, 74, 0.28);
+}
+
+/* "View in Events / Announcements" link in detail actions bar */
+.forum-source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+.forum-source-link.event {
+  background: rgba(74, 110, 160, 0.15);
+  color: #7ab0e0;
+  border: 1px solid rgba(74, 110, 160, 0.25);
+}
+.forum-source-link.event:hover {
+  background: rgba(74, 110, 160, 0.28);
+  border-color: rgba(74, 110, 160, 0.45);
+}
+.forum-source-link.announcement {
+  background: rgba(201, 163, 74, 0.12);
+  color: var(--color-gold);
+  border: 1px solid rgba(201, 163, 74, 0.2);
+}
+.forum-source-link.announcement:hover {
+  background: rgba(201, 163, 74, 0.24);
+  border-color: rgba(201, 163, 74, 0.4);
 }
 
 /* Post detail view */

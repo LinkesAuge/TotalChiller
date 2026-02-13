@@ -18,6 +18,7 @@ export interface EventRow {
   readonly recurrence_end_date: string | null;
   readonly banner_url: string | null;
   readonly is_pinned: boolean;
+  readonly forum_post_id: string | null;
   /* Joined author info */
   readonly author_name: string | null;
 }
@@ -38,6 +39,7 @@ export interface DisplayEvent {
   readonly recurrence_end_date: string | null;
   readonly banner_url: string | null;
   readonly is_pinned: boolean;
+  readonly forum_post_id: string | null;
   readonly isVirtual: boolean;
 }
 

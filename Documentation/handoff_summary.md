@@ -164,7 +164,7 @@ This file is a compact context transfer for a new chat.
   - `sanitizeMarkdown()`: converts `•`/`–`/`—` to markdown lists, preserves single line breaks, fixes broken emphasis.
   - Author protection: editing never overwrites `created_by`; `updated_by` tracks last editor.
   - Edit tracking displayed: "bearbeitet von {name} am {date}".
-  - Type filter removed — all content is "announcement". Tags, search, date range filters remain.
+  - Type filter removed — all content is "announcement". Tags, search, date range filters remain. Filters moved to top, collapsed by default behind a toggle button with active-filter badge.
   - Centered "Weiterlesen" pill button with gold accent, backdrop-blur, hover effect. Expanded content includes a "Weniger anzeigen" / "Show less" collapse button at the bottom.
   - Migrations: `article_banner.sql` (`banner_url`), `article_updated_by.sql` (`updated_by`).
   - Files: `app/news/news-client.tsx`
@@ -209,6 +209,7 @@ This file is a compact context transfer for a new chat.
     - Types: `BANNER_PRESETS` and `BannerPreset` in shared `lib/constants/banner-presets.ts`.
     - Shared components: `BannerPicker` (`app/components/banner-picker.tsx`), `MarkdownEditor` (`app/components/markdown-editor.tsx`).
     - Files: `app/events/event-form.tsx`, `app/events/events-client.tsx`, `app/events/event-calendar.tsx`, `app/events/upcoming-events-sidebar.tsx`, `app/events/use-events-data.ts`, `app/events/events-utils.ts`, `app/globals.css`.
+  - **Edit indicator (Feb 2026)**: Events track `updated_at`. When edited, footer shows "bearbeitet von {name}" / "edited by {name}" with the updated timestamp (calendar day panel, upcoming sidebar, past events list).
   - Events:
     - Past/upcoming separation (collapsible past section), themed Flatpickr datetime pickers.
     - Date + time model with optional duration (hours + minutes) or "open-ended" (default).

@@ -378,6 +378,9 @@ function EventsClient(): JSX.Element {
     };
     setIsSaving(true);
     const isNewEvent = !editingId;
+    if (editingId) {
+      payload.updated_at = new Date().toISOString();
+    }
     const { data: insertedData, error } = editingId
       ? await supabase.from("events").update(payload).eq("id", editingId).select("id").maybeSingle()
       : await supabase.from("events").insert(payload).select("id").single();

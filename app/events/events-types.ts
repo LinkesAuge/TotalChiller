@@ -12,6 +12,7 @@ export interface EventRow {
   readonly starts_at: string;
   readonly ends_at: string;
   readonly created_at: string;
+  readonly updated_at: string | null;
   readonly created_by: string;
   readonly organizer: string | null;
   readonly recurrence_type: RecurrenceType;
@@ -33,6 +34,7 @@ export interface DisplayEvent {
   readonly starts_at: string;
   readonly ends_at: string;
   readonly created_at: string;
+  readonly updated_at: string | null;
   readonly organizer: string | null;
   readonly author_name: string | null;
   readonly recurrence_type: RecurrenceType;

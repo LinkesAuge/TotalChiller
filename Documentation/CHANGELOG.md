@@ -6,6 +6,17 @@
 
 ---
 
+## 2026-02-13 — UI Polish: Buttons, Filters, Event Edit Indicator
+
+- **"Edited by" indicator on events**: Events now track `updated_at`. When an event has been edited (directly or via forum thread sync), the footer displays "bearbeitet von {name}" / "edited by {name}" with the last-edited timestamp, instead of the original "von {name}" / "by {name}" with the creation date. Applied across calendar day panel, upcoming events sidebar, and past events list.
+- **Button style overhaul**: Restyled `.button`, `.button.primary`, `.button.danger`, `.button.active` globally for a more polished Sanctum look — tighter padding, subtler borders, refined gradients, consistent 6px radius, and no hover translateY shift.
+- **Announcements filter moved to top**: Filters section moved from the bottom of the announcements page to the top. Collapsed by default behind a compact toggle button with active-filter indicator badge.
+- **Pagination spinner removed**: Native browser up/down arrows hidden on the page-jump number input for a cleaner look.
+- **Notification label fix**: Settings page notification preference corrected from "Neuigkeiten"/"News" to "Ankündigungen"/"Announcements".
+- **Translations**: Added `editedBy` key in EN and DE.
+
+---
+
 ## 2026-02-13 — Forum Thread Auto-Linking for Events & Announcements
 
 - **Auto-created forum threads**: Creating an event or announcement now automatically creates a linked discussion thread in the forum. The thread mirrors the title and content of the source.

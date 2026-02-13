@@ -93,6 +93,7 @@ function NewsClient(): JSX.Element {
   const pagination = usePagination(totalCount, 10);
 
   /* ── Filter state ── */
+  const [isFiltersOpen, setIsFiltersOpen] = useState<boolean>(false);
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -451,13 +452,108 @@ function NewsClient(): JSX.Element {
       <SectionHero title={t("heroTitle")} subtitle={t("heroSubtitle")} bannerSrc="/assets/banners/banner_chest.png" />
 
       <div className="content-inner">
-        {/* Create button */}
-        {!isFormOpen && canManage && (
-          <div className="mb-4">
+        {/* Top row: create button + filter toggle */}
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          {!isFormOpen && canManage && (
             <button className="button primary" type="button" onClick={handleOpenCreate}>
               {t("createPost")}
             </button>
-          </div>
+          )}
+          <button className="news-filter-toggle" type="button" onClick={() => setIsFiltersOpen((prev) => !prev)}>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            {t("filters")}
+            {hasActiveFilters && <span className="news-filter-badge" />}
+            <svg
+              className={`news-filter-chevron${isFiltersOpen ? " open" : ""}`}
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {hasActiveFilters && (
+            <button className="news-filter-clear" type="button" onClick={handleClearFilters}>
+              {t("clearFilters")}
+            </button>
+          )}
+        </div>
+
+        {/* ═══ Collapsible Filters ═══ */}
+        {isFiltersOpen && (
+          <section className="card mb-4">
+            <div className="form-grid px-4 py-3" style={{ gap: "12px 16px" }}>
+              <div className="form-group mb-0">
+                <label htmlFor="newsSearch">{t("search")}</label>
+                <SearchInput
+                  id="newsSearch"
+                  label=""
+                  value={searchTerm}
+                  onChange={(v) => {
+                    setSearchTerm(v);
+                    pagination.setPage(1);
+                  }}
+                  placeholder={t("searchPlaceholder")}
+                />
+              </div>
+              {availableTags.length > 0 && (
+                <div className="form-group mb-0">
+                  <label htmlFor="newsTagFilter">{t("filterByTag")}</label>
+                  <RadixSelect
+                    id="newsTagFilter"
+                    ariaLabel={t("filterByTag")}
+                    value={tagFilter}
+                    onValueChange={(v) => {
+                      setTagFilter(v);
+                      pagination.setPage(1);
+                    }}
+                    options={[
+                      { value: "all", label: t("all") },
+                      ...availableTags.map((tag) => ({ value: tag, label: tag })),
+                    ]}
+                  />
+                </div>
+              )}
+              <div className="form-group mb-0">
+                <label>{t("filterByDate")}</label>
+                <div className="flex gap-2 items-center">
+                  <DatePicker
+                    value={dateFrom}
+                    onChange={(v) => {
+                      setDateFrom(v);
+                      pagination.setPage(1);
+                    }}
+                  />
+                  <span className="text-muted">–</span>
+                  <DatePicker
+                    value={dateTo}
+                    onChange={(v) => {
+                      setDateTo(v);
+                      pagination.setPage(1);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
         )}
 
         <div className="grid">
@@ -687,72 +783,7 @@ function NewsClient(): JSX.Element {
             })}
           </DataState>
 
-          {/* ═══ Filters ═══ */}
-          <section className="card col-span-full">
-            <div className="card-header">
-              <div>
-                <div className="card-title">{t("filters")}</div>
-              </div>
-              {hasActiveFilters && (
-                <button className="button text-[0.8rem]" type="button" onClick={handleClearFilters}>
-                  {t("clearFilters")}
-                </button>
-              )}
-            </div>
-            <div className="form-grid pt-0 px-4 pb-4" style={{ gap: "12px 16px" }}>
-              <div className="form-group mb-0">
-                <label htmlFor="newsSearch">{t("search")}</label>
-                <SearchInput
-                  id="newsSearch"
-                  label=""
-                  value={searchTerm}
-                  onChange={(v) => {
-                    setSearchTerm(v);
-                    pagination.setPage(1);
-                  }}
-                  placeholder={t("searchPlaceholder")}
-                />
-              </div>
-              {availableTags.length > 0 && (
-                <div className="form-group mb-0">
-                  <label htmlFor="newsTagFilter">{t("filterByTag")}</label>
-                  <RadixSelect
-                    id="newsTagFilter"
-                    ariaLabel={t("filterByTag")}
-                    value={tagFilter}
-                    onValueChange={(v) => {
-                      setTagFilter(v);
-                      pagination.setPage(1);
-                    }}
-                    options={[
-                      { value: "all", label: t("all") },
-                      ...availableTags.map((tag) => ({ value: tag, label: tag })),
-                    ]}
-                  />
-                </div>
-              )}
-              <div className="form-group mb-0">
-                <label>{t("filterByDate")}</label>
-                <div className="flex gap-2 items-center">
-                  <DatePicker
-                    value={dateFrom}
-                    onChange={(v) => {
-                      setDateFrom(v);
-                      pagination.setPage(1);
-                    }}
-                  />
-                  <span className="text-muted">–</span>
-                  <DatePicker
-                    value={dateTo}
-                    onChange={(v) => {
-                      setDateTo(v);
-                      pagination.setPage(1);
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
+          {/* (filters moved to top) */}
         </div>
       </div>
     </>

@@ -14,7 +14,7 @@ interface ProfileJoin {
 
 /** Select columns for events, including author profile join. */
 const EVENTS_SELECT =
-  "id,title,description,location,starts_at,ends_at,created_at,created_by,organizer,recurrence_type,recurrence_end_date,banner_url,is_pinned,forum_post_id,author:profiles!events_created_by_profiles_fkey(display_name,username)";
+  "id,title,description,location,starts_at,ends_at,created_at,updated_at,created_by,organizer,recurrence_type,recurrence_end_date,banner_url,is_pinned,forum_post_id,author:profiles!events_created_by_profiles_fkey(display_name,username)";
 
 export interface UseEventsDataResult {
   readonly events: readonly EventRow[];
@@ -80,6 +80,7 @@ export function useEventsData(
           banner_url: (row.banner_url as string) ?? null,
           is_pinned: (row.is_pinned as boolean) ?? false,
           forum_post_id: (row.forum_post_id as string) ?? null,
+          updated_at: (row.updated_at as string) ?? null,
         })) as EventRow[],
       );
     }
@@ -175,6 +176,7 @@ export function useEventsData(
         banner_url: (row.banner_url as string) ?? null,
         is_pinned: (row.is_pinned as boolean) ?? false,
         forum_post_id: (row.forum_post_id as string) ?? null,
+        updated_at: (row.updated_at as string) ?? null,
       })) as EventRow[],
     );
   }

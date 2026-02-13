@@ -692,11 +692,13 @@ export function EventDayPanel({
                     <div className="day-panel-expanded-footer">
                       {entry.author_name && (
                         <span className="day-panel-expanded-author">
-                          {t("createdBy", { name: entry.author_name })}
-                          {entry.created_at && (
+                          {entry.updated_at && entry.updated_at !== entry.created_at
+                            ? t("editedBy", { name: entry.author_name })
+                            : t("createdBy", { name: entry.author_name })}
+                          {(entry.updated_at || entry.created_at) && (
                             <span className="day-panel-expanded-date">
                               {" · "}
-                              {formatLocalDateTime(entry.created_at, locale)}
+                              {formatLocalDateTime(entry.updated_at ?? entry.created_at, locale)}
                             </span>
                           )}
                         </span>

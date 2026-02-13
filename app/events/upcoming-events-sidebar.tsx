@@ -184,11 +184,13 @@ export function UpcomingEventsSidebar({
                       </div>
                       {entry.author_name && (
                         <div className="upcoming-event-author">
-                          {t("createdBy", { name: entry.author_name })}
-                          {entry.created_at && (
+                          {entry.updated_at && entry.updated_at !== entry.created_at
+                            ? t("editedBy", { name: entry.author_name })
+                            : t("createdBy", { name: entry.author_name })}
+                          {(entry.updated_at || entry.created_at) && (
                             <span className="upcoming-event-author-date">
                               {" · "}
-                              {formatLocalDateTime(entry.created_at, locale)}
+                              {formatLocalDateTime(entry.updated_at ?? entry.created_at, locale)}
                             </span>
                           )}
                         </div>

@@ -60,7 +60,15 @@ function EventCard({
           <div className="card-subtitle">
             {formatLocalDateTime(entry.starts_at, locale)} ({formatDuration(entry.starts_at, entry.ends_at)})
             {entry.organizer && <> &bull; {entry.organizer}</>}
-            {entry.author_name && <> &bull; {t("createdBy", { name: entry.author_name })}</>}
+            {entry.author_name && (
+              <>
+                {" "}
+                &bull;{" "}
+                {entry.updated_at && entry.updated_at !== entry.created_at
+                  ? t("editedBy", { name: entry.author_name })
+                  : t("createdBy", { name: entry.author_name })}
+              </>
+            )}
           </div>
         </div>
         <div className="flex gap-1.5 items-center shrink-0">

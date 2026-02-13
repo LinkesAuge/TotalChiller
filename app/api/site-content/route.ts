@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
-import { standardLimiter } from "../../../lib/rate-limit";
+import { standardLimiter, relaxedLimiter } from "../../../lib/rate-limit";
 
 const PATCH_SCHEMA = z.object({
   page: z.string().min(1).max(64),
@@ -19,6 +19,8 @@ const PATCH_SCHEMA = z.object({
  * Public — no auth required.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = relaxedLimiter.check(request);
+  if (blocked) return blocked;
   const page = request.nextUrl.searchParams.get("page");
   if (!page) {
     return NextResponse.json({ error: "Missing ?page= parameter" }, { status: 400 });
@@ -71,9 +73,10 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       .eq("section_key", section_key)
       .eq("field_key", field_key);
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[site-content PATCH] Delete failed:", error.message);
+      return NextResponse.json({ error: "Failed to delete content." }, { status: 500 });
     }
-    return NextResponse.json({ ok: true, deleted: true });
+    return NextResponse.json({ data: { success: true, deleted: true } });
   }
 
   /* Upsert mode: create or update */
@@ -90,7 +93,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     { onConflict: "page,section_key,field_key" },
   );
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[site-content PATCH] Upsert failed:", error.message);
+    return NextResponse.json({ error: "Failed to save content." }, { status: 500 });
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ data: { success: true } });
 }

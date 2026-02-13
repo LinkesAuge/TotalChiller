@@ -137,6 +137,32 @@ export interface CorrectionRuleRow {
   readonly status: string;
 }
 
+/* ── Dashboard summary types ── */
+
+/** Slim article type for dashboard announcements list */
+export interface ArticleSummary {
+  readonly id: string;
+  readonly title: string;
+  readonly content: string;
+  readonly type: string;
+  readonly is_pinned: boolean;
+  readonly status: string;
+  readonly tags: readonly string[];
+  readonly created_at: string;
+  readonly author_name: string | null;
+}
+
+/** Slim event type for dashboard upcoming events */
+export interface EventSummary {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly location: string | null;
+  readonly starts_at: string;
+  readonly ends_at: string;
+  readonly author_name: string | null;
+}
+
 /* ── Pending Approvals ── */
 
 export interface PendingApprovalRow {

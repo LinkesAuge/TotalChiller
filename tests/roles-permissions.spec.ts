@@ -101,7 +101,9 @@ test.describe("Role-based access: Content management buttons", () => {
       /* Wait for page content to render */
       await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
       const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
-      const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+      const noClanMsg = page.locator(
+        "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+      );
       expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
     });
   });
@@ -113,7 +115,9 @@ test.describe("Role-based access: Content management buttons", () => {
       await page.waitForLoadState("networkidle");
       await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
       const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
-      const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+      const noClanMsg = page.locator(
+        "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+      );
       expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
     });
   });
@@ -138,7 +142,9 @@ test.describe("Role-based access: Event management", () => {
       await page.waitForLoadState("networkidle");
       await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
       const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
-      const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+      const noClanMsg = page.locator(
+        "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+      );
       expect((await createBtn.count()) > 0 || (await noClanMsg.count()) > 0).toBe(true);
     });
   });

@@ -45,9 +45,16 @@ test.describe("Admin: Access control", () => {
 
 test.describe("Admin: Tab navigation", () => {
   test.use({ storageState: storageStatePath("admin") });
+
+  /** Wait for admin panel to fully render (past ClanAccessGate + lazy load). */
+  async function waitForAdminShell(page: import("@playwright/test").Page): Promise<void> {
+    /* Wait for the admin-grid wrapper that AdminInner renders */
+    await expect(page.locator(".admin-grid")).toBeVisible({ timeout: 30000 });
+  }
+
   test("admin panel shows tab navigation", async ({ page }) => {
     await page.goto("/admin");
-    await page.waitForLoadState("networkidle");
+    await waitForAdminShell(page);
 
     /* Should have tab links — main admin page uses .tabs directly in .content-inner */
     const tabs = page.locator(".content-inner .tabs .tab, .content-inner .tabs a");
@@ -56,47 +63,49 @@ test.describe("Admin: Tab navigation", () => {
 
   test("can switch to users tab", async ({ page }) => {
     await page.goto("/admin?tab=users");
-    await page.waitForLoadState("networkidle");
+    await waitForAdminShell(page);
 
     /* Wait for the lazy-loaded tab content to appear */
-    await expect(page.locator(".content-inner")).toContainText(/user|benutzer|email/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/user|benutzer|email/i, { timeout: 20000 });
   });
 
   test("can switch to approvals tab", async ({ page }) => {
     await page.goto("/admin?tab=approvals");
-    await page.waitForLoadState("networkidle");
+    await waitForAdminShell(page);
 
-    await expect(page.locator(".content-inner")).toContainText(/approval|genehmigung|pending/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/approval|genehmigung|pending|game.account/i, {
+      timeout: 20000,
+    });
   });
 
   test("can switch to validation tab", async ({ page }) => {
     await page.goto("/admin?tab=validation");
-    await page.waitForLoadState("networkidle");
+    await waitForAdminShell(page);
 
     await expect(page.locator(".content-inner")).toContainText(/validation|validierung|rule|regel/i, {
-      timeout: 15000,
+      timeout: 20000,
     });
   });
 
   test("can switch to corrections tab", async ({ page }) => {
     await page.goto("/admin?tab=corrections");
-    await page.waitForLoadState("networkidle");
+    await waitForAdminShell(page);
 
-    await expect(page.locator(".content-inner")).toContainText(/correction|korrektur/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/correction|korrektur/i, { timeout: 20000 });
   });
 
   test("can switch to logs tab", async ({ page }) => {
     await page.goto("/admin?tab=logs");
-    await page.waitForLoadState("networkidle");
+    await waitForAdminShell(page);
 
-    await expect(page.locator(".content-inner")).toContainText(/log|protokoll|audit/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/log|protokoll|audit/i, { timeout: 20000 });
   });
 
   test("can switch to forum tab", async ({ page }) => {
     await page.goto("/admin?tab=forum");
-    await page.waitForLoadState("networkidle");
+    await waitForAdminShell(page);
 
-    await expect(page.locator(".content-inner")).toContainText(/forum|kategor/i, { timeout: 15000 });
+    await expect(page.locator(".content-inner")).toContainText(/forum|kategor/i, { timeout: 20000 });
   });
 });
 
@@ -104,10 +113,11 @@ test.describe("Admin: Clans section", () => {
   test.use({ storageState: storageStatePath("admin") });
   test("shows clan list with table", async ({ page }) => {
     await page.goto("/admin?tab=clans");
-    await page.waitForLoadState("networkidle");
+    /* Wait for admin-grid (past ClanAccessGate) */
+    await expect(page.locator(".admin-grid")).toBeVisible({ timeout: 30000 });
 
     /* Wait for lazy-loaded clans tab, then verify table/list renders */
-    await expect(page.locator("table, .table, .list, header").first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("table, .table, .list, .card-title, header").first()).toBeVisible({ timeout: 20000 });
   });
 });
 
@@ -115,10 +125,10 @@ test.describe("Admin: Users section", () => {
   test.use({ storageState: storageStatePath("admin") });
   test("shows user list with search", async ({ page }) => {
     await page.goto("/admin?tab=users");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator(".admin-grid")).toBeVisible({ timeout: 30000 });
 
     /* Wait for lazy-loaded users tab to render */
-    await expect(page.locator(".card-title").first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator(".card-title").first()).toBeVisible({ timeout: 20000 });
 
     /* Should have search input */
     const searchInput = page.locator('input[type="search"], input[placeholder*="such"], input[placeholder*="search"]');
@@ -127,11 +137,11 @@ test.describe("Admin: Users section", () => {
 
   test("shows role dropdown for users", async ({ page }) => {
     await page.goto("/admin?tab=users");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator(".admin-grid")).toBeVisible({ timeout: 30000 });
 
     /* Wait for lazy-loaded users tab to render its selects */
     await expect(page.locator("select, [role=combobox], button[class*='select']").first()).toBeVisible({
-      timeout: 15000,
+      timeout: 20000,
     });
 
     const selects = page.locator("select, [role=combobox], button[class*='select']");

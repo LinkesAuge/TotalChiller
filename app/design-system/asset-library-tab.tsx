@@ -65,6 +65,13 @@ function AssetLibraryTab(): ReactElement {
     fetchAssets(category, search, offset);
   }, [category, search, offset, fetchAssets]);
 
+  /* Clear search debounce timer on unmount */
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, []);
+
   /* ── Debounced search ── */
 
   function handleSearchChange(value: string): void {

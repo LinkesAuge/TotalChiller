@@ -3,18 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { classifySupabaseError, getErrorMessageKey } from "@/lib/supabase/error-utils";
+import { extractAuthorName } from "@/lib/dashboard-utils";
 import type { EventRow, GameAccountOption, RecurrenceType, TemplateRow } from "./events-types";
 
 /** Profile join shape returned by PostgREST embedded select. */
 interface ProfileJoin {
   readonly display_name: string | null;
   readonly username: string | null;
-}
-
-/** Extract a display name from a PostgREST profile join result. */
-function extractAuthorName(profile: ProfileJoin | null): string | null {
-  if (!profile) return null;
-  return profile.display_name || profile.username || null;
 }
 
 /** Select columns for events, including author profile join. */

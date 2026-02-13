@@ -158,10 +158,11 @@ export default function ClansTab(): ReactElement {
         setProfilesById({});
         return;
       }
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("id,email,display_name,username")
-        .in("id", userIds);
+      /* Fetch profiles and roles in parallel */
+      const [{ data: profileData, error: profileError }, { data: roleData, error: roleError }] = await Promise.all([
+        supabase.from("profiles").select("id,email,display_name,username").in("id", userIds),
+        supabase.from("user_roles").select("user_id,role").in("user_id", userIds),
+      ]);
       if (profileError) {
         setStatus(`Failed to load profiles: ${profileError.message}`);
         return;
@@ -171,10 +172,6 @@ export default function ClansTab(): ReactElement {
         return acc;
       }, {});
       setProfilesById(profileMap);
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("user_id,role")
-        .in("user_id", userIds);
       if (roleError) {
         setStatus(`Failed to load user roles: ${roleError.message}`);
         return;

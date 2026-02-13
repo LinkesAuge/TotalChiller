@@ -100,8 +100,15 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
   /* ── Initialize once ── */
   useEffect(() => {
     async function init(): Promise<void> {
-      // Load clans
-      const { data: clanData } = await supabase.from("clans").select("id,name,description,is_unassigned").order("name");
+      /* Parallelize independent init queries */
+      const [{ data: clanData }, { data: defClan }, { data: authData }, approvalsRes] = await Promise.all([
+        supabase.from("clans").select("id,name,description,is_unassigned").order("name"),
+        supabase.from("clans").select("id").eq("is_default", true).maybeSingle(),
+        supabase.auth.getUser(),
+        fetch("/api/admin/game-account-approvals").catch(() => null),
+      ]);
+
+      // Clans
       const clanRows = clanData ?? [];
       setClans(clanRows);
       const unassigned = clanRows.find((c) => c.is_unassigned);
@@ -115,22 +122,19 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       }
 
       // Default clan
-      const { data: defClan } = await supabase.from("clans").select("id").eq("is_default", true).maybeSingle();
       setDefaultClanId(defClan?.id ?? "");
 
       // Current user
-      const { data: authData } = await supabase.auth.getUser();
       setCurrentUserId(authData.user?.id ?? "");
 
       // Pending approvals (for badge)
-      try {
-        const res = await fetch("/api/admin/game-account-approvals");
-        if (res.ok) {
-          const result = await res.json();
+      if (approvalsRes?.ok) {
+        try {
+          const result = await approvalsRes.json();
           setPendingApprovals(result.data ?? []);
+        } catch {
+          /* ignore parse failure for badge count */
         }
-      } catch {
-        /* ignore fetch failure for badge count */
       }
     }
     void init();

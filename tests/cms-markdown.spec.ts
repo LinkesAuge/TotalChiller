@@ -10,6 +10,8 @@ test.describe("CMS Markdown Rendering", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle");
+    /* Wait for CMS content to fully render (skeletons disappear, cards appear) */
+    await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
   });
 
   test("renders bold text as <strong>", async ({ page }) => {

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
-import { standardLimiter } from "../../../lib/rate-limit";
+import { standardLimiter, relaxedLimiter } from "../../../lib/rate-limit";
 
 const CREATE_ITEM_SCHEMA = z.object({
   action: z.literal("create"),
@@ -55,6 +55,8 @@ const PATCH_SCHEMA = z.discriminatedUnion("action", [
  * Public — no auth required.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = relaxedLimiter.check(request);
+  if (blocked) return blocked;
   const page = request.nextUrl.searchParams.get("page");
   if (!page) {
     return NextResponse.json({ error: "Missing ?page= parameter" }, { status: 400 });
@@ -140,9 +142,10 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         .single();
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("[site-list-items PATCH create]", error.message);
+        return NextResponse.json({ error: "Failed to create item." }, { status: 500 });
       }
-      return NextResponse.json({ ok: true, item: data });
+      return NextResponse.json({ data: { success: true, item: data } });
     }
 
     /* ── Update ── */
@@ -162,9 +165,10 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       const { data, error } = await supabase.from("site_list_items").update(updates).eq("id", id).select().single();
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("[site-list-items PATCH update]", error.message);
+        return NextResponse.json({ error: "Failed to update item." }, { status: 500 });
       }
-      return NextResponse.json({ ok: true, item: data });
+      return NextResponse.json({ data: { success: true, item: data } });
     }
 
     /* ── Delete ── */
@@ -174,9 +178,10 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       const { error } = await supabase.from("site_list_items").delete().eq("id", id);
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("[site-list-items PATCH delete]", error.message);
+        return NextResponse.json({ error: "Failed to delete item." }, { status: 500 });
       }
-      return NextResponse.json({ ok: true, deleted: true });
+      return NextResponse.json({ data: { success: true, deleted: true } });
     }
 
     /* ── Reorder ── */
@@ -184,19 +189,22 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       const { items } = body;
 
       /* Batch update sort_order for all provided items */
-      const errors: string[] = [];
+      let failCount = 0;
       for (const item of items) {
         const { error } = await supabase
           .from("site_list_items")
           .update({ sort_order: item.sort_order, updated_by: userId, updated_at: new Date().toISOString() })
           .eq("id", item.id);
-        if (error) errors.push(`${item.id}: ${error.message}`);
+        if (error) {
+          console.error("[site-list-items reorder]", item.id, error.message);
+          failCount++;
+        }
       }
 
-      if (errors.length > 0) {
-        return NextResponse.json({ error: `Reorder partially failed: ${errors.join(", ")}` }, { status: 500 });
+      if (failCount > 0) {
+        return NextResponse.json({ error: `Reorder partially failed (${failCount} items).` }, { status: 500 });
       }
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ data: { success: true } });
     }
 
     default:

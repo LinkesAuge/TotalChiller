@@ -32,56 +32,66 @@ interface CommitRowInput {
 export async function POST(request: Request): Promise<Response> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const parsed = COMMIT_SCHEMA.safeParse(await request.json());
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input." }, { status: 400 });
-  }
-  const auth = await requireAdmin();
-  if (auth.error) return auth.error;
-  const rows: CommitRowInput[] = parsed.data.rows;
-  const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
-  const serviceClient = createSupabaseServiceRoleClient();
-  const { data: existingClans, error: clanFetchError } = await serviceClient
-    .from("clans")
-    .select("id,name")
-    .in("name", clanNames);
-  if (clanFetchError) {
-    return NextResponse.json({ error: clanFetchError.message }, { status: 500 });
-  }
-  const existingClanNames = new Set((existingClans ?? []).map((clan) => clan.name));
-  const missingClanNames = clanNames.filter((name) => !existingClanNames.has(name));
-  if (missingClanNames.length > 0) {
-    const { error: clanInsertError } = await serviceClient
-      .from("clans")
-      .insert(missingClanNames.map((name) => ({ name })));
-    if (clanInsertError) {
-      return NextResponse.json({ error: clanInsertError.message }, { status: 500 });
+
+  try {
+    const parsed = COMMIT_SCHEMA.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input." }, { status: 400 });
     }
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
+    const rows: CommitRowInput[] = parsed.data.rows;
+    const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
+    const serviceClient = createSupabaseServiceRoleClient();
+    const { data: existingClans, error: clanFetchError } = await serviceClient
+      .from("clans")
+      .select("id,name")
+      .in("name", clanNames);
+    if (clanFetchError) {
+      console.error("[data-import/commit] Clan fetch failed:", clanFetchError.message);
+      return NextResponse.json({ error: "Failed to resolve clan names." }, { status: 500 });
+    }
+    const existingClanNames = new Set((existingClans ?? []).map((clan) => clan.name));
+    const missingClanNames = clanNames.filter((name) => !existingClanNames.has(name));
+    if (missingClanNames.length > 0) {
+      const { error: clanInsertError } = await serviceClient
+        .from("clans")
+        .insert(missingClanNames.map((name) => ({ name })));
+      if (clanInsertError) {
+        console.error("[data-import/commit] Clan insert failed:", clanInsertError.message);
+        return NextResponse.json({ error: "Failed to create missing clans." }, { status: 500 });
+      }
+    }
+    const { data: finalClans, error: clanReloadError } = await serviceClient
+      .from("clans")
+      .select("id,name")
+      .in("name", clanNames);
+    if (clanReloadError) {
+      console.error("[data-import/commit] Clan reload failed:", clanReloadError.message);
+      return NextResponse.json({ error: "Failed to resolve clan names." }, { status: 500 });
+    }
+    const clanIdByName = new Map<string, string>((finalClans ?? []).map((clan) => [clan.name, clan.id]));
+    const payload = rows.map((row) => ({
+      collected_date: row.collected_date,
+      player: row.player,
+      source: row.source,
+      chest: row.chest,
+      score: row.score,
+      clan_id: clanIdByName.get(row.clan) ?? "",
+      created_by: auth.userId,
+      updated_by: auth.userId,
+    }));
+    if (payload.some((entry) => !entry.clan_id)) {
+      return NextResponse.json({ error: "Some rows have unknown clan names." }, { status: 400 });
+    }
+    const { error } = await serviceClient.from("chest_entries").insert(payload);
+    if (error) {
+      console.error("[data-import/commit] Insert failed:", error.message);
+      return NextResponse.json({ error: "Failed to import data." }, { status: 500 });
+    }
+    return NextResponse.json({ insertedCount: payload.length }, { status: 201 });
+  } catch (err) {
+    console.error("[data-import/commit POST] Unexpected:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-  const { data: finalClans, error: clanReloadError } = await serviceClient
-    .from("clans")
-    .select("id,name")
-    .in("name", clanNames);
-  if (clanReloadError) {
-    return NextResponse.json({ error: clanReloadError.message }, { status: 500 });
-  }
-  const clanIdByName = new Map<string, string>((finalClans ?? []).map((clan) => [clan.name, clan.id]));
-  const payload = rows.map((row) => ({
-    collected_date: row.collected_date,
-    player: row.player,
-    source: row.source,
-    chest: row.chest,
-    score: row.score,
-    clan_id: clanIdByName.get(row.clan) ?? "",
-    created_by: auth.userId,
-    updated_by: auth.userId,
-  }));
-  if (payload.some((entry) => !entry.clan_id)) {
-    return NextResponse.json({ error: "Some rows have unknown clan names." }, { status: 400 });
-  }
-  const { error } = await serviceClient.from("chest_entries").insert(payload);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  return NextResponse.json({ insertedCount: payload.length });
 }

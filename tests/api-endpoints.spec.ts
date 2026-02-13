@@ -102,11 +102,33 @@ test.describe("API: Admin endpoints", () => {
     expect([200, 400, 401, 429]).toContain(res.status());
   });
 
+  test("POST /api/admin/create-user with missing username returns 400 or rate-limited", async ({ request }) => {
+    const res = await request.post("/api/admin/create-user", {
+      data: { email: "valid@example.com" },
+    });
+    /* Zod validation runs before auth — missing username → 400 */
+    expect([400, 429]).toContain(res.status());
+  });
+
+  test("POST /api/admin/create-user with invalid email returns 400 or rate-limited", async ({ request }) => {
+    const res = await request.post("/api/admin/create-user", {
+      data: { email: "not-an-email", username: "testuser" },
+    });
+    expect([400, 429]).toContain(res.status());
+  });
+
   test("DELETE /api/admin/delete-user without auth returns gracefully", async ({ request }) => {
     const res = await request.delete("/api/admin/delete-user", {
       data: { user_id: "fake-id" },
     });
     expect([200, 400, 401, 405]).toContain(res.status());
+  });
+
+  test("POST /api/admin/delete-user with non-UUID userId returns 400 or rate-limited", async ({ request }) => {
+    const res = await request.post("/api/admin/delete-user", {
+      data: { userId: "not-a-uuid" },
+    });
+    expect([400, 429]).toContain(res.status());
   });
 
   test("GET /api/admin/game-account-approvals without auth returns gracefully", async ({ request }) => {
@@ -116,7 +138,12 @@ test.describe("API: Admin endpoints", () => {
 
   test("GET /api/admin/forum-categories without auth returns gracefully", async ({ request }) => {
     const res = await request.get("/api/admin/forum-categories");
-    expect([200, 401, 429]).toContain(res.status());
+    expect([200, 400, 401, 429]).toContain(res.status());
+  });
+
+  test("GET /api/admin/forum-categories with invalid clan_id returns 400 or 401", async ({ request }) => {
+    const res = await request.get("/api/admin/forum-categories?clan_id=not-a-uuid");
+    expect([400, 401, 429]).toContain(res.status());
   });
 });
 
@@ -124,6 +151,27 @@ test.describe("API: Game Accounts", () => {
   test("GET /api/game-accounts without auth returns gracefully", async ({ request }) => {
     const res = await request.get("/api/game-accounts");
     expect([200, 401, 429]).toContain(res.status());
+  });
+
+  test("POST /api/game-accounts without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.post("/api/game-accounts", {
+      data: { game_username: "testplayer" },
+    });
+    expect([401, 429]).toContain(res.status());
+  });
+
+  test("PATCH /api/game-accounts without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.patch("/api/game-accounts", {
+      data: { default_game_account_id: "00000000-0000-0000-0000-000000000000" },
+    });
+    expect([401, 429]).toContain(res.status());
+  });
+});
+
+test.describe("API: Notifications Mark All Read", () => {
+  test("POST /api/notifications/mark-all-read without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.post("/api/notifications/mark-all-read");
+    expect([401, 429]).toContain(res.status());
   });
 });
 
@@ -139,11 +187,11 @@ test.describe("API: Data Import", () => {
 /* ── Uncovered routes added by audit ── */
 
 test.describe("API: Admin User Lookup", () => {
-  test("POST /api/admin/user-lookup without auth returns 401 or 429", async ({ request }) => {
+  test("POST /api/admin/user-lookup without auth returns 400, 401, or 429", async ({ request }) => {
     const res = await request.post("/api/admin/user-lookup", {
       data: { query: "testuser" },
     });
-    expect([401, 429]).toContain(res.status());
+    expect([400, 401, 429]).toContain(res.status());
   });
 });
 
@@ -211,10 +259,51 @@ test.describe("API: Notifications Detail", () => {
 });
 
 test.describe("API: Notifications Fan-out", () => {
-  test("POST /api/notifications/fan-out without auth returns 401", async ({ request }) => {
+  test("POST /api/notifications/fan-out without auth returns 400, 401, or 429", async ({ request }) => {
     const res = await request.post("/api/notifications/fan-out", {
       data: { event_id: "00000000-0000-0000-0000-000000000000" },
     });
-    expect([400, 401]).toContain(res.status());
+    expect([400, 401, 429]).toContain(res.status());
+  });
+
+  test("POST /api/notifications/fan-out with invalid body returns 400 or 401", async ({ request }) => {
+    const res = await request.post("/api/notifications/fan-out", {
+      data: { type: "invalid", reference_id: "bad" },
+    });
+    expect([400, 401, 429]).toContain(res.status());
+  });
+
+  test("POST /api/notifications/fan-out with valid schema but no auth returns 401", async ({ request }) => {
+    const res = await request.post("/api/notifications/fan-out", {
+      data: {
+        type: "news",
+        reference_id: "00000000-0000-0000-0000-000000000000",
+        clan_id: "00000000-0000-0000-0000-000000000000",
+        title: "Test Notification",
+      },
+    });
+    expect([401, 429]).toContain(res.status());
+  });
+});
+
+test.describe("API: Design System (public endpoints)", () => {
+  test("GET /api/design-system/assets returns 200 or rate-limited", async ({ request }) => {
+    const res = await request.get("/api/design-system/assets");
+    expect([200, 429]).toContain(res.status());
+  });
+
+  test("GET /api/design-system/assignments returns 200 or rate-limited", async ({ request }) => {
+    const res = await request.get("/api/design-system/assignments");
+    expect([200, 429]).toContain(res.status());
+  });
+
+  test("GET /api/design-system/ui-elements returns 200 or rate-limited", async ({ request }) => {
+    const res = await request.get("/api/design-system/ui-elements");
+    expect([200, 429]).toContain(res.status());
+  });
+
+  test("POST /api/design-system/preview-upload without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.post("/api/design-system/preview-upload");
+    expect([400, 401, 429]).toContain(res.status());
   });
 });

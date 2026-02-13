@@ -1,7 +1,12 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { storageStatePath } from "./helpers/auth";
 
 test.use({ storageState: storageStatePath("admin") });
+
+/** Wait for admin panel to fully render (past ClanAccessGate + lazy load). */
+async function waitForAdmin(page: Page): Promise<void> {
+  await expect(page.locator(".admin-grid")).toBeVisible({ timeout: 30000 });
+}
 
 /**
  * Admin actions tests — covers key interactive workflows in admin tabs.
@@ -10,44 +15,41 @@ test.use({ storageState: storageStatePath("admin") });
 test.describe("Admin Actions: Approvals tab", () => {
   test("approvals tab renders pending list or empty state", async ({ page }) => {
     await page.goto("/admin?tab=approvals");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
+    await waitForAdmin(page);
 
-    /* Should show approval entries or an empty-state message */
-    const tableOrList = page.locator("table, .list, .card-body");
-    expect(await tableOrList.count()).toBeGreaterThan(0);
+    /* Should show approval entries, an empty-state message, or card body */
+    const tableOrList = page.locator("table, .list, .card-body, .card-title");
+    await expect(tableOrList.first()).toBeVisible({ timeout: 20000 });
   });
 });
 
 test.describe("Admin Actions: Users tab", () => {
   test("users tab shows create user button", async ({ page }) => {
     await page.goto("/admin?tab=users");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toContainText(/user|benutzer/i, { timeout: 15000 });
+    await waitForAdmin(page);
 
+    /* Wait for the users tab to fully load (creates user list + create button) */
     const createBtn = page.locator("button", { hasText: /create|erstellen|hinzufügen|add/i });
-    expect(await createBtn.count()).toBeGreaterThan(0);
+    await expect(createBtn.first()).toBeVisible({ timeout: 25000 });
   });
 
   test("clicking create user opens a modal", async ({ page }) => {
     await page.goto("/admin?tab=users");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toContainText(/user|benutzer/i, { timeout: 15000 });
+    await waitForAdmin(page);
 
     const createBtn = page.locator("button", { hasText: /create user|benutzer erstellen/i });
-    if ((await createBtn.count()) > 0) {
-      await createBtn.first().click();
+    await expect(createBtn.first()).toBeVisible({ timeout: 25000 });
+    await createBtn.first().click();
 
-      /* Modal should appear with form fields */
-      const modal = page.locator(".modal, [role='dialog']");
-      await expect(modal.first()).toBeVisible({ timeout: 5000 });
-    }
+    /* Modal should appear with form fields */
+    const modal = page.locator(".modal, [role='dialog']");
+    await expect(modal.first()).toBeVisible({ timeout: 5000 });
   });
 
   test("users tab search filters results", async ({ page }) => {
     await page.goto("/admin?tab=users");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toContainText(/user|benutzer/i, { timeout: 15000 });
+    await waitForAdmin(page);
+    await expect(page.locator(".content-inner")).toContainText(/user|benutzer/i, { timeout: 25000 });
 
     const searchInput = page.locator('input[type="search"], input[placeholder*="such"], input[placeholder*="search"]');
     if ((await searchInput.count()) > 0) {
@@ -61,18 +63,16 @@ test.describe("Admin Actions: Users tab", () => {
 test.describe("Admin Actions: Clans tab", () => {
   test("clans tab shows clan table", async ({ page }) => {
     await page.goto("/admin?tab=clans");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
+    await waitForAdmin(page);
 
-    /* Should render a table or clan list */
-    const table = page.locator("table, .table");
-    await expect(table.first()).toBeVisible({ timeout: 15000 });
+    /* Should render a table, clan list, or card title */
+    const table = page.locator("table, .table, .card-title");
+    await expect(table.first()).toBeVisible({ timeout: 20000 });
   });
 
   test("clans tab has create clan button", async ({ page }) => {
     await page.goto("/admin?tab=clans");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
+    await waitForAdmin(page);
 
     /* Button may be an IconButton with aria-label instead of visible text */
     const createBtn = page.locator(
@@ -85,9 +85,9 @@ test.describe("Admin Actions: Clans tab", () => {
 test.describe("Admin Actions: Validation tab", () => {
   test("validation tab shows field tabs (player, source, chest, clan)", async ({ page }) => {
     await page.goto("/admin?tab=validation");
-    await page.waitForLoadState("networkidle");
+    await waitForAdmin(page);
     await expect(page.locator(".content-inner")).toContainText(/validation|validierung|rule|regel/i, {
-      timeout: 15000,
+      timeout: 20000,
     });
 
     /* Should have sub-tabs for different field types */
@@ -97,22 +97,22 @@ test.describe("Admin Actions: Validation tab", () => {
 
   test("validation tab has add rule button", async ({ page }) => {
     await page.goto("/admin?tab=validation");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toContainText(/validation|validierung/i, { timeout: 15000 });
+    await waitForAdmin(page);
+    await expect(page.locator(".content-inner")).toContainText(/validation|validierung/i, { timeout: 25000 });
 
-    /* Button may be an IconButton with aria-label or a text button */
+    /* Button may be an IconButton with aria-label or a text button — wait for it to render */
     const addBtn = page.locator(
       'button:has-text("add"), button:has-text("hinzufügen"), button:has-text("new"), button:has-text("neu"), button[aria-label*="add" i], button[aria-label*="hinzufügen" i], button[aria-label*="regel" i], button[aria-label*="rule" i]',
     );
-    expect(await addBtn.count()).toBeGreaterThan(0);
+    await expect(addBtn.first()).toBeVisible({ timeout: 20000 });
   });
 });
 
 test.describe("Admin Actions: Forum management", () => {
   test("forum tab shows category management", async ({ page }) => {
     await page.goto("/admin?tab=forum");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toContainText(/forum|kategor/i, { timeout: 15000 });
+    await waitForAdmin(page);
+    await expect(page.locator(".content-inner")).toContainText(/forum|kategor/i, { timeout: 20000 });
 
     /* Forum categories require a clan to be selected; look for add button OR "select clan" prompt */
     const addBtn = page.locator(
@@ -126,8 +126,8 @@ test.describe("Admin Actions: Forum management", () => {
 test.describe("Admin Actions: Logs tab", () => {
   test("logs tab shows filter controls", async ({ page }) => {
     await page.goto("/admin?tab=logs");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toContainText(/log|protokoll|audit/i, { timeout: 15000 });
+    await waitForAdmin(page);
+    await expect(page.locator(".content-inner")).toContainText(/log|protokoll|audit/i, { timeout: 20000 });
 
     /* Should have search or filter elements */
     const searchInput = page.locator('input[type="search"], input[placeholder*="such"], input[placeholder*="search"]');

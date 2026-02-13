@@ -15,29 +15,8 @@ import {
 } from "../lib/dashboard-utils";
 import useClanContext from "./components/use-clan-context";
 import DataState from "./components/data-state";
-import type { ChartSummary } from "./charts/chart-types";
-
-interface ArticleRow {
-  readonly id: string;
-  readonly title: string;
-  readonly content: string;
-  readonly type: string;
-  readonly is_pinned: boolean;
-  readonly status: string;
-  readonly tags: readonly string[];
-  readonly created_at: string;
-  readonly author_name: string | null;
-}
-
-interface EventRow {
-  readonly id: string;
-  readonly title: string;
-  readonly description: string;
-  readonly location: string | null;
-  readonly starts_at: string;
-  readonly ends_at: string;
-  readonly author_name: string | null;
-}
+import type { ChartsApiResponse } from "./charts/chart-types";
+import type { ArticleSummary, EventSummary } from "@/lib/types/domain";
 
 interface DashboardStats {
   readonly personalScore: number;
@@ -50,12 +29,6 @@ interface DashboardStats {
   readonly topPlayerName: string;
   readonly topPlayerScore: number;
   readonly topChestType: string;
-}
-
-interface ChartsApiResponse {
-  readonly summary: ChartSummary;
-  readonly personalScore: readonly { readonly totalScore: number }[];
-  readonly topPlayers: readonly { readonly player: string; readonly totalScore: number }[];
 }
 
 /* ── Constants ── */
@@ -104,11 +77,11 @@ function DashboardClient(): JSX.Element {
   const clanContext = useClanContext();
 
   /* ── Announcements state ── */
-  const [announcements, setAnnouncements] = useState<readonly ArticleRow[]>([]);
+  const [announcements, setAnnouncements] = useState<readonly ArticleSummary[]>([]);
   const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState<boolean>(true);
 
   /* ── Events state ── */
-  const [events, setEvents] = useState<readonly EventRow[]>([]);
+  const [events, setEvents] = useState<readonly EventSummary[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState<boolean>(true);
 
   /* ── Stats state ── */
@@ -155,7 +128,7 @@ function DashboardClient(): JSX.Element {
         ((data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => ({
           ...row,
           author_name: extractAuthorName(row.author as { display_name: string | null; username: string | null } | null),
-        })) as ArticleRow[],
+        })) as ArticleSummary[],
       );
     }
     void loadAnnouncements();
@@ -187,7 +160,7 @@ function DashboardClient(): JSX.Element {
         ((data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => ({
           ...row,
           author_name: extractAuthorName(row.author as { display_name: string | null; username: string | null } | null),
-        })) as EventRow[],
+        })) as EventSummary[],
       );
     }
     void loadEvents();

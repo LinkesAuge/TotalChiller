@@ -88,14 +88,10 @@ Redesign the messaging system from a flat "one row per recipient" model to an em
 - For broadcast/clan: resolves recipient list from all users or clan members
 - Generates notifications for each recipient
 
-### `PATCH /api/messages/read/[messageId]`
-
-- Marks message as read for the requesting user
-- Updates `message_recipients.is_read` where `recipient_id = auth.uid()`
-
 ### `DELETE /api/messages/[id]`
 
 - Soft-deletes: sets `deleted_at` on the recipient's `message_recipients` row
+- Thread reading is handled automatically when loading thread via `GET /api/messages/thread/[threadId]`
 
 ## UI Design
 
@@ -149,10 +145,10 @@ Redesign the messaging system from a flat "one row per recipient" model to an em
 
 - `Documentation/migrations/messages_v2.sql` — new migration
 - `lib/types/domain.ts` — updated types
-- `app/api/messages/route.ts` — rewritten (inbox endpoint)
-- `app/api/messages/sent/route.ts` — new (sent endpoint)
-- `app/api/messages/thread/[threadId]/route.ts` — new (thread endpoint)
-- `app/api/messages/[id]/route.ts` — updated (read/delete)
-- `app/api/messages/broadcast/route.ts` — removed (merged into main POST)
+- `app/api/messages/route.ts` — GET (inbox) + POST (send)
+- `app/api/messages/sent/route.ts` — GET (sent messages)
+- `app/api/messages/thread/[threadId]/route.ts` — GET (thread messages)
+- `app/api/messages/[id]/route.ts` — DELETE (soft-delete)
+- `app/api/messages/search-recipients/route.ts` — GET (recipient search)
 - `app/messages/messages-client.tsx` — rewritten
 - `messages/en.json`, `messages/de.json` — updated i18n keys

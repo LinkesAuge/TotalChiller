@@ -1,9 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { z } from "zod";
 import { requireAdmin } from "@/lib/api/require-admin";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
 import { standardLimiter } from "@/lib/rate-limit";
+
+const uuidSchema = z.string().uuid("element_id must be a valid UUID");
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -32,6 +35,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!file || !elementId) {
       return NextResponse.json({ error: "Missing file or element_id" }, { status: 400 });
+    }
+
+    const uuidParsed = uuidSchema.safeParse(elementId);
+    if (!uuidParsed.success) {
+      return NextResponse.json({ error: "Invalid element_id format" }, { status: 400 });
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -65,7 +73,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[preview-upload POST] DB update failed:", error.message);
+      return NextResponse.json({ error: "Failed to update element preview" }, { status: 500 });
     }
 
     return NextResponse.json({ data, path: publicPath });

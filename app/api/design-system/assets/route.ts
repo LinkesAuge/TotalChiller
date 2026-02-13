@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/api/require-admin";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
-import { standardLimiter } from "@/lib/rate-limit";
+import { standardLimiter, relaxedLimiter } from "@/lib/rate-limit";
 
 /* ------------------------------------------------------------------ */
 /*  Schemas                                                            */
@@ -21,12 +21,17 @@ const patchSchema = z.object({
 /* ------------------------------------------------------------------ */
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = relaxedLimiter.check(request);
+  if (blocked) return blocked;
+
   try {
     const params = request.nextUrl.searchParams;
     const category = params.get("category");
     const search = params.get("search");
-    const limit = Math.min(parseInt(params.get("limit") ?? "200", 10), 2500);
-    const offset = parseInt(params.get("offset") ?? "0", 10);
+    const rawLimit = parseInt(params.get("limit") ?? "200", 10);
+    const rawOffset = parseInt(params.get("offset") ?? "0", 10);
+    const limit = Math.min(Number.isNaN(rawLimit) ? 200 : rawLimit, 2500);
+    const offset = Number.isNaN(rawOffset) ? 0 : rawOffset;
 
     const supabase = createSupabaseServiceRoleClient();
     let query = supabase
@@ -47,7 +52,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (error) {
       console.error("[design-assets GET]", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Failed to load assets." }, { status: 500 });
     }
 
     return NextResponse.json({ data: data ?? [], count: count ?? 0 });
@@ -81,10 +86,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const { data, error } = await supabase.from("design_assets").update(updates).eq("id", id).select().single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[design-assets PATCH]", error.message);
+      return NextResponse.json({ error: "Failed to update asset." }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({ data });
   } catch (err) {
     console.error("[design-assets PATCH] Unexpected:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

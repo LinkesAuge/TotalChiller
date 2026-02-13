@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { formatLocalDateTime } from "../../lib/date-format";
 import type { CalendarDay, DisplayEvent } from "./events-types";
 import { EVENT_COLORS, WEEKDAY_LABELS } from "./events-types";
@@ -175,6 +175,13 @@ export function EventCalendar({
   const [tooltipDay, setTooltipDay] = useState<CalendarDay | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* Clear tooltip timeout on unmount to prevent state updates after unmount */
+  useEffect(() => {
+    return () => {
+      if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+    };
+  }, []);
 
   const handleDayMouseEnter = useCallback((event: React.MouseEvent, day: CalendarDay) => {
     if (day.events.length === 0) return;

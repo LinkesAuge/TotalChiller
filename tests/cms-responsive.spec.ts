@@ -27,6 +27,9 @@ for (const viewport of viewports) {
       await page.goto("/home");
       await page.waitForLoadState("networkidle");
 
+      /* Wait for content to fully render */
+      await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
+
       const cards = page.locator(".card");
       const count = await cards.count();
       expect(count).toBeGreaterThanOrEqual(4);
@@ -46,6 +49,9 @@ for (const viewport of viewports) {
     test("about page renders correctly", async ({ page }) => {
       await page.goto("/about");
       await page.waitForLoadState("networkidle");
+
+      /* Wait for content to fully render */
+      await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
 
       const cards = page.locator(".card");
       expect(await cards.count()).toBeGreaterThanOrEqual(3);

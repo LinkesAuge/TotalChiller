@@ -50,7 +50,9 @@ test.describe("Forum: Create post (member)", () => {
 
     /* Forum may show "no clan" message if user has no clan membership */
     const createBtn = page.locator("button.primary", { hasText: /neuer beitrag|new post/i });
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     const hasExpected = (await createBtn.count()) > 0 || (await noClanMsg.count()) > 0;
     expect(hasExpected).toBe(true);
   });
@@ -64,7 +66,9 @@ test.describe("Forum: Create post (guest)", () => {
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     const createBtn = page.locator("button.primary", { hasText: /neuer beitrag|new post/i });
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     const hasExpected = (await createBtn.count()) > 0 || (await noClanMsg.count()) > 0;
     expect(hasExpected).toBe(true);
   });

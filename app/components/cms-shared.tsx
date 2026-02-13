@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
  * Shared CMS sub-components used across all CMS pages.
  * - LoadingSkeleton: Animated skeleton loading state
  * - ErrorBanner: Error display with optional retry
- * - CmsSection: Card wrapper with header + body
  */
 
 /* ─── LoadingSkeleton ─── */
@@ -51,24 +50,5 @@ export function ErrorBanner({ message, onRetry }: ErrorBannerProps): JSX.Element
         </button>
       )}
     </div>
-  );
-}
-
-/* ─── CmsSection ─── */
-
-interface CmsSectionProps {
-  /** Section content */
-  readonly children: React.ReactNode;
-  /** Additional CSS class */
-  readonly className?: string;
-  /** Section ID for anchor linking */
-  readonly id?: string;
-}
-
-export function CmsSection({ children, className = "", id }: CmsSectionProps): JSX.Element {
-  return (
-    <section className={`cms-section card ${className}`.trim()} id={id}>
-      {children}
-    </section>
   );
 }

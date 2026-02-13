@@ -105,13 +105,13 @@ function MembersClient(): JSX.Element {
         })
         .filter(Boolean);
       const unique = [...new Set(userIds)];
-      /* Fetch profiles */
+      /* Fetch profiles and roles in parallel */
       let profileMap = new Map<string, { display_name: string | null; username: string | null }>();
       if (unique.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, display_name, username")
-          .in("id", unique);
+        const [{ data: profiles }, { data: roles }] = await Promise.all([
+          supabase.from("profiles").select("id, display_name, username").in("id", unique),
+          supabase.from("user_roles").select("user_id, role").in("user_id", unique),
+        ]);
         for (const p of (profiles ?? []) as Array<{
           id: string;
           display_name: string | null;
@@ -119,10 +119,6 @@ function MembersClient(): JSX.Element {
         }>) {
           profileMap.set(p.id, { display_name: p.display_name, username: p.username });
         }
-      }
-      /* Fetch roles */
-      if (unique.length > 0) {
-        const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", unique);
         const nextRoleMap = new Map<string, string>();
         for (const r of (roles ?? []) as Array<{ user_id: string; role: string }>) {
           if (NOTABLE_ROLES.has(r.role)) {

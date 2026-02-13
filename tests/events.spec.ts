@@ -43,7 +43,9 @@ test.describe("Events: Content manager features (editor)", () => {
 
     /* Editor is a content manager but may lack clan membership */
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     const hasExpected = (await createBtn.count()) > 0 || (await noClanMsg.count()) > 0;
     expect(hasExpected).toBe(true);
   });

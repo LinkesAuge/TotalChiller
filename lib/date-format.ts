@@ -19,13 +19,4 @@ function formatLocalDateTime(value: string, locale: string = "de-DE"): string {
   });
 }
 
-/**
- * Formats a date/time string in German format (dd.MM.yyyy, HH:mm).
- * @deprecated Use formatLocalDateTime with locale parameter instead.
- */
-function formatGermanDateTime(value: string): string {
-  return formatLocalDateTime(value, "de-DE");
-}
-
 export { formatLocalDateTime };
-export default formatGermanDateTime;

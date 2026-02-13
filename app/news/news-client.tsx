@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { z } from "zod";
 import { useTranslations, useLocale } from "next-intl";
@@ -8,6 +8,7 @@ import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
 import { formatLocalDateTime } from "../../lib/date-format";
+import { extractAuthorName } from "../../lib/dashboard-utils";
 import { BANNER_PRESETS } from "@/lib/constants/banner-presets";
 import useClanContext from "../components/use-clan-context";
 import AuthActions from "../components/auth-actions";
@@ -118,15 +119,9 @@ function NewsClient(): JSX.Element {
       .filter(Boolean);
   }, [tagsInput]);
 
-  /** Extract a display name from a PostgREST profile join result. */
-  function extractName(profile: { display_name: string | null; username: string | null } | null): string | null {
-    if (!profile) return null;
-    return profile.display_name || profile.username || null;
-  }
-
   /* ── Load articles ── */
 
-  async function loadArticles(): Promise<void> {
+  const loadArticles = useCallback(async (): Promise<void> => {
     if (!clanContext?.clanId) {
       setArticles([]);
       setIsLoading(false);
@@ -159,18 +154,28 @@ function NewsClient(): JSX.Element {
     setArticles(
       rows.map((row) => ({
         ...row,
-        author_name: extractName(row.author as { display_name: string | null; username: string | null } | null),
-        editor_name: extractName(row.editor as { display_name: string | null; username: string | null } | null),
+        author_name: extractAuthorName(row.author as { display_name: string | null; username: string | null } | null),
+        editor_name: extractAuthorName(row.editor as { display_name: string | null; username: string | null } | null),
       })) as ArticleRow[],
     );
     setTotalCount(count ?? 0);
     /* usePagination auto-clamps page when totalItems shrinks */
-  }
+  }, [
+    supabase,
+    clanContext,
+    tagFilter,
+    searchTerm,
+    dateFrom,
+    dateTo,
+    pagination.startIndex,
+    pagination.pageSize,
+    pushToast,
+    t,
+  ]);
 
   useEffect(() => {
     void loadArticles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clanContext?.clanId, tagFilter, searchTerm, dateFrom, dateTo, pagination.page, pagination.pageSize]);
+  }, [loadArticles]);
 
   const availableTags = useMemo(() => {
     const s = new Set<string>();

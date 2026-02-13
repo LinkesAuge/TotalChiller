@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import formatGermanDateTime, { formatLocalDateTime } from "./date-format";
+import { formatLocalDateTime } from "./date-format";
 
 describe("formatLocalDateTime", () => {
   it("returns empty string for empty input", () => {
@@ -24,11 +24,9 @@ describe("formatLocalDateTime", () => {
     expect(result).toMatch(/15/);
     expect(result).toMatch(/2026/);
   });
-});
 
-describe("formatGermanDateTime", () => {
-  it("delegates to formatLocalDateTime with de-DE", () => {
+  it("defaults to de-DE locale", () => {
     const inputDate = "2026-01-05T09:15:00Z";
-    expect(formatGermanDateTime(inputDate)).toBe(formatLocalDateTime(inputDate, "de-DE"));
+    expect(formatLocalDateTime(inputDate)).toBe(formatLocalDateTime(inputDate, "de-DE"));
   });
 });

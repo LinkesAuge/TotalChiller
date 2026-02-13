@@ -43,11 +43,12 @@ test.describe("CMS Public View (no login)", () => {
     await page.goto("/about");
     await page.waitForLoadState("networkidle");
 
-    // Should not show loading skeleton
-    await expect(page.locator(".cms-loading-skeleton")).not.toBeVisible();
+    // Should not show loading skeleton (allow time for API calls to complete)
+    await expect(page.locator(".cms-loading-skeleton")).not.toBeVisible({ timeout: 15000 });
 
     // Should have card sections
     const cards = page.locator(".card");
+    await expect(cards.first()).toBeVisible({ timeout: 10000 });
     expect(await cards.count()).toBeGreaterThanOrEqual(3);
   });
 
@@ -72,12 +73,21 @@ test.describe("CMS Public View (no login)", () => {
   });
 
   test("no error banners on any page", async ({ page }) => {
-    for (const path of ["/home", "/about", "/contact", "/privacy-policy"]) {
-      await page.goto(path);
+    for (const pagePath of ["/home", "/about", "/contact", "/privacy-policy"]) {
+      await page.goto(pagePath);
       await page.waitForLoadState("networkidle");
 
+      /* Wait a moment for any async error banners to appear */
+      await page.waitForTimeout(500);
+
       const errorBanner = page.locator(".cms-error-banner");
-      expect(await errorBanner.count()).toBe(0);
+      const bannerCount = await errorBanner.count();
+      if (bannerCount > 0) {
+        /* Log which page has the error for debugging */
+        const text = await errorBanner.first().textContent();
+        console.warn(`Error banner on ${pagePath}: ${text}`);
+      }
+      expect(bannerCount).toBe(0);
     }
   });
 

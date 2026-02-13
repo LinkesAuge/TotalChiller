@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import { LOCALE_COOKIE } from "../../i18n/routing";
@@ -22,7 +22,8 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/profile") ||
     pathname.startsWith("/settings") ||
     pathname.startsWith("/not-authorized") ||
-    pathname.startsWith("/redesign")
+    pathname.startsWith("/redesign") ||
+    pathname.startsWith("/admin") /* Admin pages have their own auth guards */
   );
 }
 
@@ -35,9 +36,11 @@ type AccessState = "loading" | "granted" | "unassigned" | "denied";
  */
 function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
   const pathname = usePathname();
+  const router = useRouter();
   const supabase = useSupabase();
   const t = useTranslations("clanAccessGate");
   const [accessState, setAccessState] = useState<AccessState>("loading");
+  const localeSynced = useRef(false);
 
   useEffect(() => {
     let isActive = true;
@@ -73,8 +76,9 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
       setAccessState(hasRealClan ? "granted" : "unassigned");
     }
     void loadAccess();
-    /* Sync locale from Supabase user_metadata on login */
+    /* Sync locale from Supabase user_metadata on login (once per session) */
     async function syncLocaleFromProfile(): Promise<void> {
+      if (localeSynced.current) return;
       const { data: userData } = await supabase.auth.getUser();
       const storedLang = userData.user?.user_metadata?.language as string | undefined;
       if (storedLang && routing.locales.includes(storedLang as Locale)) {
@@ -84,15 +88,18 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
           ?.split("=")[1];
         if (currentCookie !== storedLang) {
           document.cookie = `${LOCALE_COOKIE}=${storedLang}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-          window.location.reload();
+          localeSynced.current = true;
+          router.refresh();
+          return;
         }
       }
+      localeSynced.current = true;
     }
     void syncLocaleFromProfile();
     return () => {
       isActive = false;
     };
-  }, [pathname, supabase]);
+  }, [pathname, router, supabase]);
 
   if (isPublicPath(pathname)) {
     return <>{children}</>;

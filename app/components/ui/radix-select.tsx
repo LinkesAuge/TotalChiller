@@ -1,7 +1,7 @@
 import { type ReactNode, useMemo, useState } from "react";
 import * as Select from "@radix-ui/react-select";
 
-interface SelectOption {
+export interface SelectOption {
   readonly value: string;
   readonly label: string;
   readonly disabled?: boolean;

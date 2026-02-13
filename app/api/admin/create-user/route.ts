@@ -34,76 +34,83 @@ function resolveProfileErrorMessage(error: { code?: string; message?: string }):
 export async function POST(request: Request): Promise<Response> {
   const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
-  const parsed = CREATE_USER_SCHEMA.safeParse(await request.json());
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input." }, { status: 400 });
-  }
-  /* ── Auth guard: require authenticated admin ── */
-  const auth = await requireAdmin();
-  if (auth.error) return auth.error;
-  const supabase = createSupabaseServiceRoleClient();
-  const { email, username, displayName } = parsed.data;
-  const normalizedEmail = email.toLowerCase();
-  const normalizedUsername = username.toLowerCase();
-  const normalizedDisplayName = displayName?.trim();
-  const { data: existingUsername, error: usernameError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_db", normalizedUsername)
-    .maybeSingle();
-  if (usernameError) {
-    return NextResponse.json({ error: usernameError.message }, { status: 500 });
-  }
-  if (existingUsername) {
-    return NextResponse.json({ error: "Username already exists." }, { status: 409 });
-  }
-  const { data: existingEmail, error: emailError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("email", normalizedEmail)
-    .maybeSingle();
-  if (emailError) {
-    return NextResponse.json({ error: emailError.message }, { status: 500 });
-  }
-  if (existingEmail) {
-    return NextResponse.json({ error: "Email already exists." }, { status: 409 });
-  }
-  if (normalizedDisplayName) {
-    const { data: existingDisplayName, error: displayNameError } = await supabase
-      .from("profiles")
-      .select("id")
-      .ilike("display_name", normalizedDisplayName)
-      .maybeSingle();
-    if (displayNameError) {
-      return NextResponse.json({ error: displayNameError.message }, { status: 500 });
+
+  try {
+    const parsed = CREATE_USER_SCHEMA.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input." }, { status: 400 });
     }
-    if (existingDisplayName) {
+    /* ── Auth guard: require authenticated admin ── */
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
+    const supabase = createSupabaseServiceRoleClient();
+    const { email, username, displayName } = parsed.data;
+    const normalizedEmail = email.toLowerCase();
+    const normalizedUsername = username.toLowerCase();
+    const normalizedDisplayName = displayName?.trim();
+
+    /* Parallelize duplicate checks */
+    const duplicateChecks = await Promise.all([
+      supabase.from("profiles").select("id").eq("user_db", normalizedUsername).maybeSingle(),
+      supabase.from("profiles").select("id").eq("email", normalizedEmail).maybeSingle(),
+      ...(normalizedDisplayName
+        ? [supabase.from("profiles").select("id").ilike("display_name", normalizedDisplayName).maybeSingle()]
+        : []),
+    ]);
+
+    const [usernameResult, emailResult, displayNameResult] = duplicateChecks;
+
+    if (usernameResult?.error) {
+      console.error("[create-user] Username check failed:", usernameResult.error.message);
+      return NextResponse.json({ error: "Failed to validate username." }, { status: 500 });
+    }
+    if (usernameResult?.data) {
+      return NextResponse.json({ error: "Username already exists." }, { status: 409 });
+    }
+    if (emailResult?.error) {
+      console.error("[create-user] Email check failed:", emailResult.error.message);
+      return NextResponse.json({ error: "Failed to validate email." }, { status: 500 });
+    }
+    if (emailResult?.data) {
+      return NextResponse.json({ error: "Email already exists." }, { status: 409 });
+    }
+    if (displayNameResult?.error) {
+      console.error("[create-user] Display name check failed:", displayNameResult.error.message);
+      return NextResponse.json({ error: "Failed to validate nickname." }, { status: 500 });
+    }
+    if (displayNameResult?.data) {
       return NextResponse.json({ error: "Nickname already exists." }, { status: 409 });
     }
-  }
-  const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail);
-  if (inviteError || !inviteData.user) {
-    return NextResponse.json({ error: inviteError?.message ?? "Failed to create user." }, { status: 500 });
-  }
-  const userId = inviteData.user.id;
-  const nextUsername = normalizedUsername;
-  const nextDisplayName = normalizedDisplayName ?? nextUsername;
-  const { error: profileError } = await supabase.from("profiles").upsert(
-    {
-      id: userId,
-      email,
-      user_db: nextUsername,
-      username: nextUsername,
-      display_name: nextDisplayName,
-    },
-    { onConflict: "id" },
-  );
-  if (profileError) {
-    const resolvedMessage = resolveProfileErrorMessage(profileError);
-    if (resolvedMessage) {
-      return NextResponse.json({ error: resolvedMessage }, { status: 409 });
+
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail);
+    if (inviteError || !inviteData.user) {
+      console.error("[create-user] Invite failed:", inviteError?.message);
+      return NextResponse.json({ error: "Failed to create user." }, { status: 500 });
     }
-    return NextResponse.json({ error: profileError.message }, { status: 500 });
+    const userId = inviteData.user.id;
+    const nextUsername = normalizedUsername;
+    const nextDisplayName = normalizedDisplayName ?? nextUsername;
+    const { error: profileError } = await supabase.from("profiles").upsert(
+      {
+        id: userId,
+        email,
+        user_db: nextUsername,
+        username: nextUsername,
+        display_name: nextDisplayName,
+      },
+      { onConflict: "id" },
+    );
+    if (profileError) {
+      const resolvedMessage = resolveProfileErrorMessage(profileError);
+      if (resolvedMessage) {
+        return NextResponse.json({ error: resolvedMessage }, { status: 409 });
+      }
+      console.error("[create-user] Profile upsert failed:", profileError.message);
+      return NextResponse.json({ error: "Failed to create user profile." }, { status: 500 });
+    }
+    return NextResponse.json({ data: { id: userId } }, { status: 201 });
+  } catch (err) {
+    console.error("[create-user POST] Unexpected:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-  return NextResponse.json({ id: userId });
 }

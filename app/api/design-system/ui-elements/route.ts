@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/api/require-admin";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
-import { standardLimiter } from "@/lib/rate-limit";
+import { standardLimiter, relaxedLimiter } from "@/lib/rate-limit";
 
 /* ------------------------------------------------------------------ */
 /*  Schemas                                                            */
@@ -49,6 +49,9 @@ const deleteSchema = z.object({
 /* ------------------------------------------------------------------ */
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = relaxedLimiter.check(request);
+  if (blocked) return blocked;
+
   try {
     const params = request.nextUrl.searchParams;
     const category = params.get("category");

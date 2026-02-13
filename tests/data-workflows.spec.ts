@@ -10,12 +10,12 @@ test.describe("Data Import: Page structure", () => {
 
   test("data import page shows upload area", async ({ page }) => {
     await page.goto("/admin/data-import");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
+    /* Wait for ClanAccessGate to resolve and content to render */
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 30000 });
 
-    /* Should have file input for CSV upload */
+    /* Should have file input for CSV upload (may need time for client component to mount) */
     const fileInput = page.locator('input[type="file"]');
-    expect(await fileInput.count()).toBeGreaterThan(0);
+    await expect(fileInput.first()).toBeVisible({ timeout: 20000 });
   });
 
   test("data import page has filter toggle", async ({ page }) => {
@@ -49,14 +49,13 @@ test.describe("Data Table: Page structure", () => {
 
   test("data table page loads with content", async ({ page }) => {
     await page.goto("/admin/data-table");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
+    /* Don't wait for networkidle — data table may have persistent connections */
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 30000 });
   });
 
   test("data table has filter controls", async ({ page }) => {
     await page.goto("/admin/data-table");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 30000 });
 
     /* Should have a filter toggle or filter elements */
     const filterElements = page.locator("button, select, input");
@@ -65,8 +64,7 @@ test.describe("Data Table: Page structure", () => {
 
   test("data table has pagination controls", async ({ page }) => {
     await page.goto("/admin/data-table");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 30000 });
 
     /* Pagination: page size selector, page number, prev/next buttons */
     const pagination = page.locator("select, button", { hasText: /prev|next|vor|zurück|\d+/i });
@@ -75,8 +73,7 @@ test.describe("Data Table: Page structure", () => {
 
   test("data table shows table or empty state", async ({ page }) => {
     await page.goto("/admin/data-table");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 30000 });
 
     /* Should have either a data table or an empty state */
     const table = page.locator("table, .table");

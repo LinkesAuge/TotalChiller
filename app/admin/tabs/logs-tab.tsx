@@ -53,10 +53,10 @@ export default function LogsTab(): ReactElement {
   const formatTimestamp = useCallback((iso: string): string => formatLocalDateTime(iso, "en"), []);
 
   /* ── Reset page on filter change ── */
+  const resetPage = pagination.setPage;
   useEffect(() => {
-    pagination.setPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auditActionFilter, auditActorFilter, auditClanFilter, auditEntityFilter, auditSearch, selectedClanId]);
+    resetPage(1);
+  }, [resetPage, auditActionFilter, auditActorFilter, auditClanFilter, auditEntityFilter, auditSearch, selectedClanId]);
 
   /* ── Load audit logs ── */
   useEffect(() => {

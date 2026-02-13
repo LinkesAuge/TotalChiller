@@ -104,6 +104,12 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
   const searchWrapperRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /* ── Abort controllers for cancelling stale fetch requests ── */
+  const inboxAbortRef = useRef<AbortController | null>(null);
+  const sentAbortRef = useRef<AbortController | null>(null);
+  const threadAbortRef = useRef<AbortController | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
+
   /* ── Role / permission state ── */
   const { isContentManager: isContentMgr } = useUserRole(supabase);
   const [clans, setClans] = useState<readonly ClanOption[]>([]);
@@ -122,40 +128,66 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
      ══════════════════════════════════════════════════ */
 
   const loadInbox = useCallback(async (): Promise<void> => {
+    inboxAbortRef.current?.abort();
+    const controller = new AbortController();
+    inboxAbortRef.current = controller;
     setIsInboxLoading(true);
     try {
       const params = new URLSearchParams();
       if (typeFilter !== "all") params.set("type", typeFilter);
       if (search.trim()) params.set("search", search.trim());
       const qs = params.toString() ? `?${params.toString()}` : "";
-      const response = await fetch(`/api/messages${qs}`);
+      const response = await fetch(`/api/messages${qs}`, { signal: controller.signal });
       if (response.ok) {
         const result = await response.json();
-        setInboxThreads(result.data ?? []);
-        setInboxProfiles(result.profiles ?? {});
+        if (!controller.signal.aborted) {
+          setInboxThreads(result.data ?? []);
+          setInboxProfiles(result.profiles ?? {});
+        }
       }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      throw err;
     } finally {
-      setIsInboxLoading(false);
+      if (!controller.signal.aborted) setIsInboxLoading(false);
     }
   }, [typeFilter, search]);
 
   const loadSent = useCallback(async (): Promise<void> => {
+    sentAbortRef.current?.abort();
+    const controller = new AbortController();
+    sentAbortRef.current = controller;
     setIsSentLoading(true);
     try {
       const params = new URLSearchParams();
       if (typeFilter !== "all") params.set("type", typeFilter);
       if (search.trim()) params.set("search", search.trim());
       const qs = params.toString() ? `?${params.toString()}` : "";
-      const response = await fetch(`/api/messages/sent${qs}`);
+      const response = await fetch(`/api/messages/sent${qs}`, { signal: controller.signal });
       if (response.ok) {
         const result = await response.json();
-        setSentMessages(result.data ?? []);
-        setSentProfiles(result.profiles ?? {});
+        if (!controller.signal.aborted) {
+          setSentMessages(result.data ?? []);
+          setSentProfiles(result.profiles ?? {});
+        }
       }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      throw err;
     } finally {
-      setIsSentLoading(false);
+      if (!controller.signal.aborted) setIsSentLoading(false);
     }
   }, [typeFilter, search]);
+
+  /* Abort all pending requests on unmount */
+  useEffect(() => {
+    return () => {
+      inboxAbortRef.current?.abort();
+      sentAbortRef.current?.abort();
+      threadAbortRef.current?.abort();
+      searchAbortRef.current?.abort();
+    };
+  }, []);
 
   /* Load data when view/filter changes */
   useEffect(() => {
@@ -210,21 +242,29 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
     }
     setIsSearching(true);
     searchTimerRef.current = setTimeout(async () => {
+      searchAbortRef.current?.abort();
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
       try {
-        const response = await fetch(`/api/messages/search-recipients?q=${encodeURIComponent(query)}`);
-        if (response.ok) {
+        const response = await fetch(`/api/messages/search-recipients?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (response.ok && !controller.signal.aborted) {
           const result = await response.json();
           const results = (result.data ?? []) as RecipientResult[];
           const selectedIds = new Set(composeRecipients.map((r) => r.id));
           setRecipientResults(results.filter((r) => !selectedIds.has(r.id)));
           setIsSearchDropdownOpen(true);
         }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
       } finally {
-        setIsSearching(false);
+        if (!controller.signal.aborted) setIsSearching(false);
       }
     }, 300);
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      searchAbortRef.current?.abort();
     };
   }, [recipientSearch, composeRecipients]);
 
@@ -312,17 +352,25 @@ function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JS
      ══════════════════════════════════════════════════ */
 
   async function loadThread(threadId: string): Promise<void> {
+    threadAbortRef.current?.abort();
+    const controller = new AbortController();
+    threadAbortRef.current = controller;
     setIsThreadLoading(true);
     setThreadMessages([]);
     try {
-      const response = await fetch(`/api/messages/thread/${threadId}`);
+      const response = await fetch(`/api/messages/thread/${threadId}`, { signal: controller.signal });
       if (response.ok) {
         const result = await response.json();
-        setThreadMessages(result.data ?? []);
-        setThreadProfiles(result.profiles ?? {});
+        if (!controller.signal.aborted) {
+          setThreadMessages(result.data ?? []);
+          setThreadProfiles(result.profiles ?? {});
+        }
       }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      throw err;
     } finally {
-      setIsThreadLoading(false);
+      if (!controller.signal.aborted) setIsThreadLoading(false);
     }
   }
 

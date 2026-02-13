@@ -103,13 +103,13 @@ test.describe("Settings: Username (admin only)", () => {
   test("admin can edit username field", async ({ page }) => {
     await loginAs(page, "admin");
     await page.goto("/settings");
-    await page.waitForLoadState("networkidle");
+    /* Don't wait for networkidle — settings page may have persistent connections */
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 20000 });
 
     /* Username input should be enabled for admins */
     const usernameInput = page.locator('input[placeholder*="username"], input[minlength="2"]');
-    if ((await usernameInput.count()) > 0) {
-      await expect(usernameInput.first()).toBeEnabled();
-    }
+    await expect(usernameInput.first()).toBeVisible({ timeout: 15000 });
+    await expect(usernameInput.first()).toBeEnabled();
   });
 
   test("member has disabled username field", async ({ page }) => {

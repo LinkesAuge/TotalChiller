@@ -1,13 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import RadixSelect from "./radix-select";
-
-interface SelectOption {
-  readonly value: string;
-  readonly label: string;
-  readonly disabled?: boolean;
-}
+import RadixSelect, { type SelectOption } from "./radix-select";
 
 interface LabeledSelectProps {
   readonly id: string;

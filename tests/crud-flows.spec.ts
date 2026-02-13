@@ -23,7 +23,9 @@ test.describe("News: CRUD flow", () => {
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
     /* Check for no-clan message — if present, skip gracefully */
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     if ((await noClanMsg.count()) > 0) {
       test.skip(true, "Test user lacks clan membership — skipping CRUD");
       return;
@@ -47,7 +49,9 @@ test.describe("News: CRUD flow", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     if ((await noClanMsg.count()) > 0) {
       test.skip(true, "Test user lacks clan membership — skipping CRUD");
       return;
@@ -75,7 +79,9 @@ test.describe("News: CRUD flow", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     if ((await noClanMsg.count()) > 0) {
       test.skip(true, "Test user lacks clan membership — skipping CRUD");
       return;
@@ -109,7 +115,9 @@ test.describe("Events: CRUD flow", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     if ((await noClanMsg.count()) > 0) {
       test.skip(true, "Test user lacks clan membership — skipping CRUD");
       return;
@@ -134,7 +142,9 @@ test.describe("Events: CRUD flow", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     if ((await noClanMsg.count()) > 0) {
       test.skip(true, "Test user lacks clan membership");
       return;
@@ -160,7 +170,9 @@ test.describe("Events: CRUD flow", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     if ((await noClanMsg.count()) > 0) {
       test.skip(true, "Test user lacks clan membership");
       return;
@@ -196,14 +208,16 @@ test.describe("Forum: Post and comment CRUD", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
 
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     if ((await noClanMsg.count()) > 0) {
       test.skip(true, "Test user lacks clan membership");
       return;
     }
 
     const newPostBtn = page.locator("button", { hasText: /new post|neuer beitrag/i });
-    await expect(newPostBtn.first()).toBeVisible({ timeout: 5000 });
+    await expect(newPostBtn.first()).toBeVisible({ timeout: 10000 });
     await newPostBtn.first().click();
 
     await page.locator("#post-title").fill(postTitle);

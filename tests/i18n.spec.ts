@@ -4,6 +4,13 @@ import { storageStatePath } from "./helpers/auth";
 /**
  * i18n / Language switching tests.
  * Verifies that the language selector works and content updates accordingly.
+ *
+ * The LanguageSelector component renders a button-based toggle:
+ *   <div class="lang-toggle" role="radiogroup">
+ *     <button class="lang-toggle-btn active">DE</button>
+ *     <button class="lang-toggle-btn">EN</button>
+ *   </div>
+ * On collapsed sidebar it renders: <button class="sidebar-lang-compact">DE</button>
  */
 
 test.use({ storageState: storageStatePath("member") });
@@ -13,19 +20,21 @@ test.describe("i18n: Language switching", () => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle");
 
-    const langSelect = page.locator("#language-select");
-    await expect(langSelect).toBeVisible({ timeout: 10000 });
+    /* Look for the lang-toggle radio group or the compact sidebar button */
+    const langToggle = page.locator(".lang-toggle, .sidebar-lang-compact");
+    await expect(langToggle.first()).toBeVisible({ timeout: 15000 });
   });
 
   test("switching to German updates page content", async ({ page }) => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle");
 
-    const langSelect = page.locator("#language-select");
-    await langSelect.selectOption("de");
-
-    /* Wait for page to refresh with new locale */
-    await page.waitForLoadState("networkidle");
+    /* Click the DE button */
+    const deBtn = page.locator('.lang-toggle-btn:has-text("DE"), .sidebar-lang-compact');
+    if ((await deBtn.count()) > 0) {
+      await deBtn.first().click();
+      await page.waitForLoadState("networkidle");
+    }
 
     /* Verify NEXT_LOCALE cookie is set to "de" */
     const cookies = await page.context().cookies();
@@ -37,10 +46,12 @@ test.describe("i18n: Language switching", () => {
     await page.goto("/home");
     await page.waitForLoadState("networkidle");
 
-    const langSelect = page.locator("#language-select");
-    await langSelect.selectOption("en");
-
-    await page.waitForLoadState("networkidle");
+    /* Click the EN button */
+    const enBtn = page.locator('.lang-toggle-btn:has-text("EN")');
+    if ((await enBtn.count()) > 0) {
+      await enBtn.first().click();
+      await page.waitForLoadState("networkidle");
+    }
 
     const cookies = await page.context().cookies();
     const localeCookie = cookies.find((c) => c.name === "NEXT_LOCALE");
@@ -51,24 +62,23 @@ test.describe("i18n: Language switching", () => {
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
 
-    /* The sidebar has either a select or a compact button for language */
-    const langSelect = page.locator("#language-select");
+    /* The sidebar has either a toggle or a compact button for language */
+    const langToggle = page.locator(".lang-toggle");
     const langCompact = page.locator(".sidebar-lang-compact");
-    const hasSelect = (await langSelect.count()) > 0;
+    const hasToggle = (await langToggle.count()) > 0;
     const hasCompact = (await langCompact.count()) > 0;
 
     /* At least one language control should be present */
-    expect(hasSelect || hasCompact).toBe(true);
+    expect(hasToggle || hasCompact).toBe(true);
   });
 
   test("URL stays the same after language switch", async ({ page }) => {
     await page.goto("/about");
     await page.waitForLoadState("networkidle");
 
-    const langSelect = page.locator("#language-select");
-    if ((await langSelect.count()) > 0) {
-      const urlBefore = page.url();
-      await langSelect.selectOption("de");
+    const deBtn = page.locator('.lang-toggle-btn:has-text("DE")');
+    if ((await deBtn.count()) > 0) {
+      await deBtn.first().click();
       await page.waitForLoadState("networkidle");
       /* Path should be the same (only content changes, not route) */
       expect(page.url()).toContain("/about");

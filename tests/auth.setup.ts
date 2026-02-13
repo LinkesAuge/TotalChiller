@@ -8,7 +8,7 @@
  * Usage in test files:
  *   test.use({ storageState: "tests/.auth/member.json" });
  */
-import { test as setup, expect } from "@playwright/test";
+import { test as setup } from "@playwright/test";
 import { TEST_USERS, TEST_PASSWORD, type TestRole } from "./helpers/auth";
 import path from "path";
 
@@ -19,6 +19,9 @@ const ROLES_TO_SETUP: TestRole[] = ["member", "admin", "editor", "moderator", "o
 for (const role of ROLES_TO_SETUP) {
   setup(`authenticate as ${role}`, async ({ page }) => {
     const user = TEST_USERS[role];
+
+    /* Pre-set locale cookie to prevent ClanAccessGate from triggering window.location.reload() */
+    await page.context().addCookies([{ name: "NEXT_LOCALE", value: "de", domain: "localhost", path: "/" }]);
 
     await page.goto("/auth/login");
     await page.waitForLoadState("networkidle");
@@ -33,7 +36,10 @@ for (const role of ROLES_TO_SETUP) {
     await identifierInput.fill(user.email);
     await page.locator("#password").fill(TEST_PASSWORD);
     await page.locator('button[type="submit"]').click();
-    await page.waitForURL((url) => !url.pathname.includes("/auth/login"), { timeout: 15000 });
+    await page.waitForURL((url) => !url.pathname.includes("/auth/login"), {
+      timeout: 20000,
+      waitUntil: "domcontentloaded",
+    });
     await page.waitForLoadState("networkidle");
 
     /* Persist the authenticated storage state */

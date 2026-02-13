@@ -9,16 +9,22 @@ import { standardLimiter } from "../../../../lib/rate-limit";
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
-  const auth = await requireAuth();
-  if (auth.error) return auth.error;
-  const { error: updateError } = await auth.supabase
-    .from("notifications")
-    .update({ is_read: true })
-    .eq("user_id", auth.userId)
-    .eq("is_read", false);
-  if (updateError) {
-    console.error("[notifications/mark-all-read]", updateError.message);
-    return NextResponse.json({ error: "Failed to mark notifications as read." }, { status: 500 });
+
+  try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { error: updateError } = await auth.supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", auth.userId)
+      .eq("is_read", false);
+    if (updateError) {
+      console.error("[notifications/mark-all-read]", updateError.message);
+      return NextResponse.json({ error: "Failed to mark notifications as read." }, { status: 500 });
+    }
+    return NextResponse.json({ data: { success: true } });
+  } catch (err) {
+    console.error("[notifications/mark-all-read POST] Unexpected:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-  return NextResponse.json({ data: { success: true } });
 }

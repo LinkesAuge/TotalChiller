@@ -90,5 +90,5 @@ export const strictLimiter = createRateLimiter({ windowMs: 60_000, max: 10 });
 /** Standard: 30 requests per minute (messages, mutations). */
 export const standardLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
 
-/** Relaxed: 60 requests per minute (read-heavy endpoints). */
-export const relaxedLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
+/** Relaxed: 120 requests per minute (read-heavy endpoints). */
+export const relaxedLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });

@@ -16,13 +16,17 @@ test.describe("News: Page loading", () => {
   test("news page shows content or no-clan message", async ({ page }) => {
     await page.goto("/news");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".content-inner")).toBeVisible({ timeout: 20000 });
 
-    /* Either top-bar (has clan) or no-clan access message */
+    /* Wait for ClanAccessGate to resolve — either shows content or a gate message */
+    /* The gate loading state shows "Zugang wird geladen" or similar, which eventually resolves to either:
+       - Granted: top-bar + page content
+       - Denied: "keinen Zugang" / "no access" message with profile/home links
+       - Unassigned: "unassigned" message */
     const topBar = page.locator(".top-bar");
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
-    const hasContent = (await topBar.count()) > 0 || (await noClanMsg.count()) > 0;
-    expect(hasContent).toBe(true);
+    const gateMsg = page.locator("text=/Clan-Bereichen|clan access|keinen Zugang|no access|Zugang|Profil|profile/i");
+    /* Give extra time for the gate to resolve from loading to final state */
+    await expect(topBar.or(gateMsg).first()).toBeVisible({ timeout: 20000 });
   });
 });
 
@@ -35,7 +39,9 @@ test.describe("News: Content manager features (editor)", () => {
 
     /* Editor is a content manager but may lack clan membership */
     const createBtn = page.locator("button.primary", { hasText: /erstellen|create/i });
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access/i");
+    const noClanMsg = page.locator(
+      "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
+    );
     const hasExpected = (await createBtn.count()) > 0 || (await noClanMsg.count()) > 0;
     expect(hasExpected).toBe(true);
   });

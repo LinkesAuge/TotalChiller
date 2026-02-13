@@ -19,6 +19,7 @@ The documentation acts as a **map** pointing to where things live, without dupli
 ## New Structure
 
 ### `handoff_summary.md` — Session Briefing (~60 lines)
+
 - What this project is (3 lines)
 - Current branch
 - Recent changes (last 1-2 sessions only)
@@ -29,6 +30,7 @@ The documentation acts as a **map** pointing to where things live, without dupli
 **Rule**: When a new session adds changes, old "recent changes" move to CHANGELOG.md.
 
 ### `ARCHITECTURE.md` — System Map (~350 lines)
+
 - Tech stack table
 - Directory tree with one-line descriptions
 - Feature modules (11 sections): 2-3 sentence description + file table + DB tables + key patterns
@@ -43,10 +45,12 @@ The documentation acts as a **map** pointing to where things live, without dupli
 **Rule**: Describes structure and patterns, not implementation details. Points to files, doesn't reproduce their content.
 
 ### `CHANGELOG.md` — Historical Record
+
 - All changelog entries from old handoff_summary.md, organized newest-first by date.
 - Grows over time, rarely read. Only consulted for "when did we change X?"
 
 ### `solution_overview.md` — Decisions & Rationale (~140 lines)
+
 - Trimmed from 459 lines to ~140.
 - Keeps: PRD decisions, architecture decisions, core data model, MVP scope, UI style guide (palette, fonts, treatments), behavioral notes.
 - Removes: Feature descriptions (now in ARCHITECTURE.md), file listings (now in ARCHITECTURE.md), duplicate sections.

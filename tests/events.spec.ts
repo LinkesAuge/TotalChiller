@@ -183,7 +183,10 @@ test.describe("Events: Upcoming sidebar pagination", () => {
 
 test.describe("Events: Calendar hover behavior", () => {
   test.use({ storageState: storageStatePath("member") });
-  test("day cells with events show tooltip on hover", async ({ page }) => {
+  test("day cells with events show tooltip on hover", async ({ page, browserName }, testInfo) => {
+    /* Hover tooltips are a desktop-only interaction — skip on mobile/touch projects */
+    test.skip(testInfo.project.name === "mobile-chrome", "Hover tooltips are not applicable on touch devices");
+
     await page.goto("/events");
     await page.waitForLoadState("networkidle");
 

@@ -187,11 +187,12 @@ All changes verified: TypeScript type-check, lint, 528 unit tests passing.
   - Files: `app/components/sidebar-shell.tsx`, `app/hooks/use-clan-context.ts`
 - **Admin gating**
   - "Verwaltung" (Administration) nav section visible to all authenticated users. Non-admins who click admin links are redirected to `/not-authorized?reason=admin` with a context-specific access denied message.
-  - Admin page routes protected by `proxy.ts` middleware (`is_any_admin` RPC check).
+  - Admin page routes protected by `proxy.ts` middleware (`is_any_admin` RPC check). Unauthenticated users on admin paths are redirected to `/home` by the proxy's general auth check (`isPublicPath` does NOT include `/admin`).
+  - `clan-access-gate.tsx` uses a separate `isClanExemptPath()` helper that combines `isPublicPath()` with an explicit `/admin` bypass, since admin pages require authentication but not clan membership.
   - `proxy.ts` also catches stray PKCE auth codes (when Supabase ignores redirectTo) and redirects to `/auth/callback`. Registration, email change, and forgot-password flows set `auth_redirect_next` fallback cookie.
   - API routes (`/api/`) bypass the proxy auth redirect entirely — each API route handles its own authentication and returns proper JSON error responses (401/403).
   - Admin toggle + safeguard to keep at least one admin.
-  - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`
+  - Files: `proxy.ts`, `app/not-authorized/page.tsx`, `lib/supabase/admin-access.ts`, `lib/public-paths.ts`, `app/components/clan-access-gate.tsx`
 - **Admin UI** (refactored Feb 2026 — modular architecture)
   - Tabs: Clan Management, Users, Validation, Corrections, Logs, Approvals, Data Import, Chest Database, Forum, Design System.
   - Clan Management manages **game accounts** (not users) and supports assign‑to‑clan modal with pagination (25 per page), search, category filter, select-all-on-page checkbox, and scroll containment for large account lists.

@@ -6,6 +6,14 @@
 
 ---
 
+## 2026-02-14 — Fix: Admin pages not redirecting unauthenticated users
+
+- **Bug**: `/admin` was listed in `isPublicPath()`, causing the proxy middleware to skip the auth redirect for unauthenticated users on admin routes. All 3 admin smoke tests failed.
+- **Fix**: Removed `/admin` from `isPublicPath()` so unauthenticated users are redirected to `/home`. Added `isClanExemptPath()` in `clan-access-gate.tsx` to preserve the clan-membership bypass for admin pages (admin routes require auth but not clan membership).
+- **Files**: `lib/public-paths.ts`, `lib/public-paths.test.ts`, `app/components/clan-access-gate.tsx`
+
+---
+
 ## 2026-02-14 — Systematic Code Review (9-phase)
 
 - **i18n**: Replaced ~40 hardcoded strings with `useTranslations()` across home, forgot, settings, forum, data-table, auth-actions, data-state pages. Added keys to `de.json`/`en.json`.

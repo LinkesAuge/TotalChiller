@@ -9,6 +9,11 @@ import type { Locale } from "../../i18n/routing";
 import { routing } from "../../i18n/routing";
 import { isPublicPath } from "@/lib/public-paths";
 
+/** Admin paths bypass clan checks — access is enforced by the proxy's admin-role gate instead. */
+function isClanExemptPath(pathname: string): boolean {
+  return isPublicPath(pathname) || pathname.startsWith("/admin");
+}
+
 interface ClanAccessGateProps {
   readonly children: React.ReactNode;
 }
@@ -31,7 +36,7 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
   useEffect(() => {
     let isActive = true;
     async function loadAccess(): Promise<void> {
-      if (isPublicPath(pathname)) {
+      if (isClanExemptPath(pathname)) {
         if (isActive) setAccessState("granted");
         return;
       }
@@ -87,7 +92,7 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
     };
   }, [pathname, router, supabase]);
 
-  if (isPublicPath(pathname)) {
+  if (isClanExemptPath(pathname)) {
     return <>{children}</>;
   }
 

@@ -12,8 +12,6 @@ describe("isPublicPath", () => {
       "/profile",
       "/settings",
       "/not-authorized",
-      "/admin",
-      "/admin/users",
     ])("returns true for %s", (pathname) => {
       expect(isPublicPath(pathname)).toBe(true);
     });
@@ -45,6 +43,9 @@ describe("isPublicPath", () => {
       "/data-table",
       "/data-import",
       "/news",
+      "/admin",
+      "/admin/users",
+      "/admin/data-import",
     ])("returns false for %s", (pathname) => {
       expect(isPublicPath(pathname)).toBe(false);
     });

@@ -68,9 +68,9 @@ function PreviewPage(): JSX.Element {
           {/* Announcements */}
           <section className="card" style={{ gridColumn: "span 2" }}>
             <div className="tooltip-head">
-              <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
+              <Image src="/assets/vip/back_tooltip_2.png" alt="" width={400} height={40} className="tooltip-head-bg" />
               <div className="tooltip-head-inner">
-                <img src="/assets/vip/batler_icons_stat_damage.png" alt="" style={{ width: 18, height: 18 }} />
+                <Image src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} />
                 <h3 className="card-title">Announcements</h3>
                 <span className="pin-badge">Pinned</span>
               </div>
@@ -102,10 +102,12 @@ function PreviewPage(): JSX.Element {
                 <div key={i}>
                   {i > 0 && <div className="gold-divider" />}
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0" }}>
-                    <img
+                    <Image
                       src="/assets/vip/batler_icons_star_4.png"
                       alt=""
-                      style={{ width: 14, height: 14, marginTop: 2 }}
+                      width={14}
+                      height={14}
+                      style={{ marginTop: 2 }}
                     />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: "0.88rem" }}>{item.text}</div>
@@ -133,9 +135,9 @@ function PreviewPage(): JSX.Element {
           {/* Stats */}
           <section className="card" style={{ gridColumn: "span 2" }}>
             <div className="tooltip-head">
-              <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
+              <Image src="/assets/vip/back_tooltip_2.png" alt="" width={400} height={40} className="tooltip-head-bg" />
               <div className="tooltip-head-inner">
-                <img src="/assets/vip/batler_icons_stat_armor.png" alt="" style={{ width: 18, height: 18 }} />
+                <Image src="/assets/vip/batler_icons_stat_armor.png" alt="" width={18} height={18} />
                 <h3 className="card-title">Quick Stats</h3>
                 <span style={{ fontSize: "0.6rem", color: "var(--color-text-muted)", marginLeft: "auto" }}>
                   Last 7 days
@@ -162,10 +164,12 @@ function PreviewPage(): JSX.Element {
                 { v: "86%", l: "Readiness", ico: "/assets/vip/batler_icons_stat_heal.png", trend: "-2%", up: false },
               ].map((stat, i) => (
                 <div key={i} className="stat-cell">
-                  <img
+                  <Image
                     src={stat.ico}
                     alt=""
-                    style={{ width: 20, height: 20, margin: "0 auto 4px", display: "block", objectFit: "contain" }}
+                    width={20}
+                    height={20}
+                    style={{ margin: "0 auto 4px", display: "block", objectFit: "contain" }}
                   />
                   <div className="stat-value">{stat.v}</div>
                   <div className={stat.up ? "trend-up" : "trend-down"}>
@@ -219,9 +223,11 @@ function PreviewPage(): JSX.Element {
 
           {/* Events */}
           <section className="card">
-            <img
+            <Image
               src="/assets/banners/banner_ragnarok_clan_event_708x123.png"
               alt=""
+              width={708}
+              height={56}
               style={{ width: "100%", height: 56, objectFit: "cover", opacity: 0.7 }}
             />
             <div style={{ padding: "10px 16px" }}>
@@ -275,9 +281,21 @@ function PreviewPage(): JSX.Element {
                     <span style={{ color: bar.color, fontWeight: 700 }}>{bar.value}%</span>
                   </div>
                   <div className="game-progress">
-                    <img src="/assets/vip/battler_stage_bar_empty.png" alt="" className="game-progress-bg" />
+                    <Image
+                      src="/assets/vip/battler_stage_bar_empty.png"
+                      alt=""
+                      width={400}
+                      height={20}
+                      className="game-progress-bg"
+                    />
                     <div className="game-progress-fill" style={{ width: `${bar.value}%` }}>
-                      <img src="/assets/vip/battler_stage_bar_full.png" alt="" className="game-progress-bg" />
+                      <Image
+                        src="/assets/vip/battler_stage_bar_full.png"
+                        alt=""
+                        width={400}
+                        height={20}
+                        className="game-progress-bg"
+                      />
                     </div>
                   </div>
                 </div>
@@ -443,9 +461,9 @@ function PreviewPage(): JSX.Element {
           {/* Auth form card */}
           <section className="card">
             <div className="tooltip-head">
-              <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
+              <Image src="/assets/vip/back_tooltip_2.png" alt="" width={400} height={40} className="tooltip-head-bg" />
               <div className="tooltip-head-inner">
-                <img src="/assets/vip/batler_icons_star_4.png" alt="" style={{ width: 18, height: 18 }} />
+                <Image src="/assets/vip/batler_icons_star_4.png" alt="" width={18} height={18} />
                 <h3 className="card-title">Sign In</h3>
               </div>
             </div>
@@ -709,9 +727,15 @@ function PreviewPage(): JSX.Element {
           {["Clan Score Over Time", "Top Players", "Chest Type Distribution", "Personal Score"].map((title, i) => (
             <section key={i} className="card">
               <div className="tooltip-head">
-                <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
+                <Image
+                  src="/assets/vip/back_tooltip_2.png"
+                  alt=""
+                  width={400}
+                  height={40}
+                  className="tooltip-head-bg"
+                />
                 <div className="tooltip-head-inner">
-                  <img src="/assets/vip/batler_icons_stat_armor.png" alt="" style={{ width: 16, height: 16 }} />
+                  <Image src="/assets/vip/batler_icons_stat_armor.png" alt="" width={16} height={16} />
                   <h3 className="card-title">{title}</h3>
                 </div>
               </div>
@@ -728,7 +752,7 @@ function PreviewPage(): JSX.Element {
         <div className="modal-backdrop" onClick={() => setShowModal(false)}>
           <div className="card modal" onClick={(e) => e.stopPropagation()}>
             <div className="tooltip-head">
-              <img src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" />
+              <Image src="/assets/vip/back_tooltip_2.png" alt="" width={400} height={40} className="tooltip-head-bg" />
               <div className="tooltip-head-inner">
                 <h3 className="card-title">Confirm Action</h3>
               </div>

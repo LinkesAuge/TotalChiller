@@ -301,7 +301,6 @@ export default function ForumPostDetail({
   const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const commentFormRef = useRef<HTMLDivElement>(null);
   const [isCommentPreview, setIsCommentPreview] = useState<boolean>(false);
-  const isReplyToComment = replyingTo !== "" && replyingTo !== "thread";
 
   /** Opens the editor form, scrolls to it, and focuses the textarea. */
   function handleReplyClick(targetId: string): void {

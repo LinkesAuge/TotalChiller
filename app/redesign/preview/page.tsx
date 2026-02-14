@@ -759,7 +759,12 @@ function PreviewPage(): JSX.Element {
             if (e.key === "Escape") setShowModal(false);
           }}
         >
-          <div className="card modal" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <div
+            role="presentation"
+            className="card modal"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <div className="tooltip-head">
               <Image src="/assets/vip/back_tooltip_2.png" alt="" width={400} height={40} className="tooltip-head-bg" />
               <div className="tooltip-head-inner">

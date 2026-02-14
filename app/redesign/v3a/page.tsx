@@ -113,9 +113,11 @@ function RedesignV3APage(): JSX.Element {
         </div>
 
         <div style={{ padding: "2px 6px", display: "flex", justifyContent: "center" }}>
-          <img
+          <Image
             src="/assets/vip/components_decor_7.png"
             alt=""
+            width={200}
+            height={10}
             style={{ width: open ? "85%" : 38, height: "auto", opacity: 0.45, transition: "width 0.22s" }}
           />
         </div>
@@ -167,11 +169,7 @@ function RedesignV3APage(): JSX.Element {
                         }}
                       >
                         {item.vipIcon ? (
-                          <img
-                            src={item.vipIcon}
-                            alt=""
-                            style={{ width: 16, height: 16, objectFit: "contain" as const }}
-                          />
+                          <Image src={item.vipIcon} alt="" width={16} height={16} style={{ objectFit: "contain" }} />
                         ) : (
                           <svg
                             width="16"
@@ -224,9 +222,11 @@ function RedesignV3APage(): JSX.Element {
 
         {/* Improved bottom section */}
         <div style={s.sbBot}>
-          <img
+          <Image
             src="/assets/vip/components_decor_7.png"
             alt=""
+            width={200}
+            height={10}
             style={{ width: open ? "85%" : 38, height: "auto", opacity: 0.3, margin: "0 auto 6px", display: "block" }}
           />
           <button
@@ -296,18 +296,7 @@ function RedesignV3APage(): JSX.Element {
                 <span style={s.notifDot}>3</span>
               </div>
               <button style={s.leatherBtn}>
-                <img
-                  src="/assets/vip/backs_1.png"
-                  alt=""
-                  style={{
-                    position: "absolute" as const,
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "fill" as const,
-                    borderRadius: 6,
-                  }}
-                />
+                <Image src="/assets/vip/backs_1.png" alt="" fill style={{ objectFit: "fill", borderRadius: 6 }} />
                 <span style={{ position: "relative" as const, zIndex: 1 }}>New Post</span>
               </button>
             </div>
@@ -323,27 +312,24 @@ function RedesignV3APage(): JSX.Element {
               zIndex: 1,
             }}
           />
-          <img
+          <Image
             src="/assets/banners/banner_gold_dragon.png"
             alt=""
-            style={{
-              position: "absolute" as const,
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover" as const,
-              opacity: 0.5,
-            }}
+            fill
+            style={{ objectFit: "cover", opacity: 0.5 }}
           />
-          <img
+          <Image
             src="/assets/vip/decor_light_1.png"
             alt=""
+            width={600}
+            height={200}
             style={{
-              position: "absolute" as const,
+              position: "absolute",
               top: 0,
               left: "50%",
               transform: "translateX(-50%)",
               width: "60%",
+              height: "auto",
               opacity: 0.15,
               zIndex: 1,
             }}
@@ -384,10 +370,12 @@ function RedesignV3APage(): JSX.Element {
             >
               Coordinated. Competitive. Welcoming.
             </p>
-            <img
+            <Image
               src="/assets/vip/components_decor_6.png"
               alt=""
-              style={{ width: 160, opacity: 0.5, transform: "scaleY(-1)" }}
+              width={160}
+              height={40}
+              style={{ opacity: 0.5, transform: "scaleY(-1)" }}
             />
           </div>
         </div>
@@ -395,17 +383,7 @@ function RedesignV3APage(): JSX.Element {
         <div style={s.grid}>
           <section style={{ ...s.card, gridColumn: "span 2" }} className="v3a-card">
             <div style={s.tooltipHead}>
-              <img
-                src="/assets/vip/back_tooltip_2.png"
-                alt=""
-                style={{
-                  position: "absolute" as const,
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover" as const,
-                }}
-              />
+              <Image src="/assets/vip/back_tooltip_2.png" alt="" fill style={{ objectFit: "cover" }} />
               <div
                 style={{
                   position: "relative" as const,
@@ -462,17 +440,7 @@ function RedesignV3APage(): JSX.Element {
 
           <section style={{ ...s.card, gridColumn: "span 2" }} className="v3a-card">
             <div style={s.tooltipHead}>
-              <img
-                src="/assets/vip/back_tooltip_2.png"
-                alt=""
-                style={{
-                  position: "absolute" as const,
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover" as const,
-                }}
-              />
+              <Image src="/assets/vip/back_tooltip_2.png" alt="" fill style={{ objectFit: "cover" }} />
               <div
                 style={{
                   position: "relative" as const,
@@ -505,16 +473,12 @@ function RedesignV3APage(): JSX.Element {
                   key={i}
                   style={{ background: "rgba(10,21,32,0.8)", padding: "14px 10px", textAlign: "center" as const }}
                 >
-                  <img
+                  <Image
                     src={stat.ico}
                     alt=""
-                    style={{
-                      width: 20,
-                      height: 20,
-                      margin: "0 auto 4px",
-                      display: "block",
-                      objectFit: "contain" as const,
-                    }}
+                    width={20}
+                    height={20}
+                    style={{ margin: "0 auto 4px", display: "block", objectFit: "contain" }}
                   />
                   <div
                     style={{
@@ -551,10 +515,12 @@ function RedesignV3APage(): JSX.Element {
           </section>
 
           <section style={s.card} className="v3a-card">
-            <img
+            <Image
               src="/assets/banners/banner_ragnarok_clan_event_708x123.png"
               alt=""
-              style={{ width: "100%", height: 56, objectFit: "cover" as const, opacity: 0.7 }}
+              width={708}
+              height={56}
+              style={{ width: "100%", height: 56, objectFit: "cover", opacity: 0.7 }}
             />
             <div style={{ padding: "10px 16px" }}>
               <h3 style={{ ...s.cardTitle, marginBottom: 8 }}>Events</h3>
@@ -599,17 +565,7 @@ function RedesignV3APage(): JSX.Element {
                     <span style={{ color: bar.color, fontWeight: 700 }}>{bar.value}%</span>
                   </div>
                   <div style={{ position: "relative" as const, height: 12, borderRadius: 3, overflow: "hidden" }}>
-                    <img
-                      src="/assets/vip/battler_stage_bar_empty.png"
-                      alt=""
-                      style={{
-                        position: "absolute" as const,
-                        inset: 0,
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover" as const,
-                      }}
-                    />
+                    <Image src="/assets/vip/battler_stage_bar_empty.png" alt="" fill style={{ objectFit: "cover" }} />
                     <div
                       style={{
                         position: "relative" as const,
@@ -619,17 +575,7 @@ function RedesignV3APage(): JSX.Element {
                         overflow: "hidden",
                       }}
                     >
-                      <img
-                        src="/assets/vip/battler_stage_bar_full.png"
-                        alt=""
-                        style={{
-                          position: "absolute" as const,
-                          inset: 0,
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover" as const,
-                        }}
-                      />
+                      <Image src="/assets/vip/battler_stage_bar_full.png" alt="" fill style={{ objectFit: "cover" }} />
                     </div>
                   </div>
                 </div>
@@ -639,10 +585,12 @@ function RedesignV3APage(): JSX.Element {
         </div>
 
         <footer style={{ padding: "20px 24px", textAlign: "center" as const }}>
-          <img
+          <Image
             src="/assets/vip/components_decor_7.png"
             alt=""
-            style={{ width: 100, opacity: 0.25, margin: "0 auto 8px", display: "block" }}
+            width={100}
+            height={5}
+            style={{ opacity: 0.25, margin: "0 auto 8px", display: "block", height: "auto" }}
           />
           <span style={{ color: "#5c5040", fontSize: "0.78rem" }}>The Chillers &bull; Community Hub</span>
         </footer>

@@ -11,6 +11,7 @@ import TableScroll from "../../components/table-scroll";
 import { useAdminContext } from "../admin-context";
 import SortableColumnHeader from "@/app/components/sortable-column-header";
 import DangerConfirmModal from "../components/danger-confirm-modal";
+import ConfirmModal from "@/app/components/confirm-modal";
 import FormModal from "@/app/components/form-modal";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
 import { useSortable, compareValues } from "@/lib/hooks/use-sortable";
@@ -82,6 +83,8 @@ export default function UsersTab(): ReactElement {
   const [createGameAccountForm, setCreateGameAccountForm] = useState({ username: "", clanId: "", rank: "soldier" });
   const [createGameAccountMessage, setCreateGameAccountMessage] = useState("");
   const [gameAccountToDelete, setGameAccountToDelete] = useState<GameAccountRow | null>(null);
+  const [pendingSaveAllCount, setPendingSaveAllCount] = useState<number | null>(null);
+  const [pendingResendInviteEmail, setPendingResendInviteEmail] = useState<string | null>(null);
 
   const clanSelectOptions = useMemo(
     () => [{ value: "", label: tAdmin("clans.selectClan") }, ...clans.map((c) => ({ value: c.id, label: c.name }))],
@@ -439,7 +442,7 @@ export default function UsersTab(): ReactElement {
     [gameAccountEdits, supabase, updateGameAccountState, cancelGameAccountEdit, loadUsers],
   );
 
-  const handleSaveAllUserEdits = useCallback(async () => {
+  const handleSaveAllUserEdits = useCallback(() => {
     const editIds = Object.keys(userEdits);
     const accountIds = Object.keys(gameAccountEdits);
     if (editIds.length === 0 && accountIds.length === 0) {
@@ -447,7 +450,14 @@ export default function UsersTab(): ReactElement {
       return;
     }
     const total = editIds.length + accountIds.length;
-    if (!window.confirm(`Save ${total} change(s)?`)) return;
+    setPendingSaveAllCount(total);
+  }, [userEdits, gameAccountEdits]);
+
+  const handleConfirmSaveAll = useCallback(async () => {
+    if (pendingSaveAllCount === null) return;
+    const editIds = Object.keys(userEdits);
+    const accountIds = Object.keys(gameAccountEdits);
+    setPendingSaveAllCount(null);
     setUserStatus("Saving changes...");
     let hasError = false;
     for (const userId of editIds) {
@@ -466,6 +476,7 @@ export default function UsersTab(): ReactElement {
     setUserStatus("All changes saved.");
     await loadUsers();
   }, [
+    pendingSaveAllCount,
     userEdits,
     gameAccountEdits,
     userRows,
@@ -474,22 +485,6 @@ export default function UsersTab(): ReactElement {
     handleSaveGameAccountEdit,
     loadUsers,
   ]);
-
-  const _handleDeleteGameAccount = useCallback(
-    async (account: GameAccountRow) => {
-      const ok = window.confirm(`Delete game account ${account.game_username}? This cannot be undone.`);
-      if (!ok) return;
-      setUserStatus("Deleting game account...");
-      const { error } = await supabase.from("game_accounts").delete().eq("id", account.id);
-      if (error) {
-        setUserStatus(`Failed to delete game account: ${error.message}`);
-        return;
-      }
-      setUserStatus("Game account deleted.");
-      await loadUsers();
-    },
-    [supabase, loadUsers],
-  );
 
   const handleCreateUser = useCallback(async () => {
     if (!createUserEmail.trim()) {
@@ -631,12 +626,18 @@ export default function UsersTab(): ReactElement {
     await loadUsers();
   }, [createGameAccountUser, createGameAccountForm, supabase, closeCreateGameAccountModal, loadUsers]);
 
-  const handleResendInvite = useCallback(async (email: string) => {
+  const handleResendInvite = useCallback((email: string) => {
     if (!email) {
       setCreateUserStatus("User email is required to resend invite.");
       return;
     }
-    if (!window.confirm(`Resend invite to ${email}?`)) return;
+    setPendingResendInviteEmail(email);
+  }, []);
+
+  const handleConfirmResendInvite = useCallback(async () => {
+    const email = pendingResendInviteEmail;
+    if (!email) return;
+    setPendingResendInviteEmail(null);
     setCreateUserStatus("Resending invite...");
     const res = await fetch("/api/admin/create-user", {
       method: "POST",
@@ -649,7 +650,7 @@ export default function UsersTab(): ReactElement {
       return;
     }
     setCreateUserStatus("Invite resent.");
-  }, []);
+  }, [pendingResendInviteEmail]);
 
   const handleApprovalAction = useCallback(
     async (gameAccountId: string, action: "approve" | "reject") => {
@@ -1407,6 +1408,30 @@ export default function UsersTab(): ReactElement {
         warningText={tAdmin("danger.deleteGameAccountWarning")}
         confirmPhrase={`DELETE ${gameAccountToDelete?.game_username}`}
         onConfirm={handleConfirmDeleteGameAccount}
+      />
+
+      {/* Save all changes ConfirmModal */}
+      <ConfirmModal
+        isOpen={pendingSaveAllCount !== null}
+        title={tAdmin("common.saveAll")}
+        message={tAdmin("users.saveAllConfirm", { count: pendingSaveAllCount ?? 0 })}
+        variant="info"
+        confirmLabel={tAdmin("common.saveChanges")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={() => void handleConfirmSaveAll()}
+        onCancel={() => setPendingSaveAllCount(null)}
+      />
+
+      {/* Resend invite ConfirmModal */}
+      <ConfirmModal
+        isOpen={pendingResendInviteEmail !== null}
+        title={tAdmin("users.resendInvite")}
+        message={tAdmin("users.resendInviteConfirm", { email: pendingResendInviteEmail ?? "" })}
+        variant="info"
+        confirmLabel={tAdmin("users.resendInvite")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={() => void handleConfirmResendInvite()}
+        onCancel={() => setPendingResendInviteEmail(null)}
       />
     </section>
   );

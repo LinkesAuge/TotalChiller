@@ -23,6 +23,33 @@ interface ChestStats {
   readonly chestCount: number;
 }
 
+/** Supabase join response for game_account_clan_memberships with game_accounts and clans. */
+interface MembershipSupabaseRow {
+  readonly id: string;
+  readonly rank: string;
+  readonly is_active: boolean;
+  readonly clan_id: string;
+  readonly game_accounts: {
+    readonly id: string;
+    readonly game_username: string;
+    readonly user_id: string;
+  };
+  readonly clans: {
+    readonly name: string;
+  };
+}
+
+interface ProfileSelectRow {
+  readonly id: string;
+  readonly display_name: string | null;
+  readonly username: string | null;
+}
+
+interface RoleSelectRow {
+  readonly user_id: string;
+  readonly role: string;
+}
+
 /** Rank display order (lower index = higher rank). */
 const RANK_ORDER: Record<string, number> = Object.fromEntries(rankOptions.map((rank, index) => [rank, index]));
 
@@ -34,6 +61,27 @@ const NOTABLE_ROLES: ReadonlySet<string> = new Set(["owner", "admin", "moderator
 /** Build a link to the messages page pre-filled with a recipient. */
 function buildMessageLink(userId: string): string {
   return `/messages?to=${encodeURIComponent(userId)}`;
+}
+
+/** Rank badge colour derived from rank key. Brighter tones for readability on dark rows. */
+function getRankColor(rank: string): string {
+  switch (rank) {
+    case "leader":
+      return "#e4c778";
+    case "superior":
+      return "#d4a54a";
+    case "officer":
+      return "#6ba3d6";
+    case "veteran":
+      return "#5ec07e";
+    default:
+      return "#b0a08a";
+  }
+}
+
+/** Look up chest stats for a member by case-insensitive game username match. */
+function getChestStats(gameUsername: string, chestStatsMap: ReadonlyMap<string, ChestStats>): ChestStats | undefined {
+  return chestStatsMap.get(gameUsername.toLowerCase());
 }
 
 /* ── Component ── */
@@ -53,6 +101,8 @@ function MembersClient(): JSX.Element {
   const [members, setMembers] = useState<readonly MemberRow[]>([]);
   const [clanName, setClanName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   /* ── Supplementary data ── */
   const [chestStatsMap, setChestStatsMap] = useState<ReadonlyMap<string, ChestStats>>(new Map());
@@ -73,10 +123,12 @@ function MembersClient(): JSX.Element {
       if (!clanContext?.clanId) {
         setMembers([]);
         setClanName("");
+        setLoadError(null);
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
+      setLoadError(null);
       const { data, error } = await supabase
         .from("game_account_clan_memberships")
         .select(
@@ -88,23 +140,18 @@ function MembersClient(): JSX.Element {
         .order("rank", { ascending: true });
       if (error || !data) {
         setMembers([]);
+        setLoadError(error?.message ?? t("loadError"));
         setIsLoading(false);
         return;
       }
-      const rows = data as unknown as Array<Record<string, unknown>>;
+      const rows = data as unknown as MembershipSupabaseRow[];
       /* Resolve clan name from the first row */
       const firstRow = rows[0];
-      if (firstRow) {
-        const firstClan = firstRow.clans as Record<string, unknown> | null;
-        setClanName(String(firstClan?.name ?? ""));
+      if (firstRow?.clans) {
+        setClanName(firstRow.clans.name ?? "");
       }
       /* Collect unique user IDs to batch-fetch profiles and roles */
-      const userIds = rows
-        .map((r) => {
-          const ga = r.game_accounts as Record<string, unknown> | null;
-          return String(ga?.user_id ?? "");
-        })
-        .filter(Boolean);
+      const userIds = rows.map((r) => r.game_accounts.user_id).filter(Boolean);
       const unique = [...new Set(userIds)];
       /* Fetch profiles and roles in parallel */
       let profileMap = new Map<string, { display_name: string | null; username: string | null }>();
@@ -113,15 +160,11 @@ function MembersClient(): JSX.Element {
           supabase.from("profiles").select("id, display_name, username").in("id", unique),
           supabase.from("user_roles").select("user_id, role").in("user_id", unique),
         ]);
-        for (const p of (profiles ?? []) as Array<{
-          id: string;
-          display_name: string | null;
-          username: string | null;
-        }>) {
+        for (const p of (profiles ?? []) as ProfileSelectRow[]) {
           profileMap.set(p.id, { display_name: p.display_name, username: p.username });
         }
         const nextRoleMap = new Map<string, string>();
-        for (const r of (roles ?? []) as Array<{ user_id: string; role: string }>) {
+        for (const r of (roles ?? []) as RoleSelectRow[]) {
           if (NOTABLE_ROLES.has(r.role)) {
             nextRoleMap.set(r.user_id, r.role);
           }
@@ -129,15 +172,15 @@ function MembersClient(): JSX.Element {
         setRoleMap(nextRoleMap);
       }
       const mapped: MemberRow[] = rows.map((row) => {
-        const ga = row.game_accounts as Record<string, unknown>;
-        const rawUserId = String(ga?.user_id ?? "");
+        const ga = row.game_accounts;
+        const rawUserId = ga.user_id;
         const profile = profileMap.get(rawUserId);
         return {
-          membershipId: String(row.id),
-          gameUsername: String(ga?.game_username ?? ""),
+          membershipId: row.id,
+          gameUsername: ga.game_username ?? "",
           displayName: profile?.display_name || profile?.username || "",
           userId: rawUserId,
-          rank: String(row.rank ?? "soldier"),
+          rank: row.rank ?? "soldier",
         };
       });
       mapped.sort((a, b) => {
@@ -149,7 +192,12 @@ function MembersClient(): JSX.Element {
       setIsLoading(false);
     }
     void loadMembers();
-  }, [supabase, clanContext?.clanId]);
+  }, [supabase, clanContext?.clanId, retryCount, t]);
+
+  const handleRetry = useCallback(() => {
+    setLoadError(null);
+    setRetryCount((c) => c + 1);
+  }, []);
 
   /* ── Load chest stats for the active clan ── */
   useEffect(() => {
@@ -193,27 +241,6 @@ function MembersClient(): JSX.Element {
     return rankOptions.filter((rank) => counts.has(rank)).map((rank) => ({ rank, count: counts.get(rank) ?? 0 }));
   }, [members]);
 
-  /** Rank badge colour derived from rank key. Brighter tones for readability on dark rows. */
-  function getRankColor(rank: string): string {
-    switch (rank) {
-      case "leader":
-        return "#e4c778";
-      case "superior":
-        return "#d4a54a";
-      case "officer":
-        return "#6ba3d6";
-      case "veteran":
-        return "#5ec07e";
-      default:
-        return "#b0a08a";
-    }
-  }
-
-  /** Look up chest stats for a member by case-insensitive game username match. */
-  function getChestStats(gameUsername: string): ChestStats | undefined {
-    return chestStatsMap.get(gameUsername.toLowerCase());
-  }
-
   /* ── No clan selected ── */
   if (!clanContext?.clanId && !isLoading) {
     return (
@@ -253,8 +280,10 @@ function MembersClient(): JSX.Element {
 
       <DataState
         isLoading={isLoading}
+        error={loadError}
         isEmpty={members.length === 0}
         loadingMessage={t("loading")}
+        onRetry={handleRetry}
         emptyNode={
           <div className="card">
             <div className="card-body text-text-muted">{t("noMembers")}</div>
@@ -272,7 +301,7 @@ function MembersClient(): JSX.Element {
           </header>
           {members.map((member, index) => {
             const isExpanded = expandedIds.includes(member.membershipId);
-            const stats = getChestStats(member.gameUsername);
+            const stats = getChestStats(member.gameUsername, chestStatsMap);
             const role = roleMap.get(member.userId);
             return (
               <div key={member.membershipId}>

@@ -240,7 +240,9 @@
       "homePage": "Startseite",
       "toLearnMore": "um mehr über die Chillers-Community zu erfahren, oder lies die",
       "aboutPage": "Über-Seite",
-      "forDetails": "für Details zu unserer Mission und unseren Werten."
+      "forDetails": "für Details zu unserer Mission und unseren Werten.",
+      "completeCaptcha": "Bitte das CAPTCHA ausfüllen.",
+      "genericError": "Etwas ist schiefgelaufen."
     },
     "update": {
       "title": "Passwort aktualisieren",
@@ -266,6 +268,8 @@
     "aboutContact": "Sendet uns eine kurze Nachricht an Spieler **Schmerztherapeut**. Wir können nur schriftliche Anfragen berücksichtigen.",
     "aboutExtras": "Goldpässe sind erwünscht, jedoch kein Muss.\n**Diplomat:** Spieler Cenn / Mahoni\n**Ancient:** Herzi / Anararad",
     "aboutDisclaimer": "Wir interessieren uns hier nicht für Politik und Religion. Wir spielen ein Spiel und halten uns an die Richtlinien von Total Battle. Spielt fair und verhaltet euch entsprechend!",
+    "requirementsTitle": "Voraussetzungen",
+    "applyTitle": "Bewerbung",
     "whyJoinTitle": "Warum [THC] Chiller & Killer beitreten",
     "applyNow": "Registrieren",
     "whyJoinText": "Wir bieten eine strukturierte, unterstützende Umgebung für Total Battle Spieler, die auf einem höheren Niveau konkurrieren und gleichzeitig den sozialen Aspekt des Allianz-Gameplays genießen möchten.",
@@ -365,6 +369,7 @@
     "noRank": "Kein Rang",
     "noClanSelected": "Bitte wähle einen Clan in der Seitenleiste aus.",
     "loading": "Mitglieder werden geladen\u2026",
+    "loadError": "Mitglieder konnten nicht geladen werden",
     "totalMembers": "{count} Mitglieder"
   },
   "bannerPicker": {
@@ -715,6 +720,8 @@
     "sendingBroadcast": "Broadcast wird gesendet...",
     "failedToSend": "Senden fehlgeschlagen.",
     "failedToDelete": "Nachricht konnte nicht gelöscht werden.",
+    "failedToLoad": "Laden fehlgeschlagen.",
+    "failedToUpdate": "Aktualisierung fehlgeschlagen.",
     "recipientRequired": "Mindestens ein Empfänger ist erforderlich.",
     "messageRequired": "Nachrichteninhalt ist erforderlich.",
     "clanAndMessageRequired": "Clan und Nachricht sind erforderlich.",
@@ -804,8 +811,26 @@
     "language": "Sprache",
     "languageLabel": "Anzeigesprache",
     "languageHint": "Sprache der Benutzeroberfläche wählen",
+    "notificationsHint": "Wähle, welche Benachrichtigungen du erhältst",
     "german": "Deutsch",
-    "english": "Englisch"
+    "english": "Englisch",
+    "passwordMismatch": "Passwörter stimmen nicht überein.",
+    "updatingPassword": "Passwort wird aktualisiert...",
+    "passwordUpdated": "Passwort erfolgreich aktualisiert.",
+    "emailRequired": "E-Mail ist erforderlich.",
+    "updatingEmail": "E-Mail wird aktualisiert...",
+    "emailUpdateRequested": "E-Mail-Aktualisierung angefordert. Bitte Posteingang prüfen.",
+    "onlyAdminsCanChangeUsername": "Nur Administratoren können Benutzernamen ändern.",
+    "usernameLengthError": "Benutzername muss 2–32 Zeichen lang sein.",
+    "usernameRequired": "Benutzername ist erforderlich.",
+    "updatingUsername": "Benutzername wird aktualisiert...",
+    "usernameUpdated": "Benutzername erfolgreich aktualisiert.",
+    "updatingNickname": "Spitzname wird aktualisiert...",
+    "nicknameExists": "Spitzname existiert bereits.",
+    "nicknameUpdated": "Spitzname erfolgreich aktualisiert.",
+    "saving": "Wird gespeichert...",
+    "saved": "Gespeichert.",
+    "failedToSave": "Speichern fehlgeschlagen."
   },
   "admin": {
     "breadcrumb": "TotalChiller \u2022 Kommando",
@@ -919,7 +944,8 @@
       "gameUsername": "Spiel-Benutzername",
       "toggleShadow": "Schatten-Mitgliedschaft umschalten",
       "shadowTooltip": "Schatten: Ausgeblendet aus Mitgliederzahl, Verzeichnis und Nachrichten",
-      "assignAsShadow": "Als Schatten zuweisen"
+      "assignAsShadow": "Als Schatten zuweisen",
+      "saveMembershipChangesConfirm": "{count} Mitgliedschaftsänderung(en) speichern?"
     },
     "members": {
       "gameAccount": "Spielkonto",
@@ -941,6 +967,8 @@
       "sendInvite": "Einladung senden",
       "inviteText": "Eine E-Mail-Einladung wird zur Bestätigung der Registrierung gesendet.",
       "resendInvite": "Einladung erneut senden",
+      "saveAllConfirm": "{count} Änderung(en) speichern?",
+      "resendInviteConfirm": "Einladung erneut an {email} senden?",
       "grantAdmin": "Admin-Rechte gewähren",
       "revokeAdmin": "Admin-Rechte entziehen",
       "cannotRevokeOwn": "Du kannst deine eigenen Admin-Rechte nicht entziehen.",
@@ -960,6 +988,7 @@
       "addRule": "Regel hinzufügen",
       "editRule": "Regel bearbeiten",
       "deleteRule": "Regel löschen",
+      "deleteRuleConfirm": "Diese Validierungsregel löschen?",
       "deleteRules": "Regeln löschen",
       "backupRules": "Regelliste sichern",
       "importRules": "Regelliste importieren",
@@ -981,7 +1010,10 @@
       "subtitle": "Automatische Wertersetzung",
       "addRule": "Regel hinzufügen",
       "editRule": "Regel bearbeiten",
+      "updateRule": "Korrekturregel aktualisieren",
+      "updateRuleConfirm": "Diese Korrekturregel aktualisieren?",
       "deleteRule": "Regel löschen",
+      "deleteRuleConfirm": "Diese Korrekturregel löschen?",
       "deleteRules": "Regeln löschen",
       "backupRules": "Regelliste sichern",
       "importRules": "Regelliste importieren",
@@ -1265,7 +1297,8 @@
     "profile": "Profil",
     "messages": "Nachrichten",
     "settings": "Einstellungen",
-    "signOut": "Abmelden"
+    "signOut": "Abmelden",
+    "signingOut": "Abmelden..."
   },
   "publicAuth": {
     "signIn": "Einloggen",
@@ -1339,6 +1372,7 @@
     "setAsDefault": "Als Standard",
     "defaultAccount": "Standard",
     "defaultSet": "Standardkonto gesetzt",
+    "setDefaultFailed": "Standardkonto konnte nicht gesetzt werden.",
     "removeDefault": "Standard entfernen"
   },
   "dataImport": {
@@ -1575,7 +1609,12 @@
     "failedToAddCorrectionRule": "Hinzufügen der Korrekturregel fehlgeschlagen: {error}",
     "correctionRuleAdded": "Korrekturregel hinzugefügt.",
     "failedToAddValidationRule": "Hinzufügen der Validierungsregel fehlgeschlagen: {error}",
-    "validationRuleAdded": "Validierungsregel hinzugefügt."
+    "validationRuleAdded": "Validierungsregel hinzugefügt.",
+    "validationDateFormat": "Datum muss im Format JJJJ-MM-TT sein.",
+    "validationPlayerSourceChestRequired": "Spieler, Quelle und Truhe sind erforderlich.",
+    "validationClanRequired": "Clan ist erforderlich.",
+    "validationScoreNonNegative": "Punkte müssen eine nicht-negative Zahl sein.",
+    "validationScoreInteger": "Punkte müssen eine ganze Zahl sein."
   },
   "forum": {
     "breadcrumb": "TotalChiller \u2022 Clan Plattform",
@@ -1660,6 +1699,8 @@
     "preview": "Vorschau",
     "previewEmpty": "Noch nichts zum Anzeigen.",
     "markdownHint": "Unterstützt Markdown: **fett**, _kursiv_, [Links](url), ![Bilder](url), YouTube-Links, Code-Blöcke, Listen und mehr.",
+    "selectClanToView": "Bitte wähle einen Clan, um das Forum anzuzeigen.",
+    "tablesNotReadyHint": "Die Forum-Datenbanktabellen wurden noch nicht erstellt. Führe die Migration in Documentation/migrations/forum_tables.sql gegen deine Supabase-Instanz aus.",
     "emptyTitle": "Willkommen im Forum",
     "sourceEvent": "Event",
     "sourceAnnouncement": "Ankündigung",

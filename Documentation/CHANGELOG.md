@@ -6,6 +6,21 @@
 
 ---
 
+## 2026-02-14 — Systematic Code Review (9-phase)
+
+- **i18n**: Replaced ~40 hardcoded strings with `useTranslations()` across home, forgot, settings, forum, data-table, auth-actions, data-state pages. Added keys to `de.json`/`en.json`.
+- **window.confirm → ConfirmModal**: Eliminated all 6 remaining `window.confirm` calls (clans-tab, users-tab, validation-tab, corrections-tab, approvals-tab, data-table).
+- **Type safety**: Replaced `as unknown as Array<Record<string, unknown>>` casts in use-dashboard-data, use-news, members-client with typed interfaces.
+- **Error handling**: Added `response.ok` checks in use-messages (~10 fetch calls), admin-context approvals, members page (`loadError` + retry), forum image upload callbacks.
+- **Performance**: Extracted inline helpers (`TrendIndicator`, `formatCountdown`, `getRankColor`, `getChestStats`) outside components. Memoized `clanNameById`. Added `DataState` to charts and dashboard Week Highlights.
+- **Dead code**: Removed unused `_supabase`/`_userId` in game-account-manager, unused `_locale` in event-form, unused `_handleDeleteGameAccount` in users-tab, unused state variables in use-data-import. Removed duplicate clan fetch.
+- **setTimeout cleanup**: Added `useEffect` cleanup in auth/update, game-account-manager, toast-provider. Extracted `TOAST_DURATION_MS` constant.
+- **Centralized `isPublicPath`**: New `lib/public-paths.ts` shared by `proxy.ts` and `clan-access-gate.tsx`.
+- **UI fixes**: Dashboard grid icon (was duplicate of home icon). Submit button loading/disabled states on login, register, update pages.
+- **Refactors**: Extracted `ForumCommentEditorForm` from inline function. Event calendar state-during-render moved to `useEffect`. Date formatting and tooltip helpers extracted.
+
+---
+
 ## 2026-02-14 — Fix: Pre-existing E2E test failures (4 failed → 0)
 
 - **Fixed Messages Send flow strict-mode violation** (`crud-flows.spec.ts`): `button` locator matching `/send|senden/i` resolved to both the submit button ("Senden") and the Sent tab ("Gesendet"). Narrowed selector to `form button[type="submit"]`.

@@ -407,7 +407,7 @@ export function useForum(t: (key: string) => string): UseForumResult {
   const handleVotePost = useCallback(
     async (postId: string, voteType: number): Promise<void> => {
       if (!currentUserId) return;
-      const post = posts.find((p) => p.id === postId);
+      const post = posts.find((p) => p.id === postId) ?? (selectedPost?.id === postId ? selectedPost : undefined);
       if (!post) return;
       const currentVote = post.userVote ?? 0;
       let newVote = voteType;
@@ -441,7 +441,7 @@ export function useForum(t: (key: string) => string): UseForumResult {
       setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, score: newScore, userVote: newVote } : p)));
       setSelectedPost((prev) => (prev?.id === postId ? { ...prev, score: newScore, userVote: newVote } : prev));
     },
-    [supabase, currentUserId, posts, pushToast, t],
+    [supabase, currentUserId, posts, selectedPost, pushToast, t],
   );
 
   const handleVoteComment = useCallback(
@@ -717,11 +717,13 @@ export function useForum(t: (key: string) => string): UseForumResult {
         .from("forum_comments")
         .update({ content: newContent, updated_at: new Date().toISOString() })
         .eq("id", commentId);
-      if (!error) {
-        void loadComments(selectedPost.id);
+      if (error) {
+        pushToast(t("saveFailed"));
+        return;
       }
+      void loadComments(selectedPost.id);
     },
-    [selectedPost, supabase, loadComments],
+    [selectedPost, supabase, loadComments, pushToast, t],
   );
 
   /* ─── Delete Comment ─── */

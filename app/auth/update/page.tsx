@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
 
@@ -25,9 +25,17 @@ const initialPasswordState: PasswordFormState = {
  */
 function UpdatePasswordPage(): JSX.Element {
   const [formState, setFormState] = useState<PasswordFormState>(initialPasswordState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = useSupabase();
   const router = useRouter();
   const t = useTranslations("auth.update");
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
   function updateFormState(nextState: Partial<PasswordFormState>): void {
     setFormState((currentState) => ({ ...currentState, ...nextState }));
@@ -39,14 +47,16 @@ function UpdatePasswordPage(): JSX.Element {
       updateFormState({ status: t("mismatch") });
       return;
     }
+    setIsSubmitting(true);
     updateFormState({ status: t("updating") });
     const { error } = await supabase.auth.updateUser({ password: formState.password });
     if (error) {
       updateFormState({ status: error.message });
+      setIsSubmitting(false);
       return;
     }
     updateFormState({ status: t("updated") });
-    setTimeout(() => router.push("/"), REDIRECT_DELAY_MS);
+    redirectTimerRef.current = setTimeout(() => router.push("/"), REDIRECT_DELAY_MS);
   }
 
   return (
@@ -83,8 +93,8 @@ function UpdatePasswordPage(): JSX.Element {
                 required
               />
             </div>
-            <button className="button primary mt-2 w-full" type="submit">
-              {t("submit")}
+            <button className="button primary mt-2 w-full" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? t("updating") : t("submit")}
             </button>
             {formState.status ? <p className="text-muted mt-2">{formState.status}</p> : null}
           </form>

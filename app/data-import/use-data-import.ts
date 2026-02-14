@@ -166,14 +166,11 @@ export function useDataImport(): UseDataImportReturn {
   const [headerErrors, setHeaderErrors] = useState<readonly string[]>([]);
   const [validationRules, setValidationRules] = useState<readonly ValidationRuleRow[]>([]);
   const [correctionRules, setCorrectionRules] = useState<readonly CorrectionRuleRow[]>([]);
-  const [_validationMessages, setValidationMessages] = useState<readonly string[]>([]);
-  const [_validationErrors, setValidationErrors] = useState<readonly string[]>([]);
   const [availableClans, setAvailableClans] = useState<readonly string[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [commitStatus, setCommitStatus] = useState<string>("");
   const [isCommitting, setIsCommitting] = useState<boolean>(false);
-  const [_clanIdByName, setClanIdByName] = useState<Map<string, string>>(new Map());
   const [manualEdits, setManualEdits] = useState<Record<number, RowEdits>>({});
   const [selectedRows, setSelectedRows] = useState<readonly number[]>([]);
   const [page, setPage] = useState<number>(1);
@@ -256,61 +253,28 @@ export function useDataImport(): UseDataImportReturn {
     [correctionApplicator, isAutoCorrectEnabled],
   );
 
-  const evaluateValidationResults = useCallback(
-    (nextRows: readonly CsvRow[]): { warnings: string[]; errors: string[] } => {
-      if (!isValidationEnabled) {
-        return { warnings: [], errors: [] };
-      }
-      const warnings: string[] = [];
-      const errors: string[] = [];
-      const validationRows = applyCorrectionsToRows(nextRows).rows;
-      validationRows.forEach((row) => {
-        const result = validationEvaluator({
-          player: row.player,
-          source: row.source,
-          chest: row.chest,
-          clan: row.clan,
-        });
-        if (result.fieldStatus.player === "invalid") {
-          errors.push(`Invalid player: ${row.player}`);
-        }
-        if (result.fieldStatus.source === "invalid") {
-          errors.push(`Invalid source: ${row.source}`);
-        }
-        if (result.fieldStatus.chest === "invalid") {
-          errors.push(`Invalid chest: ${row.chest}`);
-        }
-        if (result.fieldStatus.clan === "invalid") {
-          errors.push(`Invalid clan: ${row.clan}`);
-        }
-      });
-      return { warnings, errors };
-    },
-    [applyCorrectionsToRows, isValidationEnabled, validationEvaluator],
-  );
-
   async function loadRulesForClans(clanNames: readonly string[]): Promise<void> {
-    const { data: clanRows } = await supabase
-      .from("clans")
-      .select("id,name")
-      .in("name", clanNames.length > 0 ? clanNames : ["__none__"]);
-    const { data: availableClanRows } = await supabase.from("clans").select("name").order("name");
-    const clanNameSet = new Set<string>([
-      ...clanNames,
-      ...(clanRows ?? []).map((clan) => clan.name),
-      ...(availableClanRows ?? []).map((clan) => clan.name),
-    ]);
+    const { data: allClanRows, error: clanError } = await supabase.from("clans").select("id,name").order("name");
+    if (clanError) {
+      console.error("Failed to load clans:", clanError.message);
+    }
+    const clanNameSet = new Set<string>([...clanNames, ...(allClanRows ?? []).map((clan) => clan.name)]);
     setAvailableClans(Array.from(clanNameSet).sort((a, b) => a.localeCompare(b)));
-    setClanIdByName(new Map((clanRows ?? []).map((clan) => [clan.name, clan.id])));
-    const { data: validationData } = await supabase
+    const { data: validationData, error: valError } = await supabase
       .from("validation_rules")
       .select("id,field,match_value,status")
       .order("field");
+    if (valError) {
+      console.error("Failed to load validation rules:", valError.message);
+    }
     setValidationRules(validationData ?? []);
-    const { data: correctionData } = await supabase
+    const { data: correctionData, error: corrError } = await supabase
       .from("correction_rules")
       .select("id,field,match_value,replacement_value,status")
       .order("field");
+    if (corrError) {
+      console.error("Failed to load correction rules:", corrError.message);
+    }
     setCorrectionRules(correctionData ?? []);
   }
 
@@ -323,9 +287,6 @@ export function useDataImport(): UseDataImportReturn {
       }
       const nextValue = field === "score" ? Number(value || 0) : value;
       updated[index] = { ...target, [field]: nextValue };
-      const { warnings, errors: validationIssues } = evaluateValidationResults(updated);
-      setValidationMessages(warnings);
-      setValidationErrors(validationIssues);
       return updated;
     });
     setManualEdits((current) => ({
@@ -628,12 +589,6 @@ export function useDataImport(): UseDataImportReturn {
   const selectedRowSet = useMemo(() => new Set(selectedRows), [selectedRows]);
 
   useEffect(() => {
-    const { warnings, errors: validationIssues } = evaluateValidationResults(rows);
-    setValidationMessages(warnings);
-    setValidationErrors(validationIssues);
-  }, [evaluateValidationResults, rows]);
-
-  useEffect(() => {
     if (!selectAllRef.current) {
       return;
     }
@@ -712,9 +667,6 @@ export function useDataImport(): UseDataImportReturn {
     setErrors(result.errors);
     setHeaderErrors(result.headerErrors);
     setFileName(file.name);
-    const { warnings, errors: validationIssues } = evaluateValidationResults(nextRows);
-    setValidationMessages(warnings);
-    setValidationErrors(validationIssues);
     setStatusMessage(t("parsedRows", { count: result.rows.length }));
   }
 
@@ -892,9 +844,6 @@ export function useDataImport(): UseDataImportReturn {
     setRows(nextRows);
     setManualEdits(nextManual);
     setSelectedRows([]);
-    const { warnings, errors: validationIssues } = evaluateValidationResults(nextRows);
-    setValidationMessages(warnings);
-    setValidationErrors(validationIssues);
     setErrors(getRowValidationErrors(nextRows));
   }
 
@@ -919,8 +868,6 @@ export function useDataImport(): UseDataImportReturn {
     setRows([]);
     setErrors([]);
     setHeaderErrors([]);
-    setValidationMessages([]);
-    setValidationErrors([]);
     setManualEdits({});
     setSelectedRows([]);
     setPage(1);

@@ -7,24 +7,10 @@ import { useSupabase } from "../hooks/use-supabase";
 import { LOCALE_COOKIE } from "../../i18n/routing";
 import type { Locale } from "../../i18n/routing";
 import { routing } from "../../i18n/routing";
+import { isPublicPath } from "@/lib/public-paths";
 
 interface ClanAccessGateProps {
   readonly children: React.ReactNode;
-}
-
-function isPublicPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/home") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/about") ||
-    pathname.startsWith("/contact") ||
-    pathname.startsWith("/privacy-policy") ||
-    pathname.startsWith("/profile") ||
-    pathname.startsWith("/settings") ||
-    pathname.startsWith("/not-authorized") ||
-    pathname.startsWith("/redesign") ||
-    pathname.startsWith("/admin") /* Admin pages have their own auth guards */
-  );
 }
 
 type AccessState = "loading" | "granted" | "unassigned" | "denied";

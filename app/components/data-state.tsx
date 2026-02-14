@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 /* ─── Types ─── */
 
@@ -51,6 +52,7 @@ export default function DataState({
   className = "",
   children,
 }: DataStateProps): ReactNode {
+  const t = useTranslations("common");
   if (isLoading) {
     if (loadingNode) return <>{loadingNode}</>;
     return <div className={`alert info loading ${className}`.trim()}>{loadingMessage}</div>;
@@ -73,7 +75,7 @@ export default function DataState({
       <div className={`card ${className}`.trim()}>
         <div className="card-header">
           <div>
-            <div className="card-title">{emptyMessage ?? "No data"}</div>
+            <div className="card-title">{emptyMessage ?? t("noData")}</div>
             {emptySubtitle && <div className="card-subtitle">{emptySubtitle}</div>}
           </div>
         </div>

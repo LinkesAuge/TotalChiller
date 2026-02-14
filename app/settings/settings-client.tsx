@@ -128,25 +128,25 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (formState.password !== formState.confirmPassword) {
-      updateFormState(setFormState, { passwordStatus: "Passwords do not match." });
+      updateFormState(setFormState, { passwordStatus: t("passwordMismatch") });
       return;
     }
-    updateFormState(setFormState, { passwordStatus: "Updating password..." });
+    updateFormState(setFormState, { passwordStatus: t("updatingPassword") });
     const { error } = await supabase.auth.updateUser({ password: formState.password });
     if (error) {
       updateFormState(setFormState, { passwordStatus: error.message });
       return;
     }
-    updateFormState(setFormState, { passwordStatus: "Password updated successfully." });
+    updateFormState(setFormState, { passwordStatus: t("passwordUpdated") });
   }
 
   async function handleEmailSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!formState.email) {
-      updateFormState(setFormState, { emailStatus: "Email is required." });
+      updateFormState(setFormState, { emailStatus: t("emailRequired") });
       return;
     }
-    updateFormState(setFormState, { emailStatus: "Updating email..." });
+    updateFormState(setFormState, { emailStatus: t("updatingEmail") });
     const redirectTo = `${window.location.origin}/auth/callback?next=/settings`;
     /* Set fallback cookie in case Supabase ignores the redirect URL */
     document.cookie = "auth_redirect_next=/settings; path=/; max-age=600; SameSite=Lax";
@@ -156,27 +156,27 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
       return;
     }
     updateFormState(setFormState, {
-      emailStatus: "Email update requested. Check your inbox to confirm.",
+      emailStatus: t("emailUpdateRequested"),
     });
   }
 
   async function handleUsernameSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!isAdmin) {
-      updateFormState(setFormState, { usernameStatus: "Only admins can change usernames." });
+      updateFormState(setFormState, { usernameStatus: t("onlyAdminsCanChangeUsername") });
       return;
     }
     const rawUsername = formState.username.trim();
     const nextUsername = rawUsername.toLowerCase();
     if (nextUsername.length < 2 || nextUsername.length > 32) {
-      updateFormState(setFormState, { usernameStatus: "Username must be 2-32 characters." });
+      updateFormState(setFormState, { usernameStatus: t("usernameLengthError") });
       return;
     }
     if (!nextUsername) {
-      updateFormState(setFormState, { usernameStatus: "Username is required." });
+      updateFormState(setFormState, { usernameStatus: t("usernameRequired") });
       return;
     }
-    updateFormState(setFormState, { usernameStatus: "Updating username..." });
+    updateFormState(setFormState, { usernameStatus: t("updatingUsername") });
     const { error } = await supabase
       .from("profiles")
       .upsert(
@@ -189,14 +189,14 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
     }
     updateFormState(setFormState, {
       username: rawUsername,
-      usernameStatus: "Username updated successfully.",
+      usernameStatus: t("usernameUpdated"),
     });
   }
 
   async function handleDisplayNameSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const nextDisplayName = formState.displayName.trim();
-    updateFormState(setFormState, { displayNameStatus: "Updating nickname..." });
+    updateFormState(setFormState, { displayNameStatus: t("updatingNickname") });
     if (nextDisplayName) {
       const { data: existingDisplayName, error: displayNameError } = await supabase
         .from("profiles")
@@ -209,7 +209,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
         return;
       }
       if (existingDisplayName) {
-        updateFormState(setFormState, { displayNameStatus: "Nickname already exists." });
+        updateFormState(setFormState, { displayNameStatus: t("nicknameExists") });
         return;
       }
     }
@@ -223,14 +223,14 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
     }
     updateFormState(setFormState, {
       displayName: nextDisplayName,
-      displayNameStatus: "Nickname updated successfully.",
+      displayNameStatus: t("nicknameUpdated"),
     });
   }
 
   async function handleToggleNotification(key: keyof NotificationPrefs): Promise<void> {
     const nextValue = !notifPrefs[key];
     setNotifPrefs((current) => ({ ...current, [key]: nextValue }));
-    setNotifStatus("Saving...");
+    setNotifStatus(t("saving"));
     const response = await fetch("/api/notification-settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -238,10 +238,10 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
     });
     if (!response.ok) {
       setNotifPrefs((current) => ({ ...current, [key]: !nextValue }));
-      setNotifStatus("Failed to save.");
+      setNotifStatus(t("failedToSave"));
       return;
     }
-    setNotifStatus("Saved.");
+    setNotifStatus(t("saved"));
     if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
     notifTimerRef.current = setTimeout(() => setNotifStatus(""), 2000);
   }
@@ -375,7 +375,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
           <div className="card-header">
             <div>
               <div className="card-title">{t("notifications")}</div>
-              <div className="card-subtitle">{t("languageHint")}</div>
+              <div className="card-subtitle">{t("notificationsHint")}</div>
             </div>
           </div>
           <div className="list">

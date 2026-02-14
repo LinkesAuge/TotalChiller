@@ -11,6 +11,7 @@ import { useAdminContext } from "../admin-context";
 import SortableColumnHeader from "@/app/components/sortable-column-header";
 import PaginationBar from "@/app/components/pagination-bar";
 import DangerConfirmModal from "../components/danger-confirm-modal";
+import ConfirmModal from "@/app/components/confirm-modal";
 import FormModal from "@/app/components/form-modal";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
 import { normalizeString } from "@/lib/string-utils";
@@ -100,6 +101,7 @@ export default function ClansTab(): ReactElement {
   const [gameAccountEdits, setGameAccountEdits] = useState<Record<string, GameAccountEditState>>({});
   const [activeGameAccountId, setActiveGameAccountId] = useState("");
   const [gameAccountToDelete, setGameAccountToDelete] = useState<GameAccountRow | null>(null);
+  const [pendingSaveAllMemberships, setPendingSaveAllMemberships] = useState(false);
 
   const selectedClan = useMemo(() => clans.find((c) => c.id === selectedClanId), [clans, selectedClanId]);
 
@@ -476,14 +478,19 @@ export default function ClansTab(): ReactElement {
     if (shouldReload) await loadMemberships(selectedClanId);
   }
 
-  async function handleSaveAllMembershipEdits(): Promise<void> {
+  function requestSaveAllMembershipEdits(): void {
     const editEntries = Object.keys(membershipEdits);
     if (editEntries.length === 0) {
       setStatus("No changes to save.");
       return;
     }
-    const confirmSave = window.confirm(`Save ${editEntries.length} membership change(s)?`);
-    if (!confirmSave) return;
+    setPendingSaveAllMemberships(true);
+  }
+
+  async function handleConfirmSaveAllMembershipEdits(): Promise<void> {
+    const editEntries = Object.keys(membershipEdits);
+    if (editEntries.length === 0) return;
+    setPendingSaveAllMemberships(false);
     setStatus("Saving membership changes...");
     let hasValidationError = false;
     for (const membershipId of editEntries) {
@@ -940,7 +947,7 @@ export default function ClansTab(): ReactElement {
         <button
           className="button"
           type="button"
-          onClick={handleSaveAllMembershipEdits}
+          onClick={requestSaveAllMembershipEdits}
           disabled={Object.keys(membershipEdits).length === 0}
         >
           {tAdmin("common.saveAll")}
@@ -1215,6 +1222,19 @@ export default function ClansTab(): ReactElement {
           />
         </div>
       </FormModal>
+
+      <ConfirmModal
+        isOpen={pendingSaveAllMemberships}
+        title={tAdmin("common.saveAll")}
+        message={tAdmin("clans.saveMembershipChangesConfirm", {
+          count: Object.keys(membershipEdits).length,
+        })}
+        variant="info"
+        confirmLabel={tAdmin("common.saveChanges")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={() => void handleConfirmSaveAllMembershipEdits()}
+        onCancel={() => setPendingSaveAllMemberships(false)}
+      />
 
       <DangerConfirmModal
         state={clanDelete}

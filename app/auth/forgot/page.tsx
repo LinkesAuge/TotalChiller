@@ -13,6 +13,7 @@ const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 function ForgotPasswordPage(): JSX.Element {
   const [email, setEmail] = useState<string>("");
   const [status, setStatus] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const turnstileRef = useRef<TurnstileInstance>(null);
   const t = useTranslations("auth.forgot");
@@ -20,26 +21,35 @@ function ForgotPasswordPage(): JSX.Element {
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!turnstileToken && TURNSTILE_SITE_KEY) {
-      setStatus("Please complete the CAPTCHA.");
+      setStatus(t("completeCaptcha"));
       return;
     }
+    setIsSubmitting(true);
     setStatus(t("sending"));
     const redirectTo = `${window.location.origin}/auth/callback?next=/auth/update`;
 
-    const response = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, turnstileToken, redirectTo }),
-    });
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, turnstileToken, redirectTo }),
+      });
 
-    const result = (await response.json()) as { ok?: boolean; error?: string };
-    if (!response.ok || result.error) {
-      setStatus(result.error ?? "Something went wrong.");
+      const result = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || result.error) {
+        setStatus(result.error ?? t("genericError"));
+        turnstileRef.current?.reset();
+        setTurnstileToken("");
+        return;
+      }
+      setStatus(t("sent"));
+    } catch {
+      setStatus(t("genericError"));
       turnstileRef.current?.reset();
       setTurnstileToken("");
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-    setStatus(t("sent"));
   }
 
   return (
@@ -59,9 +69,7 @@ function ForgotPasswordPage(): JSX.Element {
           </div>
         </div>
         <div className="card-body">
-          <p className="mb-3" style={{ fontSize: "0.85rem", color: "var(--color-text-2)" }}>
-            {t("description")}
-          </p>
+          <p className="mb-3 text-sm text-text-2">{t("description")}</p>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label htmlFor="email">{t("email")}</label>
@@ -89,19 +97,17 @@ function ForgotPasswordPage(): JSX.Element {
             <button
               className="button primary mt-2 w-full"
               type="submit"
-              disabled={TURNSTILE_SITE_KEY ? !turnstileToken : false}
+              disabled={isSubmitting || (TURNSTILE_SITE_KEY ? !turnstileToken : false)}
             >
               {t("submit")}
             </button>
             {status ? <p className="text-muted mt-2">{status}</p> : null}
-            <div className="mt-3" style={{ textAlign: "center", fontSize: "0.82rem" }}>
-              <a href="/auth/login" style={{ color: "var(--color-gold)", textDecoration: "none" }}>
+            <div className="mt-3 text-center text-[0.82rem]">
+              <a href="/auth/login" className="text-gold no-underline">
                 {t("backToLogin")}
               </a>
-              <span className="my-0 mx-2" style={{ color: "var(--color-text-muted)" }}>
-                &bull;
-              </span>
-              <a href="/auth/register" style={{ color: "var(--color-gold)", textDecoration: "none" }}>
+              <span className="my-0 mx-2 text-text-muted">&bull;</span>
+              <a href="/auth/register" className="text-gold no-underline">
                 {t("createAccount")}
               </a>
             </div>
@@ -109,7 +115,7 @@ function ForgotPasswordPage(): JSX.Element {
         </div>
       </section>
       <section className="card max-w-[440px] w-full">
-        <div className="card-body" style={{ lineHeight: 1.7, fontSize: "0.85rem" }}>
+        <div className="card-body leading-relaxed text-sm">
           <h2 className="mb-2 text-[0.95rem]">{t("recoveryTitle")}</h2>
           <p className="m-0">{t("recoveryText")}</p>
           <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("howItWorks")}</h3>

@@ -200,9 +200,11 @@ export default function LogsTab(): ReactElement {
           ]}
         />
         <button className="button" type="button" onClick={handleReset}>
-          Reset
+          {tAdmin("common.reset")}
         </button>
-        <span className="text-muted">{auditLogs.length} shown</span>
+        <span className="text-muted">
+          {auditLogs.length} {tAdmin("common.shown")}
+        </span>
       </div>
 
       {/* ── Pagination ── */}

@@ -12,10 +12,12 @@ function LoginPage(): JSX.Element {
   const [identifier, setIdentifier] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [status, setStatus] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = useSupabase();
   const t = useTranslations("auth.login");
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    setIsSubmitting(true);
     setStatus(t("signingIn"));
     const trimmedIdentifier = identifier.trim();
     let resolvedEmail = trimmedIdentifier;
@@ -25,6 +27,7 @@ function LoginPage(): JSX.Element {
       });
       if (lookupError || !lookupEmail) {
         setStatus(t("usernameNotFound"));
+        setIsSubmitting(false);
         return;
       }
       resolvedEmail = lookupEmail;
@@ -35,6 +38,7 @@ function LoginPage(): JSX.Element {
     });
     if (error) {
       setStatus(error.message);
+      setIsSubmitting(false);
       return;
     }
     setStatus(t("signedIn"));
@@ -87,7 +91,7 @@ function LoginPage(): JSX.Element {
                 required
               />
             </div>
-            <button className="button leather mt-2 py-3.5 px-6 w-full" type="submit">
+            <button className="button leather mt-2 py-3.5 px-6 w-full" type="submit" disabled={isSubmitting}>
               <Image
                 src="/assets/ui/backs_leather_1.png"
                 alt="Leather button texture"

@@ -122,6 +122,7 @@ export default function ValidationTab(): ReactElement {
   const [editMatch, setEditMatch] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [importStatus, _setImportStatus] = useState("");
+  const [pendingDeleteRuleId, setPendingDeleteRuleId] = useState<string | null>(null);
 
   const activeCounts = ruleList.fieldCounts[ruleList.activeField] ?? { total: 0, active: 0 };
 
@@ -171,20 +172,22 @@ export default function ValidationTab(): ReactElement {
     await rlLoadRules();
   }, [editField, editMatch, editStatus, editingId, rlActiveField, rlLoadRules, supabase, setStatus]);
 
-  const handleDeleteRule = useCallback(
-    async (ruleId: string) => {
-      const confirmed = window.confirm("Delete this validation rule?");
-      if (!confirmed) return;
-      const { error } = await supabase.from("validation_rules").delete().eq("id", ruleId);
-      if (error) {
-        setStatus(`Failed to delete validation rule: ${error.message}`);
-        return;
-      }
-      setStatus("Validation rule deleted.");
-      await rlLoadRules();
-    },
-    [supabase, rlLoadRules, setStatus],
-  );
+  const requestDeleteRule = useCallback((ruleId: string) => {
+    setPendingDeleteRuleId(ruleId);
+  }, []);
+
+  const handleConfirmDeleteRule = useCallback(async () => {
+    if (!pendingDeleteRuleId) return;
+    const ruleId = pendingDeleteRuleId;
+    setPendingDeleteRuleId(null);
+    const { error } = await supabase.from("validation_rules").delete().eq("id", ruleId);
+    if (error) {
+      setStatus(`Failed to delete validation rule: ${error.message}`);
+      return;
+    }
+    setStatus("Validation rule deleted.");
+    await rlLoadRules();
+  }, [pendingDeleteRuleId, supabase, rlLoadRules, setStatus]);
 
   const handleDeleteSelected = useCallback(async () => {
     if (rlSelectedIds.length === 0) {
@@ -503,7 +506,7 @@ export default function ValidationTab(): ReactElement {
                         </IconButton>
                         <IconButton
                           ariaLabel={tAdmin("validation.deleteRule")}
-                          onClick={() => handleDeleteRule(rule.id)}
+                          onClick={() => requestDeleteRule(rule.id)}
                           variant="danger"
                         >
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -531,6 +534,18 @@ export default function ValidationTab(): ReactElement {
           )}
         </div>
       </TableScroll>
+
+      <ConfirmModal
+        isOpen={pendingDeleteRuleId !== null}
+        title={tAdmin("validation.deleteRule")}
+        message={tAdmin("validation.deleteRuleConfirm")}
+        variant="danger"
+        zoneLabel={tAdmin("danger.title")}
+        confirmLabel={tAdmin("common.delete")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={() => void handleConfirmDeleteRule()}
+        onCancel={() => setPendingDeleteRuleId(null)}
+      />
 
       <DangerConfirmModal
         state={deleteConfirm}

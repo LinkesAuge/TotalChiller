@@ -168,7 +168,6 @@ async function ProfileContent(): Promise<JSX.Element> {
           <DisplayNameEditor userId={userId} email={userEmail} initialDisplayName={userView.displayName} />
         </section>
         <GameAccountManager
-          userId={userId}
           initialAccounts={gameAccounts}
           initialDefaultId={(ensuredProfile?.default_game_account_id as string | null) ?? null}
         />

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent } from "react";
+import { useMemo, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
 import DatePicker from "../components/date-picker";
 import IconButton from "../components/ui/icon-button";
@@ -117,6 +117,12 @@ function DataTableClient(): JSX.Element {
     closeBatchDeleteInput,
     confirmBatchDelete,
     handleSaveAllRows,
+    pendingDeleteRow,
+    pendingSaveAll,
+    performDeleteRow,
+    performSaveAllRows,
+    closePendingDeleteRow,
+    closePendingSaveAll,
     openCorrectionRuleModal,
     updateCorrectionRuleField,
     closeCorrectionRuleModal,
@@ -132,10 +138,14 @@ function DataTableClient(): JSX.Element {
     setBatchEditValue,
     selectedSet,
   } = api;
-  const clanNameById = availableClans.reduce<Record<string, string>>((acc, clan) => {
-    acc[clan.id] = clan.name;
-    return acc;
-  }, {});
+  const clanNameById = useMemo(
+    () =>
+      availableClans.reduce<Record<string, string>>((acc, clan) => {
+        acc[clan.id] = clan.name;
+        return acc;
+      }, {}),
+    [availableClans],
+  );
   const sortedRows = sortRows(clientFilteredRows);
   return (
     <div className="grid">
@@ -560,6 +570,34 @@ function DataTableClient(): JSX.Element {
           </div>
         </div>
       ) : null}
+      <ConfirmModal
+        isOpen={pendingDeleteRow !== null}
+        title={t("deleteRow")}
+        message={
+          pendingDeleteRow
+            ? t("deleteRowConfirm", {
+                player: pendingDeleteRow.player,
+                date: pendingDeleteRow.collected_date,
+              })
+            : ""
+        }
+        variant="danger"
+        zoneLabel={t("dangerZone")}
+        confirmLabel={t("deleteRow")}
+        cancelLabel={t("cancel")}
+        onConfirm={() => pendingDeleteRow && void performDeleteRow(pendingDeleteRow)}
+        onCancel={closePendingDeleteRow}
+      />
+      <ConfirmModal
+        isOpen={pendingSaveAll}
+        title={t("saveAll")}
+        message={t("saveEditedRows", { count: Object.keys(editMap).length })}
+        variant="info"
+        confirmLabel={t("saveChanges")}
+        cancelLabel={t("cancel")}
+        onConfirm={() => void performSaveAllRows()}
+        onCancel={closePendingSaveAll}
+      />
       <ConfirmModal
         isOpen={isBatchDeleteConfirmOpen}
         title={t("deleteSelectedRows")}

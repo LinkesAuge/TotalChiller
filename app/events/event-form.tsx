@@ -106,7 +106,6 @@ export function EventForm({
   canManage,
   gameAccounts,
   templateOptions,
-  locale: _locale,
   t,
   supabase,
   userId,

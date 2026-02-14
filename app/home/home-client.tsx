@@ -113,7 +113,7 @@ function HomeClient(): JSX.Element {
             />
           </div>
           <div className="home-about-requirements">
-            <h4 className="home-about-section-title">{locale === "en" ? "Requirements" : "Voraussetzungen"}</h4>
+            <h4 className="home-about-section-title">{t("requirementsTitle")}</h4>
             <EditableText
               as="div"
               value={c("aboutUs", "requirements", t("aboutRequirements"))}
@@ -127,7 +127,7 @@ function HomeClient(): JSX.Element {
             />
           </div>
           <div className="home-about-apply">
-            <h4 className="home-about-section-title">{locale === "en" ? "Apply" : "Bewerbung"}</h4>
+            <h4 className="home-about-section-title">{t("applyTitle")}</h4>
             <EditableText
               as="div"
               value={c("aboutUs", "contact", t("aboutContact"))}

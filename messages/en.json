@@ -240,7 +240,9 @@
       "homePage": "home page",
       "toLearnMore": "to learn more about [THC] Chiller & Killer community, or read the",
       "aboutPage": "About page",
-      "forDetails": "for details on our mission and values."
+      "forDetails": "for details on our mission and values.",
+      "completeCaptcha": "Please complete the CAPTCHA.",
+      "genericError": "Something went wrong."
     },
     "update": {
       "title": "Update Password",
@@ -266,6 +268,8 @@
     "aboutContact": "Send us a short message to player **Schmerztherapeut**. We can only consider written requests.",
     "aboutExtras": "Gold passes are welcome but not required.\n**Diplomat:** Player Cenn / Mahoni\n**Ancient:** Herzi / Anararad",
     "aboutDisclaimer": "We are not interested in politics or religion here. We play a game and follow the guidelines of Total Battle. Play fair and behave accordingly!",
+    "requirementsTitle": "Requirements",
+    "applyTitle": "Apply",
     "whyJoinTitle": "Why Join [THC] Chiller & Killer",
     "applyNow": "Register",
     "whyJoinText": "We offer a structured, supportive environment for Total Battle players who want to compete at a higher level while enjoying the social aspect of alliance gameplay.",
@@ -365,6 +369,7 @@
     "noRank": "No Rank",
     "noClanSelected": "Please select a clan from the sidebar.",
     "loading": "Loading members\u2026",
+    "loadError": "Failed to load members",
     "totalMembers": "{count} members"
   },
   "bannerPicker": {
@@ -715,6 +720,8 @@
     "sendingBroadcast": "Sending broadcast...",
     "failedToSend": "Failed to send.",
     "failedToDelete": "Failed to delete message.",
+    "failedToLoad": "Failed to load.",
+    "failedToUpdate": "Failed to update.",
     "recipientRequired": "At least one recipient is required.",
     "messageRequired": "Message content is required.",
     "clanAndMessageRequired": "Clan and message are required.",
@@ -804,8 +811,26 @@
     "language": "Language",
     "languageLabel": "Display Language",
     "languageHint": "Choose interface language",
+    "notificationsHint": "Choose which notifications you receive",
     "german": "Deutsch",
-    "english": "English"
+    "english": "English",
+    "passwordMismatch": "Passwords do not match.",
+    "updatingPassword": "Updating password...",
+    "passwordUpdated": "Password updated successfully.",
+    "emailRequired": "Email is required.",
+    "updatingEmail": "Updating email...",
+    "emailUpdateRequested": "Email update requested. Check your inbox to confirm.",
+    "onlyAdminsCanChangeUsername": "Only admins can change usernames.",
+    "usernameLengthError": "Username must be 2-32 characters.",
+    "usernameRequired": "Username is required.",
+    "updatingUsername": "Updating username...",
+    "usernameUpdated": "Username updated successfully.",
+    "updatingNickname": "Updating nickname...",
+    "nicknameExists": "Nickname already exists.",
+    "nicknameUpdated": "Nickname updated successfully.",
+    "saving": "Saving...",
+    "saved": "Saved.",
+    "failedToSave": "Failed to save."
   },
   "admin": {
     "breadcrumb": "TotalChiller \u2022 Command",
@@ -919,7 +944,8 @@
       "gameUsername": "Game username",
       "toggleShadow": "Toggle shadow membership",
       "shadowTooltip": "Shadow: hidden from member counts, directory, and broadcasts",
-      "assignAsShadow": "Assign as shadow"
+      "assignAsShadow": "Assign as shadow",
+      "saveMembershipChangesConfirm": "Save {count} membership change(s)?"
     },
     "members": {
       "gameAccount": "Game Account",
@@ -941,6 +967,8 @@
       "sendInvite": "Send Invite",
       "inviteText": "An email invite will be sent to confirm registration.",
       "resendInvite": "Resend invite",
+      "saveAllConfirm": "Save {count} change(s)?",
+      "resendInviteConfirm": "Resend invite to {email}?",
       "grantAdmin": "Grant admin",
       "revokeAdmin": "Revoke admin",
       "cannotRevokeOwn": "You cannot revoke your own admin access.",
@@ -960,6 +988,7 @@
       "addRule": "Add rule",
       "editRule": "Edit rule",
       "deleteRule": "Delete rule",
+      "deleteRuleConfirm": "Delete this validation rule?",
       "deleteRules": "Delete Rules",
       "backupRules": "Backup Rules List",
       "importRules": "Import Rules List",
@@ -981,7 +1010,10 @@
       "subtitle": "Automatic value replacement",
       "addRule": "Add rule",
       "editRule": "Edit rule",
+      "updateRule": "Update correction rule",
+      "updateRuleConfirm": "Update this correction rule?",
       "deleteRule": "Delete rule",
+      "deleteRuleConfirm": "Delete this correction rule?",
       "deleteRules": "Delete Rules",
       "backupRules": "Backup Rules List",
       "importRules": "Import Rules List",
@@ -1265,7 +1297,8 @@
     "profile": "Profile",
     "messages": "Messages",
     "settings": "Settings",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "signingOut": "Signing out..."
   },
   "publicAuth": {
     "signIn": "Sign In",
@@ -1339,6 +1372,7 @@
     "setAsDefault": "Set as default",
     "defaultAccount": "Default",
     "defaultSet": "Default account set",
+    "setDefaultFailed": "Failed to set default account.",
     "removeDefault": "Remove default"
   },
   "dataImport": {
@@ -1575,7 +1609,12 @@
     "failedToAddCorrectionRule": "Failed to add correction rule: {error}",
     "correctionRuleAdded": "Correction rule added.",
     "failedToAddValidationRule": "Failed to add validation rule: {error}",
-    "validationRuleAdded": "Validation rule added."
+    "validationRuleAdded": "Validation rule added.",
+    "validationDateFormat": "Date must be in YYYY-MM-DD format.",
+    "validationPlayerSourceChestRequired": "Player, source, chest are required.",
+    "validationClanRequired": "Clan is required.",
+    "validationScoreNonNegative": "Score must be a non-negative number.",
+    "validationScoreInteger": "Score must be an integer."
   },
   "forum": {
     "breadcrumb": "TotalChiller \u2022 Clan Platform",
@@ -1660,6 +1699,8 @@
     "preview": "Preview",
     "previewEmpty": "Nothing to preview yet.",
     "markdownHint": "Supports Markdown: **bold**, _italic_, [links](url), ![images](url), YouTube links, code blocks, lists, and more.",
+    "selectClanToView": "Please select a clan to view the forum.",
+    "tablesNotReadyHint": "The forum database tables have not been created yet. Please run the migration in Documentation/migrations/forum_tables.sql against your Supabase instance.",
     "emptyTitle": "Welcome to the Forum",
     "sourceEvent": "Event",
     "sourceAnnouncement": "Announcement",

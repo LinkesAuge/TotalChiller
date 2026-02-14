@@ -256,6 +256,7 @@ export function handleImagePaste(
   insertFn: (markdown: string) => void,
   setUploading: (v: boolean) => void,
   bucket: string = FORUM_IMAGES_BUCKET,
+  onError?: (err: unknown) => void,
 ): void {
   if (!supabase || !userId) return;
   const items = e.clipboardData?.items;
@@ -273,13 +274,17 @@ export function handleImagePaste(
       .upload(filePath, file, { cacheControl: "3600", upsert: false })
       .then(({ error }) => {
         setUploading(false);
-        if (error) return;
+        if (error) {
+          onError?.(error);
+          return;
+        }
         const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
         const alt = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
         insertFn(`\n![${alt}](${data.publicUrl})\n`);
       })
-      .catch(() => {
+      .catch((err) => {
         setUploading(false);
+        onError?.(err);
       });
     return;
   }
@@ -296,6 +301,7 @@ export function handleImageDrop(
   insertFn: (markdown: string) => void,
   setUploading: (v: boolean) => void,
   bucket: string = FORUM_IMAGES_BUCKET,
+  onError?: (err: unknown) => void,
 ): void {
   if (!supabase || !userId) return;
   const files = e.dataTransfer?.files;
@@ -321,13 +327,17 @@ export function handleImageDrop(
       .upload(filePath, file, { cacheControl: "3600", upsert: false })
       .then(({ error }) => {
         setUploading(false);
-        if (error) return;
+        if (error) {
+          onError?.(error);
+          return;
+        }
         const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
         const alt = (file.name ?? "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
         insertFn(`\n![${alt}](${data.publicUrl})\n`);
       })
-      .catch(() => {
+      .catch((err) => {
         setUploading(false);
+        onError?.(err);
       });
   }
 }

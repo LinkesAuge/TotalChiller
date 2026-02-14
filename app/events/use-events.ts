@@ -338,6 +338,8 @@ export function useEvents(): UseEventsResult {
     const eventDate = new Date(event.starts_at);
     const dateKey = toDateString(eventDate);
     setSelectedDateKey(dateKey);
+    setDateSelectNonce((n) => n + 1);
+    setHighlightEventId(event.id);
     setCalendarMonth(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
     requestAnimationFrame(() => {
       document.querySelector(".calendar-day-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });

@@ -85,6 +85,8 @@ export function useDataTable() {
   const [validationRuleMessage, setValidationRuleMessage] = useState<string>("");
   const [rulesVersion, setRulesVersion] = useState<number>(0);
   const [retryPage, setRetryPage] = useState<number | null>(null);
+  const [pendingDeleteRow, setPendingDeleteRow] = useState<ChestEntryRow | null>(null);
+  const [pendingSaveAll, setPendingSaveAll] = useState<boolean>(false);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / pageSize)), [totalCount, pageSize]);
 
@@ -456,30 +458,33 @@ export function useDataTable() {
     pushToast,
   });
 
-  const validateRow = useCallback((values: RowValues): string | null => {
-    const nextDate = values.collected_date;
-    const nextPlayer = values.player;
-    const nextSource = values.source;
-    const nextChest = values.chest;
-    const nextScore = values.score;
-    const nextClanId = values.clan_id;
-    if (!nextDate.trim() || !DATE_REGEX.test(nextDate.trim())) {
-      return "Date must be in YYYY-MM-DD format.";
-    }
-    if (!nextPlayer.trim() || !nextSource.trim() || !nextChest.trim()) {
-      return "Player, source, chest are required.";
-    }
-    if (!nextClanId.trim()) {
-      return "Clan is required.";
-    }
-    if (Number.isNaN(nextScore) || nextScore < 0) {
-      return "Score must be a non-negative number.";
-    }
-    if (!Number.isInteger(nextScore)) {
-      return "Score must be an integer.";
-    }
-    return null;
-  }, []);
+  const validateRow = useCallback(
+    (values: RowValues): string | null => {
+      const nextDate = values.collected_date;
+      const nextPlayer = values.player;
+      const nextSource = values.source;
+      const nextChest = values.chest;
+      const nextScore = values.score;
+      const nextClanId = values.clan_id;
+      if (!nextDate.trim() || !DATE_REGEX.test(nextDate.trim())) {
+        return t("validationDateFormat");
+      }
+      if (!nextPlayer.trim() || !nextSource.trim() || !nextChest.trim()) {
+        return t("validationPlayerSourceChestRequired");
+      }
+      if (!nextClanId.trim()) {
+        return t("validationClanRequired");
+      }
+      if (Number.isNaN(nextScore) || nextScore < 0) {
+        return t("validationScoreNonNegative");
+      }
+      if (!Number.isInteger(nextScore)) {
+        return t("validationScoreInteger");
+      }
+      return null;
+    },
+    [t],
+  );
 
   const buildRowValues = useCallback((row: ChestEntryRow, edits: EditableRow): RowValues => {
     return {
@@ -625,12 +630,13 @@ export function useDataTable() {
     ],
   );
 
-  const handleDeleteRow = useCallback(
+  const requestDeleteRow = useCallback((row: ChestEntryRow): void => {
+    setPendingDeleteRow(row);
+  }, []);
+
+  const performDeleteRow = useCallback(
     async (row: ChestEntryRow): Promise<void> => {
-      const confirmDelete = window.confirm(t("deleteRowConfirm", { player: row.player, date: row.collected_date }));
-      if (!confirmDelete) {
-        return;
-      }
+      setPendingDeleteRow(null);
       const userId = await getCurrentUserId();
       if (!userId) {
         setStatus(t("mustBeLoggedInDelete"));
@@ -671,6 +677,8 @@ export function useDataTable() {
     [clearRowEdits, getCurrentUserId, insertAuditLogs, refreshAfterDelete, rows, supabase, t],
   );
 
+  const handleDeleteRow = requestDeleteRow;
+
   const handlePageInputChange = useCallback(
     (nextValue: string): void => {
       const nextPage = Number(nextValue);
@@ -683,16 +691,19 @@ export function useDataTable() {
     [totalPages],
   );
 
-  const handleSaveAllRows = useCallback(async (): Promise<void> => {
+  const requestSaveAllRows = useCallback((): void => {
     const editIds = Object.keys(editMap);
     if (editIds.length === 0) {
       setStatus(t("noChangesToSave"));
       return;
     }
-    const confirmSave = window.confirm(t("saveEditedRows", { count: editIds.length }));
-    if (!confirmSave) {
-      return;
-    }
+    setPendingSaveAll(true);
+  }, [editMap, setStatus, t]);
+
+  const performSaveAllRows = useCallback(async (): Promise<void> => {
+    setPendingSaveAll(false);
+    const editIds = Object.keys(editMap);
+    if (editIds.length === 0) return;
     let hasValidationError = false;
     const nextErrors: Record<string, string> = {};
     const userId = await getCurrentUserId();
@@ -723,6 +734,8 @@ export function useDataTable() {
     }
     setStatus(t("allChangesSaved"));
   }, [applyCorrectionsToValues, buildRowValues, editMap, getCurrentUserId, handleSaveRow, rows, t, validateRow]);
+
+  const handleSaveAllRows = requestSaveAllRows;
 
   const getRowFieldValueForRule = useCallback(
     (row: ChestEntryRow, field: "player" | "source" | "chest" | "clan"): string => {
@@ -977,6 +990,12 @@ export function useDataTable() {
     closeBatchDeleteInput: batch.closeBatchDeleteInput,
     confirmBatchDelete: batch.confirmBatchDelete,
     handleSaveAllRows,
+    pendingDeleteRow,
+    pendingSaveAll,
+    performDeleteRow,
+    performSaveAllRows,
+    closePendingDeleteRow: () => setPendingDeleteRow(null),
+    closePendingSaveAll: () => setPendingSaveAll(false),
     openCorrectionRuleModal,
     updateCorrectionRuleField,
     closeCorrectionRuleModal,

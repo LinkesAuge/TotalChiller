@@ -72,6 +72,12 @@ function ChevronIcon({ direction }: { readonly direction: "left" | "right" }): J
 
 /* shortTime is imported as getShortTimeString from events-utils */
 
+/** Format a date key (YYYY-MM-DD) for display in the calendar toolbar. */
+function formatSelectedDateLabel(dateKey: string, locale: string): string {
+  const d = new Date(dateKey + "T00:00:00");
+  return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+}
+
 /**
  * Return the appropriate time label for a calendar cell based on the cell's
  * position within a multi-day event:
@@ -98,6 +104,27 @@ function cellTimeLabel(
     return t("untilTime", { time: getShortTimeString(event.ends_at, locale) });
   }
   return t("allDay");
+}
+
+/** Render tooltip content for a single event. */
+function TooltipSingleEvent({ ev, locale }: { ev: DisplayEvent; locale: string }): JSX.Element {
+  return (
+    <div className="calendar-tooltip-single">
+      <div className="calendar-tooltip-title">{ev.title}</div>
+      <div className="calendar-tooltip-meta">
+        {isMultiDayEvent(ev.starts_at, ev.ends_at) ? (
+          <span>{formatDateRange(ev.starts_at, ev.ends_at, locale)}</span>
+        ) : (
+          <>
+            <span>{getShortTimeString(ev.starts_at, locale)}</span>
+            <span>{formatDuration(ev.starts_at, ev.ends_at)}</span>
+          </>
+        )}
+      </div>
+      {ev.location && <div className="calendar-tooltip-location">{ev.location}</div>}
+      {ev.organizer && <div className="calendar-tooltip-organizer">{ev.organizer}</div>}
+    </div>
+  );
 }
 
 /* ── Component ── */
@@ -184,10 +211,7 @@ export function EventCalendar({
                 </button>
               </div>
               <button className="calendar-today-btn selected-day-label" type="button" onClick={onJumpToToday}>
-                {(() => {
-                  const d = new Date(selectedDateKey + "T00:00:00");
-                  return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
-                })()}
+                {formatSelectedDateLabel(selectedDateKey, locale)}
               </button>
             </div>
 
@@ -320,26 +344,7 @@ export function EventCalendar({
         >
           <div className="calendar-tooltip-inner">
             {tooltipDay.events.length === 1 && tooltipDay.events[0] ? (
-              (() => {
-                const ev = tooltipDay.events[0];
-                return (
-                  <div className="calendar-tooltip-single">
-                    <div className="calendar-tooltip-title">{ev.title}</div>
-                    <div className="calendar-tooltip-meta">
-                      {isMultiDayEvent(ev.starts_at, ev.ends_at) ? (
-                        <span>{formatDateRange(ev.starts_at, ev.ends_at, locale)}</span>
-                      ) : (
-                        <>
-                          <span>{getShortTimeString(ev.starts_at, locale)}</span>
-                          <span>{formatDuration(ev.starts_at, ev.ends_at)}</span>
-                        </>
-                      )}
-                    </div>
-                    {ev.location && <div className="calendar-tooltip-location">{ev.location}</div>}
-                    {ev.organizer && <div className="calendar-tooltip-organizer">{ev.organizer}</div>}
-                  </div>
-                );
-              })()
+              <TooltipSingleEvent ev={tooltipDay.events[0]} locale={locale} />
             ) : (
               <div className="calendar-tooltip-multi">
                 {tooltipDay.events.map((entry) => (
@@ -379,11 +384,16 @@ export function EventDayPanel({
   const panelRef = useRef<HTMLElement>(null);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(DAY_PANEL_PAGE_SIZE);
-  /* Initialize to -1 so the auto-expand block fires on the first render
-     (nonce starts at 0), fixing today's events staying collapsed on page load.
-     Subsequent clicks always increment nonce, so re-clicking the same day
-     also triggers the expansion. */
-  const [prevNonce, setPrevNonce] = useState(-1);
+
+  /** Reset visible count and expansion when selected day changes or the same day is re-clicked. */
+  useEffect(() => {
+    setVisibleCount(DAY_PANEL_PAGE_SIZE);
+    const sorted = sortPinnedFirst(selectedDayEvents);
+    /* Prefer the highlighted event (from deep-link) over the first event. */
+    const highlightMatch = highlightEventId ? sorted.find((e) => e.id === highlightEventId)?.displayKey : undefined;
+    const expandKey = highlightMatch ?? sorted[0]?.displayKey;
+    setExpandedKeys(expandKey ? new Set([expandKey]) : new Set());
+  }, [selectionNonce, selectedDayEvents, highlightEventId]);
 
   /** Toggle expand/collapse for a single event card. */
   function toggleExpand(displayKey: string): void {
@@ -396,17 +406,6 @@ export function EventDayPanel({
       }
       return next;
     });
-  }
-
-  /** Reset visible count and expansion when selected day changes or the same day is re-clicked. */
-  if (prevNonce !== selectionNonce) {
-    setPrevNonce(selectionNonce);
-    setVisibleCount(DAY_PANEL_PAGE_SIZE);
-    const sorted = sortPinnedFirst(selectedDayEvents);
-    /* Prefer the highlighted event (from deep-link) over the first event. */
-    const highlightMatch = highlightEventId ? sorted.find((e) => e.id === highlightEventId)?.displayKey : undefined;
-    const expandKey = highlightMatch ?? sorted[0]?.displayKey;
-    setExpandedKeys(expandKey ? new Set([expandKey]) : new Set());
   }
 
   const sortedEvents = sortPinnedFirst(selectedDayEvents);

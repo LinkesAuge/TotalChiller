@@ -3,30 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import getIsAdminAccess from "./lib/supabase/admin-access";
 import { routing, LOCALE_COOKIE } from "./i18n/routing";
 import { getSupabaseUrl, getSupabaseAnonKey } from "./lib/supabase/config";
-
-/**
- * Public paths that bypass authentication.
- * Note: API routes (`/api/...`) are excluded by the matcher config below.
- */
-function isPublicPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/home") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/about") ||
-    pathname.startsWith("/contact") ||
-    pathname.startsWith("/privacy-policy") ||
-    pathname.startsWith("/not-authorized") ||
-    pathname.startsWith("/redesign") ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/sitemap") ||
-    pathname.startsWith("/robots") ||
-    pathname.startsWith("/assets") ||
-    pathname.endsWith(".xml") ||
-    pathname.endsWith(".txt") ||
-    pathname.endsWith(".json") ||
-    pathname.endsWith(".ico")
-  );
-}
+import { isPublicPath } from "./lib/public-paths";
 
 function isAdminPath(pathname: string): boolean {
   return (

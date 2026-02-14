@@ -255,12 +255,14 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
       if (search.trim()) params.set("search", search.trim());
       const qs = params.toString() ? `?${params.toString()}` : "";
       const response = await fetch(`/api/messages${qs}`, { signal: controller.signal });
-      if (response.ok) {
-        const result = await response.json();
-        if (!controller.signal.aborted) {
-          setInboxThreads(result.data ?? []);
-          setInboxProfiles(result.profiles ?? {});
-        }
+      if (!response.ok) {
+        if (!controller.signal.aborted) pushToast(t("failedToLoad"));
+        return;
+      }
+      const result = await response.json();
+      if (!controller.signal.aborted) {
+        setInboxThreads(result.data ?? []);
+        setInboxProfiles(result.profiles ?? {});
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -268,7 +270,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     } finally {
       if (!controller.signal.aborted) setIsInboxLoading(false);
     }
-  }, [typeFilter, search]);
+  }, [typeFilter, search, pushToast, t]);
 
   const loadSent = useCallback(async (): Promise<void> => {
     sentAbortRef.current?.abort();
@@ -281,12 +283,14 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
       if (search.trim()) params.set("search", search.trim());
       const qs = params.toString() ? `?${params.toString()}` : "";
       const response = await fetch(`/api/messages/sent${qs}`, { signal: controller.signal });
-      if (response.ok) {
-        const result = await response.json();
-        if (!controller.signal.aborted) {
-          setSentMessages(result.data ?? []);
-          setSentProfiles(result.profiles ?? {});
-        }
+      if (!response.ok) {
+        if (!controller.signal.aborted) pushToast(t("failedToLoad"));
+        return;
+      }
+      const result = await response.json();
+      if (!controller.signal.aborted) {
+        setSentMessages(result.data ?? []);
+        setSentProfiles(result.profiles ?? {});
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -294,7 +298,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     } finally {
       if (!controller.signal.aborted) setIsSentLoading(false);
     }
-  }, [typeFilter, search]);
+  }, [typeFilter, search, pushToast, t]);
 
   const loadArchive = useCallback(async (): Promise<void> => {
     archiveAbortRef.current?.abort();
@@ -303,12 +307,14 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     setIsArchiveLoading(true);
     try {
       const response = await fetch("/api/messages/archive", { signal: controller.signal });
-      if (response.ok) {
-        const result = await response.json();
-        if (!controller.signal.aborted) {
-          setArchivedItems(result.data ?? []);
-          setArchiveProfiles(result.profiles ?? {});
-        }
+      if (!response.ok) {
+        if (!controller.signal.aborted) pushToast(t("failedToLoad"));
+        return;
+      }
+      const result = await response.json();
+      if (!controller.signal.aborted) {
+        setArchivedItems(result.data ?? []);
+        setArchiveProfiles(result.profiles ?? {});
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -316,7 +322,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     } finally {
       if (!controller.signal.aborted) setIsArchiveLoading(false);
     }
-  }, []);
+  }, [pushToast, t]);
 
   const loadNotifications = useCallback(async (): Promise<void> => {
     notifAbortRef.current?.abort();
@@ -325,11 +331,13 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     setIsNotificationsLoading(true);
     try {
       const response = await fetch("/api/notifications", { signal: controller.signal });
-      if (response.ok) {
-        const result = await response.json();
-        if (!controller.signal.aborted) {
-          setNotificationItems(result.data ?? []);
-        }
+      if (!response.ok) {
+        if (!controller.signal.aborted) pushToast(t("failedToLoad"));
+        return;
+      }
+      const result = await response.json();
+      if (!controller.signal.aborted) {
+        setNotificationItems(result.data ?? []);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -337,45 +345,68 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     } finally {
       if (!controller.signal.aborted) setIsNotificationsLoading(false);
     }
-  }, []);
+  }, [pushToast, t]);
 
-  const handleDeleteNotification = useCallback(async (id: string): Promise<void> => {
-    setNotificationItems((current) => current.filter((n) => n.id !== id));
-    await fetch(`/api/notifications/${id}`, { method: "DELETE" });
-  }, []);
+  const handleDeleteNotification = useCallback(
+    async (id: string): Promise<void> => {
+      const response = await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+      if (!response.ok) {
+        pushToast(t("failedToDelete"));
+        return;
+      }
+      setNotificationItems((current) => current.filter((n) => n.id !== id));
+    },
+    [pushToast, t],
+  );
 
   const handleDeleteAllNotifications = useCallback(async (): Promise<void> => {
+    const response = await fetch("/api/notifications/delete-all", { method: "POST" });
+    if (!response.ok) {
+      pushToast(t("failedToDelete"));
+      return;
+    }
     setNotificationItems([]);
-    await fetch("/api/notifications/delete-all", { method: "POST" });
-  }, []);
+  }, [pushToast, t]);
 
-  const handleMarkNotificationRead = useCallback(async (id: string): Promise<void> => {
-    setNotificationItems((current) => current.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-    await fetch(`/api/notifications/${id}`, { method: "PATCH" });
-  }, []);
+  const handleMarkNotificationRead = useCallback(
+    async (id: string): Promise<void> => {
+      const response = await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+      if (!response.ok) {
+        pushToast(t("failedToUpdate"));
+        return;
+      }
+      setNotificationItems((current) => current.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    },
+    [pushToast, t],
+  );
 
-  const loadThread = useCallback(async (threadId: string): Promise<void> => {
-    threadAbortRef.current?.abort();
-    const controller = new AbortController();
-    threadAbortRef.current = controller;
-    setIsThreadLoading(true);
-    setThreadMessages([]);
-    try {
-      const response = await fetch(`/api/messages/thread/${threadId}`, { signal: controller.signal });
-      if (response.ok) {
+  const loadThread = useCallback(
+    async (threadId: string): Promise<void> => {
+      threadAbortRef.current?.abort();
+      const controller = new AbortController();
+      threadAbortRef.current = controller;
+      setIsThreadLoading(true);
+      setThreadMessages([]);
+      try {
+        const response = await fetch(`/api/messages/thread/${threadId}`, { signal: controller.signal });
+        if (!response.ok) {
+          if (!controller.signal.aborted) pushToast(t("failedToLoad"));
+          return;
+        }
         const result = await response.json();
         if (!controller.signal.aborted) {
           setThreadMessages(result.data ?? []);
           setThreadProfiles(result.profiles ?? {});
         }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        throw err;
+      } finally {
+        if (!controller.signal.aborted) setIsThreadLoading(false);
       }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      throw err;
-    } finally {
-      if (!controller.signal.aborted) setIsThreadLoading(false);
-    }
-  }, []);
+    },
+    [pushToast, t],
+  );
 
   useEffect(() => {
     return () => {
@@ -528,7 +559,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
   const formatRecipientLabel = useCallback(
     (msg: SentMessage): string => {
       if (msg.message_type === "broadcast") return t("sentToAll");
-      if (msg.message_type === "clan") return t("sentToClan", { clan: "Clan" });
+      if (msg.message_type === "clan") return t("sentToClan", { clan: t("clan") });
       if (msg.recipients.length === 0) return t("unknownPartner");
       if (msg.recipients.length === 1) {
         return `${t("to")}: ${msg.recipients[0]!.label}`;

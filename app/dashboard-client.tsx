@@ -11,7 +11,7 @@ import DataState from "./components/data-state";
 
 /* ── Constants ── */
 
-const EVENT_COLORS: readonly string[] = ["#c94a3a", "#4a6ea0", "#4a9960", "#c9a34a", "#8a6ea0"];
+const EVENT_DOT_COLORS: readonly string[] = ["#c94a3a", "#4a6ea0", "#4a9960", "#c9a34a", "#8a6ea0"];
 
 /** Chat bubble icon for "go to thread" buttons. */
 function ChatIcon(): JSX.Element {
@@ -32,7 +32,7 @@ function ChatIcon(): JSX.Element {
   );
 }
 
-/* ── Helpers ── */
+/* ── Helpers (defined outside component to avoid re-creation) ── */
 
 /** Returns a countdown string for an event start time. */
 function formatCountdown(startsAt: string, tDashboard: ReturnType<typeof useTranslations>): string {
@@ -51,6 +51,35 @@ function formatCountdown(startsAt: string, tDashboard: ReturnType<typeof useTran
   return tDashboard("inDays", { count: diffDays });
 }
 
+/** Trend color palette shared between tag colors and event dot colors. */
+const CATEGORY_COLORS: Record<string, string> = {
+  Priority: "#c94a3a",
+  Priorität: "#c94a3a",
+  Info: "#4a6ea0",
+  New: "#4a9960",
+  Neu: "#4a9960",
+  Update: "#c9a34a",
+};
+const DEFAULT_TAG_COLOR = "#4a6ea0";
+
+/** Render a trend indicator arrow + percentage. */
+function TrendIndicator({ trend }: { readonly trend: number }): JSX.Element {
+  const isUp = trend > 0;
+  const isDown = trend < 0;
+  const color = isUp ? "var(--color-accent-green)" : isDown ? "var(--color-accent-red)" : "var(--color-text-muted)";
+  const arrow = isUp ? "↑" : isDown ? "↓" : "–";
+  return (
+    <span className="text-[0.65rem] font-medium" style={{ color }}>
+      {arrow} {Math.abs(trend)}%
+    </span>
+  );
+}
+
+/** Clamp a trend percentage to a progress bar width (50% baseline ± half the trend). */
+function trendToProgressWidth(trend: number): string {
+  return `${Math.min(100, Math.max(0, 50 + trend / 2))}%`;
+}
+
 /* ── Component ── */
 
 /**
@@ -67,36 +96,15 @@ function DashboardClient(): JSX.Element {
   /* ── Tag color helper ── */
   const tagColorMap = useMemo(() => {
     const map = new Map<string, string>();
-    const colors: Record<string, string> = {
-      Priority: "#c94a3a",
-      Priorität: "#c94a3a",
-      Info: "#4a6ea0",
-      New: "#4a9960",
-      Neu: "#4a9960",
-      Update: "#c9a34a",
-    };
     announcements.forEach((a) => {
       a.tags.forEach((tag) => {
         if (!map.has(tag)) {
-          map.set(tag, colors[tag] ?? "#4a6ea0");
+          map.set(tag, CATEGORY_COLORS[tag] ?? DEFAULT_TAG_COLOR);
         }
       });
     });
     return map;
   }, [announcements]);
-
-  /** Render a trend indicator arrow + percentage. */
-  function renderTrend(trend: number): JSX.Element {
-    const isUp = trend > 0;
-    const isDown = trend < 0;
-    const color = isUp ? "var(--color-accent-green)" : isDown ? "var(--color-accent-red)" : "var(--color-text-muted)";
-    const arrow = isUp ? "↑" : isDown ? "↓" : "–";
-    return (
-      <span className="text-[0.65rem] font-medium" style={{ color }}>
-        {arrow} {Math.abs(trend)}%
-      </span>
-    );
-  }
 
   return (
     <div className="content-inner">
@@ -122,7 +130,7 @@ function DashboardClient(): JSX.Element {
             >
               {announcements.map((article, i) => {
                 const firstTag = article.tags.length > 0 ? article.tags[0] : null;
-                const tagColor = firstTag ? (tagColorMap.get(firstTag) ?? "#4a6ea0") : "#4a6ea0";
+                const tagColor = firstTag ? (tagColorMap.get(firstTag) ?? DEFAULT_TAG_COLOR) : DEFAULT_TAG_COLOR;
                 return (
                   <div key={article.id}>
                     {i > 0 && <div className="gold-divider" />}
@@ -225,7 +233,11 @@ function DashboardClient(): JSX.Element {
                 />
                 <div className="stat-value">{stat.value}</div>
                 <div className="stat-label">{stat.label}</div>
-                {stat.trend !== null && <div className="mt-0.5">{renderTrend(stat.trend)}</div>}
+                {stat.trend !== null && (
+                  <div className="mt-0.5">
+                    <TrendIndicator trend={stat.trend} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -254,7 +266,7 @@ function DashboardClient(): JSX.Element {
               emptyNode={<div className="py-2 text-sm text-text-muted">{t("noEventsScheduled")}</div>}
             >
               {events.map((event, i) => {
-                const color = EVENT_COLORS[i % EVENT_COLORS.length];
+                const color = EVENT_DOT_COLORS[i % EVENT_DOT_COLORS.length];
                 const dateKey = toDateString(new Date(event.starts_at));
                 return (
                   <div key={event.id} className="flex items-center gap-2 py-1.5 text-sm">
@@ -302,101 +314,97 @@ function DashboardClient(): JSX.Element {
             <h3 className="card-title">{t("weekHighlightsTitle")}</h3>
           </div>
           <div className="flex flex-col gap-3.5 p-3.5 px-4">
-            {isLoadingStats ? (
-              <div className="py-2 text-sm text-text-muted">{t("loading")}</div>
-            ) : (
-              <>
-                {/* Top player */}
-                <div>
-                  <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
-                    <span>{t("topPlayer")}</span>
-                    <span className="font-bold" style={{ color: "#c9a34a" }}>
-                      {stats.topPlayerName !== "—"
-                        ? `${stats.topPlayerName} (${formatCompactNumber(stats.topPlayerScore)})`
-                        : t("noData")}
-                    </span>
-                  </div>
-                  <div className="game-progress">
+            <DataState
+              isLoading={isLoadingStats}
+              loadingNode={<div className="py-2 text-sm text-text-muted">{t("loading")}</div>}
+            >
+              {/* Top player */}
+              <div>
+                <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
+                  <span>{t("topPlayer")}</span>
+                  <span className="font-bold" style={{ color: "#c9a34a" }}>
+                    {stats.topPlayerName !== "—"
+                      ? `${stats.topPlayerName} (${formatCompactNumber(stats.topPlayerScore)})`
+                      : t("noData")}
+                  </span>
+                </div>
+                <div className="game-progress">
+                  <Image
+                    src="/assets/vip/battler_stage_bar_empty.png"
+                    alt=""
+                    className="game-progress-bg"
+                    width={400}
+                    height={20}
+                  />
+                  <div className="game-progress-fill" style={{ width: `${stats.topPlayerScore > 0 ? 100 : 0}%` }}>
                     <Image
-                      src="/assets/vip/battler_stage_bar_empty.png"
+                      src="/assets/vip/battler_stage_bar_full.png"
                       alt=""
                       className="game-progress-bg"
                       width={400}
                       height={20}
                     />
-                    <div className="game-progress-fill" style={{ width: `${stats.topPlayerScore > 0 ? 100 : 0}%` }}>
-                      <Image
-                        src="/assets/vip/battler_stage_bar_full.png"
-                        alt=""
-                        className="game-progress-bg"
-                        width={400}
-                        height={20}
-                      />
-                    </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Score change vs last week */}
-                <div>
-                  <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
-                    <span>{t("scoreChange")}</span>
-                    <span className="font-bold" style={{ color: stats.clanTrend >= 0 ? "#4a9960" : "#c94a3a" }}>
-                      {stats.clanTrend > 0 ? "+" : ""}
-                      {stats.clanTrend}% {t("vsLastWeek")}
-                    </span>
-                  </div>
-                  <div className="game-progress">
+              {/* Score change vs last week */}
+              <div>
+                <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
+                  <span>{t("scoreChange")}</span>
+                  <span className="font-bold" style={{ color: stats.clanTrend >= 0 ? "#4a9960" : "#c94a3a" }}>
+                    {stats.clanTrend > 0 ? "+" : ""}
+                    {stats.clanTrend}% {t("vsLastWeek")}
+                  </span>
+                </div>
+                <div className="game-progress">
+                  <Image
+                    src="/assets/vip/battler_stage_bar_empty.png"
+                    alt=""
+                    className="game-progress-bg"
+                    width={400}
+                    height={20}
+                  />
+                  <div className="game-progress-fill" style={{ width: trendToProgressWidth(stats.clanTrend) }}>
                     <Image
-                      src="/assets/vip/battler_stage_bar_empty.png"
+                      src="/assets/vip/battler_stage_bar_full.png"
                       alt=""
                       className="game-progress-bg"
                       width={400}
                       height={20}
                     />
-                    <div
-                      className="game-progress-fill"
-                      style={{ width: `${Math.min(100, Math.max(0, 50 + stats.clanTrend / 2))}%` }}
-                    >
-                      <Image
-                        src="/assets/vip/battler_stage_bar_full.png"
-                        alt=""
-                        className="game-progress-bg"
-                        width={400}
-                        height={20}
-                      />
-                    </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Top chest type */}
-                <div>
-                  <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
-                    <span>{t("topChestType")}</span>
-                    <span className="font-bold" style={{ color: "#4a6ea0" }}>
-                      {stats.topChestType}
-                    </span>
-                  </div>
-                  <div className="game-progress">
+              {/* Top chest type */}
+              <div>
+                <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
+                  <span>{t("topChestType")}</span>
+                  <span className="font-bold" style={{ color: "#4a6ea0" }}>
+                    {stats.topChestType}
+                  </span>
+                </div>
+                <div className="game-progress">
+                  <Image
+                    src="/assets/vip/battler_stage_bar_empty.png"
+                    alt=""
+                    className="game-progress-bg"
+                    width={400}
+                    height={20}
+                  />
+                  <div className="game-progress-fill" style={{ width: `${stats.topChestType !== "—" ? 100 : 0}%` }}>
                     <Image
-                      src="/assets/vip/battler_stage_bar_empty.png"
+                      src="/assets/vip/battler_stage_bar_full.png"
                       alt=""
                       className="game-progress-bg"
                       width={400}
                       height={20}
                     />
-                    <div className="game-progress-fill" style={{ width: `${stats.topChestType !== "—" ? 100 : 0}%` }}>
-                      <Image
-                        src="/assets/vip/battler_stage_bar_full.png"
-                        alt=""
-                        className="game-progress-bg"
-                        width={400}
-                        height={20}
-                      />
-                    </div>
                   </div>
                 </div>
-              </>
-            )}
+              </div>
+            </DataState>
           </div>
         </section>
       </div>

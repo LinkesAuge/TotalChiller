@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import useClanContext from "../hooks/use-clan-context";
 import DatePicker from "../components/date-picker";
 import PageShell from "../components/page-shell";
+import DataState from "../components/data-state";
 import { useChartsData } from "./use-charts-data";
 
 const chartLoading = () => <div className="skeleton h-64 rounded-lg" />;
@@ -116,67 +117,68 @@ function ChartsClient(): JSX.Element {
           </div>
         </section>
 
-        {/* ── Error ── */}
-        {errorMessage && <div className="alert error col-span-full">{errorMessage}</div>}
+        <DataState
+          isLoading={isLoading}
+          error={errorMessage || null}
+          loadingMessage={t("loadingCharts")}
+          className="col-span-full"
+        >
+          {/* ── Summary Panel ── */}
+          <section className="panel col-span-1">
+            <div className="card-title">{t("summary")}</div>
+            <SummaryPanel summary={chartData.summary} />
+          </section>
 
-        {/* ── Loading ── */}
-        {isLoading && <div className="alert info loading col-span-full">{t("loadingCharts")}</div>}
-
-        {/* ── Summary Panel ── */}
-        <section className="panel col-span-1">
-          <div className="card-title">{t("summary")}</div>
-          <SummaryPanel summary={chartData.summary} />
-        </section>
-
-        {/* ── Personal Score ── */}
-        <section className="card col-span-1">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("personalScore")}</div>
-              <div className="card-subtitle">{t("personalScoreSubtitle")}</div>
-            </div>
-            <span className="badge">{t("badgeLine")}</span>
-          </div>
-          <PersonalScoreChart data={chartData.personalScore} />
-        </section>
-
-        {/* ── Clan Score Over Time ── */}
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("clanScoreOverTime")}</div>
-              <div className="card-subtitle">
-                {dateFrom || dateTo ? `${dateFrom || t("start")} – ${dateTo || t("now")}` : t("allTime")}
+          {/* ── Personal Score ── */}
+          <section className="card col-span-1">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("personalScore")}</div>
+                <div className="card-subtitle">{t("personalScoreSubtitle")}</div>
               </div>
+              <span className="badge">{t("badgeLine")}</span>
             </div>
-            <span className="badge">{t("badgeLine")}</span>
-          </div>
-          <ScoreLineChart data={chartData.scoreOverTime} />
-        </section>
+            <PersonalScoreChart data={chartData.personalScore} />
+          </section>
 
-        {/* ── Top Players ── */}
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("topPlayers")}</div>
-              <div className="card-subtitle">{t("byTotalScore")}</div>
+          {/* ── Clan Score Over Time ── */}
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("clanScoreOverTime")}</div>
+                <div className="card-subtitle">
+                  {dateFrom || dateTo ? `${dateFrom || t("start")} – ${dateTo || t("now")}` : t("allTime")}
+                </div>
+              </div>
+              <span className="badge">{t("badgeLine")}</span>
             </div>
-            <span className="badge">{t("badgeBar")}</span>
-          </div>
-          <TopPlayersBar data={chartData.topPlayers} />
-        </section>
+            <ScoreLineChart data={chartData.scoreOverTime} />
+          </section>
 
-        {/* ── Chest Type Distribution ── */}
-        <section className="card col-span-full">
-          <div className="card-header">
-            <div>
-              <div className="card-title">{t("chestTypes")}</div>
-              <div className="card-subtitle">{t("distributionByCount")}</div>
+          {/* ── Top Players ── */}
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("topPlayers")}</div>
+                <div className="card-subtitle">{t("byTotalScore")}</div>
+              </div>
+              <span className="badge">{t("badgeBar")}</span>
             </div>
-            <span className="badge">{t("badgePie")}</span>
-          </div>
-          <ChestTypePie data={chartData.chestTypes} height={320} />
-        </section>
+            <TopPlayersBar data={chartData.topPlayers} />
+          </section>
+
+          {/* ── Chest Type Distribution ── */}
+          <section className="card col-span-full">
+            <div className="card-header">
+              <div>
+                <div className="card-title">{t("chestTypes")}</div>
+                <div className="card-subtitle">{t("distributionByCount")}</div>
+              </div>
+              <span className="badge">{t("badgePie")}</span>
+            </div>
+            <ChestTypePie data={chartData.chestTypes} height={320} />
+          </section>
+        </DataState>
       </div>
     </PageShell>
   );

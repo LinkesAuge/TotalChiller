@@ -54,6 +54,7 @@ function SuccessStep({
  */
 function RegisterPage(): JSX.Element {
   const [formState, setFormState] = useState<RegisterFormState>(initialFormState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = useSupabase();
   const t = useTranslations("auth.register");
 
@@ -76,6 +77,7 @@ function RegisterPage(): JSX.Element {
       updateFormState({ status: t("passwordMismatch") });
       return;
     }
+    setIsSubmitting(true);
     updateFormState({ status: t("creating") });
     /* Set fallback cookie in case Supabase ignores the redirect URL */
     document.cookie = "auth_redirect_next=/auth/login; path=/; max-age=600; SameSite=Lax";
@@ -92,6 +94,7 @@ function RegisterPage(): JSX.Element {
     });
     if (error) {
       updateFormState({ status: error.message });
+      setIsSubmitting(false);
       return;
     }
     updateFormState({ status: t("created"), isRegistered: true });
@@ -197,7 +200,7 @@ function RegisterPage(): JSX.Element {
                 required
               />
             </div>
-            <button className="button leather mt-2 w-full" type="submit">
+            <button className="button leather mt-2 w-full" type="submit" disabled={isSubmitting}>
               <Image
                 src="/assets/vip/backs_1.png"
                 alt="Leather button texture"

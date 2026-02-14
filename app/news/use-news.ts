@@ -27,6 +27,24 @@ import type { NewsFormValues } from "./news-form";
 
 /* ─── Types ─── */
 
+interface ArticleWithAuthorEditorJoin {
+  readonly id: string;
+  readonly title: string;
+  readonly content: string;
+  readonly type: string;
+  readonly is_pinned: boolean;
+  readonly status: string;
+  readonly tags: string[];
+  readonly created_at: string;
+  readonly updated_at: string | null;
+  readonly created_by: string;
+  readonly banner_url: string | null;
+  readonly updated_by: string | null;
+  readonly forum_post_id: string | null;
+  readonly author: { display_name: string | null; username: string | null } | null;
+  readonly editor: { display_name: string | null; username: string | null } | null;
+}
+
 export interface ArticleRow {
   readonly id: string;
   readonly title: string;
@@ -209,12 +227,12 @@ export function useNews(t: (key: string) => string): UseNewsResult {
       pushToast(`${t("loadError")}: ${error.message}`);
       return;
     }
-    const rows = (data ?? []) as unknown as Array<Record<string, unknown>>;
+    const rows = (data ?? []) as unknown as ArticleWithAuthorEditorJoin[];
     setArticles(
       rows.map((row) => ({
         ...row,
-        author_name: extractAuthorName(row.author as { display_name: string | null; username: string | null } | null),
-        editor_name: extractAuthorName(row.editor as { display_name: string | null; username: string | null } | null),
+        author_name: extractAuthorName(row.author),
+        editor_name: extractAuthorName(row.editor),
       })) as ArticleRow[],
     );
     setTotalCount(count ?? 0);
@@ -412,7 +430,7 @@ export function useNews(t: (key: string) => string): UseNewsResult {
         return;
       }
       if (isNewPost && insertedData?.id) {
-        void fetch("/api/notifications/fan-out", {
+        fetch("/api/notifications/fan-out", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -422,7 +440,7 @@ export function useNews(t: (key: string) => string): UseNewsResult {
             title: `${t("newAnnouncement")}: ${parsed.data.title}`,
             body: parsed.data.content.slice(0, 100),
           }),
-        });
+        }).catch((err) => console.error("Fan-out notification failed:", err));
         const { forumPostId, error: forumError } = await createLinkedForumPost(supabase, {
           clanId: clanContext.clanId,
           authorId: userId,

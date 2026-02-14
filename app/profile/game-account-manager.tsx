@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { useSupabase } from "../hooks/use-supabase";
 import IconButton from "../components/ui/icon-button";
 import type { GameAccountView } from "@/lib/types/domain";
 
 interface GameAccountManagerProps {
-  readonly userId: string;
   readonly initialAccounts: readonly GameAccountView[];
   readonly initialDefaultId: string | null;
 }
@@ -20,11 +18,7 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 /**
  * Displays the user's game accounts with status, default selection, and a form to request new ones.
  */
-function GameAccountManager({
-  userId: _userId,
-  initialAccounts,
-  initialDefaultId,
-}: GameAccountManagerProps): JSX.Element {
+function GameAccountManager({ initialAccounts, initialDefaultId }: GameAccountManagerProps): JSX.Element {
   const t = useTranslations("gameAccountManager");
   const locale = useLocale();
   const [accounts, setAccounts] = useState<readonly GameAccountView[]>(initialAccounts);
@@ -34,7 +28,13 @@ function GameAccountManager({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [defaultStatus, setDefaultStatus] = useState<string>("");
-  const _supabase = useSupabase();
+  const defaultStatusTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    return () => {
+      if (defaultStatusTimerRef.current) clearTimeout(defaultStatusTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     setAccounts(initialAccounts);
@@ -64,13 +64,16 @@ function GameAccountManager({
       if (response.ok) {
         setDefaultId(accountId);
         setDefaultStatus(accountId ? t("defaultSet") : "");
+      } else {
+        setDefaultStatus(t("setDefaultFailed"));
       }
     } catch {
-      /* silently ignore network errors for this action */
+      setDefaultStatus(t("setDefaultFailed"));
     }
     /* Clear status after a short delay */
     if (accountId) {
-      setTimeout(() => setDefaultStatus(""), 2000);
+      if (defaultStatusTimerRef.current) clearTimeout(defaultStatusTimerRef.current);
+      defaultStatusTimerRef.current = setTimeout(() => setDefaultStatus(""), 2000);
     }
   }
 

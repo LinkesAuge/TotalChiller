@@ -6,6 +6,7 @@ import { useToast } from "../../components/toast-provider";
 import TableScroll from "../../components/table-scroll";
 import { formatLocalDateTime } from "../../../lib/date-format";
 import { useAdminContext } from "../admin-context";
+import ConfirmModal from "@/app/components/confirm-modal";
 
 /**
  * Admin Approvals tab — lists pending game-account approvals with approve/reject actions.
@@ -18,6 +19,7 @@ export default function ApprovalsTab(): ReactElement {
 
   const [isLoading, setIsLoading] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState("");
+  const [pendingApproveAll, setPendingApproveAll] = useState(false);
 
   /* ── Load approvals when tab mounts ── */
   useEffect(() => {
@@ -66,9 +68,14 @@ export default function ApprovalsTab(): ReactElement {
   );
 
   /* ── Approve all ── */
-  const handleApproveAll = useCallback(async () => {
+  const handleApproveAll = useCallback(() => {
     if (pendingApprovals.length === 0) return;
-    if (!window.confirm(tAdmin("approvals.approveAllConfirm"))) return;
+    setPendingApproveAll(true);
+  }, [pendingApprovals.length]);
+
+  const handleConfirmApproveAll = useCallback(async () => {
+    if (pendingApprovals.length === 0) return;
+    setPendingApproveAll(false);
     setApprovalStatus(tAdmin("approvals.approvingAll"));
     let failed = 0;
     for (const approval of pendingApprovals) {
@@ -175,6 +182,17 @@ export default function ApprovalsTab(): ReactElement {
           </div>
         </TableScroll>
       )}
+
+      <ConfirmModal
+        isOpen={pendingApproveAll}
+        title={tAdmin("approvals.approveAll")}
+        message={tAdmin("approvals.approveAllConfirm")}
+        variant="info"
+        confirmLabel={tAdmin("common.approve")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={() => void handleConfirmApproveAll()}
+        onCancel={() => setPendingApproveAll(false)}
+      />
     </section>
   );
 }

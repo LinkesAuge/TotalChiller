@@ -84,7 +84,7 @@ function ForumClient(): JSX.Element {
         <SectionHero title={t("title")} subtitle={t("subtitle")} bannerSrc="/assets/banners/banner_tournir_kvk.png" />
         <div className="content-inner">
           <div className="forum-empty">
-            <p>Please select a clan to view the forum.</p>
+            <p>{t("selectClanToView")}</p>
           </div>
         </div>
       </>
@@ -100,10 +100,7 @@ function ForumClient(): JSX.Element {
         <div className="content-inner">
           <div className="forum-empty">
             <p className="mb-2">{t("emptyTitle")}</p>
-            <p className="text-text-muted text-sm">
-              The forum database tables have not been created yet. Please run the migration in{" "}
-              <code>Documentation/migrations/forum_tables.sql</code> against your Supabase instance.
-            </p>
+            <p className="text-text-muted text-sm">{t("tablesNotReadyHint")}</p>
           </div>
         </div>
       </>

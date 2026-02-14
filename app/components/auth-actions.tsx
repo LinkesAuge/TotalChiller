@@ -103,7 +103,7 @@ function AuthActions(): JSX.Element {
 
   /** Full page reload after sign-out ensures all server components re-render without stale auth. */
   async function handleSignOut(): Promise<void> {
-    setAuthState((state) => ({ ...state, status: "Signing out..." }));
+    setAuthState((state) => ({ ...state, status: t("signingOut") }));
     await supabase.auth.signOut();
     setAuthState({ email: "", userDb: "", username: "", displayName: "", status: "" });
     window.location.href = "/home";

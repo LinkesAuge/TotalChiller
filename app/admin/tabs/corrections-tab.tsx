@@ -159,6 +159,8 @@ export default function CorrectionsTab(): ReactElement {
   const [editReplacement, setEditReplacement] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [importStatus, setImportStatus] = useState("");
+  const [pendingUpdateRuleId, setPendingUpdateRuleId] = useState<string | null>(null);
+  const [pendingDeleteRuleId, setPendingDeleteRuleId] = useState<string | null>(null);
 
   const handleCreateRow = useCallback(() => {
     setEditField(rlActiveField);
@@ -183,15 +185,9 @@ export default function CorrectionsTab(): ReactElement {
     setEditStatus("active");
   }, []);
 
-  const handleSaveRow = useCallback(async () => {
-    if (!editMatch.trim() || !editReplacement.trim()) {
-      setStatus("Match and replacement values are required.");
-      return;
-    }
+  const performSaveRow = useCallback(async () => {
+    if (!editMatch.trim() || !editReplacement.trim()) return;
     const isNew = editingId === NEW_CORRECTION_ID;
-    if (editingId && !isNew) {
-      if (!window.confirm("Update this correction rule?")) return;
-    }
     const payload = {
       field: editField.trim() || rlActiveField,
       match_value: editMatch.trim(),
@@ -215,19 +211,40 @@ export default function CorrectionsTab(): ReactElement {
     await rlLoadRules();
   }, [editingId, editField, editMatch, editReplacement, editStatus, rlActiveField, rlLoadRules, setStatus, supabase]);
 
-  const handleDeleteRule = useCallback(
-    async (ruleId: string) => {
-      if (!window.confirm("Delete this correction rule?")) return;
-      const { error } = await supabase.from("correction_rules").delete().eq("id", ruleId);
-      if (error) {
-        setStatus(`Failed to delete correction rule: ${error.message}`);
-        return;
-      }
-      setStatus("Correction rule deleted.");
-      await rlLoadRules();
-    },
-    [rlLoadRules, setStatus, supabase],
-  );
+  const handleSaveRow = useCallback(async () => {
+    if (!editMatch.trim() || !editReplacement.trim()) {
+      setStatus("Match and replacement values are required.");
+      return;
+    }
+    const isNew = editingId === NEW_CORRECTION_ID;
+    if (editingId && !isNew) {
+      setPendingUpdateRuleId(editingId);
+      return;
+    }
+    await performSaveRow();
+  }, [editingId, editMatch, editReplacement, performSaveRow, setStatus]);
+
+  const handleConfirmUpdateRule = useCallback(async () => {
+    setPendingUpdateRuleId(null);
+    await performSaveRow();
+  }, [performSaveRow]);
+
+  const requestDeleteRule = useCallback((ruleId: string) => {
+    setPendingDeleteRuleId(ruleId);
+  }, []);
+
+  const handleConfirmDeleteRule = useCallback(async () => {
+    if (!pendingDeleteRuleId) return;
+    const ruleId = pendingDeleteRuleId;
+    setPendingDeleteRuleId(null);
+    const { error } = await supabase.from("correction_rules").delete().eq("id", ruleId);
+    if (error) {
+      setStatus(`Failed to delete correction rule: ${error.message}`);
+      return;
+    }
+    setStatus("Correction rule deleted.");
+    await rlLoadRules();
+  }, [pendingDeleteRuleId, rlLoadRules, setStatus, supabase]);
 
   const handleDeleteSelected = useCallback(async () => {
     if (rlSelectedIds.length === 0) {
@@ -582,7 +599,7 @@ export default function CorrectionsTab(): ReactElement {
                         </IconButton>
                         <IconButton
                           ariaLabel={tAdmin("corrections.deleteRule")}
-                          onClick={() => handleDeleteRule(rule.id)}
+                          onClick={() => requestDeleteRule(rule.id)}
                           variant="danger"
                         >
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -610,6 +627,29 @@ export default function CorrectionsTab(): ReactElement {
           )}
         </div>
       </TableScroll>
+
+      <ConfirmModal
+        isOpen={pendingUpdateRuleId !== null}
+        title={tAdmin("corrections.updateRule")}
+        message={tAdmin("corrections.updateRuleConfirm")}
+        variant="info"
+        confirmLabel={tAdmin("common.saveChanges")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={() => void handleConfirmUpdateRule()}
+        onCancel={() => setPendingUpdateRuleId(null)}
+      />
+
+      <ConfirmModal
+        isOpen={pendingDeleteRuleId !== null}
+        title={tAdmin("corrections.deleteRule")}
+        message={tAdmin("corrections.deleteRuleConfirm")}
+        variant="danger"
+        zoneLabel={tAdmin("danger.title")}
+        confirmLabel={tAdmin("common.delete")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={() => void handleConfirmDeleteRule()}
+        onCancel={() => setPendingDeleteRuleId(null)}
+      />
 
       <DangerConfirmModal
         state={deleteConfirm}

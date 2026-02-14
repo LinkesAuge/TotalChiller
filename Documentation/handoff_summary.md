@@ -2,6 +2,40 @@
 
 This file is a compact context transfer for a new chat.
 
+## Second-Pass Code Review (2026-02-14)
+
+Full sweep across all pages and components identified and fixed:
+
+- **Critical bug**: `handleVotePost` in `use-forum.ts` failed when a post was opened via deep link (`?post=`), because it only searched the `posts` list (empty on deep-link). Now also checks `selectedPost` as fallback.
+- **Event highlight bug**: Clicking an upcoming event in the sidebar navigated the calendar but didn't highlight/expand the event in the day panel. Added `setHighlightEventId` and `setDateSelectNonce` to `handleSelectUpcomingEvent`.
+- **Wrong toast key**: `handleMarkNotificationRead` in `use-messages.ts` showed "failedToDelete" instead of "failedToUpdate". New i18n key `messagesPage.failedToUpdate` added.
+- **Silent error handling**: Forum `handleEditComment` swallowed errors without feedback — now shows toast on failure. News fan-out notification fetch was fire-and-forget — now catches errors. Data import `loadRulesForClans` silently ignored Supabase errors — now logs them. Game account `handleSetDefault` ignored failed responses — now shows error status.
+- **Missing `isSubmitting` guard**: Forgot-password page allowed double-submission. Added `isSubmitting` state, disabled button during request, wrapped fetch in try/catch.
+- **Wrong i18n key**: Settings notifications section subtitle used `languageHint` instead of a dedicated `notificationsHint` key.
+- **Hardcoded string**: Members page fallback error `"Failed to load members"` replaced with `t("loadError")`.
+- **Missing i18n keys added**: `messagesPage.failedToUpdate`, `profile.setDefaultFailed`, `settings.notificationsHint`, `members.loadError` (both locales).
+
+All changes verified: TypeScript type-check, lint, 528 unit tests passing.
+
+## Systematic Code Review (2026-02-14)
+
+Comprehensive 9-phase code review touching all pages and shared components. Key improvements:
+
+- **i18n**: Replaced ~40 hardcoded English/German strings with `useTranslations()` across forgot, settings, forum, dashboard, home, data-table, auth-actions, data-state, and notification pages. Added corresponding keys to both `messages/de.json` and `messages/en.json`.
+- **`window.confirm` eliminated**: All `window.confirm` calls replaced with `ConfirmModal` + pending-state pattern (6 files: clans-tab, users-tab, validation-tab, corrections-tab, approvals-tab, data-table).
+- **Type safety**: Replaced `as unknown as Array<Record<string, unknown>>` casts in `use-dashboard-data.ts`, `use-news.ts`, and `members-client.tsx` with typed interfaces.
+- **Error handling**: Added `response.ok` checks with toast feedback to ~10 fetch calls in `use-messages.ts`. Added error handling to admin-context approvals fetch. Added `loadError` state + retry to members page. Added image upload error callbacks in forum.
+- **Performance**: Extracted `TrendIndicator`, `formatCountdown`, tag color constants outside components. Memoized `clanNameById`. Moved `getRankColor`/`getChestStats` outside component scope.
+- **Cleanup**: Removed unused props/imports in game-account-manager, event-form, users-tab, use-data-import. Removed duplicate clan fetch.
+- **setTimeout cleanup**: Added `useEffect` cleanup for `setTimeout` in auth/update, game-account-manager, toast-provider.
+- **DataState consistency**: Charts page and dashboard Week Highlights now use `DataState`.
+- **Centralized `isPublicPath`**: Created `lib/public-paths.ts`, imported by both `proxy.ts` and `clan-access-gate.tsx`.
+- **Dashboard icon fix**: Dashboard now has distinct grid icon (was identical to home icon).
+- **Forum refactor**: Extracted `ForumCommentEditorForm` from inline `renderEditorForm`.
+- **Event calendar refactor**: Moved state-during-render into `useEffect`, extracted date formatting and tooltip helpers.
+
+All changes verified: TypeScript type-check, lint, 528 unit tests passing.
+
 ## E2E Test Fixes (2026-02-14)
 
 - **Fixed events CRUD create test**: Flatpickr `setDate` via `page.evaluate` failed silently in CI (instance not yet initialized). Now polls up to 5s for `_flatpickr`, asserts the date was set, and waits for form closure after submit.

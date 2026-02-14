@@ -6,6 +6,32 @@ import { toDateString, getMonday, calculateTrend, extractAuthorName } from "../.
 import type { ChartsApiResponse } from "../charts/chart-types";
 import type { ArticleSummary, EventSummary } from "@/lib/types/domain";
 
+interface ArticleWithAuthorJoin {
+  readonly id: string;
+  readonly title: string;
+  readonly content: string;
+  readonly type: string;
+  readonly is_pinned: boolean;
+  readonly status: string;
+  readonly tags: string[];
+  readonly created_at: string;
+  readonly created_by: string;
+  readonly forum_post_id: string | null;
+  readonly author: { display_name: string | null; username: string | null } | null;
+}
+
+interface EventWithAuthorJoin {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string | null;
+  readonly location: string | null;
+  readonly starts_at: string;
+  readonly ends_at: string;
+  readonly created_by: string;
+  readonly forum_post_id: string | null;
+  readonly author: { display_name: string | null; username: string | null } | null;
+}
+
 export interface DashboardStats {
   readonly personalScore: number;
   readonly clanScore: number;
@@ -100,9 +126,9 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       setIsLoadingAnnouncements(false);
       if (error) return;
       setAnnouncements(
-        ((data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => ({
+        ((data ?? []) as unknown as ArticleWithAuthorJoin[]).map((row) => ({
           ...row,
-          author_name: extractAuthorName(row.author as { display_name: string | null; username: string | null } | null),
+          author_name: extractAuthorName(row.author),
         })) as ArticleSummary[],
       );
     }
@@ -136,9 +162,9 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       setIsLoadingEvents(false);
       if (error) return;
       setEvents(
-        ((data ?? []) as unknown as Array<Record<string, unknown>>).map((row) => ({
+        ((data ?? []) as unknown as EventWithAuthorJoin[]).map((row) => ({
           ...row,
-          author_name: extractAuthorName(row.author as { display_name: string | null; username: string | null } | null),
+          author_name: extractAuthorName(row.author),
         })) as EventSummary[],
       );
     }

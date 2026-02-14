@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-02-14 — Performance audit & fixes (85 → 89)
+
+- Removed redundant `<link rel="preload">` tags from root layout for images that already use `next/image` with `priority` (prevented double downloads of raw + optimized assets).
+- Added `sizes` attribute to small icon images on auth pages and dashboard (`batler_icons_star_4/5.png`) to prevent oversized file serving.
+- Added explicit `loading="lazy"` to footer divider image.
+- Improved `--color-text-muted` contrast from `#8a7b65` to `#9d8d76` (WCAG AA compliance on dark card backgrounds).
+- Removed auth-gated pages (`/forum`, `/events`, `/charts`) from sitemap — they redirect unauthenticated crawlers to `/home`, causing duplicate titles and uncrawlable entries.
+
+---
+
 ## 2026-02-14 — Best practices audit & improvements
 
 - Made browser Supabase client an explicit module-level singleton (`lib/supabase/browser-client.ts`).

@@ -11,6 +11,10 @@ module.exports = [
       /* ── Keep existing overrides ── */
       "react-hooks/set-state-in-effect": "off",
 
+      /* ── Next.js image optimization ── */
+      /* Block raw <img> tags — use next/image for optimized loading */
+      "@next/next/no-img-element": "error",
+
       /* ── TypeScript strictness ── */
       /* Flag explicit `any` — gradually eliminate untyped code */
       "@typescript-eslint/no-explicit-any": "warn",
@@ -38,6 +42,13 @@ module.exports = [
       /* ── React best practices ── */
       /* Prevent security issues with target="_blank" */
       "react/jsx-no-target-blank": "error",
+    },
+  },
+  /* ── Redesign prototypes: allow <img> in design mockup pages ── */
+  {
+    files: ["app/redesign/**/*.tsx"],
+    rules: {
+      "@next/next/no-img-element": "off",
     },
   },
 ];

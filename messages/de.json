@@ -568,6 +568,7 @@
     "customBanner": "Eigenes hochladen",
     "uploadingImage": "Bild wird hochgeladen\u2026",
     "createdBy": "von {name}",
+    "edited": "bearbeitet",
     "editedBy": "bearbeitet von {name}",
     "confirmDeleteEventTitle": "Event löschen",
     "confirmDeleteEventMessage": "Möchtest du dieses Event wirklich löschen? Dies kann nicht rückgängig gemacht werden.",

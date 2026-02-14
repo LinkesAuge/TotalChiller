@@ -366,9 +366,10 @@ function DayPanelEventCardInner({
           <div className="day-panel-expanded-footer">
             {entry.author_name && (
               <span className="day-panel-expanded-author">
-                {entry.updated_at && entry.updated_at !== entry.created_at
-                  ? t("editedBy", { name: entry.author_name })
-                  : t("createdBy", { name: entry.author_name })}
+                {t("createdBy", { name: entry.author_name })}
+                {entry.updated_at && entry.updated_at !== entry.created_at && (
+                  <span className="day-panel-expanded-edited"> ({t("edited")})</span>
+                )}
                 {(entry.updated_at || entry.created_at) && (
                   <span className="day-panel-expanded-date">
                     {" · "}

@@ -568,6 +568,7 @@
     "customBanner": "Upload custom",
     "uploadingImage": "Uploading image\u2026",
     "createdBy": "by {name}",
+    "edited": "edited",
     "editedBy": "edited by {name}",
     "confirmDeleteEventTitle": "Delete Event",
     "confirmDeleteEventMessage": "Are you sure you want to delete this event? This cannot be undone.",

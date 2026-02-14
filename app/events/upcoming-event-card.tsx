@@ -175,9 +175,10 @@ function UpcomingEventCardInner({
           </div>
           {entry.author_name && (
             <div className="upcoming-event-author">
-              {entry.updated_at && entry.updated_at !== entry.created_at
-                ? t("editedBy", { name: entry.author_name })
-                : t("createdBy", { name: entry.author_name })}
+              {t("createdBy", { name: entry.author_name })}
+              {entry.updated_at && entry.updated_at !== entry.created_at && (
+                <span className="upcoming-event-edited"> ({t("edited")})</span>
+              )}
               {(entry.updated_at || entry.created_at) && (
                 <span className="upcoming-event-author-date">
                   {" · "}

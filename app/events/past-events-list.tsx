@@ -64,10 +64,10 @@ function EventCard({
             {entry.author_name && (
               <>
                 {" "}
-                &bull;{" "}
-                {entry.updated_at && entry.updated_at !== entry.created_at
-                  ? t("editedBy", { name: entry.author_name })
-                  : t("createdBy", { name: entry.author_name })}
+                &bull; {t("createdBy", { name: entry.author_name })}
+                {entry.updated_at && entry.updated_at !== entry.created_at && (
+                  <span className="past-event-edited"> ({t("edited")})</span>
+                )}
               </>
             )}
           </div>

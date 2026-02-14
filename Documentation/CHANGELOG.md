@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-02-14 — Fix: Event cards always show original author
+
+- Event cards (day panel, upcoming sidebar, past list) now always display the original author via `createdBy` label instead of misleadingly showing "Edited by {author}" when the event was modified. Events lack an `updated_by` column, so the previous "Edited by" label incorrectly implied the original author was the editor.
+- Added a generic "(edited)" indicator when `updated_at !== created_at` to preserve the edit signal without misattributing it.
+- Added `edited`/`bearbeitet` i18n key to the events namespace in both locale files.
+
+---
+
 ## 2026-02-14 — Performance audit & fixes (85 → 89)
 
 - Removed redundant `<link rel="preload">` tags from root layout for images that already use `next/image` with `priority` (prevented double downloads of raw + optimized assets).

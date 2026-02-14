@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 /**
  * V3A: "Sanctum Refined" — Sidebar-focused polish of Fortress Sanctum.
@@ -81,7 +82,7 @@ function RedesignV3APage(): JSX.Element {
 
       {/* === SIDEBAR === */}
       <aside className="v3a-sb" style={{ ...s.sb, width: w }}>
-        <img src="/assets/vip/back_left.png" alt="" style={s.sbTexture} />
+        <Image src="/assets/vip/back_left.png" alt="" width={280} height={900} style={s.sbTexture} />
 
         {/* Header with online count */}
         <div
@@ -91,10 +92,12 @@ function RedesignV3APage(): JSX.Element {
             justifyContent: open ? "flex-start" : "center",
           }}
         >
-          <img
+          <Image
             src="/assets/ui/components_shield_4.png"
             alt=""
-            style={{ width: 28, height: 28, objectFit: "contain" as const, flexShrink: 0 }}
+            width={28}
+            height={28}
+            style={{ objectFit: "contain", flexShrink: 0 }}
           />
           {open && (
             <div style={{ overflow: "hidden" }}>
@@ -150,7 +153,9 @@ function RedesignV3APage(): JSX.Element {
                       }}
                     >
                       {/* Arrow bg for active expanded */}
-                      {isActive && open && <img src="/assets/vip/backs_31.png" alt="" style={s.activeArrow} />}
+                      {isActive && open && (
+                        <Image src="/assets/vip/backs_31.png" alt="" width={40} height={40} style={s.activeArrow} />
+                      )}
                       {/* Hover glow */}
                       <div className="v3a-icon-glow" style={{ ...s.iconGlow, left: open ? 8 : "50%" }} />
                       <span
@@ -262,7 +267,13 @@ function RedesignV3APage(): JSX.Element {
                   }}
                 >
                   DragonKnight99
-                  <img src="/assets/vip/button_vip_crown_22x33.png" alt="" style={{ width: 10, height: "auto" }} />
+                  <Image
+                    src="/assets/vip/button_vip_crown_22x33.png"
+                    alt=""
+                    width={10}
+                    height={15}
+                    style={{ height: "auto" }}
+                  />
                 </div>
                 <div style={{ fontSize: "0.62rem", color: "#4a9960" }}>Online &bull; Officer</div>
               </div>
@@ -274,7 +285,7 @@ function RedesignV3APage(): JSX.Element {
       {/* === CONTENT (same as Sanctum with hover cards) === */}
       <div className="v3a-main" style={{ ...s.main, marginLeft: w }}>
         <header style={s.topBar}>
-          <img src="/assets/vip/header_3.png" alt="" style={s.topBarBg} />
+          <Image src="/assets/vip/header_3.png" alt="" width={1920} height={60} style={s.topBarBg} />
           <div style={s.topBarInner}>
             <h1 style={s.topH}>Community Hub</h1>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -348,7 +359,7 @@ function RedesignV3APage(): JSX.Element {
               gap: 4,
             }}
           >
-            <img src="/assets/vip/components_decor_6.png" alt="" style={{ width: 160, opacity: 0.5 }} />
+            <Image src="/assets/vip/components_decor_6.png" alt="" width={160} height={40} style={{ opacity: 0.5 }} />
             <h2
               style={{
                 fontFamily: "'Fontin Sans', serif",
@@ -405,7 +416,7 @@ function RedesignV3APage(): JSX.Element {
                   padding: "10px 16px",
                 }}
               >
-                <img src="/assets/vip/batler_icons_stat_damage.png" alt="" style={{ width: 18, height: 18 }} />
+                <Image src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} />
                 <h3 style={s.cardTitle}>Announcements</h3>
                 <span style={s.pinBadge}>Pinned</span>
               </div>
@@ -428,7 +439,7 @@ function RedesignV3APage(): JSX.Element {
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: "0.88rem" }}
                   >
-                    <img src="/assets/vip/batler_icons_star_4.png" alt="" style={{ width: 14, height: 14 }} />
+                    <Image src="/assets/vip/batler_icons_star_4.png" alt="" width={14} height={14} />
                     <span style={{ flex: 1 }}>{item.text}</span>
                     <span
                       style={{
@@ -472,7 +483,7 @@ function RedesignV3APage(): JSX.Element {
                   padding: "10px 16px",
                 }}
               >
-                <img src="/assets/vip/batler_icons_stat_armor.png" alt="" style={{ width: 18, height: 18 }} />
+                <Image src="/assets/vip/batler_icons_stat_armor.png" alt="" width={18} height={18} />
                 <h3 style={s.cardTitle}>Quick Stats</h3>
               </div>
             </div>

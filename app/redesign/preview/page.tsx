@@ -444,12 +444,12 @@ function PreviewPage(): JSX.Element {
             </div>
             <div className="card-body">
               <div className="form-group">
-                <label>Email Address</label>
-                <input type="email" placeholder="knight@totalchiller.com" />
+                <label htmlFor="preview-email">Email Address</label>
+                <input id="preview-email" type="email" placeholder="knight@totalchiller.com" />
               </div>
               <div className="form-group">
-                <label>Display Name</label>
-                <input type="text" placeholder="DragonKnight99" />
+                <label htmlFor="preview-display-name">Display Name</label>
+                <input id="preview-display-name" type="text" placeholder="DragonKnight99" />
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
                 <button className="button primary">Save Changes</button>
@@ -469,12 +469,12 @@ function PreviewPage(): JSX.Element {
             </div>
             <div className="card-body">
               <div className="form-group">
-                <label>Username or Email</label>
-                <input type="text" placeholder="Enter your username" />
+                <label htmlFor="preview-username">Username or Email</label>
+                <input id="preview-username" type="text" placeholder="Enter your username" />
               </div>
               <div className="form-group">
-                <label>Password</label>
-                <input type="password" placeholder="Enter your password" />
+                <label htmlFor="preview-password">Password</label>
+                <input id="preview-password" type="password" placeholder="Enter your password" />
               </div>
               <button className="button leather" style={{ width: "100%", marginTop: 8 }}>
                 <Image src="/assets/vip/backs_1.png" alt="" width={200} height={40} className="leather-bg" />
@@ -510,6 +510,7 @@ function PreviewPage(): JSX.Element {
                   <label className="toggle-switch">
                     <input type="checkbox" defaultChecked={i < 2} />
                     <span className="toggle-slider" />
+                    <span className="sr-only">{pref}</span>
                   </label>
                 </div>
               ))}
@@ -749,8 +750,16 @@ function PreviewPage(): JSX.Element {
 
       {/* ═══ MODAL ═══ */}
       {showModal && (
-        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="card modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="modal-backdrop"
+          onClick={() => setShowModal(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowModal(false);
+          }}
+        >
+          <div className="card modal" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
             <div className="tooltip-head">
               <Image src="/assets/vip/back_tooltip_2.png" alt="" width={400} height={40} className="tooltip-head-bg" />
               <div className="tooltip-head-inner">

@@ -9,9 +9,11 @@
 ## 2026-02-14 — Fix: Remaining E2E test failures (1 failed, 2 flaky → 0)
 
 - **Fixed events CRUD create test** (`crud-flows.spec.ts`): Flatpickr date setting via `page.evaluate` was failing silently in CI because the instance hadn't initialized when the script ran. Added async polling loop (up to 5s) that waits for `_flatpickr` to appear on the input before calling `setDate`. Added assertion that the date was actually set. After form submit, now waits for the `#eventTitle` field to become hidden (confirms submission succeeded) before checking for the event title in the calendar/sidebar.
+- **Fixed events CRUD create/edit post-submit verification** (`crud-flows.spec.ts`): After form submission and closure, `reloadEvents()` client-side state update was unreliable in CI. Added `page.reload()` after form closure for both create and edit tests to fetch fresh data from DB before asserting the event title is visible.
 - **Fixed events CRUD edit test** (`crud-flows.spec.ts`): Replaced `networkidle` with `domcontentloaded`, used specific `form button[type='submit']` selector, and added form-closure wait after submit.
 - **Fixed accessibility /home flaky test** (`accessibility.spec.ts`): Replaced `waitForLoadState("networkidle")` with `domcontentloaded` + explicit element waits on both public and protected page loops. `networkidle` never resolves on pages with persistent Supabase realtime connections.
 - **Fixed i18n language selector flaky test** (`i18n.spec.ts`): Replaced all remaining `networkidle` calls (5 instances) with `domcontentloaded` + element visibility waits. Language switch tests now use `waitForURL` with `domcontentloaded` instead of `networkidle` after clicking language buttons.
+- **Fixed banner preset typo** (`banner-presets.ts`): `banner_event_exchange_708.png` → `banner_event_exhange_708.png` to match actual filename. This resolved repeated `The requested resource isn't a valid image` errors in CI.
 
 ---
 

@@ -46,7 +46,7 @@ export const BANNER_PRESETS: readonly BannerPreset[] = [
   { src: "/assets/game/banners/banner_silver_mountains_708x123.png", label: "Silver Mountains" },
   { src: "/assets/game/banners/banner_summon_event_708x123.png", label: "Summon Event" },
   { src: "/assets/game/banners/banner_vip_points_708x123.png", label: "VIP Points" },
-  { src: "/assets/game/banners/banner_event_exchange_708.png", label: "Exchange Event" },
+  { src: "/assets/game/banners/banner_event_exhange_708.png", label: "Exchange Event" },
   { src: "/assets/game/banners/banner_event_resurrection_708x123.png", label: "Resurrection Event" },
   { src: "/assets/game/banners/banner_resurrection_708x123.png", label: "Resurrection" },
   { src: "/assets/game/banners/banner_offseason_event_708x123.png", label: "Offseason Event" },

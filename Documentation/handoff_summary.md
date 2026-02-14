@@ -5,8 +5,10 @@ This file is a compact context transfer for a new chat.
 ## E2E Test Fixes (2026-02-14)
 
 - **Fixed events CRUD create test**: Flatpickr `setDate` via `page.evaluate` failed silently in CI (instance not yet initialized). Now polls up to 5s for `_flatpickr`, asserts the date was set, and waits for form closure after submit.
+- **Fixed events CRUD post-submit verification**: Client-side `reloadEvents()` state update was unreliable in CI after form submission. Both create and edit tests now `page.reload()` after form closure to fetch fresh data from DB before asserting event title visibility.
 - **Fixed remaining `networkidle` hangs**: Replaced `networkidle` with `domcontentloaded` + element waits in `accessibility.spec.ts` (public + protected pages) and `i18n.spec.ts` (5 instances). Pages with persistent Supabase connections cause `networkidle` to never resolve.
 - **Events edit test hardened**: Replaced `networkidle`, used specific `form button[type='submit']` selector, added form-closure verification.
+- **Fixed banner preset typo**: `banner_event_exchange_708.png` → `banner_event_exhange_708.png` (matched actual filename), eliminating repeated image errors in CI.
 
 ## Playwright Test Suite Fix (2026-02-13)
 

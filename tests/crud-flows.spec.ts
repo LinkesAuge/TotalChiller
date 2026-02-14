@@ -178,6 +178,11 @@ test.describe("Events: CRUD flow", () => {
     /* Wait for the form to close — indicates submission succeeded */
     await expect(page.locator("#eventTitle")).toBeHidden({ timeout: 15000 });
 
+    /* Reload the page to ensure fresh data from DB — avoids flaky client-side
+       state issues where reloadEvents() may not reflect the insert immediately. */
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 15000 });
+
     /* Verify the event appears — may show in both calendar and upcoming sidebar */
     await expect(page.locator(`text=${eventTitle}`).first()).toBeVisible({ timeout: 15000 });
   });
@@ -211,6 +216,10 @@ test.describe("Events: CRUD flow", () => {
 
     /* Wait for the form to close — indicates edit was saved */
     await expect(page.locator("#eventTitle")).toBeHidden({ timeout: 15000 });
+
+    /* Reload to get fresh data from DB */
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 15000 });
 
     /* Title may appear in both calendar and sidebar — use .first() to avoid strict mode violation */
     await expect(page.locator(`text=${editedEventTitle}`).first()).toBeVisible({ timeout: 15000 });

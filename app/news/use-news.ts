@@ -482,9 +482,9 @@ export function useNews(t: (key: string) => string): UseNewsResult {
 
   const handleConfirmDeleteArticle = useCallback(async (): Promise<void> => {
     if (!deletingArticleId) return;
-    const { error } = await supabase.from("articles").delete().eq("id", deletingArticleId);
-    if (error) {
-      pushToast(`${t("deleteError")}: ${error.message}`);
+    const { data, error } = await supabase.from("articles").delete().eq("id", deletingArticleId).select("id");
+    if (error || !data?.length) {
+      pushToast(`${t("deleteError")}${error ? `: ${error.message}` : ""}`);
       setDeletingArticleId("");
       return;
     }

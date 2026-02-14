@@ -348,9 +348,13 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
   const confirmDeleteEvent = useCallback(async (): Promise<void> => {
     if (!deleteEventId) return;
     const targetId = deleteEventId;
-    const { error } = await supabase.from("events").delete().eq("id", targetId);
+    const { data, error } = await supabase.from("events").delete().eq("id", targetId).select("id");
     if (error) {
       showError(error, "deleteFailed");
+      return;
+    }
+    if (!data?.length) {
+      pushToast(t("deleteFailed"));
       return;
     }
     setDeleteEventId("");

@@ -204,9 +204,9 @@ export function useDataTableBatch({
       return;
     }
     const selectedRowsForDelete = rows.filter((row) => selectedIds.includes(row.id));
-    const { error } = await supabase.from("chest_entries").delete().in("id", selectedIds);
-    if (error) {
-      setStatus(t("batchDeleteFailed", { error: error.message }));
+    const { data, error } = await supabase.from("chest_entries").delete().in("id", selectedIds).select("id");
+    if (error || !data?.length) {
+      setStatus(t("batchDeleteFailed", { error: error?.message ?? "No rows deleted" }));
       return;
     }
     await insertAuditLogs(

@@ -287,17 +287,23 @@ export function useDataTable() {
   }, [loadRows, page]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadClans(): Promise<void> {
       const { data, error } = await supabase.from("clans").select("id,name").order("name");
       if (error) {
         return;
       }
+      if (cancelled) return;
       setAvailableClans(data ?? []);
     }
     void loadClans();
+    return () => {
+      cancelled = true;
+    };
   }, [supabase]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadAllRules(): Promise<void> {
       const { data, error } = await supabase
         .from("validation_rules")
@@ -306,6 +312,7 @@ export function useDataTable() {
       if (error) {
         return;
       }
+      if (cancelled) return;
       setValidationRules(data ?? []);
       const { data: correctionData, error: correctionError } = await supabase
         .from("correction_rules")
@@ -314,9 +321,13 @@ export function useDataTable() {
       if (correctionError) {
         return;
       }
+      if (cancelled) return;
       setCorrectionRules(correctionData ?? []);
     }
     void loadAllRules();
+    return () => {
+      cancelled = true;
+    };
   }, [rulesVersion, supabase]);
 
   useEffect(() => {
@@ -642,9 +653,9 @@ export function useDataTable() {
         setStatus(t("mustBeLoggedInDelete"));
         return;
       }
-      const { error } = await supabase.from("chest_entries").delete().eq("id", row.id);
-      if (error) {
-        setStatus(t("deleteFailed", { error: error.message }));
+      const { data, error } = await supabase.from("chest_entries").delete().eq("id", row.id).select("id");
+      if (error || !data?.length) {
+        setStatus(t("deleteFailed", { error: error?.message ?? "No rows deleted" }));
         return;
       }
       await insertAuditLogs([

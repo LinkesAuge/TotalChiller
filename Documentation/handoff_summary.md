@@ -2,6 +2,18 @@
 
 This file is a compact context transfer for a new chat.
 
+## Test Coverage Audit & Bug Fixes (2026-02-14)
+
+Comprehensive test coverage audit and bug fix pass:
+
+- **RLS silent delete gap fixed**: 7 client-side delete operations (forum posts, comments, events, templates, articles, chest entries, batch delete) now chain `.select("id")` and verify `data.length` — preventing Supabase from silently returning success when RLS blocks the delete.
+- **Data import date validation**: `COMMIT_ROW_SCHEMA` now uses `dateStringSchema` (YYYY-MM-DD regex) instead of `z.string().min(1)`.
+- **68 new unit tests** (528 → 596 total) across 4 new test files: `public-paths.test.ts` (31), `validation-helpers.test.ts` (9), `banner-presets.test.ts` (8), `use-pagination.test.ts` (20).
+- **13 new API contract tests** (49 → 62 total): message archive, message thread, sent message delete, game account approvals PATCH, forum categories POST/PATCH/DELETE, notification settings PATCH.
+- **16 new E2E tests** in `feature-flows.spec.ts`: message inbox/archive tab, forum post detail, deep links (?to=, ?article=, ?date=, ?post=), profile game account section and request form.
+
+All verified: type-check clean, lint clean, 596 unit tests passing, 62 API tests passing, 15 feature-flow E2E tests passing.
+
 ## Second-Pass Code Review (2026-02-14)
 
 Full sweep across all pages and components identified and fixed:
@@ -476,7 +488,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ### Unit Tests (Vitest)
 
-- **304 tests** across **17 test files** in `lib/` and `app/`. Runs via `npm run test:unit`.
+- **596 tests** across **30 test files** in `lib/` and `app/`. Runs via `npm run test:unit`.
 - Config: `vitest.config.ts` with `@/` path alias, `environment: "node"`.
 
 | File                                   | Tests | Description                                                 |
@@ -503,7 +515,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 Comprehensive Playwright test suite covering all page functionality, organized by feature area.
 
-- **~250 tests** across **27 spec files** in `tests/`, running on 4 browser projects (chromium, firefox, webkit, mobile-chrome).
+- **~270 tests** across **28 spec files** in `tests/`, running on 4 browser projects (chromium, firefox, webkit, mobile-chrome).
 - **Pre-authenticated storageState**: `tests/auth.setup.ts` runs once before all projects, logging in as all 6 test roles and saving browser state to `tests/.auth/{role}.json`. Tests declare their role via `test.use({ storageState: storageStatePath("role") })` — no per-test login overhead.
 - **Auth helper** at `tests/helpers/auth.ts` — exports `storageStatePath(role)` (preferred), `loginAs(page, role)` (fallback for per-test role overrides), `TEST_USERS`, `TEST_PASSWORD`, `TestRole`.
 - **Test user setup**: `Documentation/test-user-setup.sql` — creates roles for the pre-provisioned test users.

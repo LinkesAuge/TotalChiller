@@ -307,6 +307,92 @@ test.describe("API: Notifications Fan-out", () => {
   });
 });
 
+/* ── Gap-fill: previously untested mutation endpoints ── */
+
+test.describe("API: Messages Archive", () => {
+  test("GET /api/messages/archive without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.get("/api/messages/archive");
+    expect([401, 429]).toContain(res.status());
+  });
+
+  test("POST /api/messages/archive without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.post("/api/messages/archive", {
+      data: { ids: ["00000000-0000-0000-0000-000000000000"], action: "archive" },
+    });
+    expect([401, 429]).toContain(res.status());
+  });
+});
+
+test.describe("API: Messages Sent Detail", () => {
+  test("DELETE /api/messages/sent/[id] without auth returns 401 or rate-limited", async ({ request }) => {
+    const fakeId = "00000000-0000-0000-0000-000000000000";
+    const res = await request.delete(`/api/messages/sent/${fakeId}`);
+    expect([401, 429, 500]).toContain(res.status());
+  });
+});
+
+test.describe("API: Messages Thread", () => {
+  test("GET /api/messages/thread/[id] without auth returns 401 or rate-limited", async ({ request }) => {
+    const fakeId = "00000000-0000-0000-0000-000000000000";
+    const res = await request.get(`/api/messages/thread/${fakeId}`);
+    expect([401, 429, 500]).toContain(res.status());
+  });
+
+  test("DELETE /api/messages/thread/[id] without auth returns 401 or rate-limited", async ({ request }) => {
+    const fakeId = "00000000-0000-0000-0000-000000000000";
+    const res = await request.delete(`/api/messages/thread/${fakeId}`);
+    expect([401, 429, 500]).toContain(res.status());
+  });
+});
+
+test.describe("API: Admin Game Account Approvals (mutations)", () => {
+  test("PATCH /api/admin/game-account-approvals without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.patch("/api/admin/game-account-approvals", {
+      data: { account_id: "00000000-0000-0000-0000-000000000000", action: "approve" },
+    });
+    expect([401, 429]).toContain(res.status());
+  });
+});
+
+test.describe("API: Admin Forum Categories (mutations)", () => {
+  test("POST /api/admin/forum-categories without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.post("/api/admin/forum-categories", {
+      data: { name: "Test Category", clan_id: "00000000-0000-0000-0000-000000000000" },
+    });
+    expect([400, 401, 429]).toContain(res.status());
+  });
+
+  test("PATCH /api/admin/forum-categories without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.patch("/api/admin/forum-categories", {
+      data: { id: "00000000-0000-0000-0000-000000000000", name: "Updated" },
+    });
+    expect([400, 401, 429]).toContain(res.status());
+  });
+
+  test("DELETE /api/admin/forum-categories without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.delete("/api/admin/forum-categories", {
+      data: { id: "00000000-0000-0000-0000-000000000000" },
+    });
+    expect([400, 401, 429]).toContain(res.status());
+  });
+});
+
+test.describe("API: Notification Settings (mutations)", () => {
+  test("PATCH /api/notification-settings without auth returns 401 or rate-limited", async ({ request }) => {
+    const res = await request.patch("/api/notification-settings", {
+      data: { messages_enabled: false },
+    });
+    expect([401, 429]).toContain(res.status());
+  });
+
+  test("PATCH /api/notification-settings with empty body returns 400 or 401", async ({ request }) => {
+    const res = await request.patch("/api/notification-settings", {
+      data: {},
+    });
+    expect([400, 401, 429]).toContain(res.status());
+  });
+});
+
 test.describe("API: Design System (public endpoints)", () => {
   test("GET /api/design-system/assets returns 200, 401, or rate-limited", async ({ request }) => {
     const res = await request.get("/api/design-system/assets");

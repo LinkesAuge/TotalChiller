@@ -170,6 +170,7 @@ export function useForum(t: (key: string) => string): UseForumResult {
 
   /* ─── Load categories ─── */
   useEffect(() => {
+    let cancelled = false;
     async function loadCategories(): Promise<void> {
       if (!clanContext) return;
       const { data, error } = await supabase
@@ -180,14 +181,20 @@ export function useForum(t: (key: string) => string): UseForumResult {
       if (error) {
         const isTableMissing = error.message.includes("schema cache") || error.code === "PGRST204";
         if (isTableMissing) {
+          if (cancelled) return;
           setTablesReady(false);
         }
+        if (cancelled) return;
         setCategories([]);
         return;
       }
+      if (cancelled) return;
       setCategories((data ?? []) as ForumCategory[]);
     }
     void loadCategories();
+    return () => {
+      cancelled = true;
+    };
   }, [supabase, clanContext]);
 
   /* ─── Sync URL category slug → selectedCategory ID ─── */
@@ -202,89 +209,104 @@ export function useForum(t: (key: string) => string): UseForumResult {
   }, [urlCategorySlug, categories]);
 
   /* ─── Load posts ─── */
-  const loadPosts = useCallback(async (): Promise<void> => {
-    if (!clanContext || !tablesReady) {
-      setIsLoading(false);
-      setPosts([]);
-      return;
-    }
-    setIsLoading(true);
-    let query = supabase.from("forum_posts").select("*", { count: "exact" }).eq("clan_id", clanContext.clanId);
-    if (selectedCategory) {
-      query = query.eq("category_id", selectedCategory);
-    }
-    if (searchTerm.trim()) {
-      const escaped = escapeLikePattern(searchTerm.trim());
-      query = query.or(`title.ilike.%${escaped}%,content.ilike.%${escaped}%`);
-    }
-    query = query.order("is_pinned", { ascending: false });
-    if (sortMode === "new") {
-      query = query.order("created_at", { ascending: false });
-    } else if (sortMode === "top") {
-      query = query.order("score", { ascending: false });
-    } else {
-      query = query.order("created_at", { ascending: false });
-    }
-    const fromIdx = pagination.startIndex;
-    const toIdx = fromIdx + PAGE_SIZE - 1;
-    const { data, error, count } = await query.range(fromIdx, toIdx);
-    if (error) {
-      const isTableMissing = error.message.includes("schema cache") || error.code === "PGRST204";
-      if (isTableMissing) {
-        setTablesReady(false);
+  const loadPosts = useCallback(
+    async (getCancelled?: () => boolean): Promise<void> => {
+      if (!clanContext || !tablesReady) {
+        if (getCancelled?.()) return;
+        setIsLoading(false);
+        setPosts([]);
+        return;
       }
-      setIsLoading(false);
-      setPosts([]);
-      return;
-    }
-    const rawPosts = (data ?? []) as ForumPost[];
-    setTotalCount(count ?? 0);
-    const authorIds = rawPosts.map((p) => p.author_id);
-    const nameMap = await resolveAuthorNames(supabase, authorIds);
-    let voteMap: Record<string, number> = {};
-    if (currentUserId && rawPosts.length > 0) {
-      const postIds = rawPosts.map((p) => p.id);
-      const { data: votes } = await supabase
-        .from("forum_votes")
-        .select("post_id, vote_type")
-        .eq("user_id", currentUserId)
-        .in("post_id", postIds);
-      for (const v of votes ?? []) {
-        voteMap[v.post_id] = v.vote_type;
+      if (getCancelled?.()) return;
+      setIsLoading(true);
+      let query = supabase.from("forum_posts").select("*", { count: "exact" }).eq("clan_id", clanContext.clanId);
+      if (selectedCategory) {
+        query = query.eq("category_id", selectedCategory);
       }
-    }
-    const enriched: ForumPost[] = rawPosts.map((p) => ({
-      ...p,
-      authorName: nameMap[p.author_id] ?? "Unknown",
-      categoryName: p.category_id ? (catMap[p.category_id]?.name ?? "") : "",
-      categorySlug: p.category_id ? (catMap[p.category_id]?.slug ?? "") : "",
-      userVote: voteMap[p.id] ?? 0,
-    }));
-    if (sortMode === "hot") {
-      enriched.sort((a, b) => {
-        if (a.is_pinned && !b.is_pinned) return -1;
-        if (!a.is_pinned && b.is_pinned) return 1;
-        return computeHotRank(b.score, b.created_at) - computeHotRank(a.score, a.created_at);
-      });
-    }
-    setPosts(enriched);
-    setIsLoading(false);
-  }, [
-    supabase,
-    clanContext,
-    selectedCategory,
-    sortMode,
-    searchTerm,
-    pagination.startIndex,
-    currentUserId,
-    tablesReady,
-    catMap,
-  ]);
+      if (searchTerm.trim()) {
+        const escaped = escapeLikePattern(searchTerm.trim());
+        query = query.or(`title.ilike.%${escaped}%,content.ilike.%${escaped}%`);
+      }
+      query = query.order("is_pinned", { ascending: false });
+      if (sortMode === "new") {
+        query = query.order("created_at", { ascending: false });
+      } else if (sortMode === "top") {
+        query = query.order("score", { ascending: false });
+      } else {
+        query = query.order("created_at", { ascending: false });
+      }
+      const fromIdx = pagination.startIndex;
+      const toIdx = fromIdx + PAGE_SIZE - 1;
+      const { data, error, count } = await query.range(fromIdx, toIdx);
+      if (error) {
+        const isTableMissing = error.message.includes("schema cache") || error.code === "PGRST204";
+        if (isTableMissing) {
+          if (getCancelled?.()) return;
+          setTablesReady(false);
+        }
+        if (getCancelled?.()) return;
+        setIsLoading(false);
+        setPosts([]);
+        return;
+      }
+      if (getCancelled?.()) return;
+      const rawPosts = (data ?? []) as ForumPost[];
+      setTotalCount(count ?? 0);
+      const authorIds = rawPosts.map((p) => p.author_id);
+      const nameMap = await resolveAuthorNames(supabase, authorIds);
+      let voteMap: Record<string, number> = {};
+      if (currentUserId && rawPosts.length > 0) {
+        const postIds = rawPosts.map((p) => p.id);
+        const { data: votes } = await supabase
+          .from("forum_votes")
+          .select("post_id, vote_type")
+          .eq("user_id", currentUserId)
+          .in("post_id", postIds);
+        for (const v of votes ?? []) {
+          voteMap[v.post_id] = v.vote_type;
+        }
+      }
+      const enriched: ForumPost[] = rawPosts.map((p) => ({
+        ...p,
+        authorName: nameMap[p.author_id] ?? "Unknown",
+        categoryName: p.category_id ? (catMap[p.category_id]?.name ?? "") : "",
+        categorySlug: p.category_id ? (catMap[p.category_id]?.slug ?? "") : "",
+        userVote: voteMap[p.id] ?? 0,
+      }));
+      if (sortMode === "hot") {
+        enriched.sort((a, b) => {
+          if (a.is_pinned && !b.is_pinned) return -1;
+          if (!a.is_pinned && b.is_pinned) return 1;
+          return computeHotRank(b.score, b.created_at) - computeHotRank(a.score, a.created_at);
+        });
+      }
+      if (getCancelled?.()) return;
+      setPosts(enriched);
+      setIsLoading(false);
+    },
+    [
+      supabase,
+      clanContext,
+      selectedCategory,
+      sortMode,
+      searchTerm,
+      pagination.startIndex,
+      currentUserId,
+      tablesReady,
+      catMap,
+    ],
+  );
 
   useEffect(() => {
-    if (clanContext && categories.length > 0) {
-      void loadPosts();
+    if (!(clanContext && categories.length > 0)) return;
+    let cancelled = false;
+    async function doFetch(): Promise<void> {
+      await loadPosts(() => cancelled);
     }
+    void doFetch();
+    return () => {
+      cancelled = true;
+    };
   }, [loadPosts, clanContext, categories]);
 
   /** Stable ref to loadPosts so the URL-sync effect can call it without
@@ -296,8 +318,9 @@ export function useForum(t: (key: string) => string): UseForumResult {
 
   /* ─── Load comments ─── */
   const loadComments = useCallback(
-    async (postId: string): Promise<void> => {
+    async (postId: string, getCancelled?: () => boolean): Promise<void> => {
       if (!tablesReady) {
+        if (getCancelled?.()) return;
         setComments([]);
         return;
       }
@@ -309,6 +332,7 @@ export function useForum(t: (key: string) => string): UseForumResult {
       if (error) {
         return;
       }
+      if (getCancelled?.()) return;
       const rawComments = (data ?? []) as ForumComment[];
       const authorIds = rawComments.map((c) => c.author_id);
       const nameMap = await resolveAuthorNames(supabase, authorIds);
@@ -342,10 +366,25 @@ export function useForum(t: (key: string) => string): UseForumResult {
           topLevel.push(c);
         }
       }
+      if (getCancelled?.()) return;
       setComments(topLevel);
     },
     [supabase, currentUserId, tablesReady],
   );
+
+  /* ─── Load comments when viewing post detail ─── */
+  useEffect(() => {
+    if (!selectedPost?.id || viewMode !== "detail") return;
+    const postId = selectedPost.id;
+    let cancelled = false;
+    async function doFetch(): Promise<void> {
+      await loadComments(postId, () => cancelled);
+    }
+    void doFetch();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPost?.id, viewMode, loadComments]);
 
   /* ─── Deep-link: open post from ?post= query param ─── */
   useEffect(() => {
@@ -379,12 +418,13 @@ export function useForum(t: (key: string) => string): UseForumResult {
       /* Mark as opened *after* fetch succeeds. Placing it here (not before the
          fetch) ensures React strict-mode works: the first mount's fetch is
          cancelled, the ref stays "", and the second mount proceeds normally. */
+      if (cancelled) return;
       openedPostIdRef.current = urlPostId;
       setSelectedPost(enriched);
       setViewMode("detail");
       setCommentText("");
       setReplyingTo("");
-      void loadComments(enriched.id);
+      void loadComments(enriched.id, () => cancelled);
     }
     void openLinkedPost();
     return () => {
@@ -610,8 +650,8 @@ export function useForum(t: (key: string) => string): UseForumResult {
   /* ─── Delete Post ─── */
   const handleConfirmDelete = useCallback(async (): Promise<void> => {
     if (!deletingPostId) return;
-    const { error } = await supabase.from("forum_posts").delete().eq("id", deletingPostId);
-    if (error) {
+    const { data, error } = await supabase.from("forum_posts").delete().eq("id", deletingPostId).select("id");
+    if (error || !data?.length) {
       pushToast(t("deleteFailed"));
       setDeletingPostId("");
       return;
@@ -730,8 +770,8 @@ export function useForum(t: (key: string) => string): UseForumResult {
   const handleDeleteComment = useCallback(
     async (commentId: string): Promise<void> => {
       if (!selectedPost) return;
-      const { error } = await supabase.from("forum_comments").delete().eq("id", commentId);
-      if (error) {
+      const { data, error } = await supabase.from("forum_comments").delete().eq("id", commentId).select("id");
+      if (error || !data?.length) {
         pushToast(t("deleteCommentFailed"));
         return;
       }

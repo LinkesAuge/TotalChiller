@@ -194,13 +194,17 @@ export function useEventsTemplates(params: UseEventsTemplatesParams): UseEventsT
 
   const confirmDeleteTemplate = useCallback(async (): Promise<void> => {
     if (!deleteTemplateId) return;
-    const { error } = await supabase.from("event_templates").delete().eq("id", deleteTemplateId);
+    const { data, error } = await supabase.from("event_templates").delete().eq("id", deleteTemplateId).select("id");
     setDeleteTemplateId("");
     setDeleteTemplateName("");
     setDeleteTemplateInput("");
     setIsDeleteTemplateStep2(false);
     if (error) {
       showError(error, "templateDeleteFailed");
+      return;
+    }
+    if (!data?.length) {
+      pushToast(t("templateDeleteFailed"));
       return;
     }
     pushToast(t("templateDeleted"));

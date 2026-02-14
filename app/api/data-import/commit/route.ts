@@ -4,10 +4,10 @@ import { captureApiError } from "@/lib/api/logger";
 import { requireAdmin } from "../../../../lib/api/require-admin";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
-import { parseJsonBody } from "../../../../lib/api/validation";
+import { dateStringSchema, parseJsonBody } from "../../../../lib/api/validation";
 
 const COMMIT_ROW_SCHEMA = z.object({
-  collected_date: z.string().min(1),
+  collected_date: dateStringSchema,
   player: z.string().min(1),
   source: z.string().min(1),
   chest: z.string().min(1),

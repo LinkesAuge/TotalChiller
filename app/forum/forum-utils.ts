@@ -1,4 +1,4 @@
-import createSupabaseBrowserClient from "@/lib/supabase/browser-client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Translation function type (from next-intl useTranslations) */
 export type TFunction = ReturnType<typeof import("next-intl").useTranslations>;
@@ -13,10 +13,7 @@ export function computeHotRank(score: number, createdAt: string): number {
   return sign * magnitude - ageHours / 6;
 }
 
-export async function resolveAuthorNames(
-  supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  userIds: string[],
-): Promise<Record<string, string>> {
+export async function resolveAuthorNames(supabase: SupabaseClient, userIds: string[]): Promise<Record<string, string>> {
   const unique = [...new Set(userIds)].filter(Boolean);
   if (unique.length === 0) return {};
   const { data } = await supabase.from("profiles").select("id, display_name, username").in("id", unique);

@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-02-14 — Best practices audit & improvements
+
+- Made browser Supabase client an explicit module-level singleton (`lib/supabase/browser-client.ts`).
+- Parallelized two independent DB queries in `GET /api/messages/archive` with `Promise.all` (was sequential).
+- Decoupled `forum-utils.ts` from browser client import — `resolveAuthorNames` now accepts generic `SupabaseClient`.
+- Added route-level `loading.tsx` + `error.tsx` for 6 secondary routes: `home`, `about`, `contact`, `privacy-policy`, `members`, `settings`.
+
+---
+
 ## 2026-02-14 — Test coverage audit & bug fixes
 
 - Fixed RLS silent delete gap: 7 client-side delete operations now chain `.select("id")` and verify `data.length`.

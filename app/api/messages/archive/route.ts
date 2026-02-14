@@ -31,29 +31,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const userId = auth.userId;
     const svc = createSupabaseServiceRoleClient();
 
-    /* ── Archived inbox: recipient entries with archived_at set ── */
-    const { data: archivedRecipients, error: recErr } = await svc
-      .from("message_recipients")
-      .select("message_id, archived_at")
-      .eq("recipient_id", userId)
-      .not("archived_at", "is", null)
-      .is("deleted_at", null)
-      .order("archived_at", { ascending: false })
-      .limit(ARCHIVE_LIMIT);
-
-    if (recErr) {
-      captureApiError("GET /api/messages/archive", recErr);
-      return apiError("Failed to load archive.", 500);
-    }
-
-    const archivedEntries = archivedRecipients ?? [];
-    const archivedMsgIds = archivedEntries.map((e) => e.message_id as string);
-    const archivedAtByMsgId = new Map<string, string>();
-    for (const e of archivedEntries) {
-      archivedAtByMsgId.set(e.message_id as string, e.archived_at as string);
-    }
-
-    /* Fetch messages for archived inbox entries */
+    /* ── Fetch archived inbox recipients AND archived sent messages in parallel ── */
     type MsgRow = {
       id: string;
       sender_id: string | null;
@@ -64,6 +42,43 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       parent_id: string | null;
       created_at: string;
     };
+
+    const [recipientsResult, sentResult] = await Promise.all([
+      svc
+        .from("message_recipients")
+        .select("message_id, archived_at")
+        .eq("recipient_id", userId)
+        .not("archived_at", "is", null)
+        .is("deleted_at", null)
+        .order("archived_at", { ascending: false })
+        .limit(ARCHIVE_LIMIT),
+      svc
+        .from("messages")
+        .select("id,sender_id,subject,content,message_type,thread_id,parent_id,created_at,sender_archived_at")
+        .eq("sender_id", userId)
+        .not("sender_archived_at", "is", null)
+        .is("sender_deleted_at", null)
+        .order("sender_archived_at", { ascending: false })
+        .limit(ARCHIVE_LIMIT),
+    ]);
+
+    if (recipientsResult.error) {
+      captureApiError("GET /api/messages/archive", recipientsResult.error);
+      return apiError("Failed to load archive.", 500);
+    }
+    if (sentResult.error) {
+      captureApiError("GET /api/messages/archive", sentResult.error);
+      return apiError("Failed to load archive.", 500);
+    }
+
+    const archivedEntries = recipientsResult.data ?? [];
+    const archivedMsgIds = archivedEntries.map((e) => e.message_id as string);
+    const archivedAtByMsgId = new Map<string, string>();
+    for (const e of archivedEntries) {
+      archivedAtByMsgId.set(e.message_id as string, e.archived_at as string);
+    }
+
+    /* Fetch messages for archived inbox entries */
     let inboxMsgs: MsgRow[] = [];
     if (archivedMsgIds.length > 0) {
       const { data: msgData, error: msgErr } = await svc
@@ -115,22 +130,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       };
     });
 
-    /* ── Archived sent messages ── */
-    const { data: sentData, error: sentErr } = await svc
-      .from("messages")
-      .select("id,sender_id,subject,content,message_type,thread_id,parent_id,created_at,sender_archived_at")
-      .eq("sender_id", userId)
-      .not("sender_archived_at", "is", null)
-      .is("sender_deleted_at", null)
-      .order("sender_archived_at", { ascending: false })
-      .limit(ARCHIVE_LIMIT);
-
-    if (sentErr) {
-      captureApiError("GET /api/messages/archive", sentErr);
-      return apiError("Failed to load archive.", 500);
-    }
-
-    const sentMsgs = (sentData ?? []) as (MsgRow & { sender_archived_at: string })[];
+    /* ── Process archived sent messages ── */
+    const sentMsgs = (sentResult.data ?? []) as (MsgRow & { sender_archived_at: string })[];
 
     /* Fetch recipients for sent messages */
     const recipientsByMsgId = new Map<string, { id: string; label: string }[]>();

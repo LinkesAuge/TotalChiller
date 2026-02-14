@@ -35,7 +35,7 @@ d:\Chiller\
 │   ├── admin/              # Admin panel (modular tabs, see §4.9)
 │   ├── components/         # Shared UI components (see §5)
 │   ├── hooks/              # App-level React hooks (use-auth, use-supabase, use-clan-context, use-modal-reset, use-dashboard-data)
-│   ├── [feature]/          # Feature pages (page.tsx + feature-client.tsx)
+│   ├── [feature]/          # Feature pages (page.tsx + feature-client.tsx + loading.tsx + error.tsx)
 │   ├── globals.css         # All CSS (Fortress Sanctum design system)
 │   ├── layout.tsx          # Root layout (sidebar, providers, fonts)
 │   └── error.tsx           # Global error boundary (i18n)
@@ -79,9 +79,9 @@ Login, register, forgot password, password update. Supabase Auth with PKCE flow.
 | `app/auth/forgot/page.tsx`            | Forgot password (optional Turnstile CAPTCHA) |
 | `app/auth/update/page.tsx`            | Password reset completion                    |
 | `app/auth/callback/route.ts`          | PKCE code exchange                           |
-| `lib/supabase/browser-client.ts`      | Client-side Supabase instance                |
-| `lib/supabase/server-client.ts`       | Server-side Supabase (cookies)               |
-| `lib/supabase/service-role-client.ts` | Service role client (bypasses RLS)           |
+| `lib/supabase/browser-client.ts`      | Client-side Supabase singleton               |
+| `lib/supabase/server-client.ts`       | Server-side Supabase (cookies, React.cache)  |
+| `lib/supabase/service-role-client.ts` | Service role singleton (bypasses RLS)        |
 
 **DB tables**: `profiles`, `user_roles`, `game_accounts`
 

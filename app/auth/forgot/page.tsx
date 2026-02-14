@@ -64,7 +64,13 @@ function ForgotPasswordPage(): JSX.Element {
             height={44}
           />
           <div className="tooltip-head-inner">
-            <Image src="/assets/vip/batler_icons_star_4.png" alt="Reset password icon" width={18} height={18} />
+            <Image
+              src="/assets/vip/batler_icons_star_4.png"
+              alt="Reset password icon"
+              width={18}
+              height={18}
+              sizes="18px"
+            />
             <h1 className="card-title">{t("heading")}</h1>
           </div>
         </div>

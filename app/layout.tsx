@@ -72,11 +72,12 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
     <html lang={locale} className={`${cinzel.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
-        <link rel="preload" href="/assets/vip/back_left.png" as="image" />
+        {/* Only preload the logo — it uses a raw <picture> element without next/image.
+            Other key images (back_left, components_decor_7, header_3) use next/image
+            with priority, which automatically emits the correct preload for the
+            optimized /_next/image URL. Manual preloads for those would cause
+            double downloads (raw asset + optimized version). */}
         <link rel="preload" href="/assets/ui/chillerkiller_logo.webp" as="image" type="image/webp" />
-        <link rel="preload" href="/assets/ui/components_shield_4.png" as="image" />
-        <link rel="preload" href="/assets/vip/components_decor_7.png" as="image" />
-        <link rel="preload" href="/assets/vip/header_3.png" as="image" />
         {/* JSON-LD structured data — WebSite + Organization */}
         <script
           type="application/ld+json"
@@ -120,6 +121,7 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
                       width={800}
                       height={16}
                       sizes="(max-width: 800px) 100vw, 800px"
+                      loading="lazy"
                     />
                     <span className="app-footer-text">{t("footer", "tagline")}</span>
                     <div className="app-footer-links">

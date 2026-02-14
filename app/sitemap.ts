@@ -15,9 +15,8 @@ const PUBLIC_ROUTES: readonly PublicRoute[] = [
   { path: "/auth/login", changeFrequency: "weekly", priority: 0.7 },
   { path: "/auth/register", changeFrequency: "weekly", priority: 0.7 },
   { path: "/auth/forgot", changeFrequency: "monthly", priority: 0.3 },
-  { path: "/forum", changeFrequency: "daily", priority: 0.6 },
-  { path: "/events", changeFrequency: "daily", priority: 0.6 },
-  { path: "/charts", changeFrequency: "weekly", priority: 0.4 },
+  /* Auth-gated pages excluded: /forum, /events, /charts redirect unauthenticated
+     users to /home, causing duplicate-title warnings and uncrawlable entries. */
 ];
 
 /** Generates a dynamic sitemap that adapts to the current request host. */

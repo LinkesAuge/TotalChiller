@@ -158,6 +158,7 @@ function DashboardClient(): JSX.Element {
                         alt={article.is_pinned ? t("pinnedLabel") : ""}
                         width={14}
                         height={14}
+                        sizes="14px"
                         className="mt-0.5"
                       />
                       <Link href={`/news?article=${article.id}`} className="flex-1 min-w-0 dashboard-item-link">

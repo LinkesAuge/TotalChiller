@@ -65,7 +65,13 @@ function UpdatePasswordPage(): JSX.Element {
         <div className="tooltip-head">
           <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
           <div className="tooltip-head-inner">
-            <Image src="/assets/vip/batler_icons_star_4.png" alt="Update password" width={18} height={18} />
+            <Image
+              src="/assets/vip/batler_icons_star_4.png"
+              alt="Update password"
+              width={18}
+              height={18}
+              sizes="18px"
+            />
             <h3 className="card-title">{t("heading")}</h3>
           </div>
         </div>

@@ -266,7 +266,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      throw err;
+      pushToast(t("failedToLoad"));
     } finally {
       if (!controller.signal.aborted) setIsInboxLoading(false);
     }
@@ -294,7 +294,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      throw err;
+      pushToast(t("failedToLoad"));
     } finally {
       if (!controller.signal.aborted) setIsSentLoading(false);
     }
@@ -318,7 +318,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      throw err;
+      pushToast(t("failedToLoad"));
     } finally {
       if (!controller.signal.aborted) setIsArchiveLoading(false);
     }
@@ -341,7 +341,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      throw err;
+      pushToast(t("failedToLoad"));
     } finally {
       if (!controller.signal.aborted) setIsNotificationsLoading(false);
     }
@@ -400,7 +400,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        throw err;
+        pushToast(t("failedToLoad"));
       } finally {
         if (!controller.signal.aborted) setIsThreadLoading(false);
       }
@@ -432,6 +432,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
   }, [viewMode, loadInbox, loadSent, loadArchive, loadNotifications]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadClans(): Promise<void> {
       if (!isContentMgr) return;
       const { data: clanData } = await supabase
@@ -439,13 +440,18 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         .select("id,name")
         .eq("is_unassigned", false)
         .order("name");
+      if (cancelled) return;
       setClans((clanData ?? []) as readonly ClanOption[]);
     }
     void loadClans();
+    return () => {
+      cancelled = true;
+    };
   }, [supabase, isContentMgr]);
 
   useEffect(() => {
     if (!initialRecipientId || initialRecipientId === userId) return;
+    let cancelled = false;
     async function resolveRecipient(): Promise<void> {
       const { data: profile } = await supabase
         .from("profiles")
@@ -453,12 +459,16 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         .eq("id", initialRecipientId)
         .single();
       if (!profile) return;
+      if (cancelled) return;
       const label = profile.display_name ?? profile.username ?? profile.id;
       setComposeRecipients([{ id: profile.id, label }]);
       setComposeMode("direct");
       setIsComposeOpen(true);
     }
     void resolveRecipient();
+    return () => {
+      cancelled = true;
+    };
   }, [initialRecipientId, userId, supabase]);
 
   useEffect(() => {

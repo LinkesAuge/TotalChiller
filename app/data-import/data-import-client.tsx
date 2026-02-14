@@ -57,7 +57,7 @@ function DataImportClient(): JSX.Element {
           <div className="card-header">
             <div>
               <div className="card-title">{t("uploadCsv")}</div>
-              <div className="card-subtitle">DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN</div>
+              <div className="card-subtitle">{t("csvColumns")}</div>
             </div>
           </div>
           <div className="card-body">
@@ -210,7 +210,7 @@ function DataImportClient(): JSX.Element {
             </label>
             <RadixSelect
               id="importPageSize"
-              ariaLabel="Page size"
+              ariaLabel={t("pageSize")}
               value={String(api.pageSize)}
               onValueChange={handlePageSizeChange}
               options={[

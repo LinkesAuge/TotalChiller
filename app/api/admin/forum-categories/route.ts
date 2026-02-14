@@ -83,6 +83,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     const body = parsed.data;
 
+    if (body.slug !== undefined && body.slug !== "" && !/^[a-z0-9-]+$/.test(body.slug)) {
+      return NextResponse.json(
+        { error: "Slug must contain only lowercase letters, numbers, and hyphens." },
+        { status: 400 },
+      );
+    }
+
     const serviceClient = createSupabaseServiceRoleClient();
     const { data, error } = await serviceClient
       .from("forum_categories")
@@ -131,6 +138,13 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       );
     }
     const body = parsed.data;
+
+    if (body.slug !== undefined && body.slug !== "" && !/^[a-z0-9-]+$/.test(body.slug)) {
+      return NextResponse.json(
+        { error: "Slug must contain only lowercase letters, numbers, and hyphens." },
+        { status: 400 },
+      );
+    }
 
     const updates: Record<string, unknown> = {};
     if (body.name !== undefined) updates.name = body.name;

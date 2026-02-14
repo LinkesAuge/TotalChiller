@@ -217,7 +217,7 @@ export function useNews(t: (key: string) => string): UseNewsResult {
       query = query.or(`title.ilike.%${escaped}%,content.ilike.%${escaped}%`);
     }
     if (dateFrom) query = query.gte("created_at", dateFrom);
-    if (dateTo) query = query.lte("created_at", `${dateTo}T23:59:59`);
+    if (dateTo) query = query.lte("created_at", `${dateTo}T23:59:59Z`);
     const { data, error, count } = await query
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
@@ -255,6 +255,8 @@ export function useNews(t: (key: string) => string): UseNewsResult {
 
   /* ─── Deep-link: auto-expand article from ?article= query param ─── */
   const handledArticleRef = useRef<string>("");
+  /** Tracks how many times we've attempted to find the article page to prevent infinite loops. */
+  const deepLinkAttemptsRef = useRef<number>(0);
   useEffect(() => {
     if (!urlArticleId || !clanContext?.clanId) return;
     if (handledArticleRef.current === urlArticleId) return;
@@ -262,6 +264,7 @@ export function useNews(t: (key: string) => string): UseNewsResult {
     const match = articles.find((a) => a.id === urlArticleId);
     if (match) {
       handledArticleRef.current = urlArticleId;
+      deepLinkAttemptsRef.current = 0;
       setExpandedArticleId(urlArticleId);
       requestAnimationFrame(() => {
         document.getElementById(`article-${urlArticleId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -269,8 +272,16 @@ export function useNews(t: (key: string) => string): UseNewsResult {
       return;
     }
     /* Article not on this page — find its position and navigate to the correct page.
-       We query the count of articles that sort before this one (pinned-first, then newest). */
+       We query the count of articles that sort before this one (pinned-first, then newest).
+       Clear any active filters first so the page calculation matches the unfiltered list. */
     if (articles.length === 0) return;
+    /* Prevent infinite loops: give up after 3 attempts (article may not exist or may be
+       filtered out by RLS). */
+    if (deepLinkAttemptsRef.current >= 3) {
+      handledArticleRef.current = urlArticleId;
+      deepLinkAttemptsRef.current = 0;
+      return;
+    }
     let cancelled = false;
     async function findArticlePage(): Promise<void> {
       const { data: target } = await supabase
@@ -279,31 +290,42 @@ export function useNews(t: (key: string) => string): UseNewsResult {
         .eq("id", urlArticleId)
         .eq("clan_id", clanContext!.clanId)
         .maybeSingle();
-      if (cancelled || !target) return;
+      if (cancelled) return;
+      if (!target) {
+        /* Article does not exist or is not in this clan — stop trying. */
+        handledArticleRef.current = urlArticleId;
+        deepLinkAttemptsRef.current = 0;
+        return;
+      }
+      /* Helper: build a filtered count query matching the same filters as loadArticles.
+         We create a fresh builder each time because Supabase query builders are mutable. */
+      function filteredCount() {
+        let q = supabase
+          .from("articles")
+          .select("id", { count: "exact", head: true })
+          .eq("clan_id", clanContext!.clanId);
+        if (tagFilter !== "all") q = q.contains("tags", [tagFilter]);
+        if (searchTerm.trim()) {
+          const escaped = escapeLikePattern(searchTerm.trim());
+          q = q.or(`title.ilike.%${escaped}%,content.ilike.%${escaped}%`);
+        }
+        if (dateFrom) q = q.gte("created_at", dateFrom);
+        if (dateTo) q = q.lte("created_at", `${dateTo}T23:59:59Z`);
+        return q;
+      }
+
       /* Count how many articles sort before this one */
       let countBefore = 0;
       if (target.is_pinned) {
-        /* Pinned articles that are newer sort before this one */
-        const { count } = await supabase
-          .from("articles")
-          .select("id", { count: "exact", head: true })
-          .eq("clan_id", clanContext!.clanId)
+        const { count } = await filteredCount()
           .eq("is_pinned", true)
           .gt("created_at", target.created_at as string);
         if (cancelled) return;
         countBefore = count ?? 0;
       } else {
-        /* All pinned articles + non-pinned articles newer than this one sort first */
         const [pinnedResult, newerResult] = await Promise.all([
-          supabase
-            .from("articles")
-            .select("id", { count: "exact", head: true })
-            .eq("clan_id", clanContext!.clanId)
-            .eq("is_pinned", true),
-          supabase
-            .from("articles")
-            .select("id", { count: "exact", head: true })
-            .eq("clan_id", clanContext!.clanId)
+          filteredCount().eq("is_pinned", true),
+          filteredCount()
             .eq("is_pinned", false)
             .gt("created_at", target.created_at as string),
         ]);
@@ -312,16 +334,15 @@ export function useNews(t: (key: string) => string): UseNewsResult {
       }
       const targetPage = Math.floor(countBefore / pagination.pageSize) + 1;
       if (targetPage !== pagination.page) {
+        deepLinkAttemptsRef.current += 1;
         pagination.setPage(targetPage);
-        /* loadArticles will re-run due to pagination change, then this effect
-           re-runs and finds the article on the current page */
       }
     }
     void findArticlePage();
     return () => {
       cancelled = true;
     };
-  }, [urlArticleId, articles, clanContext, supabase, pagination]);
+  }, [urlArticleId, articles, clanContext, supabase, pagination, tagFilter, searchTerm, dateFrom, dateTo]);
 
   /* Load all distinct tags for the clan */
   useEffect(() => {

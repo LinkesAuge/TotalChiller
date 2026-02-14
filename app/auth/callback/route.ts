@@ -7,9 +7,17 @@ const AUTH_CODE_REDIRECT_COOKIE = "auth_redirect_next";
 /**
  * Validates that a redirect path is safe (relative, no protocol-relative URLs).
  * Blocks open redirect attacks via `//evil.com` or `https://evil.com`.
+ * Rejects path traversal (e.g. `/..` or `/foo/../etc/passwd`).
  */
 function isSafeRedirectPath(path: string): boolean {
-  return path.startsWith("/") && !path.startsWith("//") && !path.includes(":");
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes(":")) return false;
+  try {
+    const normalized = new URL(path, "http://x").pathname;
+    if (normalized !== path) return false;
+  } catch {
+    return false;
+  }
+  return true;
 }
 
 /**

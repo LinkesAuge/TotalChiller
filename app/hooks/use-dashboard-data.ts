@@ -69,6 +69,8 @@ export interface UseDashboardDataResult {
   readonly isLoadingAnnouncements: boolean;
   readonly isLoadingEvents: boolean;
   readonly isLoadingStats: boolean;
+  readonly announcementsError: string | null;
+  readonly eventsError: string | null;
 }
 
 /**
@@ -95,9 +97,11 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
 
   const [announcements, setAnnouncements] = useState<readonly ArticleSummary[]>([]);
   const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState<boolean>(true);
+  const [announcementsError, setAnnouncementsError] = useState<string | null>(null);
 
   const [events, setEvents] = useState<readonly EventSummary[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState<boolean>(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
 
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
   const [isLoadingStats, setIsLoadingStats] = useState<boolean>(true);
@@ -108,9 +112,11 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       if (!clanId) {
         setAnnouncements([]);
         setIsLoadingAnnouncements(false);
+        setAnnouncementsError(null);
         return;
       }
       setIsLoadingAnnouncements(true);
+      setAnnouncementsError(null);
       const { data, error } = await supabase
         .from("articles")
         .select(
@@ -124,10 +130,15 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
         .limit(5);
       if (cancelled) return;
       setIsLoadingAnnouncements(false);
-      if (error) return;
+      if (error) {
+        setAnnouncementsError(error.message);
+        console.warn("Dashboard announcements fetch failed:", error);
+        return;
+      }
       setAnnouncements(
         ((data ?? []) as unknown as ArticleWithAuthorJoin[]).map((row) => ({
           ...row,
+          tags: row.tags ?? [],
           author_name: extractAuthorName(row.author),
         })) as ArticleSummary[],
       );
@@ -144,9 +155,11 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       if (!clanId) {
         setEvents([]);
         setIsLoadingEvents(false);
+        setEventsError(null);
         return;
       }
       setIsLoadingEvents(true);
+      setEventsError(null);
       const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("events")
@@ -160,7 +173,11 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
         .limit(5);
       if (cancelled) return;
       setIsLoadingEvents(false);
-      if (error) return;
+      if (error) {
+        setEventsError(error.message);
+        console.warn("Dashboard events fetch failed:", error);
+        return;
+      }
       setEvents(
         ((data ?? []) as unknown as EventWithAuthorJoin[]).map((row) => ({
           ...row,
@@ -264,5 +281,7 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
     isLoadingAnnouncements,
     isLoadingEvents,
     isLoadingStats,
+    announcementsError,
+    eventsError,
   };
 }

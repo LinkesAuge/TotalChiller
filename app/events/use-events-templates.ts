@@ -29,6 +29,7 @@ export interface UseEventsTemplatesResult {
   readonly editTplRecurrence: RecurrenceType;
   readonly editTplRecurrenceEnd: string;
   readonly editTplRecurrenceOngoing: boolean;
+  readonly editTplBannerUrl: string;
   readonly deleteTemplateId: string;
   readonly deleteTemplateName: string;
   readonly deleteTemplateInput: string;
@@ -45,6 +46,7 @@ export interface UseEventsTemplatesResult {
   readonly setEditTplRecurrence: React.Dispatch<React.SetStateAction<RecurrenceType>>;
   readonly setEditTplRecurrenceEnd: React.Dispatch<React.SetStateAction<string>>;
   readonly setEditTplRecurrenceOngoing: React.Dispatch<React.SetStateAction<boolean>>;
+  readonly setEditTplBannerUrl: React.Dispatch<React.SetStateAction<string>>;
   readonly handleSaveEventAsTemplate: (entry: EventRow) => Promise<void>;
   readonly handleStartEditTemplate: (tpl: TemplateRow) => void;
   readonly handleCancelEditTemplate: () => void;
@@ -70,6 +72,7 @@ export function useEventsTemplates(params: UseEventsTemplatesParams): UseEventsT
   const [editTplRecurrence, setEditTplRecurrence] = useState<RecurrenceType>("none");
   const [editTplRecurrenceEnd, setEditTplRecurrenceEnd] = useState<string>("");
   const [editTplRecurrenceOngoing, setEditTplRecurrenceOngoing] = useState<boolean>(false);
+  const [editTplBannerUrl, setEditTplBannerUrl] = useState<string>("");
   const [deleteTemplateId, setDeleteTemplateId] = useState<string>("");
   const [deleteTemplateName, setDeleteTemplateName] = useState<string>("");
   const [deleteTemplateInput, setDeleteTemplateInput] = useState<string>("");
@@ -129,6 +132,7 @@ export function useEventsTemplates(params: UseEventsTemplatesParams): UseEventsT
     const hasEnd = Boolean(tpl.recurrence_end_date);
     setEditTplRecurrenceEnd(tpl.recurrence_end_date ?? "");
     setEditTplRecurrenceOngoing((tpl.recurrence_type ?? "none") !== "none" && !hasEnd);
+    setEditTplBannerUrl(tpl.banner_url ?? "");
   }, []);
 
   const handleCancelEditTemplate = useCallback((): void => {
@@ -156,6 +160,7 @@ export function useEventsTemplates(params: UseEventsTemplatesParams): UseEventsT
         is_open_ended: editTplOpenEnded,
         recurrence_type: editTplRecurrence,
         recurrence_end_date: editTplRecurrence !== "none" ? effectiveRecurrenceEnd : null,
+        banner_url: editTplBannerUrl || null,
       })
       .eq("id", editingTemplateId);
     setIsSavingTemplate(false);
@@ -177,6 +182,7 @@ export function useEventsTemplates(params: UseEventsTemplatesParams): UseEventsT
     editTplRecurrence,
     editTplRecurrenceEnd,
     editTplRecurrenceOngoing,
+    editTplBannerUrl,
     editingTemplateId,
     pushToast,
     t,
@@ -233,6 +239,7 @@ export function useEventsTemplates(params: UseEventsTemplatesParams): UseEventsT
     editTplRecurrence,
     editTplRecurrenceEnd,
     editTplRecurrenceOngoing,
+    editTplBannerUrl,
     deleteTemplateId,
     deleteTemplateName,
     deleteTemplateInput,
@@ -249,6 +256,7 @@ export function useEventsTemplates(params: UseEventsTemplatesParams): UseEventsT
     setEditTplRecurrence,
     setEditTplRecurrenceEnd,
     setEditTplRecurrenceOngoing,
+    setEditTplBannerUrl,
     handleSaveEventAsTemplate,
     handleStartEditTemplate,
     handleCancelEditTemplate,

@@ -815,6 +815,7 @@
     "german": "Deutsch",
     "english": "Englisch",
     "passwordMismatch": "Passwörter stimmen nicht überein.",
+    "passwordTooShort": "Passwort muss mindestens 8 Zeichen lang sein.",
     "updatingPassword": "Passwort wird aktualisiert...",
     "passwordUpdated": "Passwort erfolgreich aktualisiert.",
     "emailRequired": "E-Mail ist erforderlich.",
@@ -822,6 +823,7 @@
     "emailUpdateRequested": "E-Mail-Aktualisierung angefordert. Bitte Posteingang prüfen.",
     "onlyAdminsCanChangeUsername": "Nur Administratoren können Benutzernamen ändern.",
     "usernameLengthError": "Benutzername muss 2–32 Zeichen lang sein.",
+    "usernameExists": "Benutzername ist bereits vergeben.",
     "usernameRequired": "Benutzername ist erforderlich.",
     "updatingUsername": "Benutzername wird aktualisiert...",
     "usernameUpdated": "Benutzername erfolgreich aktualisiert.",
@@ -947,6 +949,41 @@
       "assignAsShadow": "Als Schatten zuweisen",
       "saveMembershipChangesConfirm": "{count} Mitgliedschaftsänderung(en) speichern?"
     },
+    "clansTab": {
+      "clanRequired": "Clan ist erforderlich.",
+      "clanNameRequired": "Clan-Name ist erforderlich.",
+      "selectClanToEdit": "Wähle einen Clan zum Bearbeiten aus.",
+      "updatingClan": "Clan wird aktualisiert...",
+      "creatingClan": "Clan wird erstellt...",
+      "clanUpdated": "Clan aktualisiert.",
+      "clanCreated": "Clan erstellt.",
+      "clanDeleted": "Clan gelöscht.",
+      "clanDeleteFailed": "Clan konnte nicht gelöscht werden. Möglicherweise fehlen die erforderlichen Berechtigungen.",
+      "deletionPhraseNoMatch": "Löschphrase stimmt nicht überein.",
+      "gameUsernameRequired": "Spiel-Benutzername ist erforderlich.",
+      "updatingGameAccount": "Spielkonto wird aktualisiert...",
+      "gameAccountUpdated": "Spielkonto aktualisiert.",
+      "gameAccountDeleted": "Spielkonto gelöscht.",
+      "selectGameAccountToDelete": "Wähle ein Spielkonto zum Löschen aus.",
+      "selectClanToDelete": "Wähle einen Clan zum Löschen aus.",
+      "unassignedClanCannotDelete": "Nicht zugewiesener Clan kann nicht gelöscht werden.",
+      "selectClanToSetDefault": "Wähle einen Clan als Standard aus.",
+      "defaultClanSaved": "Standard-Clan gespeichert.",
+      "defaultClanCleared": "Standard-Clan entfernt.",
+      "allMembershipChangesCleared": "Alle Mitgliedschaftsänderungen zurückgesetzt.",
+      "noChangesToSave": "Keine Änderungen zum Speichern.",
+      "mustBeLoggedInToUpdateMemberships": "Du musst angemeldet sein, um Mitgliedschaften zu aktualisieren.",
+      "membershipUpdated": "Mitgliedschaft aktualisiert.",
+      "savingMembershipChanges": "Mitgliedschaftsänderungen werden gespeichert...",
+      "someMembershipUpdatesNeedFixes": "Einige Mitgliedschafts-Updates benötigen Korrekturen vor dem Speichern.",
+      "allMembershipChangesSaved": "Alle Mitgliedschaftsänderungen gespeichert.",
+      "selectClanBeforeAssigning": "Wähle zuerst einen Clan aus, um Spielkonten zuzuweisen.",
+      "selectAtLeastOneGameAccount": "Wähle mindestens ein Spielkonto zum Zuweisen aus.",
+      "assigningGameAccounts": "Spielkonten werden zugewiesen...",
+      "assignmentsUpdated": "Zuweisungen aktualisiert.",
+      "unassigned": "Nicht zugewiesen",
+      "noGameAccountsMatch": "Keine Spielkonten entsprechen den Filtern"
+    },
     "members": {
       "gameAccount": "Spielkonto",
       "user": "Benutzer",
@@ -1030,6 +1067,9 @@
       "importHint": "Übereinstimmung,Ersetzung,Feld,Status hochladen",
       "replaceCorrection": "Korrekturliste ersetzen",
       "replaceWarning": "Ersetzen löscht alle bestehenden Korrekturregeln für dieses Feld vor dem Import."
+    },
+    "correctionsTab": {
+      "deleteWarning": "Dies wird die ausgewählten Korrekturregeln dauerhaft löschen."
     },
     "logs": {
       "title": "Prüfprotokolle",
@@ -1377,6 +1417,7 @@
   },
   "dataImport": {
     "uploadCsv": "CSV hochladen",
+    "csvColumns": "DATUM, SPIELER, QUELLE, TRUHE, PUNKTE, CLAN",
     "csvFileLabel": "CSV-Datei",
     "filename": "Dateiname",
     "noFileSelected": "Keine Datei ausgewählt",
@@ -1494,7 +1535,8 @@
     "committingRows": "Zeilen werden nach Supabase committet...",
     "commitFailed": "Commit fehlgeschlagen.",
     "committedRows": "{count} Zeilen committet.",
-    "noValidRowsToCommit": "Keine gültigen Zeilen zum Committen."
+    "noValidRowsToCommit": "Keine gültigen Zeilen zum Committen.",
+    "batchEditClan": "Clan stapelbearbeiten"
   },
   "dataTable": {
     "searchFilters": "Suche & Filter",
@@ -1614,7 +1656,8 @@
     "validationPlayerSourceChestRequired": "Spieler, Quelle und Truhe sind erforderlich.",
     "validationClanRequired": "Clan ist erforderlich.",
     "validationScoreNonNegative": "Punkte müssen eine nicht-negative Zahl sein.",
-    "validationScoreInteger": "Punkte müssen eine ganze Zahl sein."
+    "validationScoreInteger": "Punkte müssen eine ganze Zahl sein.",
+    "batchEditClan": "Clan stapelbearbeiten"
   },
   "forum": {
     "breadcrumb": "TotalChiller \u2022 Clan Plattform",
@@ -1686,6 +1729,7 @@
     "deleteComment": "Löschen",
     "deleteCommentConfirm": "Diesen Kommentar löschen?",
     "deleteCommentButton": "Löschen",
+    "loadCommentsFailed": "Kommentare konnten nicht geladen werden.",
     "deleteCommentFailed": "Kommentar konnte nicht gelöscht werden.",
     "saveFailed": "Speichern fehlgeschlagen.",
     "voteFailed": "Abstimmung fehlgeschlagen.",

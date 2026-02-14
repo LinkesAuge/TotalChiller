@@ -39,6 +39,7 @@ export function parseCsvLine(line: string): string[] {
     }
     current += char;
   }
+  // Unclosed quotes: if we reached end of line while still in quotes, treat accumulated content as the field value (implicit close)
   values.push(current.trim());
   return values;
 }

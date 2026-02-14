@@ -8,7 +8,7 @@ import CmsPageShell from "../components/cms-page-shell";
 
 function AboutClient(): JSX.Element {
   const t = useTranslations("about");
-  const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, saveField } = useSiteContent("about");
+  const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, cDe, saveField } = useSiteContent("about");
 
   return (
     <CmsPageShell breadcrumb={t("breadcrumb")} title={t("title")} isLoaded={isLoaded} error={error}>
@@ -20,6 +20,7 @@ function AboutClient(): JSX.Element {
             className="card-title"
             value={c("mission", "title", t("missionTitle"))}
             valueEn={cEn("mission", "title")}
+            valueDe={cDe("mission", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -32,6 +33,7 @@ function AboutClient(): JSX.Element {
             className="card-text-muted"
             value={c("mission", "byline", t("missionByline"))}
             valueEn={cEn("mission", "byline")}
+            valueDe={cDe("mission", "byline")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -41,6 +43,7 @@ function AboutClient(): JSX.Element {
             as="div"
             value={c("mission", "text", `${t("missionText1")}\n\n${t("missionText2")}\n\n${t("missionText3")}`)}
             valueEn={cEn("mission", "text")}
+            valueDe={cDe("mission", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -59,6 +62,7 @@ function AboutClient(): JSX.Element {
             className="card-title"
             value={c("features", "title", t("featuresTitle"))}
             valueEn={cEn("features", "title")}
+            valueDe={cDe("features", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -74,6 +78,7 @@ function AboutClient(): JSX.Element {
               [t("feature1"), t("feature2"), t("feature3"), t("feature4"), t("feature5")].join("\n"),
             )}
             valueEn={cEn("features", "text")}
+            valueDe={cDe("features", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -92,6 +97,7 @@ function AboutClient(): JSX.Element {
             className="card-title"
             value={c("values", "title", t("valuesTitle"))}
             valueEn={cEn("values", "title")}
+            valueDe={cDe("values", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -103,6 +109,7 @@ function AboutClient(): JSX.Element {
             as="div"
             value={c("values", "text", [t("value1"), t("value2"), t("value3"), t("value4"), t("value5")].join("\n"))}
             valueEn={cEn("values", "text")}
+            valueDe={cDe("values", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -121,6 +128,7 @@ function AboutClient(): JSX.Element {
             className="card-title"
             value={c("tech", "title", t("techTitle"))}
             valueEn={cEn("tech", "title")}
+            valueDe={cDe("tech", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -132,6 +140,7 @@ function AboutClient(): JSX.Element {
             as="div"
             value={c("tech", "text", `${t("techText2")}`)}
             valueEn={cEn("tech", "text")}
+            valueDe={cDe("tech", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -149,6 +158,7 @@ function AboutClient(): JSX.Element {
             as="div"
             value={c("cta", "text", t("ctaText"))}
             valueEn={cEn("cta", "text")}
+            valueDe={cDe("cta", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown

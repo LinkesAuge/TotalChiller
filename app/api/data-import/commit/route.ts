@@ -11,12 +11,12 @@ const COMMIT_ROW_SCHEMA = z.object({
   player: z.string().min(1),
   source: z.string().min(1),
   chest: z.string().min(1),
-  score: z.number(),
+  score: z.number().int().nonnegative(),
   clan: z.string().min(1),
 });
 
 const COMMIT_SCHEMA = z.object({
-  rows: z.array(COMMIT_ROW_SCHEMA).min(1),
+  rows: z.array(COMMIT_ROW_SCHEMA).min(1).max(10000),
 });
 
 interface CommitRowInput {
@@ -26,6 +26,12 @@ interface CommitRowInput {
   readonly chest: string;
   readonly score: number;
   readonly clan: string;
+}
+
+function isValidRow(row: CommitRowInput): boolean {
+  if (!row.player?.trim() || !row.chest?.trim()) return false;
+  const parsed = new Date(row.collected_date);
+  return !isNaN(parsed.getTime());
 }
 
 /**
@@ -40,7 +46,15 @@ export async function POST(request: Request): Promise<Response> {
     if (auth.error) return auth.error;
     const parsed = await parseJsonBody(request, COMMIT_SCHEMA);
     if (parsed.error) return parsed.error;
-    const rows: CommitRowInput[] = parsed.data.rows;
+    const allRows: CommitRowInput[] = parsed.data.rows;
+    const rows = allRows.filter(isValidRow);
+    const skippedCount = allRows.length - rows.length;
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: "No valid rows to commit. All rows were skipped (empty player/chest or invalid date)." },
+        { status: 400 },
+      );
+    }
     const clanNames = Array.from(new Set(rows.map((row) => row.clan)));
     const serviceClient = createSupabaseServiceRoleClient();
     const { data: existingClans, error: clanFetchError } = await serviceClient
@@ -89,7 +103,7 @@ export async function POST(request: Request): Promise<Response> {
       captureApiError("POST /api/data-import/commit", error);
       return NextResponse.json({ error: "Failed to import data." }, { status: 500 });
     }
-    return NextResponse.json({ insertedCount: payload.length }, { status: 201 });
+    return NextResponse.json({ insertedCount: payload.length, skippedCount }, { status: 201 });
   } catch (err) {
     captureApiError("POST /api/data-import/commit", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

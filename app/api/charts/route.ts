@@ -80,8 +80,14 @@ export async function GET(request: Request): Promise<Response> {
     }
     query = query.order("collected_date", { ascending: true });
     /* ── Build game accounts query for personal score ── */
+    /* When gameAccountId is provided, also filter by user_id to prevent IDOR. */
     const accountsQuery = gameAccountId
-      ? supabase.from("game_accounts").select("game_username").eq("id", gameAccountId).maybeSingle()
+      ? supabase
+          .from("game_accounts")
+          .select("game_username")
+          .eq("id", gameAccountId)
+          .eq("user_id", auth.userId)
+          .maybeSingle()
       : supabase
           .from("game_accounts")
           .select("game_username")
@@ -96,11 +102,12 @@ export async function GET(request: Request): Promise<Response> {
     const entries = (chestResult.data ?? []) as readonly ChestRow[];
     let personalUsernames: readonly string[] = [];
     if (gameAccountId && accountResult.data) {
-      personalUsernames = [(accountResult.data as GameAccountRow).game_username.toLowerCase()];
+      const username = (accountResult.data as GameAccountRow).game_username;
+      if (username) personalUsernames = [username.toLowerCase()];
     } else if (!gameAccountId && accountResult.data) {
-      personalUsernames = ((accountResult.data as GameAccountRow[] | null) ?? []).map((a) =>
-        a.game_username.toLowerCase(),
-      );
+      personalUsernames = ((accountResult.data as GameAccountRow[] | null) ?? [])
+        .filter((a) => a.game_username != null)
+        .map((a) => a.game_username.toLowerCase());
     }
     const personalSet = new Set(personalUsernames);
     /* ── Aggregate: Score over time ── */
@@ -133,12 +140,13 @@ export async function GET(request: Request): Promise<Response> {
 function aggregateScoreOverTime(entries: readonly ChestRow[]): ScoreOverTimePoint[] {
   const map = new Map<string, { totalScore: number; entryCount: number }>();
   for (const row of entries) {
+    const score = row.score ?? 0;
     const existing = map.get(row.collected_date);
     if (existing) {
-      existing.totalScore += row.score;
+      existing.totalScore += score;
       existing.entryCount += 1;
     } else {
-      map.set(row.collected_date, { totalScore: row.score, entryCount: 1 });
+      map.set(row.collected_date, { totalScore: score, entryCount: 1 });
     }
   }
   return Array.from(map.entries())
@@ -150,12 +158,13 @@ function aggregateTopPlayers(entries: readonly ChestRow[]): TopPlayerPoint[] {
   const map = new Map<string, { totalScore: number; entryCount: number }>();
   for (const row of entries) {
     const key = row.player;
+    const score = row.score ?? 0;
     const existing = map.get(key);
     if (existing) {
-      existing.totalScore += row.score;
+      existing.totalScore += score;
       existing.entryCount += 1;
     } else {
-      map.set(key, { totalScore: row.score, entryCount: 1 });
+      map.set(key, { totalScore: score, entryCount: 1 });
     }
   }
   return Array.from(map.entries())
@@ -167,12 +176,13 @@ function aggregateTopPlayers(entries: readonly ChestRow[]): TopPlayerPoint[] {
 function aggregateChestTypes(entries: readonly ChestRow[]): ChestTypePoint[] {
   const map = new Map<string, { count: number; totalScore: number }>();
   for (const row of entries) {
+    const score = row.score ?? 0;
     const existing = map.get(row.chest);
     if (existing) {
       existing.count += 1;
-      existing.totalScore += row.score;
+      existing.totalScore += score;
     } else {
-      map.set(row.chest, { count: 1, totalScore: row.score });
+      map.set(row.chest, { count: 1, totalScore: score });
     }
   }
   const sorted = Array.from(map.entries())
@@ -191,7 +201,7 @@ function aggregateChestTypes(entries: readonly ChestRow[]): ChestTypePoint[] {
 
 function buildSummary(entries: readonly ChestRow[]): ChartSummary {
   const totalChests = entries.length;
-  const totalScore = entries.reduce((sum, r) => sum + r.score, 0);
+  const totalScore = entries.reduce((sum, r) => sum + (r.score ?? 0), 0);
   const avgScore = totalChests > 0 ? Math.round(totalScore / totalChests) : 0;
   const uniquePlayers = new Set(entries.map((r) => r.player.toLowerCase())).size;
   const chestCounts = new Map<string, number>();

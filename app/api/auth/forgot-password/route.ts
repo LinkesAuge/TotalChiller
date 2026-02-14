@@ -56,6 +56,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { email, turnstileToken, redirectTo } = parsed.data;
 
+    /* Validate redirectTo is same-origin to prevent open redirect / token leakage */
+    const origin = request.headers.get("origin") ?? request.nextUrl.origin;
+    try {
+      const redirectUrl = new URL(redirectTo);
+      if (redirectUrl.origin !== origin) {
+        return NextResponse.json({ error: "Invalid redirect URL." }, { status: 400 });
+      }
+    } catch {
+      return NextResponse.json({ error: "Invalid redirect URL." }, { status: 400 });
+    }
+
     /* Verify Turnstile CAPTCHA */
     const isValid = await verifyTurnstileToken(turnstileToken);
     if (!isValid) {
@@ -76,7 +87,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
      * and falls back to the site root, the middleware will read this cookie
      * and redirect to /auth/callback with the correct `next` parameter.
      */
-    const nextPath = new URL(redirectTo).searchParams.get("next") ?? "/auth/update";
+    const rawNextPath = new URL(redirectTo).searchParams.get("next") ?? "/auth/update";
+    /* Only allow relative paths starting with / (no protocol, no //) to prevent open redirect. */
+    const nextPath = rawNextPath.startsWith("/") && !rawNextPath.startsWith("//") ? rawNextPath : "/auth/update";
     const response = NextResponse.json({ ok: true });
     response.cookies.set("auth_redirect_next", nextPath, {
       path: "/",

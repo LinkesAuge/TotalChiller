@@ -655,7 +655,7 @@ export default function CorrectionsTab(): ReactElement {
         state={deleteConfirm}
         title={tAdmin("corrections.deleteRules")}
         subtitle={tAdmin("danger.cannotBeUndone")}
-        warningText="This will permanently delete the selected correction rules."
+        warningText={tAdmin("correctionsTab.deleteWarning")}
         confirmPhrase="DELETE RULES"
         onConfirm={handleDeleteSelected}
         deleteLabel={tAdmin("corrections.deleteRules")}

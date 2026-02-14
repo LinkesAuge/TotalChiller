@@ -1348,6 +1348,7 @@ export default function UsersTab(): ReactElement {
         warningText={tAdmin("danger.deleteUserWarning")}
         confirmPhrase={`DELETE ${userToDelete?.username ?? userToDelete?.email}`}
         onConfirm={handleDeleteUser}
+        inputId="userDeleteInput"
       />
 
       {/* Create game account modal */}
@@ -1408,6 +1409,7 @@ export default function UsersTab(): ReactElement {
         warningText={tAdmin("danger.deleteGameAccountWarning")}
         confirmPhrase={`DELETE ${gameAccountToDelete?.game_username}`}
         onConfirm={handleConfirmDeleteGameAccount}
+        inputId="gameAccountDeleteInput"
       />
 
       {/* Save all changes ConfirmModal */}

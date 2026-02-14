@@ -835,7 +835,8 @@ export function useDataImport(): UseDataImportReturn {
     const nextRows = rows.filter((_, index) => !selectedSet.has(index));
     const nextOriginal = originalRows.filter((_, index) => !selectedSet.has(index));
     const nextManual: Record<number, RowEdits> = {};
-    keptIndices.forEach((oldIndex, newIndex) => {
+    keptIndices.forEach((oldIndex, positionInKeptArray) => {
+      const newIndex = positionInKeptArray;
       if (manualEdits[oldIndex]) {
         nextManual[newIndex] = manualEdits[oldIndex];
       }

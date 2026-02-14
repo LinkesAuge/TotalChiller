@@ -6,6 +6,7 @@ import { useSupabase } from "../hooks/use-supabase";
 import { useToast } from "../components/toast-provider";
 import type { ValidationRuleRow, CorrectionRuleRow } from "@/lib/types/domain";
 import { DATE_REGEX } from "@/lib/constants";
+import { escapeLikePattern } from "@/lib/api/validation";
 import { normalizeString } from "@/lib/string-utils";
 import { useRuleProcessing } from "@/lib/hooks/use-rule-processing";
 import { useDataTableFilters } from "./use-data-table-filters";
@@ -89,6 +90,10 @@ export function useDataTable() {
   const [pendingSaveAll, setPendingSaveAll] = useState<boolean>(false);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / pageSize)), [totalCount, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages && totalPages > 0) setPage(totalPages);
+  }, [page, totalPages]);
 
   const clanNameById = useMemo(() => {
     return availableClans.reduce<Record<string, string>>((acc, clan) => {
@@ -177,7 +182,8 @@ export function useDataTable() {
         .order("collected_date", { ascending: false })
         .range(fromIndex, toIndex);
       if (filters.searchTerm.trim()) {
-        const pattern = `%${filters.searchTerm.trim()}%`;
+        const escaped = escapeLikePattern(filters.searchTerm.trim());
+        const pattern = `%${escaped}%`;
         query.or(`player.ilike.${pattern},source.ilike.${pattern},chest.ilike.${pattern}`);
       }
       if (filters.filterPlayer.trim()) {
@@ -311,6 +317,7 @@ export function useDataTable() {
         .select("id,field,match_value,status")
         .order("field");
       if (error) {
+        if (!cancelled) setStatus(`Failed to load validation rules: ${error.message}`);
         return;
       }
       if (cancelled) return;
@@ -320,6 +327,7 @@ export function useDataTable() {
         .select("id,field,match_value,replacement_value,status")
         .order("field");
       if (correctionError) {
+        if (!cancelled) setStatus(`Failed to load correction rules: ${correctionError.message}`);
         return;
       }
       if (cancelled) return;
@@ -337,22 +345,22 @@ export function useDataTable() {
     }
   }, [pushToast, status]);
 
-  const toggleSort = useCallback((nextKey: SortKey): void => {
-    setSortKey((current) => {
-      if (current !== nextKey) {
-        setSortDirection("asc");
-        return nextKey;
-      }
-      setSortDirection((dir) => {
-        if (dir === "asc") {
-          return "desc";
+  const toggleSort = useCallback(
+    (key: SortKey): void => {
+      if (sortKey === key) {
+        if (sortDirection === "asc") {
+          setSortDirection("desc");
+        } else {
+          setSortKey(null);
+          setSortDirection("asc");
         }
-        return null;
-      });
-      setSortKey(null);
-      return current;
-    });
-  }, []);
+      } else {
+        setSortKey(key);
+        setSortDirection("asc");
+      }
+    },
+    [sortKey, sortDirection],
+  );
 
   const getSortValue = useCallback(
     (row: ChestEntryRow, key: SortKey): string | number => {

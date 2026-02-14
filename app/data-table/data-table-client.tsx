@@ -427,7 +427,7 @@ function DataTableClient(): JSX.Element {
                 ) : batchEditField === "clan_id" ? (
                   <RadixSelect
                     id="batchEditClan"
-                    ariaLabel="Batch edit clan"
+                    ariaLabel={t("batchEditClan")}
                     value={batchEditClanId}
                     onValueChange={setBatchEditClanId}
                     enableSearch

@@ -55,7 +55,7 @@ function ensureGc(): void {
 
 function getClientIp(request: Request): string {
   const headers = request.headers;
-  return headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip") || "unknown";
+  return headers.get("x-real-ip")?.trim() || headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 }
 
 export function createRateLimiter(options: RateLimitOptions): RateLimiter {

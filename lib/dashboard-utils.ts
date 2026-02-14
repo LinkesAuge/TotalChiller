@@ -23,12 +23,13 @@ export function getMonday(date: Date): Date {
 
 /** Calculate percentage trend between two values. */
 export function calculateTrend(current: number, previous: number): number {
-  if (previous === 0) return current > 0 ? 100 : 0;
+  if (previous === 0) return 0;
   return Math.round(((current - previous) / previous) * 100);
 }
 
 /** Format a number with compact notation for display (e.g. 1.5K, 2.3M). */
 export function formatCompactNumber(n: number): string {
+  if (!Number.isFinite(n)) return "0";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);

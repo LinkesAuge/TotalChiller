@@ -51,7 +51,13 @@ export default function ApprovalsTab(): ReactElement {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ game_account_id: gameAccountId, action }),
         });
-        const result = await res.json();
+        let result: { error?: string };
+        try {
+          result = await res.json();
+        } catch {
+          setApprovalStatus(`Failed to ${action} account (invalid response).`);
+          return;
+        }
         if (!res.ok) {
           setApprovalStatus(result.error ?? `Failed to ${action} account.`);
           return;

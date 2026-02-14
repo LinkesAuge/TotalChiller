@@ -245,7 +245,7 @@ function SidebarNav(): JSX.Element {
                             return (
                               <Link
                                 key={cat.id}
-                                href={`/forum?category=${cat.slug}`}
+                                href={`/forum?category=${encodeURIComponent(cat.slug)}`}
                                 className={`nav-sub-item${isCatActive ? " active" : ""}`}
                               >
                                 <span className="nav-sub-dot" />

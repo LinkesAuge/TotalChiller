@@ -8,7 +8,7 @@ import CmsPageShell from "../components/cms-page-shell";
 
 function ContactClient(): JSX.Element {
   const t = useTranslations("contact");
-  const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, saveField } = useSiteContent("contact");
+  const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, cDe, saveField } = useSiteContent("contact");
 
   return (
     <CmsPageShell breadcrumb={t("breadcrumb")} title={t("title")} isLoaded={isLoaded} error={error}>
@@ -20,6 +20,7 @@ function ContactClient(): JSX.Element {
             className="card-title"
             value={c("getInTouch", "title", t("getInTouchTitle"))}
             valueEn={cEn("getInTouch", "title")}
+            valueDe={cDe("getInTouch", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -31,6 +32,7 @@ function ContactClient(): JSX.Element {
             as="div"
             value={c("getInTouch", "intro", t("introText"))}
             valueEn={cEn("getInTouch", "intro")}
+            valueDe={cDe("getInTouch", "intro")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -46,6 +48,7 @@ function ContactClient(): JSX.Element {
               `**${t("discord")}**\n${t("discordDesc")}\n\n**${t("emailTitle")}**\n${t("emailDesc")}\n\n**${t("inGame")}**\n${t("inGameDesc")}`,
             )}
             valueEn={cEn("getInTouch", "methods")}
+            valueDe={cDe("getInTouch", "methods")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -64,6 +67,7 @@ function ContactClient(): JSX.Element {
             className="card-title"
             value={c("join", "title", t("joinTitle"))}
             valueEn={cEn("join", "title")}
+            valueDe={cDe("join", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -75,6 +79,7 @@ function ContactClient(): JSX.Element {
             as="div"
             value={c("join", "text", t("joinText"))}
             valueEn={cEn("join", "text")}
+            valueDe={cDe("join", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -101,6 +106,7 @@ function ContactClient(): JSX.Element {
             className="card-title"
             value={c("response", "title", t("responseTitle"))}
             valueEn={cEn("response", "title")}
+            valueDe={cDe("response", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -116,6 +122,7 @@ function ContactClient(): JSX.Element {
               `${t("responseIntro")}\n\n- ${t("responseDiscord")} — ${t("responseDiscordBadge")}\n- ${t("responseEmail")} — ${t("responseEmailBadge")}\n- ${t("responseRecruitment")} — ${t("responseRecruitmentBadge")}\n- ${t("responsePrivacy")} — ${t("responsePrivacyBadge")}`,
             )}
             valueEn={cEn("response", "text")}
+            valueDe={cDe("response", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -134,6 +141,7 @@ function ContactClient(): JSX.Element {
             className="card-title"
             value={c("faq", "title", t("faqTitle"))}
             valueEn={cEn("faq", "title")}
+            valueDe={cDe("faq", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -149,6 +157,7 @@ function ContactClient(): JSX.Element {
               `**${t("faq1Question")}** ${t("faq1Start")} [${t("faq1Link")}](/auth/register). ${t("faq1End")}\n\n**${t("faq2Question")}** ${t("faq2Start")} [${t("faq2Link")}](/auth/forgot) ${t("faq2End")}\n\n**${t("faq3Question")}** ${t("faq3Start")} [${t("faq3AboutLink")}](/about) ${t("faq3Mid")} [${t("faq3HomeLink")}](/home).`,
             )}
             valueEn={cEn("faq", "text")}
+            valueDe={cDe("faq", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown

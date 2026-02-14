@@ -441,6 +441,19 @@ A comprehensive audit was performed covering security, architecture, SEO, access
 - Protected via `proxy.ts` admin path check. Nav link in sidebar admin section.
 - `public/design-assets/` committed to git for production deployment. `public/design-system-previews/` gitignored (runtime uploads).
 
+## Full Codebase Bug Fix (Feb 2026)
+
+Comprehensive code review identified and fixed 47 issues across 38 files:
+
+- **4 Critical**: Monthly recurrence date rollover, CMS bilingual editing data loss, news deep-link infinite loop, auth redirect validation.
+- **8 High**: Charts API null crashes + IDOR, forum cross-clan deep-link, messaging unhandled rejections, voting race conditions, events deep-link timing.
+- **18 Medium**: API delete responses, search injection, data validation, password strength, username uniqueness, rate limiter IP, fan-out clan_id, dashboard error handling.
+- **25+ Low**: Admin i18n hardcoded strings, accessibility (inputId, keyboard), effect flicker, sort toggle simplification, error logging.
+
+Key security hardening: same-origin redirect validation, path traversal protection, IDOR prevention, LIKE wildcard escaping, trusted IP source ordering.
+
+See `CODE_REVIEW_ISSUES.md` for the complete fix inventory.
+
 ## Outstanding/Follow-up
 
 - Admin panel refactoring is complete (Feb 2026). All 7 tabs extracted, shared hooks and components created. See "Admin Panel Architecture" section above.

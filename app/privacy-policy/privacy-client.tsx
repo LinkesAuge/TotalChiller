@@ -7,7 +7,7 @@ import CmsPageShell from "../components/cms-page-shell";
 
 function PrivacyClient(): JSX.Element {
   const t = useTranslations("privacyPolicy");
-  const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, saveField } = useSiteContent("privacy");
+  const { canEdit, userId, supabase, locale, isLoaded, error, c, cEn, cDe, saveField } = useSiteContent("privacy");
 
   /* Build fallback from translation keys — all sections as one markdown block */
   const fallbackContent = [
@@ -32,6 +32,7 @@ function PrivacyClient(): JSX.Element {
             className="card-title"
             value={c("policy", "title", t("cardTitle"))}
             valueEn={cEn("policy", "title")}
+            valueDe={cDe("policy", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -44,6 +45,7 @@ function PrivacyClient(): JSX.Element {
             className="card-text-muted"
             value={c("policy", "byline", t("byline"))}
             valueEn={cEn("policy", "byline")}
+            valueDe={cDe("policy", "byline")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -53,6 +55,7 @@ function PrivacyClient(): JSX.Element {
             as="div"
             value={c("policy", "content", fallbackContent)}
             valueEn={cEn("policy", "content")}
+            valueDe={cDe("policy", "content")}
             canEdit={canEdit}
             locale={locale}
             markdown

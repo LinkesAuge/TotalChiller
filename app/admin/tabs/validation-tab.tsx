@@ -463,7 +463,7 @@ export default function ValidationTab(): ReactElement {
                       ]}
                     />
                   ) : (
-                    <span className="badge">{rule.status ?? "active"}</span>
+                    <span className="badge">{rule.status ?? "valid"}</span>
                   )}
                   <div className="list inline action-icons">
                     {isEditing ? (

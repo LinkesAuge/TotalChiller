@@ -815,6 +815,7 @@
     "german": "Deutsch",
     "english": "English",
     "passwordMismatch": "Passwords do not match.",
+    "passwordTooShort": "Password must be at least 8 characters.",
     "updatingPassword": "Updating password...",
     "passwordUpdated": "Password updated successfully.",
     "emailRequired": "Email is required.",
@@ -822,6 +823,7 @@
     "emailUpdateRequested": "Email update requested. Check your inbox to confirm.",
     "onlyAdminsCanChangeUsername": "Only admins can change usernames.",
     "usernameLengthError": "Username must be 2-32 characters.",
+    "usernameExists": "Username already taken.",
     "usernameRequired": "Username is required.",
     "updatingUsername": "Updating username...",
     "usernameUpdated": "Username updated successfully.",
@@ -947,6 +949,41 @@
       "assignAsShadow": "Assign as shadow",
       "saveMembershipChangesConfirm": "Save {count} membership change(s)?"
     },
+    "clansTab": {
+      "clanRequired": "Clan is required.",
+      "clanNameRequired": "Clan name is required.",
+      "selectClanToEdit": "Select a clan to edit.",
+      "updatingClan": "Updating clan...",
+      "creatingClan": "Creating clan...",
+      "clanUpdated": "Clan updated.",
+      "clanCreated": "Clan created.",
+      "clanDeleted": "Clan deleted.",
+      "clanDeleteFailed": "Clan could not be deleted. You may lack the required permissions.",
+      "deletionPhraseNoMatch": "Deletion phrase does not match.",
+      "gameUsernameRequired": "Game username is required.",
+      "updatingGameAccount": "Updating game account...",
+      "gameAccountUpdated": "Game account updated.",
+      "gameAccountDeleted": "Game account deleted.",
+      "selectGameAccountToDelete": "Select a game account to delete.",
+      "selectClanToDelete": "Select a clan to delete.",
+      "unassignedClanCannotDelete": "Unassigned clan cannot be deleted.",
+      "selectClanToSetDefault": "Select a clan to set default.",
+      "defaultClanSaved": "Default clan saved.",
+      "defaultClanCleared": "Default clan cleared.",
+      "allMembershipChangesCleared": "All membership changes cleared.",
+      "noChangesToSave": "No changes to save.",
+      "mustBeLoggedInToUpdateMemberships": "You must be logged in to update memberships.",
+      "membershipUpdated": "Membership updated.",
+      "savingMembershipChanges": "Saving membership changes...",
+      "someMembershipUpdatesNeedFixes": "Some membership updates need fixes before saving.",
+      "allMembershipChangesSaved": "All membership changes saved.",
+      "selectClanBeforeAssigning": "Select a clan before assigning game accounts.",
+      "selectAtLeastOneGameAccount": "Select at least one game account to assign.",
+      "assigningGameAccounts": "Assigning game accounts...",
+      "assignmentsUpdated": "Assignments updated.",
+      "unassigned": "Unassigned",
+      "noGameAccountsMatch": "No game accounts match the filters"
+    },
     "members": {
       "gameAccount": "Game Account",
       "user": "User",
@@ -1030,6 +1067,9 @@
       "importHint": "Upload Match,Replacement,Field,Status",
       "replaceCorrection": "Replace correction list",
       "replaceWarning": "This will delete all existing correction rules for this field before importing."
+    },
+    "correctionsTab": {
+      "deleteWarning": "This will permanently delete the selected correction rules."
     },
     "logs": {
       "title": "Audit Logs",
@@ -1377,6 +1417,7 @@
   },
   "dataImport": {
     "uploadCsv": "Upload CSV",
+    "csvColumns": "DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN",
     "csvFileLabel": "CSV File",
     "filename": "Filename",
     "noFileSelected": "No file selected",
@@ -1494,7 +1535,8 @@
     "committingRows": "Committing rows to Supabase...",
     "commitFailed": "Commit failed.",
     "committedRows": "Committed {count} rows.",
-    "noValidRowsToCommit": "No valid rows to commit."
+    "noValidRowsToCommit": "No valid rows to commit.",
+    "batchEditClan": "Batch edit clan"
   },
   "dataTable": {
     "searchFilters": "Search & Filters",
@@ -1614,7 +1656,8 @@
     "validationPlayerSourceChestRequired": "Player, source, chest are required.",
     "validationClanRequired": "Clan is required.",
     "validationScoreNonNegative": "Score must be a non-negative number.",
-    "validationScoreInteger": "Score must be an integer."
+    "validationScoreInteger": "Score must be an integer.",
+    "batchEditClan": "Batch edit clan"
   },
   "forum": {
     "breadcrumb": "TotalChiller \u2022 Clan Platform",
@@ -1687,6 +1730,7 @@
     "deleteCommentConfirm": "Delete this comment?",
     "deleteCommentButton": "Delete",
     "deleteCommentFailed": "Failed to delete comment.",
+    "loadCommentsFailed": "Failed to load comments.",
     "saveFailed": "Failed to save.",
     "voteFailed": "Vote failed.",
     "deleteFailed": "Failed to delete post.",

@@ -100,6 +100,7 @@ export interface UseEventsResult {
   readonly editTplRecurrence: RecurrenceType;
   readonly editTplRecurrenceEnd: string;
   readonly editTplRecurrenceOngoing: boolean;
+  readonly editTplBannerUrl: string;
 
   /* ── Delete modal state ── */
   readonly deleteEventId: string;
@@ -136,6 +137,7 @@ export interface UseEventsResult {
   readonly setEditTplRecurrence: React.Dispatch<React.SetStateAction<RecurrenceType>>;
   readonly setEditTplRecurrenceEnd: React.Dispatch<React.SetStateAction<string>>;
   readonly setEditTplRecurrenceOngoing: React.Dispatch<React.SetStateAction<boolean>>;
+  readonly setEditTplBannerUrl: React.Dispatch<React.SetStateAction<string>>;
 
   readonly handleBannerUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   readonly applyTemplate: (templateValue: string) => void;
@@ -301,9 +303,11 @@ export function useEvents(): UseEventsResult {
   const handledDeepLinkRef = useRef(false);
   useEffect(() => {
     if (!urlDate || handledDeepLinkRef.current || expandedEvents.length === 0) return;
-    handledDeepLinkRef.current = true;
     const d = new Date(urlDate + "T00:00:00");
     if (isNaN(d.getTime())) return;
+    const eventExists = !urlEventId || expandedEvents.some((e) => e.id === urlEventId);
+    if (!eventExists) return;
+    handledDeepLinkRef.current = true;
     setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
     setSelectedDateKey(urlDate);
     setDateSelectNonce((n) => n + 1);
@@ -314,7 +318,7 @@ export function useEvents(): UseEventsResult {
         el?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
     }
-  }, [urlDate, urlEventId, expandedEvents.length]);
+  }, [urlDate, urlEventId, expandedEvents]);
 
   const shiftCalendarMonth = useCallback((offset: number): void => {
     setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
@@ -388,6 +392,7 @@ export function useEvents(): UseEventsResult {
     editTplRecurrence: templatesState.editTplRecurrence,
     editTplRecurrenceEnd: templatesState.editTplRecurrenceEnd,
     editTplRecurrenceOngoing: templatesState.editTplRecurrenceOngoing,
+    editTplBannerUrl: templatesState.editTplBannerUrl,
     deleteTemplateId: templatesState.deleteTemplateId,
     deleteTemplateName: templatesState.deleteTemplateName,
     deleteTemplateInput: templatesState.deleteTemplateInput,
@@ -404,6 +409,7 @@ export function useEvents(): UseEventsResult {
     setEditTplRecurrence: templatesState.setEditTplRecurrence,
     setEditTplRecurrenceEnd: templatesState.setEditTplRecurrenceEnd,
     setEditTplRecurrenceOngoing: templatesState.setEditTplRecurrenceOngoing,
+    setEditTplBannerUrl: templatesState.setEditTplBannerUrl,
     handleSaveEventAsTemplate: templatesState.handleSaveEventAsTemplate,
     handleStartEditTemplate: templatesState.handleStartEditTemplate,
     handleCancelEditTemplate: templatesState.handleCancelEditTemplate,

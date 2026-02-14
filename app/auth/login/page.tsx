@@ -44,8 +44,14 @@ function LoginPage(): JSX.Element {
     setStatus(t("signedIn"));
     const userId = signInData.user?.id;
     if (userId) {
-      const { data: accounts } = await supabase.from("game_accounts").select("id").eq("user_id", userId).limit(1);
-      if (!accounts || accounts.length === 0) {
+      const { data: accounts, error: accountsError } = await supabase
+        .from("game_accounts")
+        .select("id")
+        .eq("user_id", userId)
+        .limit(1);
+      /* Only redirect to profile if the query succeeded and found no accounts.
+         On transient error, proceed to dashboard — the profile check can happen there. */
+      if (!accountsError && (!accounts || accounts.length === 0)) {
         window.location.href = "/profile";
         return;
       }

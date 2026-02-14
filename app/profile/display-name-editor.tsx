@@ -20,27 +20,16 @@ function DisplayNameEditor({ userId, initialDisplayName, email: _email }: Displa
     event.preventDefault();
     const nextDisplayName = displayName.trim();
     setStatus(t("updating"));
-    if (nextDisplayName) {
-      const { data: existingDisplayName, error: displayNameError } = await supabase
-        .from("profiles")
-        .select("id")
-        .ilike("display_name", nextDisplayName)
-        .neq("id", userId)
-        .maybeSingle();
-      if (displayNameError) {
-        setStatus(displayNameError.message);
-        return;
-      }
-      if (existingDisplayName) {
-        setStatus(t("alreadyExists"));
-        return;
-      }
-    }
     const { error } = await supabase
       .from("profiles")
       .update({ display_name: nextDisplayName || null })
       .eq("id", userId);
     if (error) {
+      // PostgreSQL unique_violation (23505) - profiles_display_name_unique_lower constraint
+      if (error.code === "23505") {
+        setStatus(t("alreadyExists"));
+        return;
+      }
       setStatus(error.message);
       return;
     }

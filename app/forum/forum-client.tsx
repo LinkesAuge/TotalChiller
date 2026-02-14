@@ -219,7 +219,7 @@ function ForumClient(): JSX.Element {
             pagination.setPage(1);
           }}
           onCategoryClick={(slug) => {
-            router.push(`/forum?category=${slug}`);
+            router.push(`/forum?category=${encodeURIComponent(slug)}`);
             pagination.setPage(1);
           }}
           onPostClick={handleOpenPost}

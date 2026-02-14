@@ -85,8 +85,8 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
         const result = await response.json();
         setNotifications(result.data ?? []);
       }
-    } catch {
-      /* Silently ignore aborted requests and network failures */
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") console.warn("[NotificationBell]", err);
     }
   }, []);
 

@@ -285,7 +285,7 @@ export function BatchEditModal(props: BatchEditModalProps): JSX.Element {
             ) : batchEditField === "clan" ? (
               <RadixSelect
                 id="batchEditClan"
-                ariaLabel="Batch edit clan"
+                ariaLabel={t("batchEditClan")}
                 value={batchEditClan}
                 onValueChange={setBatchEditClan}
                 enableSearch

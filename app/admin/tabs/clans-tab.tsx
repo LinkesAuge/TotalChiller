@@ -35,7 +35,7 @@ function validateMembershipEdit(
   membershipEdits: Record<string, MembershipEditState>,
 ): string | null {
   const edit = getMembershipEditValueStub(membership, membershipEdits);
-  if (!edit.clan_id) return "Clan is required.";
+  if (!edit.clan_id) return "clansTab.clanRequired";
   return null;
 }
 
@@ -283,14 +283,14 @@ export default function ClansTab(): ReactElement {
   /* ── Clan modal ── */
   async function handleSaveClan(): Promise<void> {
     if (!clanModal.name.trim()) {
-      setStatus("Clan name is required.");
+      setStatus(tAdmin("clansTab.clanNameRequired"));
       return;
     }
     if (clanModal.mode === "edit" && !selectedClanId) {
-      setStatus("Select a clan to edit.");
+      setStatus(tAdmin("clansTab.selectClanToEdit"));
       return;
     }
-    setStatus(clanModal.mode === "edit" ? "Updating clan..." : "Creating clan...");
+    setStatus(clanModal.mode === "edit" ? tAdmin("clansTab.updatingClan") : tAdmin("clansTab.creatingClan"));
     if (clanModal.mode === "edit") {
       const { data, error } = await supabase
         .from("clans")
@@ -303,7 +303,7 @@ export default function ClansTab(): ReactElement {
         return;
       }
       setSelectedClanId(data?.id ?? selectedClanId);
-      setStatus("Clan updated.");
+      setStatus(tAdmin("clansTab.clanUpdated"));
     } else {
       const { data, error } = await supabase
         .from("clans")
@@ -315,7 +315,7 @@ export default function ClansTab(): ReactElement {
         return;
       }
       if (data?.id) setSelectedClanId(data.id);
-      setStatus("Clan created.");
+      setStatus(tAdmin("clansTab.clanCreated"));
     }
     setClanModal({ open: false, mode: "create", name: "", description: "" });
     await loadClans();
@@ -323,11 +323,11 @@ export default function ClansTab(): ReactElement {
 
   async function handleDeleteClan(): Promise<void> {
     if (!selectedClan || !selectedClanId) {
-      setStatus("Select a clan to delete.");
+      setStatus(tAdmin("clansTab.selectClanToDelete"));
       return;
     }
     if (!clanDelete.isConfirmed(`DELETE ${selectedClan.name}`)) {
-      setStatus("Deletion phrase does not match.");
+      setStatus(tAdmin("clansTab.deletionPhraseNoMatch"));
       return;
     }
     const { data, error } = await supabase.from("clans").delete().eq("id", selectedClanId).select();
@@ -336,11 +336,11 @@ export default function ClansTab(): ReactElement {
       return;
     }
     if (!data || data.length === 0) {
-      setStatus("Clan could not be deleted. You may lack the required permissions.");
+      setStatus(tAdmin("clansTab.clanDeleteFailed"));
       return;
     }
     clanDelete.close();
-    setStatus("Clan deleted.");
+    setStatus(tAdmin("clansTab.clanDeleted"));
     await loadClans();
   }
 
@@ -389,7 +389,7 @@ export default function ClansTab(): ReactElement {
   function cancelAllMembershipEdits(): void {
     setMembershipEdits({});
     setMembershipErrors({});
-    setStatus("All membership changes cleared.");
+    setStatus(tAdmin("clansTab.allMembershipChangesCleared"));
   }
 
   function isMembershipFieldChanged(membership: MembershipRow, field: keyof MembershipEditState): boolean {
@@ -407,19 +407,19 @@ export default function ClansTab(): ReactElement {
     const edits = membershipEdits[membership.id];
     const hasGameAccountEdit = Boolean(membership.game_accounts?.id && gameAccountEdits[membership.game_accounts.id]);
     if (!edits && !hasGameAccountEdit) {
-      setStatus("No changes to save.");
+      setStatus(tAdmin("clansTab.noChangesToSave"));
       return;
     }
     if (edits) {
       const validationError = validateMembershipEdit(membership, membershipEdits);
       if (validationError) {
-        setMembershipErrors((current) => ({ ...current, [membership.id]: validationError }));
+        setMembershipErrors((current) => ({ ...current, [membership.id]: tAdmin(validationError) }));
         return;
       }
     }
     const actorId = await getCurrentUserId();
     if (!actorId) {
-      setStatus("You must be logged in to update memberships.");
+      setStatus(tAdmin("clansTab.mustBeLoggedInToUpdateMemberships"));
       return;
     }
     let membershipPayload: { clan_id: string; is_active: boolean; is_shadow: boolean; rank: string | null } | null =
@@ -474,14 +474,14 @@ export default function ClansTab(): ReactElement {
       delete updated[membership.id];
       return updated;
     });
-    setStatus("Membership updated.");
+    setStatus(tAdmin("clansTab.membershipUpdated"));
     if (shouldReload) await loadMemberships(selectedClanId);
   }
 
   function requestSaveAllMembershipEdits(): void {
     const editEntries = Object.keys(membershipEdits);
     if (editEntries.length === 0) {
-      setStatus("No changes to save.");
+      setStatus(tAdmin("clansTab.noChangesToSave"));
       return;
     }
     setPendingSaveAllMemberships(true);
@@ -491,25 +491,25 @@ export default function ClansTab(): ReactElement {
     const editEntries = Object.keys(membershipEdits);
     if (editEntries.length === 0) return;
     setPendingSaveAllMemberships(false);
-    setStatus("Saving membership changes...");
+    setStatus(tAdmin("clansTab.savingMembershipChanges"));
     let hasValidationError = false;
     for (const membershipId of editEntries) {
       const membership = memberships.find((m) => m.id === membershipId);
       if (!membership) continue;
       const validationError = validateMembershipEdit(membership, membershipEdits);
       if (validationError) {
-        setMembershipErrors((current) => ({ ...current, [membership.id]: validationError }));
+        setMembershipErrors((current) => ({ ...current, [membership.id]: tAdmin(validationError) }));
         hasValidationError = true;
         continue;
       }
       await handleSaveMembershipEdit(membership, false);
     }
     if (hasValidationError) {
-      setStatus("Some membership updates need fixes before saving.");
+      setStatus(tAdmin("clansTab.someMembershipUpdatesNeedFixes"));
       return;
     }
     await loadMemberships(selectedClanId);
-    setStatus("All membership changes saved.");
+    setStatus(tAdmin("clansTab.allMembershipChangesSaved"));
   }
 
   function getMembershipLabel(membership: MembershipRow): string {
@@ -525,7 +525,7 @@ export default function ClansTab(): ReactElement {
   /* ── Assign accounts ── */
   function openAssignAccountsModal(): void {
     if (!selectedClanId) {
-      setStatus("Select a clan before assigning game accounts.");
+      setStatus(tAdmin("clansTab.selectClanBeforeAssigning"));
       return;
     }
     setAssignAccounts((a) => ({
@@ -608,14 +608,14 @@ export default function ClansTab(): ReactElement {
 
   async function handleAssignAccounts(): Promise<void> {
     if (!selectedClanId) {
-      setAssignAccounts((a) => ({ ...a, status: "Select a clan before assigning." }));
+      setAssignAccounts((a) => ({ ...a, status: tAdmin("clansTab.selectClanBeforeAssigning") }));
       return;
     }
     if (assignAccounts.selectedIds.length === 0) {
-      setAssignAccounts((a) => ({ ...a, status: "Select at least one game account to assign." }));
+      setAssignAccounts((a) => ({ ...a, status: tAdmin("clansTab.selectAtLeastOneGameAccount") }));
       return;
     }
-    setAssignAccounts((a) => ({ ...a, status: "Assigning game accounts..." }));
+    setAssignAccounts((a) => ({ ...a, status: tAdmin("clansTab.assigningGameAccounts") }));
     const rows = assignAccounts.selectedIds.map((game_account_id) => ({
       game_account_id,
       clan_id: selectedClanId,
@@ -630,7 +630,7 @@ export default function ClansTab(): ReactElement {
       setAssignAccounts((a) => ({ ...a, status: `Failed to assign: ${error.message}` }));
       return;
     }
-    setAssignAccounts((a) => ({ ...a, status: "Assignments updated." }));
+    setAssignAccounts((a) => ({ ...a, status: tAdmin("clansTab.assignmentsUpdated") }));
     await loadMemberships(selectedClanId);
     closeAssignAccountsModal();
   }
@@ -675,10 +675,10 @@ export default function ClansTab(): ReactElement {
     if (!editState) return true;
     const nextUsername = (editState.game_username ?? account.game_username).trim();
     if (!nextUsername) {
-      setStatus("Game username is required.");
+      setStatus(tAdmin("clansTab.gameUsernameRequired"));
       return false;
     }
-    setStatus("Updating game account...");
+    setStatus(tAdmin("clansTab.updatingGameAccount"));
     const { error } = await supabase.from("game_accounts").update({ game_username: nextUsername }).eq("id", account.id);
     if (error) {
       setStatus(`Failed to update game account: ${error.message}`);
@@ -686,7 +686,7 @@ export default function ClansTab(): ReactElement {
     }
     cancelGameAccountEdit(account.id);
     setActiveGameAccountId("");
-    setStatus("Game account updated.");
+    setStatus(tAdmin("clansTab.gameAccountUpdated"));
     if (shouldReload) await loadMemberships(selectedClanId);
     return true;
   }
@@ -698,11 +698,11 @@ export default function ClansTab(): ReactElement {
 
   async function handleConfirmDeleteGameAccount(): Promise<void> {
     if (!gameAccountToDelete) {
-      setStatus("Select a game account to delete.");
+      setStatus(tAdmin("clansTab.selectGameAccountToDelete"));
       return;
     }
     if (!gameAccountDelete.isConfirmed(`DELETE ${gameAccountToDelete.game_username}`)) {
-      setStatus("Deletion phrase does not match.");
+      setStatus(tAdmin("clansTab.deletionPhraseNoMatch"));
       return;
     }
     const { error } = await supabase.from("game_accounts").delete().eq("id", gameAccountToDelete.id);
@@ -712,7 +712,7 @@ export default function ClansTab(): ReactElement {
     }
     gameAccountDelete.close();
     setGameAccountToDelete(null);
-    setStatus("Game account deleted.");
+    setStatus(tAdmin("clansTab.gameAccountDeleted"));
     await loadMemberships(selectedClanId);
   }
 
@@ -734,11 +734,11 @@ export default function ClansTab(): ReactElement {
           ariaLabel={tAdmin("clans.deleteClan")}
           onClick={() => {
             if (!selectedClan || !selectedClanId) {
-              setStatus("Select a clan to delete.");
+              setStatus(tAdmin("clansTab.selectClanToDelete"));
               return;
             }
             if (selectedClanId === unassignedClanId) {
-              setStatus("Unassigned clan cannot be deleted.");
+              setStatus(tAdmin("clansTab.unassignedClanCannotDelete"));
               return;
             }
             clanDelete.openConfirm();
@@ -791,7 +791,7 @@ export default function ClansTab(): ReactElement {
               ariaLabel={tAdmin("clans.editClan")}
               onClick={() => {
                 if (!selectedClan) {
-                  setStatus("Select a clan to edit.");
+                  setStatus(tAdmin("clansTab.selectClanToEdit"));
                   return;
                 }
                 setClanModal({
@@ -838,7 +838,7 @@ export default function ClansTab(): ReactElement {
               ariaLabel={tAdmin("clans.setDefault")}
               onClick={() => {
                 if (!selectedClanId) {
-                  setStatus("Select a clan to set default.");
+                  setStatus(tAdmin("clansTab.selectClanToSetDefault"));
                   return;
                 }
                 void supabase
@@ -849,7 +849,7 @@ export default function ClansTab(): ReactElement {
                     if (error) setStatus(`Failed to set default: ${error.message}`);
                     else {
                       setDefaultClanId(selectedClanId);
-                      setStatus("Default clan saved.");
+                      setStatus(tAdmin("clansTab.defaultClanSaved"));
                     }
                   });
               }}
@@ -882,7 +882,7 @@ export default function ClansTab(): ReactElement {
                       if (error) setStatus(`Failed to clear default: ${error.message}`);
                       else {
                         setDefaultClanId("");
-                        setStatus("Default clan cleared.");
+                        setStatus(tAdmin("clansTab.defaultClanCleared"));
                       }
                     });
                 }}
@@ -1299,7 +1299,9 @@ export default function ClansTab(): ReactElement {
                   ]}
                 />
               </div>
-              <span className="text-muted">{assignAccounts.selectedIds.length} selected</span>
+              <span className="text-muted">
+                {assignAccounts.selectedIds.length} {tAdmin("common.selected")}
+              </span>
               <label
                 style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", marginLeft: "auto" }}
               >
@@ -1315,7 +1317,7 @@ export default function ClansTab(): ReactElement {
             {filteredAssignableAccounts.length === 0 ? (
               <div className="list">
                 <div className="list-item">
-                  <span>No game accounts match the filters</span>
+                  <span>{tAdmin("clansTab.noGameAccountsMatch")}</span>
                 </div>
               </div>
             ) : (
@@ -1337,7 +1339,7 @@ export default function ClansTab(): ReactElement {
                   {paginatedAssignableAccounts.map((account) => {
                     const clanName =
                       clans.find((c) => c.id === account.clan_id)?.name ??
-                      (account.clan_id ? tAdmin("common.unknown") : "Unassigned");
+                      (account.clan_id ? tAdmin("common.unknown") : tAdmin("clansTab.unassigned"));
                     const isSelected = assignAccounts.selectedIds.includes(account.id);
                     return (
                       <label key={account.id} className="list-item" style={{ cursor: "pointer" }}>

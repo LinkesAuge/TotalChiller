@@ -34,11 +34,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const tableName = body.type === "news" ? "articles" : "events";
     const { data: record, error: recordError } = await serviceClient
       .from(tableName)
-      .select("id,created_by")
+      .select("id,created_by,clan_id")
       .eq("id", body.reference_id)
       .single();
     if (recordError || !record) {
       return NextResponse.json({ error: "Referenced record not found." }, { status: 404 });
+    }
+    if ((record.clan_id as string) !== body.clan_id) {
+      return NextResponse.json({ error: "The article/event does not belong to the specified clan." }, { status: 403 });
     }
     if ((record.created_by as string) !== auth.userId) {
       return NextResponse.json(

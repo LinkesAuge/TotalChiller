@@ -131,6 +131,10 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
       updateFormState(setFormState, { passwordStatus: t("passwordMismatch") });
       return;
     }
+    if (formState.password.length < 8) {
+      updateFormState(setFormState, { passwordStatus: t("passwordTooShort") });
+      return;
+    }
     updateFormState(setFormState, { passwordStatus: t("updatingPassword") });
     const { error } = await supabase.auth.updateUser({ password: formState.password });
     if (error) {
@@ -176,6 +180,16 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
       updateFormState(setFormState, { usernameStatus: t("usernameRequired") });
       return;
     }
+    const { data: existingUser } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("user_db", nextUsername)
+      .neq("id", userId)
+      .maybeSingle();
+    if (existingUser) {
+      updateFormState(setFormState, { usernameStatus: t("usernameExists") });
+      return;
+    }
     updateFormState(setFormState, { usernameStatus: t("updatingUsername") });
     const { error } = await supabase
       .from("profiles")
@@ -197,27 +211,15 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
     event.preventDefault();
     const nextDisplayName = formState.displayName.trim();
     updateFormState(setFormState, { displayNameStatus: t("updatingNickname") });
-    if (nextDisplayName) {
-      const { data: existingDisplayName, error: displayNameError } = await supabase
-        .from("profiles")
-        .select("id")
-        .ilike("display_name", nextDisplayName)
-        .neq("id", userId)
-        .maybeSingle();
-      if (displayNameError) {
-        updateFormState(setFormState, { displayNameStatus: displayNameError.message });
-        return;
-      }
-      if (existingDisplayName) {
-        updateFormState(setFormState, { displayNameStatus: t("nicknameExists") });
-        return;
-      }
-    }
     const { error } = await supabase
       .from("profiles")
       .update({ display_name: nextDisplayName || null })
       .eq("id", userId);
     if (error) {
+      if (error.code === "23505") {
+        updateFormState(setFormState, { displayNameStatus: t("nicknameExists") });
+        return;
+      }
       updateFormState(setFormState, { displayNameStatus: error.message });
       return;
     }

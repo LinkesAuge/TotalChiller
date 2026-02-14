@@ -77,6 +77,7 @@ function TrendIndicator({ trend }: { readonly trend: number }): JSX.Element {
 
 /** Clamp a trend percentage to a progress bar width (50% baseline ± half the trend). */
 function trendToProgressWidth(trend: number): string {
+  if (!Number.isFinite(trend)) return "50%";
   return `${Math.min(100, Math.max(0, 50 + trend / 2))}%`;
 }
 
@@ -89,9 +90,16 @@ function DashboardClient(): JSX.Element {
   const t = useTranslations("dashboard");
   const clanContext = useClanContext();
 
-  const { announcements, events, stats, isLoadingAnnouncements, isLoadingEvents, isLoadingStats } = useDashboardData({
-    clanId: clanContext?.clanId,
-  });
+  const {
+    announcements,
+    events,
+    stats,
+    isLoadingAnnouncements,
+    isLoadingEvents,
+    isLoadingStats,
+    announcementsError,
+    eventsError,
+  } = useDashboardData({ clanId: clanContext?.clanId });
 
   /* ── Tag color helper ── */
   const tagColorMap = useMemo(() => {
@@ -126,7 +134,13 @@ function DashboardClient(): JSX.Element {
               isLoading={isLoadingAnnouncements}
               isEmpty={announcements.length === 0}
               loadingNode={<div className="py-4 text-sm text-text-muted">{t("loading")}</div>}
-              emptyNode={<div className="py-4 text-sm text-text-muted">{t("noAnnouncements")}</div>}
+              emptyNode={
+                announcementsError ? (
+                  <div className="py-4 text-sm text-red-500">{announcementsError}</div>
+                ) : (
+                  <div className="py-4 text-sm text-text-muted">{t("noAnnouncements")}</div>
+                )
+              }
             >
               {announcements.map((article, i) => {
                 const firstTag = article.tags.length > 0 ? article.tags[0] : null;
@@ -263,7 +277,13 @@ function DashboardClient(): JSX.Element {
               isLoading={isLoadingEvents}
               isEmpty={events.length === 0}
               loadingNode={<div className="py-2 text-sm text-text-muted">{t("loading")}</div>}
-              emptyNode={<div className="py-2 text-sm text-text-muted">{t("noEventsScheduled")}</div>}
+              emptyNode={
+                eventsError ? (
+                  <div className="py-2 text-sm text-red-500">{eventsError}</div>
+                ) : (
+                  <div className="py-2 text-sm text-text-muted">{t("noEventsScheduled")}</div>
+                )
+              }
             >
               {events.map((event, i) => {
                 const color = EVENT_DOT_COLORS[i % EVENT_DOT_COLORS.length];

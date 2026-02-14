@@ -31,6 +31,7 @@ function HomeClient(): JSX.Element {
     error,
     c,
     cEn,
+    cDe,
     saveField,
     addListItem,
     updateListItem,
@@ -81,6 +82,7 @@ function HomeClient(): JSX.Element {
               className="card-title"
               value={c("aboutUs", "title", t("missionTitle"))}
               valueEn={cEn("aboutUs", "title")}
+              valueDe={cDe("aboutUs", "title")}
               canEdit={canEdit}
               locale={locale}
               singleLine
@@ -90,6 +92,7 @@ function HomeClient(): JSX.Element {
               <EditableText
                 value={c("aboutUs", "badge", t("missionBadge"))}
                 valueEn={cEn("aboutUs", "badge")}
+                valueDe={cDe("aboutUs", "badge")}
                 canEdit={canEdit}
                 locale={locale}
                 singleLine
@@ -104,6 +107,7 @@ function HomeClient(): JSX.Element {
               as="div"
               value={c("aboutUs", "intro", t("missionText1"))}
               valueEn={cEn("aboutUs", "intro")}
+              valueDe={cDe("aboutUs", "intro")}
               canEdit={canEdit}
               locale={locale}
               markdown
@@ -118,6 +122,7 @@ function HomeClient(): JSX.Element {
               as="div"
               value={c("aboutUs", "requirements", t("aboutRequirements"))}
               valueEn={cEn("aboutUs", "requirements")}
+              valueDe={cDe("aboutUs", "requirements")}
               canEdit={canEdit}
               locale={locale}
               markdown
@@ -132,6 +137,7 @@ function HomeClient(): JSX.Element {
               as="div"
               value={c("aboutUs", "contact", t("aboutContact"))}
               valueEn={cEn("aboutUs", "contact")}
+              valueDe={cDe("aboutUs", "contact")}
               canEdit={canEdit}
               locale={locale}
               markdown
@@ -145,6 +151,7 @@ function HomeClient(): JSX.Element {
               as="div"
               value={c("aboutUs", "extras", t("aboutExtras"))}
               valueEn={cEn("aboutUs", "extras")}
+              valueDe={cDe("aboutUs", "extras")}
               canEdit={canEdit}
               locale={locale}
               markdown
@@ -158,6 +165,7 @@ function HomeClient(): JSX.Element {
               as="div"
               value={c("aboutUs", "disclaimer", t("aboutDisclaimer"))}
               valueEn={cEn("aboutUs", "disclaimer")}
+              valueDe={cDe("aboutUs", "disclaimer")}
               canEdit={canEdit}
               locale={locale}
               markdown
@@ -186,6 +194,7 @@ function HomeClient(): JSX.Element {
               className="card-title"
               value={c("whyJoin", "title", t("whyJoinTitle"))}
               valueEn={cEn("whyJoin", "title")}
+              valueDe={cDe("whyJoin", "title")}
               canEdit={canEdit}
               locale={locale}
               singleLine
@@ -198,6 +207,7 @@ function HomeClient(): JSX.Element {
             as="div"
             value={c("whyJoin", "text", t("whyJoinText"))}
             valueEn={cEn("whyJoin", "text")}
+            valueDe={cDe("whyJoin", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -233,6 +243,7 @@ function HomeClient(): JSX.Element {
             className="card-title"
             value={c("publicNews", "title", t("publicNews"))}
             valueEn={cEn("publicNews", "title")}
+            valueDe={cDe("publicNews", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -245,6 +256,7 @@ function HomeClient(): JSX.Element {
             as="div"
             value={c("publicNews", "text", t("publicNewsText"))}
             valueEn={cEn("publicNews", "text")}
+            valueDe={cDe("publicNews", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -275,6 +287,7 @@ function HomeClient(): JSX.Element {
             className="card-title"
             value={c("howItWorks", "title", t("howItWorksTitle"))}
             valueEn={cEn("howItWorks", "title")}
+            valueDe={cDe("howItWorks", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -287,6 +300,7 @@ function HomeClient(): JSX.Element {
             className="card-text-muted"
             value={c("howItWorks", "text1", t("howItWorksText1"))}
             valueEn={cEn("howItWorks", "text1")}
+            valueDe={cDe("howItWorks", "text1")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -299,6 +313,7 @@ function HomeClient(): JSX.Element {
             className="card-text-muted"
             value={c("howItWorks", "text2", t("howItWorksText2"))}
             valueEn={cEn("howItWorks", "text2")}
+            valueDe={cDe("howItWorks", "text2")}
             canEdit={canEdit}
             locale={locale}
             markdown
@@ -317,6 +332,7 @@ function HomeClient(): JSX.Element {
             className="card-title"
             value={c("contact", "title", t("contactTitle"))}
             valueEn={cEn("contact", "title")}
+            valueDe={cDe("contact", "title")}
             canEdit={canEdit}
             locale={locale}
             singleLine
@@ -329,6 +345,7 @@ function HomeClient(): JSX.Element {
             className="card-text-muted"
             value={c("contact", "text", t("contactText"))}
             valueEn={cEn("contact", "text")}
+            valueDe={cDe("contact", "text")}
             canEdit={canEdit}
             locale={locale}
             markdown

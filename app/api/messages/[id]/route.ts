@@ -61,14 +61,18 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
       return NextResponse.json({ error: "Invalid message ID format." }, { status: 400 });
     }
     const svc = createSupabaseServiceRoleClient();
-    const { error: deleteError } = await svc
+    const { data: affected, error: deleteError } = await svc
       .from("message_recipients")
       .update({ deleted_at: new Date().toISOString() })
       .eq("message_id", parsed.data)
-      .eq("recipient_id", auth.userId);
+      .eq("recipient_id", auth.userId)
+      .select("id");
     if (deleteError) {
       captureApiError("DELETE /api/messages/[id]", deleteError);
       return NextResponse.json({ error: "Failed to delete message." }, { status: 500 });
+    }
+    if (!affected || affected.length === 0) {
+      return NextResponse.json({ error: "Message not found." }, { status: 404 });
     }
     return NextResponse.json({ data: { id: parsed.data, deleted: true } });
   } catch (err) {

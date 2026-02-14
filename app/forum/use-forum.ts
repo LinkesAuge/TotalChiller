@@ -146,6 +146,8 @@ export function useForum(t: (key: string) => string): UseForumResult {
   const detailRef = useRef<HTMLElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const categoriesRef = useRef<ForumCategory[]>([]);
+  const votingPostRef = useRef(false);
+  const votingCommentRef = useRef(false);
   const prevUrlPostIdRef = useRef<string>(urlPostId);
   /** Tracks which post was successfully opened by the deep-link effect.
    *  Set *after* the async fetch completes so React strict-mode double-mount
@@ -330,6 +332,7 @@ export function useForum(t: (key: string) => string): UseForumResult {
         .eq("post_id", postId)
         .order("created_at", { ascending: true });
       if (error) {
+        if (!getCancelled?.()) pushToast(t("loadCommentsFailed"));
         return;
       }
       if (getCancelled?.()) return;
@@ -369,7 +372,7 @@ export function useForum(t: (key: string) => string): UseForumResult {
       if (getCancelled?.()) return;
       setComments(topLevel);
     },
-    [supabase, currentUserId, tablesReady],
+    [supabase, currentUserId, tablesReady, pushToast, t],
   );
 
   /* ─── Load comments when viewing post detail ─── */
@@ -392,7 +395,12 @@ export function useForum(t: (key: string) => string): UseForumResult {
     if (openedPostIdRef.current === urlPostId) return;
     let cancelled = false;
     async function openLinkedPost(): Promise<void> {
-      const { data, error } = await supabase.from("forum_posts").select("*").eq("id", urlPostId).maybeSingle();
+      const { data, error } = await supabase
+        .from("forum_posts")
+        .select("*")
+        .eq("id", urlPostId)
+        .eq("clan_id", clanContext!.clanId)
+        .maybeSingle();
       if (cancelled || error || !data) return;
       const raw = data as ForumPost;
       const nameMap = await resolveAuthorNames(supabase, [raw.author_id]);
@@ -447,39 +455,48 @@ export function useForum(t: (key: string) => string): UseForumResult {
   const handleVotePost = useCallback(
     async (postId: string, voteType: number): Promise<void> => {
       if (!currentUserId) return;
-      const post = posts.find((p) => p.id === postId) ?? (selectedPost?.id === postId ? selectedPost : undefined);
-      if (!post) return;
-      const currentVote = post.userVote ?? 0;
-      let newVote = voteType;
-      if (currentVote === voteType) {
-        newVote = 0;
-        const { error } = await supabase
-          .from("forum_votes")
-          .delete()
-          .eq("post_id", postId)
-          .eq("user_id", currentUserId);
-        if (error) {
+      if (votingPostRef.current) return;
+      votingPostRef.current = true;
+      try {
+        const post = posts.find((p) => p.id === postId) ?? (selectedPost?.id === postId ? selectedPost : undefined);
+        if (!post) return;
+        const currentVote = post.userVote ?? 0;
+        let newVote = voteType;
+        if (currentVote === voteType) {
+          newVote = 0;
+          const { error } = await supabase
+            .from("forum_votes")
+            .delete()
+            .eq("post_id", postId)
+            .eq("user_id", currentUserId);
+          if (error) {
+            pushToast(t("voteFailed"));
+            return;
+          }
+        } else {
+          const { error } = await supabase
+            .from("forum_votes")
+            .upsert(
+              { post_id: postId, user_id: currentUserId, vote_type: voteType },
+              { onConflict: "post_id,user_id" },
+            );
+          if (error) {
+            pushToast(t("voteFailed"));
+            return;
+          }
+        }
+        const scoreDelta = newVote - currentVote;
+        const newScore = post.score + scoreDelta;
+        const { error: scoreError } = await supabase.from("forum_posts").update({ score: newScore }).eq("id", postId);
+        if (scoreError) {
           pushToast(t("voteFailed"));
           return;
         }
-      } else {
-        const { error } = await supabase
-          .from("forum_votes")
-          .upsert({ post_id: postId, user_id: currentUserId, vote_type: voteType }, { onConflict: "post_id,user_id" });
-        if (error) {
-          pushToast(t("voteFailed"));
-          return;
-        }
+        setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, score: newScore, userVote: newVote } : p)));
+        setSelectedPost((prev) => (prev?.id === postId ? { ...prev, score: newScore, userVote: newVote } : prev));
+      } finally {
+        votingPostRef.current = false;
       }
-      const scoreDelta = newVote - currentVote;
-      const newScore = post.score + scoreDelta;
-      const { error: scoreError } = await supabase.from("forum_posts").update({ score: newScore }).eq("id", postId);
-      if (scoreError) {
-        pushToast(t("voteFailed"));
-        return;
-      }
-      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, score: newScore, userVote: newVote } : p)));
-      setSelectedPost((prev) => (prev?.id === postId ? { ...prev, score: newScore, userVote: newVote } : prev));
     },
     [supabase, currentUserId, posts, selectedPost, pushToast, t],
   );
@@ -487,58 +504,64 @@ export function useForum(t: (key: string) => string): UseForumResult {
   const handleVoteComment = useCallback(
     async (commentId: string, voteType: number): Promise<void> => {
       if (!currentUserId) return;
-      function findComment(list: ForumComment[]): ForumComment | undefined {
-        for (const c of list) {
-          if (c.id === commentId) return c;
-          const found = findComment(c.replies ?? []);
-          if (found) return found;
+      if (votingCommentRef.current) return;
+      votingCommentRef.current = true;
+      try {
+        function findComment(list: ForumComment[]): ForumComment | undefined {
+          for (const c of list) {
+            if (c.id === commentId) return c;
+            const found = findComment(c.replies ?? []);
+            if (found) return found;
+          }
+          return undefined;
         }
-        return undefined;
-      }
-      const comment = findComment(comments);
-      if (!comment) return;
-      const currentVote = comment.userVote ?? 0;
-      let newVote = voteType;
-      if (currentVote === voteType) {
-        newVote = 0;
-        const { error } = await supabase
-          .from("forum_comment_votes")
-          .delete()
-          .eq("comment_id", commentId)
-          .eq("user_id", currentUserId);
-        if (error) {
+        const comment = findComment(comments);
+        if (!comment) return;
+        const currentVote = comment.userVote ?? 0;
+        let newVote = voteType;
+        if (currentVote === voteType) {
+          newVote = 0;
+          const { error } = await supabase
+            .from("forum_comment_votes")
+            .delete()
+            .eq("comment_id", commentId)
+            .eq("user_id", currentUserId);
+          if (error) {
+            pushToast(t("voteFailed"));
+            return;
+          }
+        } else {
+          const { error } = await supabase
+            .from("forum_comment_votes")
+            .upsert(
+              { comment_id: commentId, user_id: currentUserId, vote_type: voteType },
+              { onConflict: "comment_id,user_id" },
+            );
+          if (error) {
+            pushToast(t("voteFailed"));
+            return;
+          }
+        }
+        const scoreDelta = newVote - currentVote;
+        const newScore = comment.score + scoreDelta;
+        const { error: scoreError } = await supabase
+          .from("forum_comments")
+          .update({ score: newScore })
+          .eq("id", commentId);
+        if (scoreError) {
           pushToast(t("voteFailed"));
           return;
         }
-      } else {
-        const { error } = await supabase
-          .from("forum_comment_votes")
-          .upsert(
-            { comment_id: commentId, user_id: currentUserId, vote_type: voteType },
-            { onConflict: "comment_id,user_id" },
-          );
-        if (error) {
-          pushToast(t("voteFailed"));
-          return;
+        function updateTree(list: ForumComment[]): ForumComment[] {
+          return list.map((c) => {
+            if (c.id === commentId) return { ...c, score: newScore, userVote: newVote };
+            return { ...c, replies: updateTree(c.replies ?? []) };
+          });
         }
+        setComments((prev) => updateTree(prev));
+      } finally {
+        votingCommentRef.current = false;
       }
-      const scoreDelta = newVote - currentVote;
-      const newScore = comment.score + scoreDelta;
-      const { error: scoreError } = await supabase
-        .from("forum_comments")
-        .update({ score: newScore })
-        .eq("id", commentId);
-      if (scoreError) {
-        pushToast(t("voteFailed"));
-        return;
-      }
-      function updateTree(list: ForumComment[]): ForumComment[] {
-        return list.map((c) => {
-          if (c.id === commentId) return { ...c, score: newScore, userVote: newVote };
-          return { ...c, replies: updateTree(c.replies ?? []) };
-        });
-      }
-      setComments((prev) => updateTree(prev));
     },
     [supabase, currentUserId, comments, pushToast, t],
   );
@@ -783,12 +806,13 @@ export function useForum(t: (key: string) => string): UseForumResult {
 
   /* ─── Navigate back to list ─── */
   const handleBackToList = useCallback((): void => {
+    const slug = selectedPost?.categorySlug;
     openedPostIdRef.current = "";
     setViewMode("list");
     setSelectedPost(null);
-    router.replace("/forum");
+    router.replace(slug ? `/forum?category=${encodeURIComponent(slug)}` : "/forum");
     void loadPosts();
-  }, [loadPosts, router]);
+  }, [loadPosts, router, selectedPost?.categorySlug]);
 
   const resetFormAndSetList = useCallback((): void => {
     resetForm();

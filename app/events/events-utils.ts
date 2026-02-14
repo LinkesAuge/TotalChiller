@@ -81,7 +81,12 @@ export function parseDateKey(dateKey: string): Date | null {
   if (!year || !month || !day) {
     return null;
   }
-  return new Date(year, month - 1, day);
+  const d = new Date(year, month - 1, day);
+  /* Reject invalid dates like Feb 30 (JS rolls over to Mar 2). */
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+    return null;
+  }
+  return d;
 }
 
 export function getDateRangeKeys(startIso: string, endIso: string): readonly string[] {
@@ -112,7 +117,13 @@ export function advanceCursorDate(cursor: Date, type: RecurrenceType): void {
   } else if (type === "biweekly") {
     cursor.setDate(cursor.getDate() + 14);
   } else if (type === "monthly") {
+    /* Clamp to last day of target month to avoid rollover
+       (e.g. Jan 31 + 1 month → Feb 28, not Mar 2/3). */
+    const originalDay = cursor.getDate();
+    cursor.setDate(1);
     cursor.setMonth(cursor.getMonth() + 1);
+    const maxDay = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+    cursor.setDate(Math.min(originalDay, maxDay));
   }
 }
 
@@ -147,7 +158,8 @@ export function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon
     if (ev.recurrence_type === "none") continue;
     const durationMs = new Date(ev.ends_at).getTime() - new Date(ev.starts_at).getTime();
     const cursor = new Date(ev.starts_at);
-    const recEnd = ev.recurrence_end_date ? new Date(ev.recurrence_end_date + "T23:59:59") : horizon;
+    /* Use UTC end-of-day so the comparison with UTC-based starts_at is consistent. */
+    const recEnd = ev.recurrence_end_date ? new Date(ev.recurrence_end_date + "T23:59:59Z") : horizon;
     const effectiveEnd = recEnd < horizon ? recEnd : horizon;
     let guard = 0;
     advanceCursorDate(cursor, ev.recurrence_type);

@@ -127,15 +127,23 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
     void init();
   }, [supabase, loadClans]);
 
-  /* ── Restore selected clan from localStorage on first load ── */
+  /* ── Restore/sync selected clan: localStorage takes priority, else default clan ── */
   const [hasRestoredClan, setHasRestoredClan] = useState(false);
   useEffect(() => {
-    if (hasRestoredClan || clans.length === 0) return;
-    const stored = window.localStorage.getItem("tc.currentClanId") ?? "";
-    const match = stored ? clans.find((c) => c.id === stored) : undefined;
-    setSelectedClanId(match?.id ?? clans[0]!.id);
-    setHasRestoredClan(true);
-  }, [clans, hasRestoredClan]);
+    if (clans.length === 0) return;
+    if (!hasRestoredClan) {
+      const stored = window.localStorage.getItem("tc.currentClanId") ?? "";
+      const match = stored ? clans.find((c) => c.id === stored) : undefined;
+      setSelectedClanId(
+        match?.id ?? (defaultClanId && clans.some((c) => c.id === defaultClanId) ? defaultClanId : clans[0]!.id),
+      );
+      setHasRestoredClan(true);
+    } else if (defaultClanId && clans.some((c) => c.id === defaultClanId)) {
+      const stored = window.localStorage.getItem("tc.currentClanId") ?? "";
+      const match = stored ? clans.find((c) => c.id === stored) : undefined;
+      if (!match) setSelectedClanId(defaultClanId);
+    }
+  }, [clans, defaultClanId, hasRestoredClan]);
 
   /* ── Sync active section from URL ── */
   useEffect(() => {
@@ -153,14 +161,6 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
   useEffect(() => {
     if (status) pushToast(status);
   }, [pushToast, status]);
-
-  /* ── Sync default clan selection ── */
-  useEffect(() => {
-    if (clans.length === 0) return;
-    if (defaultClanId && clans.some((c) => c.id === defaultClanId)) {
-      setSelectedClanId(defaultClanId);
-    }
-  }, [clans, defaultClanId]);
 
   /* ── Section navigation ── */
   const updateActiveSection = useCallback(

@@ -36,6 +36,8 @@ interface EditableTextProps {
   readonly locale: string;
   /** The English content (for bilingual editing) */
   readonly valueEn?: string;
+  /** The German content (for bilingual editing when locale is EN) */
+  readonly valueDe?: string;
   /** Render as markdown via AppMarkdown (default: false) */
   readonly markdown?: boolean;
   /** Use a single-line input instead of textarea */
@@ -63,6 +65,7 @@ function EditableText({
   canEdit,
   locale,
   valueEn = "",
+  valueDe = "",
   markdown = false,
   singleLine = false,
   as: Tag = "span",
@@ -84,7 +87,10 @@ function EditableText({
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleOpen(): void {
-    setEditDe(locale === "en" ? valueEn || value : value);
+    /* Always populate DE from the German source, EN from the English source.
+       When locale is "en", `value` is the English text — use `valueDe` for German.
+       When locale is "de", `value` is the German text — use `valueEn` for English. */
+    setEditDe(locale === "en" ? valueDe || value : value);
     setEditEn(locale === "en" ? value : valueEn || value);
     setActiveTab("de");
     setShowPreview(false);
@@ -235,7 +241,18 @@ function EditableText({
   /* ─── Display UI ─── */
 
   const pencilBtn = canEdit ? (
-    <button className="editable-text-pencil" type="button" onClick={handleOpen} aria-label={t("editContent")}>
+    <button
+      className="editable-text-pencil"
+      type="button"
+      onClick={handleOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleOpen();
+        }
+      }}
+      aria-label={t("editContent")}
+    >
       <svg
         width="14"
         height="14"

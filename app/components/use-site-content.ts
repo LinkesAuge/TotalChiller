@@ -69,6 +69,8 @@ export interface SiteContentHook {
   c: (section: string, field: string, fallback: string) => string;
   /** Get the English value for a field */
   cEn: (section: string, field: string) => string;
+  /** Get the German value for a field */
+  cDe: (section: string, field: string) => string;
   /** Save a CMS field (DE + EN). Throws on failure. */
   saveField: (section: string, field: string, valueDe: string, valueEn: string) => Promise<void>;
   /** Setter for content (for advanced use) */
@@ -187,6 +189,13 @@ export function useSiteContent(page: string): SiteContentHook {
   const cEn = useCallback(
     (section: string, field: string): string => {
       return content[section]?.[field]?.en ?? "";
+    },
+    [content],
+  );
+
+  const cDe = useCallback(
+    (section: string, field: string): string => {
+      return content[section]?.[field]?.de ?? "";
     },
     [content],
   );
@@ -348,6 +357,7 @@ export function useSiteContent(page: string): SiteContentHook {
     error,
     c,
     cEn,
+    cDe,
     saveField,
     setContent,
     addListItem,

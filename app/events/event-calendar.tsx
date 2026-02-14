@@ -197,6 +197,23 @@ export function EventCalendar({
                 const primaryEvent = pinnedEvent ?? (hasEvents ? day.events[0] : undefined);
                 const primaryBanner = primaryEvent?.banner_url ?? null;
                 const primaryName = primaryEvent?.title ?? null;
+
+                /* Split banner: exactly 2 events with banners → show both side by side.
+                   Left = starts sooner (or ends earlier if same start). */
+                const bannerEvents = day.events.filter((e) => e.banner_url);
+                const hasSplitBanner = bannerEvents.length === 2;
+                let splitLeft: DisplayEvent | undefined;
+                let splitRight: DisplayEvent | undefined;
+                if (hasSplitBanner) {
+                  const sorted = [...bannerEvents].sort((a, b) => {
+                    const startCmp = a.starts_at.localeCompare(b.starts_at);
+                    if (startCmp !== 0) return startCmp;
+                    return a.ends_at.localeCompare(b.ends_at);
+                  });
+                  splitLeft = sorted[0];
+                  splitRight = sorted[1];
+                }
+
                 return (
                   <button
                     key={day.key}
@@ -208,6 +225,7 @@ export function EventCalendar({
                       day.isToday ? "today" : "",
                       hasEvents ? "has-events" : "",
                       primaryBanner ? "has-banner" : "",
+                      hasSplitBanner ? "has-split-banner" : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
@@ -215,21 +233,57 @@ export function EventCalendar({
                     onMouseEnter={(e) => handleDayMouseEnter(e, day)}
                     onMouseLeave={handleDayMouseLeave}
                     style={
-                      primaryBanner ? ({ backgroundImage: `url(${primaryBanner})` } as React.CSSProperties) : undefined
+                      primaryBanner && !hasSplitBanner
+                        ? ({ backgroundImage: `url(${primaryBanner})` } as React.CSSProperties)
+                        : undefined
                     }
                   >
-                    {/* Day number badge — always has circle background for readability */}
-                    <span className="calendar-day-number">{day.date.getDate()}</span>
-                    {hasEvents && <span className="calendar-day-count">{day.events.length}</span>}
-                    {/* Event title + time snippet at bottom of cell */}
-                    {primaryEvent && primaryName && (
-                      <span className="calendar-day-title">
-                        {primaryName}
-                        {day.events.length > 1 && <span className="calendar-day-more">+{day.events.length - 1}</span>}
-                      </span>
+                    {/* Split banner: two event images stacked top/bottom */}
+                    {hasSplitBanner && splitLeft?.banner_url && splitRight?.banner_url && (
+                      <>
+                        <span
+                          className="calendar-split-top"
+                          style={{ backgroundImage: `url(${splitLeft.banner_url})` }}
+                        />
+                        <span
+                          className="calendar-split-bottom"
+                          style={{ backgroundImage: `url(${splitRight.banner_url})` }}
+                        />
+                      </>
                     )}
-                    {primaryEvent && (
-                      <span className="calendar-day-time">{cellTimeLabel(primaryEvent, day.key, locale, t)}</span>
+                    {/* Day number badge */}
+                    <span className="calendar-day-number">{day.date.getDate()}</span>
+                    {/* Split mode: show title + time for both events, one per half */}
+                    {hasSplitBanner && splitLeft && splitRight ? (
+                      <>
+                        <span className="calendar-split-info top">
+                          <span className="calendar-split-title">{splitLeft.title}</span>
+                          <span className="calendar-split-time">{cellTimeLabel(splitLeft, day.key, locale, t)}</span>
+                        </span>
+                        <span className="calendar-split-info bottom">
+                          <span className="calendar-split-title">{splitRight.title}</span>
+                          <span className="calendar-split-time">{cellTimeLabel(splitRight, day.key, locale, t)}</span>
+                        </span>
+                        {day.events.length > 2 && (
+                          <span className="calendar-day-more-label">
+                            {day.events.length - 2} {t("more")}…
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {/* Single event: title + time at bottom of cell */}
+                        {primaryEvent && primaryName && <span className="calendar-day-title">{primaryName}</span>}
+                        {primaryEvent && (
+                          <span className="calendar-day-time">{cellTimeLabel(primaryEvent, day.key, locale, t)}</span>
+                        )}
+                        {/* "X more…" for 3+ events without split */}
+                        {day.events.length > 1 && (
+                          <span className="calendar-day-more-label">
+                            {day.events.length - 1} {t("more")}…
+                          </span>
+                        )}
+                      </>
                     )}
                     {/* Colored dots for events without banners */}
                     {!primaryBanner && hasEvents && (

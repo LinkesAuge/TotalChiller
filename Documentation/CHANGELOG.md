@@ -6,6 +6,12 @@
 
 ---
 
+## 2026-02-14 — Feature: Split banner display for two-event calendar days
+
+- **Calendar split banner** (`event-calendar.tsx`, `events.css`): When a calendar day has exactly two events with banners, both images are shown in a top/bottom vertical split. The event that starts sooner (or ends earlier if same start) is placed on top. A gold gradient divider line separates the two halves. Days with one or three+ banner events retain the existing single-image behavior.
+
+---
+
 ## 2026-02-14 — Fix: Admin Users tab showing only 25 users
 
 - **Fixed missing users on Benutzer page** (`users-tab.tsx`): The `loadUsers` query had a hard `.limit(25)` that silently truncated the user list. Users beyond the first 25 (ordered by email) were invisible with no indication of missing data. Removed the limit so all registered users are displayed.

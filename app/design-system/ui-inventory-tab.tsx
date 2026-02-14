@@ -12,6 +12,7 @@ import {
 } from "./design-system-types";
 import ThumbnailSizePicker, { UI_ELEMENT_SIZES } from "./thumbnail-size-picker";
 import AssignmentModal from "./assignment-modal";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 /* ------------------------------------------------------------------ */
 /*  Inline HTML Preview Component                                      */
@@ -21,7 +22,7 @@ function InlinePreview({ html }: { readonly html: string }): ReactElement {
   return (
     <div
       className="inline-preview-scope"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
       style={{
         padding: 10,
         display: "flex",

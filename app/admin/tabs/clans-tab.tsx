@@ -563,7 +563,7 @@ export default function ClansTab(): ReactElement {
     }
     const accounts = accountData ?? [];
     const accountIds = accounts.map((a) => a.id);
-    const userIds = accounts.map((a) => a.user_id);
+    const userIds = accounts.map((a) => a.user_id).filter((id): id is string => id != null);
     if (accountIds.length === 0 || userIds.length === 0) {
       setAssignAccounts((a) => ({ ...a, accounts: [] }));
       return;

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import type { DesignAsset, UiElement, AssetAssignment } from "./design-system-types";
 import { ASSET_CATEGORIES, ASSIGNMENT_ROLES, formatFileSize } from "./design-system-types";
 import ThumbnailSizePicker, { ASSET_SIZES } from "./thumbnail-size-picker";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 /* ------------------------------------------------------------------ */
 /*  Assignment Modal — Full-screen overlay                             */
@@ -161,7 +162,7 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
                 overflow: "hidden",
                 pointerEvents: "none",
               }}
-              dangerouslySetInnerHTML={{ __html: element.preview_html }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(element.preview_html) }}
             />
           )}
           <div>

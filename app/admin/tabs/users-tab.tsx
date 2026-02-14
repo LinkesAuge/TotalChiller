@@ -639,7 +639,7 @@ export default function UsersTab(): ReactElement {
     if (!email) return;
     setPendingResendInviteEmail(null);
     setCreateUserStatus("Resending invite...");
-    const res = await fetch("/api/admin/create-user", {
+    const res = await fetch("/api/admin/resend-invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),

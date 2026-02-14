@@ -206,7 +206,7 @@ All changes verified: TypeScript type-check, lint, 528 unit tests passing.
     - Hooks: `app/admin/hooks/use-confirm-delete.ts`, `use-rule-list.ts` (pagination & sortable hooks now in `lib/hooks/`)
     - Shared components: `app/admin/components/danger-confirm-modal.tsx`, `rule-import-modal.tsx` (pagination-bar & sortable-column-header now in `app/components/`)
     - Tabs: `app/admin/tabs/clans-tab.tsx`, `users-tab.tsx`, `validation-tab.tsx`, `corrections-tab.tsx`, `logs-tab.tsx`, `approvals-tab.tsx`, `forum-tab.tsx`
-    - APIs: `app/api/admin/create-user/route.ts`, `app/api/admin/delete-user/route.ts`, `app/api/admin/game-account-approvals/route.ts`
+    - APIs: `app/api/admin/create-user/route.ts`, `app/api/admin/resend-invite/route.ts`, `app/api/admin/delete-user/route.ts`, `app/api/admin/game-account-approvals/route.ts`
 - **Data import (Pattern 1)**
   - Creates missing clans and commits chest data via an admin API endpoint.
   - Does not validate players against game accounts on import.
@@ -708,7 +708,7 @@ The `NavItemIcon` component automatically renders `<Image>` when `vipIcon` is se
 - **Admin-only tool** at `/design-system` for managing game assets, UI element inventory, and asset-to-element assignments.
 - **Three Supabase tables**: `design_assets` (catalog of ~2,359 raw game PNGs), `ui_elements` (inventory of website UI patterns with render type classification), `asset_assignments` (maps assets to UI elements with roles).
 - **Render type system**: Each UI element has a `render_type` (`css`, `asset`, `hybrid`, `icon`, `typography`, `composite`) that determines how it's previewed and whether game assets can be assigned to it. Only `asset`, `hybrid`, and `composite` types support asset assignment.
-- **Preview system**: Dual approach — inline HTML snippets (`preview_html` column) rendered using the project's CSS for css/icon/typography elements, plus screenshot upload (`preview_image` column) for complex composite components. Scanner auto-generates preview HTML for ~50 elements.
+- **Preview system**: Dual approach — inline HTML snippets (`preview_html` column) rendered using the project's CSS for css/icon/typography elements, plus screenshot upload (`preview_image` column) for complex composite components. Scanner auto-generates preview HTML for ~50 elements. All `preview_html` is sanitized with DOMPurify (`lib/sanitize-html.ts`) before rendering via `dangerouslySetInnerHTML`.
 - **Scanner scripts** in `scripts/`:
   - `scan-design-assets.ts` — scans `Design/Resources/Assets`, auto-categorizes by filename patterns (~25 categories), reads dimensions via `image-size`, copies to `public/design-assets/{category}/`, upserts to DB. Flags: `--dry-run`, `--skip-copy`, `--skip-db`.
   - `scan-ui-elements.ts` — scans `globals.css` and component directories for UI patterns, supplements with comprehensive checklist (~80 standard web UI elements). Each element classified with `render_type` and `preview_html`. Upserts to DB. Flag: `--dry-run`.

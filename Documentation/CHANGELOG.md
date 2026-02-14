@@ -6,6 +6,18 @@
 
 ---
 
+## 2026-02-14 — Code review fixes (6 issues)
+
+- **fix(resend-invite)**: Resend invite was completely broken — sent `{ email }` to `/api/admin/create-user` which requires `{ email, username }`. Created dedicated `/api/admin/resend-invite` endpoint.
+- **fix(security)**: Added DOMPurify sanitization for `dangerouslySetInnerHTML` in design-system components (`assignment-modal.tsx`, `ui-inventory-tab.tsx`). New shared utility `lib/sanitize-html.ts`.
+- **fix(data-integrity)**: Escaped LIKE wildcards (`%`, `_`, `\`) in display name uniqueness check in `/api/admin/create-user` to prevent false matches.
+- **fix(null-safety)**: Filtered null `user_id` values from game accounts array before `.in()` query in `clans-tab.tsx` assign modal.
+- **fix(a11y)**: Added `aria-label` ("Deutsch"/"English") to language selector radio buttons — resolves accessibility error on all pages.
+- **fix(error-handling)**: Surfaced `loadClans` error in `use-data-table.ts` instead of silently ignoring it.
+- **Files**: `app/api/admin/resend-invite/route.ts` (new), `app/admin/tabs/users-tab.tsx`, `app/api/admin/create-user/route.ts`, `app/design-system/assignment-modal.tsx`, `app/design-system/ui-inventory-tab.tsx`, `lib/sanitize-html.ts` (new), `app/components/language-selector.tsx`, `app/admin/tabs/clans-tab.tsx`, `app/data-table/use-data-table.ts`
+
+---
+
 ## 2026-02-14 — Fix: Admin pages not redirecting unauthenticated users
 
 - **Bug**: `/admin` was listed in `isPublicPath()`, causing the proxy middleware to skip the auth redirect for unauthenticated users on admin routes. All 3 admin smoke tests failed.

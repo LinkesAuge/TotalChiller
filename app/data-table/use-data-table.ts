@@ -291,6 +291,7 @@ export function useDataTable() {
     async function loadClans(): Promise<void> {
       const { data, error } = await supabase.from("clans").select("id,name").order("name");
       if (error) {
+        setStatus(`Failed to load clans: ${error.message}`);
         return;
       }
       if (cancelled) return;

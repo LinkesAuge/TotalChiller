@@ -52,11 +52,12 @@ export async function POST(request: Request): Promise<Response> {
     const normalizedDisplayName = displayName?.trim();
 
     /* Parallelize duplicate checks */
+    const escapedDisplayName = normalizedDisplayName?.replace(/[%_\\]/g, "\\$&");
     const duplicateChecks = await Promise.all([
       supabase.from("profiles").select("id").eq("user_db", normalizedUsername).maybeSingle(),
       supabase.from("profiles").select("id").eq("email", normalizedEmail).maybeSingle(),
-      ...(normalizedDisplayName
-        ? [supabase.from("profiles").select("id").ilike("display_name", normalizedDisplayName).maybeSingle()]
+      ...(escapedDisplayName
+        ? [supabase.from("profiles").select("id").ilike("display_name", escapedDisplayName).maybeSingle()]
         : []),
     ]);
 

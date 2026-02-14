@@ -69,6 +69,7 @@ function LanguageSelector({ compact = false }: LanguageSelectorProps): JSX.Eleme
           type="button"
           role="radio"
           aria-checked={locale === currentLocale}
+          aria-label={t(locale === "de" ? "german" : "english")}
           className={`lang-toggle-btn${locale === currentLocale ? " active" : ""}`}
           onClick={() => handleSwitch(locale)}
         >

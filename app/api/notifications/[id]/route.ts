@@ -38,3 +38,34 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
+
+/**
+ * DELETE /api/notifications/[id]
+ * Deletes a single notification. Only the owner can delete it.
+ */
+export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
+  try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { id } = await context.params;
+    const parsed = uuidSchema.safeParse(id);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid notification ID format." }, { status: 400 });
+    }
+    const { error: deleteError } = await auth.supabase
+      .from("notifications")
+      .delete()
+      .eq("id", parsed.data)
+      .eq("user_id", auth.userId);
+    if (deleteError) {
+      captureApiError("DELETE /api/notifications/[id]", deleteError);
+      return NextResponse.json({ error: "Failed to delete notification." }, { status: 500 });
+    }
+    return NextResponse.json({ data: { id: parsed.data, deleted: true } });
+  } catch (err) {
+    captureApiError("DELETE /api/notifications/[id]", err);
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+  }
+}

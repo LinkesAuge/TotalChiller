@@ -5,7 +5,14 @@ import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useToast } from "../components/toast-provider";
-import type { ArchivedItem, InboxThread, SentMessage, ThreadMessage, RecipientResult } from "@/lib/types/domain";
+import type {
+  ArchivedItem,
+  InboxThread,
+  NotificationRow,
+  SentMessage,
+  ThreadMessage,
+  RecipientResult,
+} from "@/lib/types/domain";
 import type { ProfileMap, ViewMode, ClanOption, SelectedRecipient, ComposeMode } from "./messages-types";
 
 const REPLY_SUBJECT_PREFIX = "Re: ";
@@ -13,6 +20,7 @@ const REPLY_SUBJECT_PREFIX = "Re: ";
 export interface UseMessagesParams {
   readonly userId: string;
   readonly initialRecipientId?: string;
+  readonly initialTab?: string;
 }
 
 export interface UseMessagesResult {
@@ -35,6 +43,13 @@ export interface UseMessagesResult {
   /* Archive */
   readonly archivedItems: readonly ArchivedItem[];
   readonly isArchiveLoading: boolean;
+
+  /* Notifications */
+  readonly notificationItems: readonly NotificationRow[];
+  readonly isNotificationsLoading: boolean;
+  readonly handleDeleteNotification: (id: string) => Promise<void>;
+  readonly handleDeleteAllNotifications: () => Promise<void>;
+  readonly handleMarkNotificationRead: (id: string) => Promise<void>;
 
   /* Thread view */
   readonly selectedThreadId: string;
@@ -148,14 +163,18 @@ export interface UseMessagesResult {
  * Manages inbox, sent, thread views, compose, reply, recipient search,
  * and all API interactions.
  */
-export function useMessages({ userId, initialRecipientId }: UseMessagesParams): UseMessagesResult {
+const VALID_TABS: readonly string[] = ["inbox", "sent", "archive", "notifications"];
+
+export function useMessages({ userId, initialRecipientId, initialTab }: UseMessagesParams): UseMessagesResult {
   const supabase = useSupabase();
   const t = useTranslations("messagesPage");
   const { pushToast } = useToast();
   const { isContentManager: isContentMgr } = useUserRole(supabase);
 
   /* ── View state ── */
-  const [viewMode, setViewMode] = useState<ViewMode>("inbox");
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    initialTab && VALID_TABS.includes(initialTab) ? (initialTab as ViewMode) : "inbox",
+  );
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
 
@@ -173,6 +192,11 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
   const [archivedItems, setArchivedItems] = useState<readonly ArchivedItem[]>([]);
   const [archiveProfiles, setArchiveProfiles] = useState<ProfileMap>({});
   const [isArchiveLoading, setIsArchiveLoading] = useState<boolean>(false);
+
+  /* ── Notifications state ── */
+  const [notificationItems, setNotificationItems] = useState<readonly NotificationRow[]>([]);
+  const [isNotificationsLoading, setIsNotificationsLoading] = useState<boolean>(false);
+  const notifAbortRef = useRef<AbortController | null>(null);
 
   /* ── Thread view state ── */
   const [selectedThreadId, setSelectedThreadId] = useState<string>("");
@@ -294,6 +318,42 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
     }
   }, []);
 
+  const loadNotifications = useCallback(async (): Promise<void> => {
+    notifAbortRef.current?.abort();
+    const controller = new AbortController();
+    notifAbortRef.current = controller;
+    setIsNotificationsLoading(true);
+    try {
+      const response = await fetch("/api/notifications", { signal: controller.signal });
+      if (response.ok) {
+        const result = await response.json();
+        if (!controller.signal.aborted) {
+          setNotificationItems(result.data ?? []);
+        }
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      throw err;
+    } finally {
+      if (!controller.signal.aborted) setIsNotificationsLoading(false);
+    }
+  }, []);
+
+  const handleDeleteNotification = useCallback(async (id: string): Promise<void> => {
+    setNotificationItems((current) => current.filter((n) => n.id !== id));
+    await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+  }, []);
+
+  const handleDeleteAllNotifications = useCallback(async (): Promise<void> => {
+    setNotificationItems([]);
+    await fetch("/api/notifications/delete-all", { method: "POST" });
+  }, []);
+
+  const handleMarkNotificationRead = useCallback(async (id: string): Promise<void> => {
+    setNotificationItems((current) => current.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+  }, []);
+
   const loadThread = useCallback(async (threadId: string): Promise<void> => {
     threadAbortRef.current?.abort();
     const controller = new AbortController();
@@ -324,6 +384,7 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
       threadAbortRef.current?.abort();
       searchAbortRef.current?.abort();
       archiveAbortRef.current?.abort();
+      notifAbortRef.current?.abort();
     };
   }, []);
 
@@ -332,10 +393,12 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
       void loadInbox();
     } else if (viewMode === "sent") {
       void loadSent();
-    } else {
+    } else if (viewMode === "archive") {
       void loadArchive();
+    } else if (viewMode === "notifications") {
+      void loadNotifications();
     }
-  }, [viewMode, loadInbox, loadSent, loadArchive]);
+  }, [viewMode, loadInbox, loadSent, loadArchive, loadNotifications]);
 
   useEffect(() => {
     async function loadClans(): Promise<void> {
@@ -960,6 +1023,11 @@ export function useMessages({ userId, initialRecipientId }: UseMessagesParams): 
     isSentLoading,
     archivedItems,
     isArchiveLoading,
+    notificationItems,
+    isNotificationsLoading,
+    handleDeleteNotification,
+    handleDeleteAllNotifications,
+    handleMarkNotificationRead,
     selectedThreadId,
     selectedSentMsgId,
     threadMessages,

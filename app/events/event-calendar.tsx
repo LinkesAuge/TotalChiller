@@ -5,7 +5,14 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import type { CalendarDay, DisplayEvent } from "./events-types";
 import { EVENT_COLORS, WEEKDAY_LABELS } from "./events-types";
 import { toDateString } from "@/lib/dashboard-utils";
-import { formatDuration, formatDateRange, isMultiDayEvent, sortPinnedFirst, getShortTimeString } from "./events-utils";
+import {
+  formatDuration,
+  formatDateRange,
+  isMultiDayEvent,
+  sortPinnedFirst,
+  getShortTimeString,
+  sortBannerEvents,
+} from "./events-utils";
 import DayPanelEventCard from "./day-panel-event-card";
 
 /** How many event cards to show before requiring "show more". */
@@ -205,11 +212,7 @@ export function EventCalendar({
                 let splitLeft: DisplayEvent | undefined;
                 let splitRight: DisplayEvent | undefined;
                 if (hasSplitBanner) {
-                  const sorted = [...bannerEvents].sort((a, b) => {
-                    const startCmp = a.starts_at.localeCompare(b.starts_at);
-                    if (startCmp !== 0) return startCmp;
-                    return a.ends_at.localeCompare(b.ends_at);
-                  });
+                  const sorted = sortBannerEvents(bannerEvents);
                   splitLeft = sorted[0];
                   splitRight = sorted[1];
                 }

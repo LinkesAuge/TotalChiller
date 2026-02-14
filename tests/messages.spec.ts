@@ -72,3 +72,58 @@ test.describe("Messages: Type filters", () => {
     expect(await filterElements.count()).toBeGreaterThanOrEqual(0);
   });
 });
+
+test.describe("Messages: Notifications tab", () => {
+  test.use({ storageState: storageStatePath("member") });
+
+  test("messages page shows notifications tab button", async ({ page }) => {
+    await page.goto("/messages");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
+
+    /* Should have 4 tabs: Inbox, Sent, Archive, Notifications */
+    const notifTab = page.locator(".messages-view-tab", {
+      hasText: /notifications|hinweise|benachrichtigungen/i,
+    });
+    await expect(notifTab.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test("clicking notifications tab shows notification list", async ({ page }) => {
+    await page.goto("/messages");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
+
+    const notifTab = page.locator(".messages-view-tab", {
+      hasText: /notifications|hinweise|benachrichtigungen/i,
+    });
+    if ((await notifTab.count()) === 0) return;
+
+    await notifTab.first().click();
+
+    /* Either notification items or a "no notifications" empty state should appear */
+    const listOrEmpty = page.locator(".messages-conversation-list");
+    await expect(listOrEmpty.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test("?tab=notifications query param opens notifications tab", async ({ page }) => {
+    await page.goto("/messages?tab=notifications");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
+
+    /* The notifications tab should be active */
+    const activeTab = page.locator(".messages-view-tab.active", {
+      hasText: /notifications|hinweise|benachrichtigungen/i,
+    });
+    await expect(activeTab.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test("notifications tab hides search/filter bar", async ({ page }) => {
+    await page.goto("/messages?tab=notifications");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
+
+    /* The search/filter bar should not be visible on the notifications tab */
+    const filterBar = page.locator(".messages-filters");
+    await expect(filterBar).toHaveCount(0);
+  });
+});

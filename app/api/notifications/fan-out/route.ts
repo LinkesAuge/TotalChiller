@@ -5,6 +5,7 @@ import { parseJsonBody } from "@/lib/api/validation";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
+import { isTestUser } from "../../../../lib/is-test-user";
 
 const FAN_OUT_SCHEMA = z.object({
   type: z.enum(["news", "event"]),
@@ -46,12 +47,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
     const senderId = auth.userId;
+
+    /* Skip notifications for E2E test users to avoid spamming real members */
+    const { data: senderProfile } = await serviceClient
+      .from("profiles")
+      .select("email")
+      .eq("id", senderId)
+      .maybeSingle();
+    if (senderProfile?.email && isTestUser(senderProfile.email)) {
+      return NextResponse.json({ data: { recipients: 0, skipped: "test-user" } });
+    }
+
     const { data: memberships, error: membershipError } = await serviceClient
       .from("game_account_clan_memberships")
       .select("game_accounts(user_id)")
       .eq("clan_id", body.clan_id)
-      .eq("is_active", true)
-      .eq("is_shadow", false);
+      .eq("is_active", true);
     if (membershipError) {
       captureApiError("POST /api/notifications/fan-out", membershipError);
       return NextResponse.json({ error: "Failed to load clan memberships." }, { status: 500 });

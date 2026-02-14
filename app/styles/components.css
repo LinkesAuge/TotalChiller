@@ -641,6 +641,8 @@ label {
 input:not([type="checkbox"]),
 textarea,
 select {
+  width: 100%;
+  box-sizing: border-box;
   background: linear-gradient(180deg, rgba(14, 24, 38, 0.85), rgba(8, 16, 26, 0.9));
   border: 1px solid var(--color-gold-a18);
   border-radius: var(--radius-md);
@@ -1406,6 +1408,46 @@ select:disabled,
 
 .notification-bell__mark-read:hover {
   text-decoration: underline;
+}
+
+.notification-bell__delete-all {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notification-bell__delete-all:hover {
+  color: #e05050;
+  text-decoration: underline;
+}
+
+.notification-bell__delete {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: var(--transition-fast);
+  margin-top: 2px;
+}
+
+.notification-bell__item:hover .notification-bell__delete {
+  opacity: 1;
+}
+
+.notification-bell__delete:hover {
+  color: #e05050;
+  background: rgba(224, 80, 80, 0.12);
 }
 
 .notification-bell__gear {

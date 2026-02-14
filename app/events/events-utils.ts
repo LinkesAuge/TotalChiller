@@ -206,6 +206,18 @@ export function getShortTimeString(dateString: string, locale: string): string {
   return new Date(dateString).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
+/**
+ * Sort banner events for the split-banner calendar display.
+ * Earlier start comes first; if starts are equal, earlier end comes first.
+ */
+export function sortBannerEvents<T extends { starts_at: string; ends_at: string }>(events: readonly T[]): readonly T[] {
+  return [...events].sort((a, b) => {
+    const startCmp = a.starts_at.localeCompare(b.starts_at);
+    if (startCmp !== 0) return startCmp;
+    return a.ends_at.localeCompare(b.ends_at);
+  });
+}
+
 /** Returns a human-readable recurrence label from a recurrence type. */
 export function getRecurrenceLabel(recurrenceType: string, t: (key: string) => string): string {
   switch (recurrenceType) {

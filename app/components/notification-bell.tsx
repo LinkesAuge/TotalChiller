@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import type { NotificationRow, NotificationPrefs } from "@/lib/types/domain";
 import { formatTimeAgo } from "@/lib/date-format";
@@ -145,6 +146,17 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
     setNotifications((current) => current.map((notification) => ({ ...notification, is_read: true })));
   }
 
+  async function handleDeleteNotification(id: string, event: React.MouseEvent): Promise<void> {
+    event.stopPropagation();
+    setNotifications((current) => current.filter((n) => n.id !== id));
+    await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+  }
+
+  async function handleDeleteAll(): Promise<void> {
+    setNotifications([]);
+    await fetch("/api/notifications/delete-all", { method: "POST" });
+  }
+
   async function handleClickNotification(notification: NotificationRow): Promise<void> {
     if (!notification.is_read) {
       await fetch(`/api/notifications/${notification.id}`, { method: "PATCH" });
@@ -186,6 +198,11 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
               {unreadCount > 0 ? (
                 <button type="button" className="notification-bell__mark-read" onClick={handleMarkAllRead}>
                   {t("markAllRead")}
+                </button>
+              ) : null}
+              {notifications.length > 0 ? (
+                <button type="button" className="notification-bell__delete-all" onClick={handleDeleteAll}>
+                  {t("deleteAll")}
                 </button>
               ) : null}
               <button
@@ -262,11 +279,18 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
               <div className="notification-bell__empty">{t("noNotifications")}</div>
             ) : (
               notifications.slice(0, 20).map((notification) => (
-                <button
+                <div
                   key={notification.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   className={`notification-bell__item ${notification.is_read ? "" : "unread"}`}
                   onClick={() => handleClickNotification(notification)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      void handleClickNotification(notification);
+                    }
+                  }}
                 >
                   <span className="notification-bell__icon">{getTypeIcon(notification.type)}</span>
                   <div className="notification-bell__content">
@@ -274,13 +298,24 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
                     {notification.body ? <div className="notification-bell__body">{notification.body}</div> : null}
                   </div>
                   <span className="notification-bell__time">{formatTimeAgo(notification.created_at, t, locale)}</span>
-                </button>
+                  <button
+                    type="button"
+                    className="notification-bell__delete"
+                    onClick={(e) => handleDeleteNotification(notification.id, e)}
+                    aria-label={t("deleteNotification")}
+                  >
+                    <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none">
+                      <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
               ))
             )}
           </div>
-          <a className="notification-bell__footer" href="/messages">
+          <Link className="notification-bell__footer" href="/messages?tab=notifications">
             {t("viewAllMessages")}
-          </a>
+          </Link>
         </div>
       ) : null}
     </div>

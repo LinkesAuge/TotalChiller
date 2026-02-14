@@ -242,6 +242,24 @@ test.describe("API: Messages Search Recipients", () => {
   });
 });
 
+test.describe("API: Notifications Delete", () => {
+  test("DELETE /api/notifications/[id] without auth returns 401, 429, or 500", async ({ request }) => {
+    const fakeId = "00000000-0000-0000-0000-000000000000";
+    const res = await request.delete(`/api/notifications/${fakeId}`);
+    expect([401, 429, 500]).toContain(res.status());
+  });
+
+  test("DELETE /api/notifications/invalid-id without auth returns 400, 401, or 429", async ({ request }) => {
+    const res = await request.delete("/api/notifications/invalid-id");
+    expect([400, 401, 429]).toContain(res.status());
+  });
+
+  test("POST /api/notifications/delete-all without auth returns 401 or 429", async ({ request }) => {
+    const res = await request.post("/api/notifications/delete-all");
+    expect([401, 429]).toContain(res.status());
+  });
+});
+
 test.describe("API: Notifications Detail", () => {
   test("PATCH /api/notifications/[id] without auth returns 401 or 500", async ({ request }) => {
     const fakeId = "00000000-0000-0000-0000-000000000000";

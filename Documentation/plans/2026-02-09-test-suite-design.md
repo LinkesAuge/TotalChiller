@@ -1,6 +1,6 @@
 # Test Suite Design — TotalChiller
 
-**Date:** 2026-02-09 (updated 2026-02-11)  
+**Date:** 2026-02-09 (updated 2026-02-13)  
 **Status:** Implemented
 
 ## Overview
@@ -154,8 +154,8 @@ All 6 roles are set up: `owner`, `admin`, `moderator`, `editor`, `member`, `gues
 
 - **Purpose:** Validate API contracts — status codes and response shapes
 - **Auth:** None (tests unauthenticated behavior)
-- **Count:** 18 tests
-- Checks: CMS endpoints, charts, messages, notifications, admin, game accounts, data import
+- **Count:** 30+ tests
+- Checks: CMS endpoints, charts, messages, notifications, admin, game accounts, data import, design-system, auth, notification fan-out
 - Note: Accepts both expected status (e.g. 401) and 429 (rate-limited) as valid responses
 
 ### 5. CMS Tests (cms-\*.spec.ts)
@@ -260,8 +260,9 @@ All 6 roles are set up: `owner`, `admin`, `moderator`, `editor`, `member`, `gues
 
 - **Purpose:** Automated accessibility audits via axe-core
 - **Auth:** storageState (member)
-- **Count:** 2 tests
-- Checks: axe-core critical violations on public and authenticated pages
+- **Count:** 2 test groups (PUBLIC_PAGES + PROTECTED_PAGES, ~11 tests total)
+- Checks: axe-core critical/serious violations on public and authenticated pages
+- **Exclusions:** `KNOWN_A11Y_EXCLUSIONS` map disables `nested-interactive` on `/forum`, `/messages`, `/events` (genuine UI patterns: vote buttons in clickable rows, compose recipient chips, calendar day cells)
 
 ### 20. Permission Unit Tests (permissions-unit.spec.ts)
 
@@ -354,7 +355,7 @@ PLAYWRIGHT_BASE_URL=http://localhost:3001 npx playwright test
 | Smoke / Page Load    | `smoke.spec.ts`             | 3        | No    |
 | Authentication Forms | `auth.spec.ts`              | 11       | No    |
 | Navigation           | `navigation.spec.ts`        | 6        | Mixed |
-| API Endpoints        | `api-endpoints.spec.ts`     | 18       | No    |
+| API Endpoints        | `api-endpoints.spec.ts`     | 30+      | No    |
 | CMS (5 files)        | `cms-*.spec.ts`             | 36       | Mixed |
 | News / Articles      | `news.spec.ts`              | 6        | Yes   |
 | Events / Calendar    | `events.spec.ts`            | 6        | Yes   |
@@ -362,38 +363,42 @@ PLAYWRIGHT_BASE_URL=http://localhost:3001 npx playwright test
 | Messages             | `messages.spec.ts`          | 6        | Yes   |
 | Profile & Settings   | `profile-settings.spec.ts`  | 13       | Yes   |
 | Charts               | `charts.spec.ts`            | 6        | Yes   |
-| Dashboard            | `dashboard.spec.ts`         | 3        | Yes   |
+| Dashboard            | `dashboard.spec.ts`         | 7        | Yes   |
 | Admin Panel          | `admin.spec.ts`             | 17       | Yes   |
 | Admin Actions        | `admin-actions.spec.ts`     | 6        | Yes   |
 | CRUD Flows           | `crud-flows.spec.ts`        | 16       | Yes   |
 | Data Workflows       | `data-workflows.spec.ts`    | 10       | Yes   |
 | Notifications        | `notifications.spec.ts`     | 6        | Yes   |
 | i18n                 | `i18n.spec.ts`              | 5        | Yes   |
-| Accessibility        | `accessibility.spec.ts`     | 2        | Yes   |
+| Accessibility        | `accessibility.spec.ts`     | ~11      | Yes   |
 | Permissions Unit     | `permissions-unit.spec.ts`  | 34       | No    |
 | Role-based E2E       | `roles-permissions.spec.ts` | 17       | Yes   |
-| **E2E Total**        | **27 spec files**           | **~240** |       |
+| **E2E Total**        | **27 spec files**           | **~396** |       |
 
 ### Combined Coverage (Unit + E2E)
 
 | Tier      | Framework  | Files  | Tests    |
 | --------- | ---------- | ------ | -------- |
 | Unit      | Vitest     | 12     | 173      |
-| E2E       | Playwright | 27     | ~240     |
-| **Total** |            | **39** | **~413** |
+| E2E       | Playwright | 27     | ~396     |
+| **Total** |            | **39** | **~569** |
 
 ## Design Decisions
 
 1. **Pre-authenticated storageState:** Tests use pre-saved browser state from `auth.setup.ts` instead of logging in per test. This eliminates ~3-5s per test. `loginAs` is retained only for per-test role overrides.
 2. **No test data mutation:** Tests verify UI rendering and permission guards, never create/delete production data.
 3. **Resilient selectors:** Use `#id`, `.class`, and `text=` selectors; `.first()` for ambiguous matches.
-4. **i18n-aware assertions:** All text assertions use regex alternation for German and English (`/erstellen|create/i`).
-5. **Rate-limit tolerance:** API tests accept both expected status codes and 429 (Too Many Requests) as valid responses.
-6. **Graceful degradation:** Tests handle conditional UI (e.g. "no clan access" messages) without failing.
-7. **Port flexibility:** Base URL is configurable via `PLAYWRIGHT_BASE_URL` env var.
-8. **Parallel-safe:** Tests are fully parallel (no shared state between tests). `fullyParallel: true` in config.
-9. **Lazy-load tolerance:** Admin panel tests use 10-15s timeouts for `toContainText`/`toBeVisible` assertions to wait for `next/dynamic` chunk loading.
-10. **Describe-level auth scoping:** Tests that need different roles use nested `test.describe` blocks, each with its own `test.use({ storageState })`.
+4. **`.content-inner` always uses `.first()`:** Multiple pages render 2+ `.content-inner` divs (from `PageShell` + inner client component). All `.content-inner` locators must use `.first()` to avoid Playwright strict mode violations.
+5. **i18n-aware assertions:** All text assertions use regex alternation for German and English (`/erstellen|create/i`).
+6. **Rate-limit tolerance:** API tests accept both expected status codes and 429 (Too Many Requests) as valid responses.
+7. **Graceful degradation:** Tests handle conditional UI (e.g. "no clan access" messages) without failing.
+8. **Port flexibility:** Base URL is configurable via `PLAYWRIGHT_BASE_URL` env var.
+9. **Parallel-safe:** Tests are fully parallel (no shared state between tests). `fullyParallel: true` in config.
+10. **Lazy-load tolerance:** Admin panel tests use 10-15s timeouts for `toContainText`/`toBeVisible` assertions to wait for `next/dynamic` chunk loading.
+11. **Describe-level auth scoping:** Tests that need different roles use nested `test.describe` blocks, each with its own `test.use({ storageState })`.
+12. **Prefer `domcontentloaded` over `networkidle`:** Pages with persistent Supabase realtime connections never reach `networkidle`. Use `domcontentloaded` + explicit element visibility waits instead.
+13. **a11y exclusion map:** `accessibility.spec.ts` maintains `KNOWN_A11Y_EXCLUSIONS` to disable specific axe-core rules per page (e.g. `nested-interactive` on `/forum`, `/messages`, `/events`). These represent genuine UI patterns, not test gaps.
+14. **CRUD delete flows require modal confirmation:** News and events delete buttons open a `ConfirmModal`. Tests must wait for the modal (`[role='dialog']`), then click the confirm button inside it.
 
 ## Helper Exports (tests/helpers/auth.ts)
 

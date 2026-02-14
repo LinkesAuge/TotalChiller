@@ -181,6 +181,36 @@ test.describe("Events: Upcoming sidebar pagination", () => {
   });
 });
 
+test.describe("Events: Form textarea fills container width", () => {
+  test.use({ storageState: storageStatePath("editor") });
+
+  test("event description textarea fills its parent form-group width", async ({ page }) => {
+    await page.goto("/events");
+    await page.waitForLoadState("networkidle");
+
+    const createBtn = page.locator("button.primary, button", { hasText: /erstellen|create|hinzufügen|add/i });
+    if ((await createBtn.count()) === 0) return; // editor may lack clan access
+
+    await createBtn.first().click();
+    await expect(page.locator("form")).toBeVisible({ timeout: 5000 });
+
+    const textarea = page.locator("#eventDescription");
+    if ((await textarea.count()) === 0) return; // form might not have loaded
+
+    /* Wait for the textarea to have a non-zero size */
+    await expect(textarea).toBeVisible({ timeout: 5000 });
+
+    const formGroup = page.locator(".form-group").filter({ has: textarea });
+    const parentBox = await formGroup.boundingBox();
+    const textareaBox = await textarea.boundingBox();
+
+    if (parentBox && textareaBox) {
+      /* Textarea width should be at least 90% of the parent width (allowing for padding/borders) */
+      expect(textareaBox.width).toBeGreaterThan(parentBox.width * 0.9);
+    }
+  });
+});
+
 test.describe("Events: Calendar hover behavior", () => {
   test.use({ storageState: storageStatePath("member") });
   test("day cells with events show tooltip on hover", async ({ page, browserName }, testInfo) => {

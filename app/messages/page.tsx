@@ -19,7 +19,13 @@ interface MessagesPageProps {
 }
 
 /** Async content that requires auth — streamed via Suspense. */
-async function MessagesContent({ initialRecipientId }: { readonly initialRecipientId?: string }): Promise<JSX.Element> {
+async function MessagesContent({
+  initialRecipientId,
+  initialTab,
+}: {
+  readonly initialRecipientId?: string;
+  readonly initialTab?: string;
+}): Promise<JSX.Element> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
@@ -34,7 +40,7 @@ async function MessagesContent({ initialRecipientId }: { readonly initialRecipie
       heroSubtitle={t("heroSubtitle")}
       bannerSrc="/assets/banners/banner_captain.png"
     >
-      <MessagesClient userId={data.user.id} initialRecipientId={initialRecipientId} />
+      <MessagesClient userId={data.user.id} initialRecipientId={initialRecipientId} initialTab={initialTab} />
     </PageShell>
   );
 }
@@ -46,9 +52,10 @@ async function MessagesContent({ initialRecipientId }: { readonly initialRecipie
 async function MessagesPage({ searchParams }: MessagesPageProps): Promise<JSX.Element> {
   const params = await searchParams;
   const toParam = typeof params.to === "string" ? params.to : undefined;
+  const tabParam = typeof params.tab === "string" ? params.tab : undefined;
   return (
     <Suspense fallback={<PageSkeleton />}>
-      <MessagesContent initialRecipientId={toParam} />
+      <MessagesContent initialRecipientId={toParam} initialTab={tabParam} />
     </Suspense>
   );
 }

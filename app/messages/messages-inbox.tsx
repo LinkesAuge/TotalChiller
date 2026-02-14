@@ -1,12 +1,12 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { useMemo, type ReactElement } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import SearchInput from "../components/ui/search-input";
 import ConfirmModal from "../components/confirm-modal";
 import DataState from "../components/data-state";
 import { formatLocalDateTime } from "@/lib/date-format";
-import type { ArchivedItem, InboxThread, SentMessage } from "@/lib/types/domain";
+import type { ArchivedItem, InboxThread, NotificationRow, SentMessage } from "@/lib/types/domain";
 import type { UseMessagesResult } from "./use-messages";
 
 /* ── Inline icons (matches project convention) ── */
@@ -71,12 +71,20 @@ function UnarchiveIcon(): ReactElement {
   );
 }
 
+/** i18n key lookup for notification type badges. */
+const NOTIF_TYPE_KEYS: Readonly<Record<string, string>> = {
+  message: "notifTypeMessage",
+  news: "notifTypeNews",
+  event: "notifTypeEvent",
+  approval: "notifTypeApproval",
+};
+
 export interface MessagesInboxProps {
   readonly api: UseMessagesResult;
 }
 
 /**
- * Inbox list panel: tabs (inbox/sent/archive), filters, and message list.
+ * Inbox list panel: tabs (inbox/sent/archive/notifications), filters, and message list.
  * Supports per-item and multi-select batch delete/archive with confirmation.
  */
 export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
@@ -116,10 +124,23 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
     requestBatchArchive,
     handleArchive,
     handleUnarchive,
+    notificationItems,
+    isNotificationsLoading,
+    handleDeleteNotification,
+    handleDeleteAllNotifications,
+    handleMarkNotificationRead,
   } = api;
 
+  const notifUnreadCount = useMemo(() => notificationItems.filter((n) => !n.is_read).length, [notificationItems]);
+
   const currentItemCount =
-    viewMode === "inbox" ? inboxThreads.length : viewMode === "sent" ? sentMessages.length : archivedItems.length;
+    viewMode === "inbox"
+      ? inboxThreads.length
+      : viewMode === "sent"
+        ? sentMessages.length
+        : viewMode === "archive"
+          ? archivedItems.length
+          : notificationItems.length;
   const allChecked = currentItemCount > 0 && checkedIds.size === currentItemCount;
   const someChecked = checkedIds.size > 0;
 
@@ -174,10 +195,22 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
         >
           {t("archive")}
         </button>
+        <button
+          className={`messages-view-tab ${viewMode === "notifications" ? "active" : ""}`}
+          type="button"
+          onClick={() => handleViewModeChange("notifications")}
+        >
+          {t("notifications")}
+          {notifUnreadCount > 0 ? (
+            <span className="badge ml-1.5" style={{ fontSize: "0.7rem" }}>
+              {notifUnreadCount}
+            </span>
+          ) : null}
+        </button>
       </div>
 
       {/* ── Filters (inbox/sent only) ── */}
-      {viewMode !== "archive" ? (
+      {viewMode === "inbox" || viewMode === "sent" ? (
         <div className="messages-filters">
           <SearchInput
             id="messageSearch"
@@ -208,7 +241,7 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
       ) : null}
 
       {/* ── Batch action bar ── */}
-      {someChecked ? (
+      {someChecked && viewMode !== "notifications" ? (
         <div className="messages-batch-bar">
           <label className="messages-batch-select-all">
             <input type="checkbox" checked={allChecked} onChange={toggleAllChecked} className="messages-checkbox" />
@@ -436,7 +469,7 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
             })}
           </DataState>
         </div>
-      ) : (
+      ) : viewMode === "archive" ? (
         /* ── Archive list ── */
         <div className="messages-conversation-list">
           <DataState
@@ -546,6 +579,78 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
                 </div>
               );
             })}
+          </DataState>
+        </div>
+      ) : (
+        /* ── Notifications list ── */
+        <div className="messages-conversation-list">
+          {notificationItems.length > 0 ? (
+            <div className="messages-batch-bar" style={{ justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className="messages-batch-delete-btn"
+                onClick={() => void handleDeleteAllNotifications()}
+              >
+                <TrashIcon />
+                {t("deleteAllNotifications")}
+              </button>
+            </div>
+          ) : null}
+          <DataState
+            isLoading={isNotificationsLoading}
+            isEmpty={notificationItems.length === 0}
+            loadingNode={
+              <div className="list-item">
+                <span className="text-muted">{t("loadingMessages")}</span>
+              </div>
+            }
+            emptyNode={
+              <div className="list-item">
+                <span className="text-muted">{t("noNotifications")}</span>
+              </div>
+            }
+          >
+            {notificationItems.map((notification: NotificationRow) => (
+              <div
+                key={notification.id}
+                className={`messages-conversation-item ${notification.is_read ? "" : "unread"}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => void handleMarkNotificationRead(notification.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    void handleMarkNotificationRead(notification.id);
+                  }
+                }}
+              >
+                <div className="messages-conversation-subject-row">
+                  <span className="messages-conversation-leading">
+                    <span className="badge" style={{ fontSize: "0.7rem" }}>
+                      {t(NOTIF_TYPE_KEYS[notification.type] ?? "notifTypeMessage")}
+                    </span>
+                    <strong className="messages-conversation-subject">{notification.title}</strong>
+                  </span>
+                  <span className="messages-conversation-actions">
+                    <button
+                      type="button"
+                      className="messages-list-action-btn delete"
+                      aria-label={t("deleteMessage")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDeleteNotification(notification.id);
+                      }}
+                    >
+                      <TrashIcon />
+                    </button>
+                    <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
+                      {formatLocalDateTime(notification.created_at, locale)}
+                    </span>
+                  </span>
+                </div>
+                {notification.body ? <div className="messages-conversation-snippet">{notification.body}</div> : null}
+              </div>
+            ))}
           </DataState>
         </div>
       )}

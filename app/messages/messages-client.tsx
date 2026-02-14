@@ -9,6 +9,7 @@ import { MessagesThread } from "./messages-thread";
 interface MessagesClientProps {
   readonly userId: string;
   readonly initialRecipientId?: string;
+  readonly initialTab?: string;
 }
 
 /**
@@ -16,9 +17,9 @@ interface MessagesClientProps {
  * Delegates state and operations to useMessages, and UI to MessagesCompose,
  * MessagesInbox, and MessagesThread.
  */
-function MessagesClient({ userId, initialRecipientId }: MessagesClientProps): JSX.Element {
+function MessagesClient({ userId, initialRecipientId, initialTab }: MessagesClientProps): JSX.Element {
   const t = useTranslations("messagesPage");
-  const api = useMessages({ userId, initialRecipientId });
+  const api = useMessages({ userId, initialRecipientId, initialTab });
 
   return (
     <div className="grid">

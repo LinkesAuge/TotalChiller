@@ -11,6 +11,7 @@ import {
   advanceCursorDate,
   expandRecurringEvents,
   sortPinnedFirst,
+  sortBannerEvents,
   getDateBadgeParts,
   getShortTimeString,
   getRecurrenceLabel,
@@ -388,6 +389,66 @@ describe("getShortTimeString", () => {
     /* Both should be non-empty (format may or may not differ based on Node locale data) */
     expect(enResult.length).toBeGreaterThan(0);
     expect(deResult.length).toBeGreaterThan(0);
+  });
+});
+
+/* ── sortBannerEvents ── */
+
+describe("sortBannerEvents", () => {
+  const mkEvent = (starts_at: string, ends_at: string, id = "x") => ({
+    id,
+    starts_at,
+    ends_at,
+  });
+
+  it("places earlier start first", () => {
+    const events = [
+      mkEvent("2026-02-11T14:00:00Z", "2026-02-11T16:00:00Z", "late"),
+      mkEvent("2026-02-11T10:00:00Z", "2026-02-11T12:00:00Z", "early"),
+    ];
+    const sorted = sortBannerEvents(events);
+    expect(sorted[0]!.id).toBe("early");
+    expect(sorted[1]!.id).toBe("late");
+  });
+
+  it("uses earlier end as tiebreaker when starts are equal", () => {
+    const events = [
+      mkEvent("2026-02-11T10:00:00Z", "2026-02-11T16:00:00Z", "long"),
+      mkEvent("2026-02-11T10:00:00Z", "2026-02-11T12:00:00Z", "short"),
+    ];
+    const sorted = sortBannerEvents(events);
+    expect(sorted[0]!.id).toBe("short");
+    expect(sorted[1]!.id).toBe("long");
+  });
+
+  it("keeps stable order when start and end are identical", () => {
+    const events = [
+      mkEvent("2026-02-11T10:00:00Z", "2026-02-11T12:00:00Z", "first"),
+      mkEvent("2026-02-11T10:00:00Z", "2026-02-11T12:00:00Z", "second"),
+    ];
+    const sorted = sortBannerEvents(events);
+    expect(sorted[0]!.id).toBe("first");
+    expect(sorted[1]!.id).toBe("second");
+  });
+
+  it("returns single event as-is", () => {
+    const events = [mkEvent("2026-02-11T10:00:00Z", "2026-02-11T12:00:00Z", "only")];
+    const sorted = sortBannerEvents(events);
+    expect(sorted).toHaveLength(1);
+    expect(sorted[0]!.id).toBe("only");
+  });
+
+  it("returns empty array for empty input", () => {
+    expect(sortBannerEvents([])).toEqual([]);
+  });
+
+  it("does not mutate the original array", () => {
+    const events = [
+      mkEvent("2026-02-11T14:00:00Z", "2026-02-11T16:00:00Z", "late"),
+      mkEvent("2026-02-11T10:00:00Z", "2026-02-11T12:00:00Z", "early"),
+    ];
+    sortBannerEvents(events);
+    expect(events[0]!.id).toBe("late");
   });
 });
 

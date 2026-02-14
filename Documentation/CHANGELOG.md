@@ -6,6 +6,46 @@
 
 ---
 
+## 2026-02-14 — Fix: Pre-existing E2E test failures (4 failed → 0)
+
+- **Fixed Messages Send flow strict-mode violation** (`crud-flows.spec.ts`): `button` locator matching `/send|senden/i` resolved to both the submit button ("Senden") and the Sent tab ("Gesendet"). Narrowed selector to `form button[type="submit"]`.
+- **Fixed rate-limiter flakiness** (`crud-flows.spec.ts`): `GET /api/game-accounts` and `POST /api/messages` tests didn't account for 429 responses from the rate limiter when parallel tests hit the same endpoints. Added 429 to expected status arrays.
+- **Fixed UUID format in notification delete test** (`notifications.spec.ts`): Test UUID `00000000-0000-0000-0000-000000000001` fails Zod's strict UUID v4 validation. Changed to `00000000-0000-4000-8000-000000000001` (valid version 4, variant 1).
+
+---
+
+## 2026-02-14 — Feature: Notifications tab on Messages page
+
+- **Added Notifications tab** (`messages-inbox.tsx`): Messages page now has a fourth tab (Inbox | Sent | Archive | Notifications) that displays all notifications with unread badge, delete per-item, and delete-all actions.
+- **Bell footer links to notifications tab** (`notification-bell.tsx`): "View all messages" link now routes to `/messages?tab=notifications` so users land directly on the notifications list. Changed from `<a>` to Next.js `<Link>` for client-side navigation.
+- **Query parameter routing** (`page.tsx`, `messages-client.tsx`, `use-messages.ts`): Messages page accepts `?tab=notifications` (or inbox/sent/archive) to set the initial active tab.
+- **Fixed nested button hydration error** (`notification-bell.tsx`): Changed notification item wrapper from `<button>` to `<div role="button">` to avoid invalid `<button>` inside `<button>` HTML nesting.
+- **Moved `NOTIF_TYPE_KEYS` to module scope** (`messages-inbox.tsx`): Constant object no longer recreated on every render.
+- **Added i18n keys**: `notifications`, `noNotifications`, `deleteAllNotifications` in both `en.json` and `de.json`.
+- **E2E tests**: Added 4 Playwright tests for the notifications tab (tab visibility, click activation, query param routing, filter bar hidden).
+
+---
+
+## 2026-02-14 — Tests: Comprehensive coverage for recent changes
+
+- **Extracted `sortBannerEvents`** (`events-utils.ts`): Split-banner sorting logic moved from inline in `event-calendar.tsx` to a testable utility function. 6 unit tests added.
+- **Extracted `isTestUser`** (`lib/is-test-user.ts`): E2E test-user email detection moved from inline regex in `fan-out/route.ts` to a shared helper. 8 unit tests added.
+- **Notification delete API tests** (`notifications.spec.ts`, `api-endpoints.spec.ts`): Added authenticated tests for `DELETE /api/notifications/[id]` (valid UUID, invalid ID) and `POST /api/notifications/delete-all`. Added unauthenticated guard tests for the same endpoints.
+- **Notification bell delete UI tests** (`notifications.spec.ts`): Added E2E tests verifying the delete-all button and per-item delete button (on hover) in the notification dropdown.
+- **Textarea width regression test** (`events.spec.ts`): Added E2E test verifying the event description textarea fills its parent container width (validates the `width: 100%` CSS fix).
+
+---
+
+## 2026-02-14 — Fix & Feature: Notification system improvements
+
+- **Fixed shadow members not receiving notifications** (`fan-out/route.ts`): Removed `.eq("is_shadow", false)` filter from the clan membership query so shadow members now receive news and event notifications.
+- **Fixed E2E test spam** (`fan-out/route.ts`): Fan-out now checks the sender's email and skips notification creation entirely for test users (`test-*@example.com`).
+- **Added delete single notification** (`[id]/route.ts`): New `DELETE /api/notifications/[id]` endpoint. Bell UI shows an X button on hover for each notification.
+- **Added delete all notifications** (`delete-all/route.ts`): New `POST /api/notifications/delete-all` endpoint. Bell header shows a "Delete all" / "Alle löschen" link when notifications exist.
+- **Added i18n keys**: `deleteAll`, `deleteNotification` in both `en.json` and `de.json`.
+
+---
+
 ## 2026-02-14 — Feature: Split banner display for two-event calendar days
 
 - **Calendar split banner** (`event-calendar.tsx`, `events.css`): When a calendar day has exactly two events with banners, both images are shown in a top/bottom vertical split. The event that starts sooner (or ends earlier if same start) is placed on top. A gold gradient divider line separates the two halves. Days with one or three+ banner events retain the existing single-image behavior.

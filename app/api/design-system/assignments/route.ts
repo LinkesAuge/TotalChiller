@@ -92,10 +92,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return apiError("Invalid input.", 400);
     }
 
     const supabase = createSupabaseServiceRoleClient();
@@ -107,10 +107,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (error) {
       captureApiError("POST /api/design-system/assignments", error);
-      return NextResponse.json({ error: "Failed to create assignment." }, { status: 500 });
+      return apiError("Failed to create assignment.", 500);
     }
 
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json({ data }, { status: 201 });
   } catch (err) {
     captureApiError("POST /api/design-system/assignments", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -130,10 +130,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const parsed = deleteSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return apiError("Invalid input.", 400);
     }
 
     const supabase = createSupabaseServiceRoleClient();
@@ -141,10 +141,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     if (error) {
       captureApiError("DELETE /api/design-system/assignments", error);
-      return NextResponse.json({ error: "Failed to delete assignment." }, { status: 500 });
+      return apiError("Failed to delete assignment.", 500);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ data: { success: true } });
   } catch (err) {
     captureApiError("DELETE /api/design-system/assignments", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

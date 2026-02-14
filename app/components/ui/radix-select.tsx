@@ -1,5 +1,6 @@
 import { type ReactNode, useMemo, useState } from "react";
 import * as Select from "@radix-ui/react-select";
+import { normalizeString } from "@/lib/string-utils";
 
 export interface SelectOption {
   readonly value: string;
@@ -44,7 +45,7 @@ export default function RadixSelect({
     if (!enableSearch) {
       return options;
     }
-    const query = searchTerm.trim().toLowerCase();
+    const query = normalizeString(searchTerm);
     if (!query) {
       return options;
     }

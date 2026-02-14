@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { normalizeString } from "@/lib/string-utils";
 
 interface ComboboxInputProps {
   /** Current input value. */
@@ -36,7 +37,7 @@ export default function ComboboxInput({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filteredOptions = useMemo(() => {
-    const query = value.trim().toLowerCase();
+    const query = normalizeString(value);
     if (!query) {
       return options;
     }
@@ -129,7 +130,7 @@ export default function ComboboxInput({
           {filteredOptions.map((option, index) => (
             <li
               key={option}
-              className={`combobox-option${index === highlightIndex ? " combobox-option-highlighted" : ""}${option.toLowerCase() === value.trim().toLowerCase() ? " combobox-option-selected" : ""}`}
+              className={`combobox-option${index === highlightIndex ? " combobox-option-highlighted" : ""}${option.toLowerCase() === normalizeString(value) ? " combobox-option-selected" : ""}`}
               role="option"
               aria-selected={index === highlightIndex}
               onMouseDown={(event) => {

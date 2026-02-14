@@ -37,7 +37,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .eq("page", page);
     if (error) {
       /* Table might not exist yet — return empty array so page still works */
-      console.warn("[site-content GET] DB error:", error.message);
+      captureApiError("GET /api/site-content", error);
       return NextResponse.json([]);
     }
     const response = NextResponse.json(data ?? []);
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return response;
   } catch (err) {
     /* Graceful fallback — page will use translation file defaults */
-    console.warn("[site-content GET] Unexpected error:", err);
+    captureApiError("GET /api/site-content", err);
     return NextResponse.json([]);
   }
 }
@@ -62,45 +62,54 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAdmin();
   if (auth.error) return auth.error;
 
-  const parsed = PATCH_SCHEMA.safeParse(await request.json());
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten().fieldErrors }, { status: 400 });
-  }
-  const { page, section_key, field_key, content_de, content_en, _delete } = parsed.data;
+  try {
+    const rawBody = await request.json().catch(() => null);
+    const parsed = PATCH_SCHEMA.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid input.", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const { page, section_key, field_key, content_de, content_en, _delete } = parsed.data;
 
-  const supabase = createSupabaseServiceRoleClient();
+    const supabase = createSupabaseServiceRoleClient();
 
-  /* Delete mode: remove the row entirely */
-  if (_delete) {
-    const { error } = await supabase
-      .from("site_content")
-      .delete()
-      .eq("page", page)
-      .eq("section_key", section_key)
-      .eq("field_key", field_key);
+    /* Delete mode: remove the row entirely */
+    if (_delete) {
+      const { error } = await supabase
+        .from("site_content")
+        .delete()
+        .eq("page", page)
+        .eq("section_key", section_key)
+        .eq("field_key", field_key);
+      if (error) {
+        captureApiError("PATCH /api/site-content", error);
+        return NextResponse.json({ error: "Failed to delete content." }, { status: 500 });
+      }
+      return NextResponse.json({ data: { success: true, deleted: true } });
+    }
+
+    /* Upsert mode: create or update */
+    const { error } = await supabase.from("site_content").upsert(
+      {
+        page,
+        section_key,
+        field_key,
+        content_de: content_de ?? "",
+        content_en: content_en ?? "",
+        updated_by: auth.userId,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "page,section_key,field_key" },
+    );
     if (error) {
       captureApiError("PATCH /api/site-content", error);
-      return NextResponse.json({ error: "Failed to delete content." }, { status: 500 });
+      return NextResponse.json({ error: "Failed to save content." }, { status: 500 });
     }
-    return NextResponse.json({ data: { success: true, deleted: true } });
+    return NextResponse.json({ data: { success: true } });
+  } catch (err) {
+    captureApiError("PATCH /api/site-content", err);
+    return apiError("Internal server error.", 500);
   }
-
-  /* Upsert mode: create or update */
-  const { error } = await supabase.from("site_content").upsert(
-    {
-      page,
-      section_key,
-      field_key,
-      content_de: content_de ?? "",
-      content_en: content_en ?? "",
-      updated_by: auth.userId,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "page,section_key,field_key" },
-  );
-  if (error) {
-    captureApiError("PATCH /api/site-content", error);
-    return NextResponse.json({ error: "Failed to save content." }, { status: 500 });
-  }
-  return NextResponse.json({ data: { success: true } });
 }

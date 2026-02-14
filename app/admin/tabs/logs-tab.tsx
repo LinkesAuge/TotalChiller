@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import SearchInput from "../../components/ui/search-input";
 import LabeledSelect from "../../components/ui/labeled-select";
 import PaginationBar from "@/app/components/pagination-bar";
@@ -16,6 +16,7 @@ import { formatLocalDateTime } from "../../../lib/date-format";
 export default function LogsTab(): ReactElement {
   const { supabase, clans, selectedClanId, setStatus } = useAdminContext();
   const tAdmin = useTranslations("admin");
+  const locale = useLocale();
 
   /* ── Local state ── */
   const [auditLogs, setAuditLogs] = useState<readonly AuditLogRow[]>([]);
@@ -50,7 +51,7 @@ export default function LogsTab(): ReactElement {
     return keys.length === 0 ? "—" : keys.join(", ");
   }, []);
 
-  const formatTimestamp = useCallback((iso: string): string => formatLocalDateTime(iso, "en"), []);
+  const formatTimestamp = useCallback((iso: string): string => formatLocalDateTime(iso, locale), [locale]);
 
   /* ── Reset page on filter change ── */
   const resetPage = pagination.setPage;

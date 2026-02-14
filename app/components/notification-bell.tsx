@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 
 import type { NotificationRow, NotificationPrefs } from "@/lib/types/domain";
+import { formatTimeAgo } from "@/lib/date-format";
 
 interface NotificationBellProps {
   readonly isOpen: boolean;
@@ -20,31 +21,6 @@ const TYPE_ROUTES: Record<string, string> = {
   event: "/events",
   approval: "/profile",
 };
-
-/**
- * Returns a human-readable "time ago" string using translation keys.
- */
-function formatTimeAgo(dateString: string, t: ReturnType<typeof useTranslations>, locale: string): string {
-  const now = Date.now();
-  const then = new Date(dateString).getTime();
-  const diffSeconds = Math.floor((now - then) / 1000);
-  if (diffSeconds < 60) {
-    return t("justNow");
-  }
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) {
-    return t("minutesAgo", { count: diffMinutes });
-  }
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return t("hoursAgo", { count: diffHours });
-  }
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) {
-    return t("daysAgo", { count: diffDays });
-  }
-  return new Date(dateString).toLocaleDateString(locale);
-}
 
 /**
  * Returns an SVG icon for the notification type.
@@ -101,20 +77,32 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
     events_enabled: true,
     system_enabled: true,
   });
-  const loadNotifications = useCallback(async (): Promise<void> => {
-    const response = await fetch("/api/notifications");
-    if (response.ok) {
-      const result = await response.json();
-      setNotifications(result.data ?? []);
+  const loadNotifications = useCallback(async (signal?: AbortSignal): Promise<void> => {
+    try {
+      const response = await fetch("/api/notifications", { signal });
+      if (response.ok) {
+        const result = await response.json();
+        setNotifications(result.data ?? []);
+      }
+    } catch {
+      /* Silently ignore aborted requests and network failures */
     }
   }, []);
 
   useEffect(() => {
-    void loadNotifications();
+    const ac = new AbortController();
+    void loadNotifications(ac.signal);
+
     const interval = setInterval(() => {
-      void loadNotifications();
+      /* Skip poll while tab is hidden to save bandwidth */
+      if (document.visibilityState === "hidden") return;
+      void loadNotifications(ac.signal);
     }, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      ac.abort();
+    };
   }, [loadNotifications]);
 
   useEffect(() => {

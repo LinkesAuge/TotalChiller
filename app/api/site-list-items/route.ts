@@ -75,14 +75,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .order("sort_order");
     if (error) {
       /* Table might not exist yet — return empty array so page still works */
-      console.warn("[site-list-items GET] DB error:", error.message);
+      captureApiError("GET /api/site-list-items", error);
       return NextResponse.json([]);
     }
     const response = NextResponse.json(data ?? []);
     response.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     return response;
   } catch (err) {
-    console.warn("[site-list-items GET] Unexpected error:", err);
+    captureApiError("GET /api/site-list-items", err);
     return NextResponse.json([]);
   }
 }
@@ -103,122 +103,128 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   if (auth.error) return auth.error;
   const { userId } = auth;
 
-  const parsed = PATCH_SCHEMA.safeParse(await request.json());
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten() }, { status: 400 });
-  }
-  const body = parsed.data;
+  try {
+    const rawBody = await request.json().catch(() => null);
+    const parsed = PATCH_SCHEMA.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input.", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const body = parsed.data;
 
-  const supabase = createSupabaseServiceRoleClient();
+    const supabase = createSupabaseServiceRoleClient();
 
-  switch (body.action) {
-    /* ── Create ── */
-    case "create": {
-      const { page, section_key, text_de, text_en, badge_de, badge_en, link_url, icon, icon_type } = body;
+    switch (body.action) {
+      /* ── Create ── */
+      case "create": {
+        const { page, section_key, text_de, text_en, badge_de, badge_en, link_url, icon, icon_type } = body;
 
-      /* Determine next sort_order */
-      const { data: lastItem } = await supabase
-        .from("site_list_items")
-        .select("sort_order")
-        .eq("page", page)
-        .eq("section_key", section_key)
-        .order("sort_order", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        /* Determine next sort_order */
+        const { data: lastItem } = await supabase
+          .from("site_list_items")
+          .select("sort_order")
+          .eq("page", page)
+          .eq("section_key", section_key)
+          .order("sort_order", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      const nextOrder = (lastItem?.sort_order ?? -1) + 1;
+        const nextOrder = (lastItem?.sort_order ?? -1) + 1;
 
-      const { data, error } = await supabase
-        .from("site_list_items")
-        .insert({
-          page,
-          section_key,
-          sort_order: nextOrder,
-          text_de: text_de ?? "",
-          text_en: text_en ?? "",
-          badge_de: badge_de ?? "",
-          badge_en: badge_en ?? "",
-          link_url: link_url ?? "",
-          icon: icon ?? "",
-          icon_type: icon_type ?? "preset",
+        const { data, error } = await supabase
+          .from("site_list_items")
+          .insert({
+            page,
+            section_key,
+            sort_order: nextOrder,
+            text_de: text_de ?? "",
+            text_en: text_en ?? "",
+            badge_de: badge_de ?? "",
+            badge_en: badge_en ?? "",
+            link_url: link_url ?? "",
+            icon: icon ?? "",
+            icon_type: icon_type ?? "preset",
+            updated_by: userId,
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error) {
+          captureApiError("PATCH /api/site-list-items create", error);
+          return NextResponse.json({ error: "Failed to create item." }, { status: 500 });
+        }
+        return NextResponse.json({ data: { success: true, item: data } });
+      }
+
+      /* ── Update ── */
+      case "update": {
+        const { id, action: _a, ...fields } = body;
+
+        const updates: Record<string, unknown> = {
           updated_by: userId,
           updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("[site-list-items PATCH create]", error.message);
-        return NextResponse.json({ error: "Failed to create item." }, { status: 500 });
-      }
-      return NextResponse.json({ data: { success: true, item: data } });
-    }
-
-    /* ── Update ── */
-    case "update": {
-      const { id, action: _a, ...fields } = body;
-
-      const updates: Record<string, unknown> = {
-        updated_by: userId,
-        updated_at: new Date().toISOString(),
-      };
-      for (const [key, value] of Object.entries(fields)) {
-        if (value !== undefined) {
-          updates[key] = value;
+        };
+        for (const [key, value] of Object.entries(fields)) {
+          if (value !== undefined) {
+            updates[key] = value;
+          }
         }
-      }
 
-      const { data, error } = await supabase.from("site_list_items").update(updates).eq("id", id).select().single();
+        const { data, error } = await supabase.from("site_list_items").update(updates).eq("id", id).select().single();
 
-      if (error) {
-        console.error("[site-list-items PATCH update]", error.message);
-        return NextResponse.json({ error: "Failed to update item." }, { status: 500 });
-      }
-      return NextResponse.json({ data: { success: true, item: data } });
-    }
-
-    /* ── Delete ── */
-    case "delete": {
-      const { id } = body;
-
-      const { error } = await supabase.from("site_list_items").delete().eq("id", id);
-
-      if (error) {
-        console.error("[site-list-items PATCH delete]", error.message);
-        return NextResponse.json({ error: "Failed to delete item." }, { status: 500 });
-      }
-      return NextResponse.json({ data: { success: true, deleted: true } });
-    }
-
-    /* ── Reorder ── */
-    case "reorder": {
-      const { items } = body;
-
-      /* Batch update sort_order for all provided items */
-      const now = new Date().toISOString();
-      const results = await Promise.all(
-        items.map((item) =>
-          supabase
-            .from("site_list_items")
-            .update({ sort_order: item.sort_order, updated_by: userId, updated_at: now })
-            .eq("id", item.id),
-        ),
-      );
-      let failCount = 0;
-      for (const result of results) {
-        if (result.error) {
-          captureApiError("PATCH /api/site-list-items", result.error);
-          failCount++;
+        if (error) {
+          captureApiError("PATCH /api/site-list-items update", error);
+          return NextResponse.json({ error: "Failed to update item." }, { status: 500 });
         }
+        return NextResponse.json({ data: { success: true, item: data } });
       }
 
-      if (failCount > 0) {
-        return NextResponse.json({ error: `Reorder partially failed (${failCount} items).` }, { status: 500 });
+      /* ── Delete ── */
+      case "delete": {
+        const { id } = body;
+
+        const { error } = await supabase.from("site_list_items").delete().eq("id", id);
+
+        if (error) {
+          captureApiError("PATCH /api/site-list-items delete", error);
+          return NextResponse.json({ error: "Failed to delete item." }, { status: 500 });
+        }
+        return NextResponse.json({ data: { success: true, deleted: true } });
       }
-      return NextResponse.json({ data: { success: true } });
+
+      /* ── Reorder ── */
+      case "reorder": {
+        const { items } = body;
+
+        /* Batch update sort_order for all provided items */
+        const now = new Date().toISOString();
+        const results = await Promise.all(
+          items.map((item) =>
+            supabase
+              .from("site_list_items")
+              .update({ sort_order: item.sort_order, updated_by: userId, updated_at: now })
+              .eq("id", item.id),
+          ),
+        );
+        let failCount = 0;
+        for (const result of results) {
+          if (result.error) {
+            captureApiError("PATCH /api/site-list-items reorder", result.error);
+            failCount++;
+          }
+        }
+
+        if (failCount > 0) {
+          return NextResponse.json({ error: `Reorder partially failed (${failCount} items).` }, { status: 500 });
+        }
+        return NextResponse.json({ data: { success: true } });
+      }
+
+      default:
+        return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
-
-    default:
-      return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (err) {
+    captureApiError("PATCH /api/site-list-items", err);
+    return apiError("Internal server error.", 500);
   }
 }

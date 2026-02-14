@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RuleRow } from "../admin-types";
 import { usePagination } from "@/lib/hooks/use-pagination";
 import { compareValues, useSortable } from "@/lib/hooks/use-sortable";
+import { normalizeString } from "@/lib/string-utils";
 
 /* ── Config ── */
 
@@ -173,7 +174,7 @@ export function useRuleList<SortKey extends string>(
 
   /* ── Filtering ── */
   const filteredRules = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+    const normalizedSearch = normalizeString(search);
     return rules.filter((rule) => {
       if (activeField && activeField !== "all" && rule.field !== activeField) return false;
       if (statusFilter !== "all") {

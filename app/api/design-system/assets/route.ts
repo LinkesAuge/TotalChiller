@@ -86,10 +86,10 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return apiError("Invalid input.", 400);
     }
 
     const { id, ...updates } = parsed.data;

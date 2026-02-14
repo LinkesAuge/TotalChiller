@@ -71,7 +71,7 @@ Each feature follows the pattern: `app/[feature]/page.tsx` (thin server componen
 
 ### 4.1 Auth (`app/auth/`)
 
-Login, register, forgot password, password update. Supabase Auth with PKCE flow. First-login detection redirects users without game accounts to `/profile`. `proxy.ts` middleware handles auth gating for page routes; API routes handle their own auth via `requireAuth()`.
+Login, register, forgot password, password update. Supabase Auth with PKCE flow. First-login detection redirects users without game accounts to `/profile`. `proxy.ts` middleware handles auth gating for page routes (API routes are excluded from the matcher and handle their own auth via `requireAuth()`).
 
 | File                                  | Purpose                                      |
 | ------------------------------------- | -------------------------------------------- |
@@ -198,18 +198,18 @@ Bell icon in header with dropdown. DB-stored, polls every 60s. Fan-out on news/e
 
 Modular tab-based admin. Slim orchestrator (`admin-client.tsx`, ~140 lines) with `AdminProvider` context. Each tab lazy-loaded via `next/dynamic`.
 
-| File                                 | Purpose                                       |
-| ------------------------------------ | --------------------------------------------- |
-| `app/admin/admin-client.tsx`         | Tab orchestrator + dynamic imports            |
-| `app/admin/admin-context.tsx`        | Shared state (supabase, clans, user, routing) |
-| `app/admin/admin-types.ts`           | Types, constants, rank/role formatters        |
-| `app/admin/tabs/clans-tab.tsx`       | Clan management + game account memberships    |
-| `app/admin/tabs/users-tab.tsx`       | User CRUD, game account management            |
-| `app/admin/tabs/validation-tab.tsx`  | Validation rules (global)                     |
-| `app/admin/tabs/corrections-tab.tsx` | Correction rules (global)                     |
-| `app/admin/tabs/logs-tab.tsx`        | Audit log viewer                              |
-| `app/admin/tabs/approvals-tab.tsx`   | Game account approval queue                   |
-| `app/admin/tabs/forum-tab.tsx`       | Forum category management                     |
+| File                                 | Purpose                                                                                      |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `app/admin/admin-client.tsx`         | Tab orchestrator + dynamic imports                                                           |
+| `app/admin/admin-context.tsx`        | Shared state (supabase, clans, user, routing)                                                |
+| `app/admin/admin-types.ts`           | Types, constants, rank/role formatters (`LOCALIZED_ROLE_LABELS`, `formatRole`, `formatRank`) |
+| `app/admin/tabs/clans-tab.tsx`       | Clan management + game account memberships                                                   |
+| `app/admin/tabs/users-tab.tsx`       | User CRUD, game account management                                                           |
+| `app/admin/tabs/validation-tab.tsx`  | Validation rules (global)                                                                    |
+| `app/admin/tabs/corrections-tab.tsx` | Correction rules (global)                                                                    |
+| `app/admin/tabs/logs-tab.tsx`        | Audit log viewer                                                                             |
+| `app/admin/tabs/approvals-tab.tsx`   | Game account approval queue                                                                  |
+| `app/admin/tabs/forum-tab.tsx`       | Forum category management                                                                    |
 
 **DB tables**: `profiles`, `user_roles`, `game_accounts`, `game_account_clan_memberships`, `clans`, `validation_rules`, `correction_rules`, `audit_logs`
 
@@ -218,6 +218,8 @@ Modular tab-based admin. Slim orchestrator (`admin-client.tsx`, ~140 lines) with
 | File                                     | Purpose                                          |
 | ---------------------------------------- | ------------------------------------------------ |
 | `app/data-import/data-import-client.tsx` | CSV import with preview, corrections, validation |
+| `app/data-import/csv-parser.ts`          | Pure CSV parsing/validation functions            |
+| `app/data-import/import-utils.ts`        | Sort value extraction and comparators            |
 | `app/data-table/data-table-client.tsx`   | Chest database viewer/editor                     |
 | `app/api/data-import/commit/route.ts`    | `POST` commit import data                        |
 | `lib/correction-applicator.ts`           | Correction rule engine                           |
@@ -287,13 +289,16 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 | Auth helpers       | `api/require-auth.ts`               | Validates session, returns `{ userId, supabase }` or error                                                                                                |
 | Admin helpers      | `api/require-admin.ts`              | Validates admin role (wraps requireAuth)                                                                                                                  |
 | Zod schemas        | `api/validation.ts`                 | `uuidSchema`, `notificationSettingsSchema`, `chartQuerySchema`, `messageQuerySchema`, `dateStringSchema`, `apiError()`, `parseJsonBody()`                 |
+| Error logging      | `api/logger.ts`                     | `captureApiError()` — logs to console + Sentry. Use in all API catch blocks.                                                                              |
+| String utils       | `string-utils.ts`                   | `normalizeString()` — canonical `trim().toLowerCase()`. Use everywhere instead of inline.                                                                 |
 | Permissions        | `permissions.ts`                    | Role→permission map. `hasPermission()`, `canDo()`, `isAdmin()`                                                                                            |
 | Rate limiter       | `rate-limit.ts`                     | `createRateLimiter()` factory. Pre-built: `strictLimiter` (10/min), `standardLimiter` (30/min), `relaxedLimiter` (120/min). Isolated stores per instance. |
 | Domain types       | `types/domain.ts`                   | Shared interfaces: `InboxThread`, `SentMessage`, `ThreadMessage`, `ProfileSummary`, `ArchivedItem`, etc.                                                  |
 | Markdown           | `markdown/app-markdown.tsx`         | Unified renderer (`variant="cms"` or `"forum"`)                                                                                                           |
 | Markdown toolbar   | `markdown/app-markdown-toolbar.tsx` | Formatting buttons, image upload                                                                                                                          |
 | Markdown sanitizer | `markdown/sanitize-markdown.ts`     | Normalizes content before rendering                                                                                                                       |
-| Date formatting    | `date-format.ts`                    | `formatLocalDateTime()`                                                                                                                                   |
+| Date formatting    | `date-format.ts`                    | `formatLocalDateTime()`, `formatTimeAgo()` — shared "time ago" helper with locale fallback                                                                |
+| Banner upload      | `hooks/use-banner-upload.ts`        | `useBannerUpload()` — shared hook for uploading banner images with type/size validation                                                                   |
 | Dashboard utils    | `dashboard-utils.ts`                | `toDateString()`, `extractAuthorName()`, `calculateTrend()`, `formatCompactNumber()`                                                                      |
 | Corrections        | `correction-applicator.ts`          | Applies correction rules to chest data                                                                                                                    |
 | Dashboard utils    | `dashboard-utils.ts`                | Score/trend/highlight helpers                                                                                                                             |
@@ -371,9 +376,12 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 ### API Routes
 
 - Every route uses `try/catch` returning `{ error: "..." }` on failure.
-- Every route calls a rate limiter as the first line: `const blocked = limiter.check(request); if (blocked) return blocked;`
+- Every route calls a rate limiter **before** `try/catch`: `const blocked = limiter.check(request); if (blocked) return blocked;`
 - Auth: `requireAuth()` for user routes, `requireAdmin()` for admin routes. Service role client for DB operations that bypass RLS.
-- Input validation: Zod schemas for request bodies and route params.
+- Input validation: Zod schemas for request bodies and route params. Use `parseJsonBody(request, schema)` from `lib/api/validation.ts` for JSON body parsing + validation.
+- Error logging: Always use `captureApiError()` from `lib/api/logger.ts` — never raw `console.error` — to ensure errors reach Sentry.
+- Error responses: Return generic user-facing messages (e.g. "Failed to load data."), never raw DB error messages.
+- Success responses: Wrap in `{ data: ... }` for consistency; use `apiError()` helper for error responses.
 
 ### Client Components
 
@@ -412,9 +420,10 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 
 ### Testing
 
-- Unit: Vitest, files colocated as `*.test.ts` in `lib/`. Run: `npm run test:unit`.
-- E2E: Playwright, files in `tests/`. Pre-authenticated via `storageState`. Run: `npx playwright test`.
+- Unit: Vitest, 514 tests across 25 files colocated as `*.test.ts` in `lib/` and `app/`. Run: `npm run test:unit`.
+- E2E: Playwright, ~396 tests across 27 specs in `tests/`. Pre-authenticated via `storageState`. Run: `npx playwright test`.
 - 6 test roles: owner, admin, moderator, editor, member, guest.
+- All `.content-inner` locators use `.first()` (pages render 2+ instances via `PageShell` + client component).
 
 ### Styling
 

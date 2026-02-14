@@ -18,11 +18,12 @@ import RuleImportModal from "../components/rule-import-modal";
 import type { RuleRow } from "../admin-types";
 import { ruleFieldOptions, formatLabel, NEW_VALIDATION_ID } from "../admin-types";
 import type { ImportColumn } from "../components/rule-import-modal";
+import { normalizeString } from "@/lib/string-utils";
 
 /* ── Parse / build helpers ── */
 
 function normalizeImportedStatus(value: string): string {
-  const normalized = value.trim().toLowerCase();
+  const normalized = normalizeString(value);
   if (normalized === "active") return "valid";
   if (normalized === "inactive") return "invalid";
   return normalized;
@@ -52,7 +53,7 @@ function parseValidationListText(text: string, expectedField: string): { entries
       errors.push(`Line ${i + 1}: Invalid status ${rawStatus}.`);
       continue;
     }
-    const norm = matchValue.trim().toLowerCase();
+    const norm = normalizeString(matchValue);
     if (seenValues.has(norm)) continue;
     seenValues.add(norm);
     entries.push({ id: "", field: expectedField, match_value: matchValue, status });
@@ -83,7 +84,7 @@ export default function ValidationTab(): ReactElement {
       statusOptions: ["all", "valid", "invalid"],
       parseFile: parseValidationListText,
       buildCsv: buildValidationCsv,
-      normalizeValue: (v) => v.trim().toLowerCase(),
+      normalizeValue: normalizeString,
       existingValueKey: (rule) => rule.match_value ?? "",
       importPayloadKey: (entry) => `${entry.match_value ?? ""}-${entry.status ?? ""}`,
       toInsertPayload: (entry) => ({

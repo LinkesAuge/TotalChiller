@@ -116,10 +116,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return apiError("Invalid input.", 400);
     }
 
     const supabase = createSupabaseServiceRoleClient();
@@ -127,10 +127,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (error) {
       captureApiError("POST /api/design-system/ui-elements", error);
-      return NextResponse.json({ error: "Failed to create UI element." }, { status: 500 });
+      return apiError("Failed to create UI element.", 500);
     }
 
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json({ data }, { status: 201 });
   } catch (err) {
     captureApiError("POST /api/design-system/ui-elements", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -150,10 +150,10 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return apiError("Invalid input.", 400);
     }
 
     const { id, ...updates } = parsed.data;
@@ -162,10 +162,10 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     if (error) {
       captureApiError("PATCH /api/design-system/ui-elements", error);
-      return NextResponse.json({ error: "Failed to update UI element." }, { status: 500 });
+      return apiError("Failed to update UI element.", 500);
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({ data });
   } catch (err) {
     captureApiError("PATCH /api/design-system/ui-elements", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -185,10 +185,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const parsed = deleteSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return apiError("Invalid input.", 400);
     }
 
     const supabase = createSupabaseServiceRoleClient();
@@ -196,10 +196,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     if (error) {
       captureApiError("DELETE /api/design-system/ui-elements", error);
-      return NextResponse.json({ error: "Failed to delete UI element." }, { status: 500 });
+      return apiError("Failed to delete UI element.", 500);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ data: { success: true } });
   } catch (err) {
     captureApiError("DELETE /api/design-system/ui-elements", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

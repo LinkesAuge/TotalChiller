@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
@@ -57,6 +57,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
     system_enabled: true,
   });
   const [notifStatus, setNotifStatus] = useState<string>("");
+  const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supabase = useSupabase();
   const { isAdmin } = useUserRole(supabase);
 
@@ -90,6 +91,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
             )
             .select("user_db,username,display_name")
             .single();
+          if (!isMounted) return;
           updateFormState(setFormState, {
             username: createdProfile?.username ?? "",
             displayName: createdProfile?.display_name ?? createdProfile?.username ?? "",
@@ -101,6 +103,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
           });
         }
         const notifRes = await fetch("/api/notification-settings");
+        if (!isMounted) return;
         if (notifRes.ok) {
           const notifResult = await notifRes.json();
           if (notifResult.data) {
@@ -114,6 +117,13 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
       isMounted = false;
     };
   }, [supabase, userId]);
+
+  /* Clean up notification status timer on unmount */
+  useEffect(() => {
+    return () => {
+      if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+    };
+  }, []);
 
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -232,7 +242,8 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
       return;
     }
     setNotifStatus("Saved.");
-    setTimeout(() => setNotifStatus(""), 2000);
+    if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+    notifTimerRef.current = setTimeout(() => setNotifStatus(""), 2000);
   }
 
   const updater = (next: Partial<SettingsFormState>) => updateFormState(setFormState, next);

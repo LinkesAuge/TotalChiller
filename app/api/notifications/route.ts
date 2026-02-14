@@ -8,9 +8,9 @@ import { relaxedLimiter } from "../../../lib/rate-limit";
  * Returns recent notifications for the authenticated user, filtered by user preferences.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = relaxedLimiter.check(request);
+  if (blocked) return blocked;
   try {
-    const blocked = relaxedLimiter.check(request);
-    if (blocked) return blocked;
     const auth = await requireAuth();
     if (auth.error) return auth.error;
     const { userId, supabase } = auth;
@@ -49,7 +49,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .order("created_at", { ascending: false })
       .limit(30);
     if (fetchError) {
-      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+      captureApiError("GET /api/notifications", fetchError);
+      return NextResponse.json({ error: "Failed to load notifications." }, { status: 500 });
     }
     const rows = notifications ?? [];
     const unreadCount = rows.filter((notification) => !notification.is_read).length;

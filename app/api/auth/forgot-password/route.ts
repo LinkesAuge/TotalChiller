@@ -46,42 +46,47 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
 
-  /* Parse and validate body */
-  const body: unknown = await request.json().catch(() => null);
-  const parsed = ForgotPasswordSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request." }, { status: 400 });
+  try {
+    /* Parse and validate body */
+    const body: unknown = await request.json().catch(() => null);
+    const parsed = ForgotPasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request." }, { status: 400 });
+    }
+
+    const { email, turnstileToken, redirectTo } = parsed.data;
+
+    /* Verify Turnstile CAPTCHA */
+    const isValid = await verifyTurnstileToken(turnstileToken);
+    if (!isValid) {
+      return NextResponse.json({ error: "CAPTCHA verification failed. Please try again." }, { status: 403 });
+    }
+
+    /* Send password-reset email */
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) {
+      captureApiError("POST /api/auth/forgot-password", error);
+      return NextResponse.json({ error: "Password reset failed. Please try again." }, { status: 400 });
+    }
+
+    /*
+     * Store the intended post-callback destination in a cookie.
+     * If Supabase ignores the redirectTo (e.g. URL not in the allowlist)
+     * and falls back to the site root, the middleware will read this cookie
+     * and redirect to /auth/callback with the correct `next` parameter.
+     */
+    const nextPath = new URL(redirectTo).searchParams.get("next") ?? "/auth/update";
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set("auth_redirect_next", nextPath, {
+      path: "/",
+      maxAge: 600,
+      httpOnly: true,
+      sameSite: "lax",
+    });
+    return response;
+  } catch (err) {
+    captureApiError("POST /api/auth/forgot-password", err);
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
-
-  const { email, turnstileToken, redirectTo } = parsed.data;
-
-  /* Verify Turnstile CAPTCHA */
-  const isValid = await verifyTurnstileToken(turnstileToken);
-  if (!isValid) {
-    return NextResponse.json({ error: "CAPTCHA verification failed. Please try again." }, { status: 403 });
-  }
-
-  /* Send password-reset email */
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-  if (error) {
-    captureApiError("POST /api/auth/forgot-password", error);
-    return NextResponse.json({ error: "Password reset failed. Please try again." }, { status: 400 });
-  }
-
-  /*
-   * Store the intended post-callback destination in a cookie.
-   * If Supabase ignores the redirectTo (e.g. URL not in the allowlist)
-   * and falls back to the site root, the middleware will read this cookie
-   * and redirect to /auth/callback with the correct `next` parameter.
-   */
-  const nextPath = new URL(redirectTo).searchParams.get("next") ?? "/auth/update";
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set("auth_redirect_next", nextPath, {
-    path: "/",
-    maxAge: 600,
-    httpOnly: true,
-    sameSite: "lax",
-  });
-  return response;
 }

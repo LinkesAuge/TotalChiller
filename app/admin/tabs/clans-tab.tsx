@@ -13,6 +13,7 @@ import PaginationBar from "@/app/components/pagination-bar";
 import DangerConfirmModal from "../components/danger-confirm-modal";
 import FormModal from "@/app/components/form-modal";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
+import { normalizeString } from "@/lib/string-utils";
 import { useSortable, compareValues } from "@/lib/hooks/use-sortable";
 import { usePagination } from "@/lib/hooks/use-pagination";
 import type {
@@ -205,7 +206,7 @@ export default function ClansTab(): ReactElement {
   );
 
   const filteredMemberships = useMemo(() => {
-    const normalizedSearch = memberSearch.trim().toLowerCase();
+    const normalizedSearch = normalizeString(memberSearch);
     return memberships.filter((membership) => {
       const userId = membership.game_accounts?.user_id ?? "";
       if (memberRankFilter !== "all" && (membership.rank ?? "") !== memberRankFilter) return false;
@@ -240,7 +241,7 @@ export default function ClansTab(): ReactElement {
   }, [filteredMemberships, memberSortDirection, getMemberSortValue]);
 
   const filteredAssignableAccounts = useMemo(() => {
-    const normalizedSearch = assignAccounts.search.trim().toLowerCase();
+    const normalizedSearch = normalizeString(assignAccounts.search);
     return assignAccounts.accounts.filter((account) => {
       if (assignAccounts.filter === "unassigned" && account.clan_id !== unassignedClanId) return false;
       if (assignAccounts.filter === "current" && account.clan_id !== selectedClanId) return false;

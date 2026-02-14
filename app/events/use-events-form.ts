@@ -5,8 +5,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifySupabaseError, getErrorMessageKey } from "@/lib/supabase/error-utils";
 import { createLinkedForumPost } from "@/lib/forum-thread-sync";
-import { FORUM_IMAGES_BUCKET } from "@/lib/constants";
-import { generateStoragePath } from "@/lib/markdown/app-markdown-toolbar";
+import { useBannerUpload } from "@/lib/hooks/use-banner-upload";
 import { toLocalDateTimeString } from "./events-utils";
 import type { EventRow, RecurrenceType, TemplateRow } from "./events-types";
 import { EVENT_SCHEMA } from "./events-types";
@@ -14,6 +13,7 @@ import { EVENT_SCHEMA } from "./events-types";
 export interface UseEventsFormParams {
   readonly supabase: SupabaseClient;
   readonly clanId: string | undefined;
+  readonly currentUserId: string;
   readonly events: readonly EventRow[];
   readonly templates: readonly TemplateRow[];
   readonly pushToast: (msg: string) => void;
@@ -74,7 +74,8 @@ export interface UseEventsFormResult {
 }
 
 export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult {
-  const { supabase, clanId, events, templates, pushToast, t, reloadEvents, reloadTemplates, setEvents } = params;
+  const { supabase, clanId, currentUserId, events, templates, pushToast, t, reloadEvents, reloadTemplates, setEvents } =
+    params;
 
   const eventFormRef = useRef<HTMLElement>(null);
   const bannerFileRef = useRef<HTMLInputElement>(null);
@@ -96,7 +97,6 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
   const [recurrenceOngoing, setRecurrenceOngoing] = useState<boolean>(false);
   const [endsAt, setEndsAt] = useState<string>("");
   const [bannerUrl, setBannerUrl] = useState<string>("");
-  const [isBannerUploading, setIsBannerUploading] = useState<boolean>(false);
   const [deleteEventId, setDeleteEventId] = useState<string>("");
 
   const showError = useCallback(
@@ -110,25 +110,14 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
   const templateOptions = templates.map((tpl) => ({ value: tpl.id, label: tpl.title }));
   const fullTemplateOptions = [{ value: "none", label: t("templateNone") }, ...templateOptions];
 
-  const handleBannerUpload = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
-      const file = event.target.files?.[0];
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!file || !userId) return;
-      setIsBannerUploading(true);
-      const path = generateStoragePath(userId, `event_banner_${file.name}`);
-      const { error: uploadErr } = await supabase.storage.from(FORUM_IMAGES_BUCKET).upload(path, file);
-      setIsBannerUploading(false);
-      if (uploadErr) {
-        pushToast(`${t("saveFailed")}: ${uploadErr.message}`);
-        return;
-      }
-      const { data: urlData } = supabase.storage.from(FORUM_IMAGES_BUCKET).getPublicUrl(path);
-      setBannerUrl(urlData.publicUrl);
-    },
-    [pushToast, supabase, t],
-  );
+  const bannerErrorHandler = useCallback((msg: string) => pushToast(`${t("saveFailed")}: ${msg}`), [pushToast, t]);
+  const { handleBannerUpload, isBannerUploading } = useBannerUpload({
+    supabase,
+    userId: currentUserId || null,
+    onSuccess: setBannerUrl,
+    onError: bannerErrorHandler,
+    filePrefix: "event_banner",
+  });
 
   const applyTemplate = useCallback(
     (templateValue: string): void => {
@@ -358,13 +347,14 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
 
   const confirmDeleteEvent = useCallback(async (): Promise<void> => {
     if (!deleteEventId) return;
-    const { error } = await supabase.from("events").delete().eq("id", deleteEventId);
-    setDeleteEventId("");
+    const targetId = deleteEventId;
+    const { error } = await supabase.from("events").delete().eq("id", targetId);
     if (error) {
       showError(error, "deleteFailed");
       return;
     }
-    setEvents((current) => current.filter((item) => item.id !== deleteEventId));
+    setDeleteEventId("");
+    setEvents((current) => current.filter((item) => item.id !== targetId));
     pushToast(t("eventDeleted"));
   }, [deleteEventId, supabase, showError, setEvents, pushToast, t]);
 

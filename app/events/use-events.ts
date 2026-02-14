@@ -186,6 +186,7 @@ export function useEvents(): UseEventsResult {
   const formState = useEventsForm({
     supabase,
     clanId: clanContext?.clanId,
+    currentUserId,
     events,
     templates,
     pushToast,

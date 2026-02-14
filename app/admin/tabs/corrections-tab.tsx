@@ -17,11 +17,12 @@ import SearchInput from "../../components/ui/search-input";
 import LabeledSelect from "../../components/ui/labeled-select";
 import IconButton from "../../components/ui/icon-button";
 import TableScroll from "../../components/table-scroll";
+import { normalizeString } from "@/lib/string-utils";
 
 /* ── Parse / build helpers ── */
 
 function normalizeCorrectionStatus(value: string): string {
-  return value.trim().toLowerCase();
+  return normalizeString(value);
 }
 
 function parseCorrectionListText(text: string, expectedField: string): { entries: RuleRow[]; errors: string[] } {
@@ -82,7 +83,7 @@ function parseCorrectionListText(text: string, expectedField: string): { entries
       errors.push(`Line ${i + 1}: Invalid status ${status}.`);
       continue;
     }
-    const normalizedKey = `${field}:${matchValue.trim().toLowerCase()}`;
+    const normalizedKey = `${field}:${normalizeString(matchValue)}`;
     if (seenValues.has(normalizedKey)) continue;
     seenValues.add(normalizedKey);
     entries.push({
@@ -121,7 +122,7 @@ export default function CorrectionsTab(): ReactElement {
       statusOptions: ["all", "active", "inactive"],
       parseFile: parseCorrectionListText,
       buildCsv: buildCorrectionCsv,
-      normalizeValue: (v) => v.trim().toLowerCase(),
+      normalizeValue: normalizeString,
       existingValueKey: (rule) => rule.match_value ?? "",
       importPayloadKey: (entry) => `${entry.field ?? ""}-${entry.match_value ?? ""}`,
       toInsertPayload: (entry) => ({
@@ -255,7 +256,7 @@ export default function CorrectionsTab(): ReactElement {
       return;
     }
     deleteConfirm.openConfirm();
-  }, [rlSelectedIds.length, deleteConfirm, setStatus]);
+  }, [rlSelectedIds, deleteConfirm, setStatus]);
 
   const handleConfirmReplace = useCallback(async () => {
     await ruleList.executeImport();

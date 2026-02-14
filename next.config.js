@@ -10,6 +10,10 @@ const nextConfig = {
   reactStrictMode: true,
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
+  experimental: {
+    optimizePackageImports: ["recharts", "@radix-ui/react-select"],
+  },
+
   async headers() {
     return [
       {

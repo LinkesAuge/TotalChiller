@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
+import { parseJsonBody } from "@/lib/api/validation";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { strictLimiter } from "../../../../lib/rate-limit";
@@ -25,19 +26,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
-    let rawBody: unknown;
-    try {
-      rawBody = await request.json();
-    } catch {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-    }
-    const parsed = FAN_OUT_SCHEMA.safeParse(rawBody);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid input.", details: parsed.error.flatten().fieldErrors },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseJsonBody(request, FAN_OUT_SCHEMA);
+    if (parsed.error) return parsed.error;
     const body = parsed.data;
     const serviceClient = createSupabaseServiceRoleClient();
     const tableName = body.type === "news" ? "articles" : "events";
@@ -88,12 +78,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }));
     const { error: insertError } = await serviceClient.from("notifications").insert(notificationRows);
     if (insertError) {
-      console.error("[notifications/fan-out]", insertError.message);
+      captureApiError("POST /api/notifications/fan-out", insertError);
       return NextResponse.json({ error: "Failed to create notifications." }, { status: 500 });
     }
     return NextResponse.json({ data: { recipients: recipientIds.length } }, { status: 201 });
   } catch (err) {
-    console.error("[notifications/fan-out POST] Unexpected:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    captureApiError("POST /api/notifications/fan-out", err);
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

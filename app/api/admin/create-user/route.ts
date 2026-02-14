@@ -37,7 +37,8 @@ export async function POST(request: Request): Promise<Response> {
   if (blocked) return blocked;
 
   try {
-    const parsed = CREATE_USER_SCHEMA.safeParse(await request.json());
+    const rawBody = await request.json().catch(() => null);
+    const parsed = CREATE_USER_SCHEMA.safeParse(rawBody);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input." }, { status: 400 });
     }

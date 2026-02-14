@@ -38,9 +38,9 @@ type GameAccountRow = Pick<GameAccountSummary, "game_username">;
  * scoped by clan and optional filters.
  */
 export async function GET(request: Request): Promise<Response> {
+  const blocked = relaxedLimiter.check(request);
+  if (blocked) return blocked;
   try {
-    const blocked = relaxedLimiter.check(request);
-    if (blocked) return blocked;
     const url = new URL(request.url);
     const rawParams = {
       clanId: url.searchParams.get("clanId") ?? undefined,

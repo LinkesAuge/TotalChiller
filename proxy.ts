@@ -6,7 +6,7 @@ import { getSupabaseUrl, getSupabaseAnonKey } from "./lib/supabase/config";
 
 /**
  * Public paths that bypass authentication.
- * Note: API routes (`/api/...`) are excluded upstream before this check.
+ * Note: API routes (`/api/...`) are excluded by the matcher config below.
  */
 function isPublicPath(pathname: string): boolean {
   return (
@@ -107,7 +107,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (!user && !isPublicPath(request.nextUrl.pathname) && !request.nextUrl.pathname.startsWith("/api/")) {
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/home";
     return NextResponse.redirect(redirectUrl);
@@ -137,5 +137,5 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon\\.ico).*)"],
 };

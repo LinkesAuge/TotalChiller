@@ -277,6 +277,9 @@ export function handleImagePaste(
         const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
         const alt = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
         insertFn(`\n![${alt}](${data.publicUrl})\n`);
+      })
+      .catch(() => {
+        setUploading(false);
       });
     return;
   }
@@ -322,6 +325,9 @@ export function handleImageDrop(
         const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
         const alt = (file.name ?? "image").replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
         insertFn(`\n![${alt}](${data.publicUrl})\n`);
+      })
+      .catch(() => {
+        setUploading(false);
       });
   }
 }

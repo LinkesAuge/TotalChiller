@@ -159,8 +159,8 @@ export const RANK_LABELS: Record<string, Record<string, string>> = {
   en: { leader: "Leader", superior: "Superior", officer: "Officer", veteran: "Veteran", soldier: "Soldier" },
 };
 
-/** Localised display names for user roles. */
-export const ROLE_LABELS: Record<string, Record<string, string>> = {
+/** Localised display names for user roles — distinct from lib/permissions ROLE_LABELS (English only). */
+export const LOCALIZED_ROLE_LABELS: Record<string, Record<string, string>> = {
   de: { owner: "Eigentümer", admin: "Administrator", moderator: "Moderator", editor: "Editor", member: "Mitglied" },
   en: { owner: "Owner", admin: "Admin", moderator: "Moderator", editor: "Editor", member: "Member" },
 };
@@ -175,7 +175,7 @@ export function formatRank(rank: string, locale: string): string {
 }
 
 export function formatRole(role: string, locale: string): string {
-  return ROLE_LABELS[locale]?.[role] ?? (ROLE_LABELS.en ?? {})[role] ?? formatLabel(role);
+  return LOCALIZED_ROLE_LABELS[locale]?.[role] ?? (LOCALIZED_ROLE_LABELS.en ?? {})[role] ?? formatLabel(role);
 }
 
 export function buildFallbackUserDb(email: string, userId: string): string {

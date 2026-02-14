@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSupabase } from "./use-supabase";
 
 interface UseAuthResult {
@@ -46,5 +46,5 @@ export function useAuth(): UseAuthResult {
     };
   }, [supabase]);
 
-  return { userId, isAuthenticated: userId !== null, isLoading };
+  return useMemo(() => ({ userId, isAuthenticated: userId !== null, isLoading }), [userId, isLoading]);
 }

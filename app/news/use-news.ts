@@ -20,7 +20,7 @@ import useClanContext from "../hooks/use-clan-context";
 import { useToast } from "../components/toast-provider";
 import { usePagination } from "@/lib/hooks/use-pagination";
 import { createLinkedForumPost } from "@/lib/forum-thread-sync";
-import { FORUM_IMAGES_BUCKET } from "@/lib/constants";
+import { useBannerUpload } from "@/lib/hooks/use-banner-upload";
 import { z } from "zod";
 import { escapeLikePattern } from "@/lib/api/validation";
 import type { NewsFormValues } from "./news-form";
@@ -152,7 +152,6 @@ export function useNews(t: (key: string) => string): UseNewsResult {
   const [isPinned, setIsPinned] = useState<boolean>(false);
   const [tagsInput, setTagsInput] = useState<string>("");
   const [bannerUrl, setBannerUrl] = useState<string>("");
-  const [isBannerUploading, setIsBannerUploading] = useState<boolean>(false);
   const bannerFileRef = useRef<HTMLInputElement>(null);
 
   /* ── Expanded article detail ── */
@@ -356,23 +355,14 @@ export function useNews(t: (key: string) => string): UseNewsResult {
     });
   }, []);
 
-  const handleBannerUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-      const file = e.target.files?.[0];
-      if (!file || !currentUserId) return;
-      setIsBannerUploading(true);
-      const path = `${currentUserId}/${Date.now()}_banner_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { error: uploadErr } = await supabase.storage.from(FORUM_IMAGES_BUCKET).upload(path, file);
-      setIsBannerUploading(false);
-      if (uploadErr) {
-        pushToast(`${t("saveError")}: ${uploadErr.message}`);
-        return;
-      }
-      const { data: urlData } = supabase.storage.from(FORUM_IMAGES_BUCKET).getPublicUrl(path);
-      setBannerUrl(urlData.publicUrl);
-    },
-    [currentUserId, supabase, pushToast, t],
-  );
+  const bannerErrorHandler = useCallback((msg: string) => pushToast(`${t("saveError")}: ${msg}`), [pushToast, t]);
+  const { handleBannerUpload, isBannerUploading } = useBannerUpload({
+    supabase,
+    userId: currentUserId || null,
+    onSuccess: setBannerUrl,
+    onError: bannerErrorHandler,
+    filePrefix: "news_banner",
+  });
 
   const handleSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>): Promise<void> => {

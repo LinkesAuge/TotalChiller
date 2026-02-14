@@ -186,7 +186,7 @@ In `/events`:
 
 ### Vitest Unit Tests
 
-**Current status (2026-02-11):** 52 tests across 4 test files in `lib/`.
+**Current status (2026-02-14):** 514 tests across 25 test files in `lib/` and `app/`.
 
 ```
 npm run test:unit                            # Run all unit tests once
@@ -196,7 +196,7 @@ npx vitest run lib/permissions.test.ts       # Run a specific test file
 
 ### Playwright E2E Tests
 
-**Current status (2026-02-11):** ~250 tests across 27 spec files. 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
+**Current status (2026-02-13):** ~396 tests across 27 spec files, 394 passing (Chromium). 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
 
 ```
 npx playwright test                          # Run all tests (all browsers)

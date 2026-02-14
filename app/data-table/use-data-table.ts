@@ -6,6 +6,7 @@ import { useSupabase } from "../hooks/use-supabase";
 import { useToast } from "../components/toast-provider";
 import type { ValidationRuleRow, CorrectionRuleRow } from "@/lib/types/domain";
 import { DATE_REGEX } from "@/lib/constants";
+import { normalizeString } from "@/lib/string-utils";
 import { useRuleProcessing } from "@/lib/hooks/use-rule-processing";
 import { useDataTableFilters } from "./use-data-table-filters";
 import { useDataTableBatch } from "./use-data-table-batch";
@@ -513,7 +514,7 @@ export function useDataTable() {
       const clanName = clanNameById[values.clan_id] ?? row.clan_name ?? "";
       const clanCorrection = correctionApplicator.applyToField({ field: "clan", value: clanName });
       if (clanCorrection.wasCorrected) {
-        const correctedClanId = clanIdByName[clanCorrection.value.trim().toLowerCase()];
+        const correctedClanId = clanIdByName[normalizeString(clanCorrection.value)];
         if (correctedClanId && correctedClanId !== nextValues.clan_id) {
           nextValues.clan_id = correctedClanId;
           correctionCount += 1;

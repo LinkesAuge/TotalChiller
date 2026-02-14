@@ -18,21 +18,6 @@ function extractSuggestions(rules: readonly ValidationRuleRow[], field: string):
   return Array.from(values).sort((a, b) => a.localeCompare(b));
 }
 
-export interface RuleProcessingResult {
-  /** Evaluator built from current validation rules. */
-  readonly validationEvaluator: ReturnType<typeof createValidationEvaluator>;
-  /** Applicator built from current correction rules. */
-  readonly correctionApplicator: ReturnType<typeof createCorrectionApplicator>;
-  /** Autocomplete suggestions for the "player" field. */
-  readonly playerSuggestions: readonly string[];
-  /** Autocomplete suggestions for the "source" field. */
-  readonly sourceSuggestions: readonly string[];
-  /** Autocomplete suggestions for the "chest" field. */
-  readonly chestSuggestions: readonly string[];
-  /** Suggestions keyed by field name (includes all + empty-string key). */
-  readonly suggestionsForField: Record<string, readonly string[]>;
-}
-
 /**
  * Derives validation evaluator, correction applicator, and autocomplete
  * suggestions from the given rule arrays. Pure memoized computation.
@@ -43,7 +28,7 @@ export function useRuleProcessing(
   validationRules: readonly ValidationRuleRow[],
   correctionRules: readonly CorrectionRuleRow[],
   clanSuggestions: readonly string[] = [],
-): RuleProcessingResult {
+) {
   const validationEvaluator = useMemo(() => createValidationEvaluator(validationRules), [validationRules]);
   const correctionApplicator = useMemo(() => createCorrectionApplicator(correctionRules), [correctionRules]);
   const playerSuggestions = useMemo(() => extractSuggestions(validationRules, "player"), [validationRules]);

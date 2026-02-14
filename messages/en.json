@@ -760,7 +760,6 @@
     "title": "Profile",
     "heroTitle": "Member Profile",
     "heroSubtitle": "Identity, clan context, and account readiness at a glance.",
-    "settingsButton": "Settings",
     "accountTitle": "Account",
     "accountSubtitle": "Supabase user details",
     "displayName": "Display Name",
@@ -1161,15 +1160,6 @@
       "categoryUpdated": "Category updated.",
       "categoryDeleted": "Category deleted.",
       "error": "Error"
-    },
-    "sortOptions": {
-      "field": "Field",
-      "matchValue": "Match value",
-      "replacementValue": "Replacement",
-      "order": "Order",
-      "score": "Score",
-      "chest": "Chest",
-      "source": "Source"
     }
   },
   "about": {
@@ -1367,17 +1357,6 @@
     "minutesAgo": "{count}m ago",
     "hoursAgo": "{count}h ago",
     "daysAgo": "{count}d ago"
-  },
-  "quickActions": {
-    "ariaLabel": "Quick actions",
-    "uploadCsv": "Upload CSV",
-    "reviewRules": "Review Rules",
-    "eventsCalendar": "Events Calendar"
-  },
-  "clanScopeBanner": {
-    "selectClan": "Select a clan in the sidebar to see clan-specific content.",
-    "viewing": "Viewing",
-    "separator": "•"
   },
   "displayNameEditor": {
     "label": "Nickname",
@@ -1719,12 +1698,6 @@
     "deleteConfirmTitle": "Delete Post",
     "deleteConfirmText": "This action cannot be undone.",
     "deleteConfirmButton": "Delete permanently",
-    "categoryGeneral": "General",
-    "categoryStrategy": "Strategy",
-    "categoryWarPlanning": "War Planning",
-    "categoryHelp": "Help",
-    "categorySuggestions": "Suggestions",
-    "categoryOffTopic": "Off-Topic",
     "editComment": "Edit",
     "deleteComment": "Delete",
     "deleteCommentConfirm": "Delete this comment?",

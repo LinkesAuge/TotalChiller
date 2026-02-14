@@ -104,10 +104,6 @@ export interface AuditLogRow {
   readonly created_at: string;
 }
 
-export type ValidationSortValue = "field" | "status" | "match_value";
-export type CorrectionSortValue = "field" | "match_value" | "replacement_value" | "status";
-export type ScoringSortValue = "rule_order" | "score" | "chest_match" | "source_match";
-
 export type AdminSection = "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum";
 
 /* ── Constants ── */
@@ -120,38 +116,6 @@ export const NEW_VALIDATION_ID = "validation-new";
 export const NEW_CORRECTION_ID = "correction-new";
 
 /* ── Utility functions ── */
-
-export function getValidationSortOptions(
-  t: (key: string) => string,
-): readonly { value: ValidationSortValue; label: string }[] {
-  return [
-    { value: "field", label: t("sortOptions.field") },
-    { value: "status", label: t("common.status") },
-    { value: "match_value", label: t("sortOptions.matchValue") },
-  ];
-}
-
-export function getCorrectionSortOptions(
-  t: (key: string) => string,
-): readonly { value: CorrectionSortValue; label: string }[] {
-  return [
-    { value: "field", label: t("sortOptions.field") },
-    { value: "match_value", label: t("sortOptions.matchValue") },
-    { value: "replacement_value", label: t("sortOptions.replacementValue") },
-    { value: "status", label: t("common.status") },
-  ];
-}
-
-export function getScoringSortOptions(
-  t: (key: string) => string,
-): readonly { value: ScoringSortValue; label: string }[] {
-  return [
-    { value: "rule_order", label: t("sortOptions.order") },
-    { value: "score", label: t("sortOptions.score") },
-    { value: "chest_match", label: t("sortOptions.chest") },
-    { value: "source_match", label: t("sortOptions.source") },
-  ];
-}
 
 /** Localised display names for ranks. */
 export const RANK_LABELS: Record<string, Record<string, string>> = {

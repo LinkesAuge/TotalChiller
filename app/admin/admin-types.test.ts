@@ -7,9 +7,6 @@ import {
   normalizeMembershipRow,
   normalizeMembershipRows,
   resolveSection,
-  getValidationSortOptions,
-  getCorrectionSortOptions,
-  getScoringSortOptions,
 } from "./admin-types";
 import type { MembershipQueryRow } from "./admin-types";
 
@@ -293,59 +290,5 @@ describe("resolveSection", () => {
   it("returns 'clans' for unknown string", () => {
     const actual = resolveSection("random");
     expect(actual).toBe("clans");
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  getValidationSortOptions                                           */
-/* ------------------------------------------------------------------ */
-
-describe("getValidationSortOptions", () => {
-  it("returns options with translated labels", () => {
-    const mockT = (key: string) => `t:${key}`;
-    const actual = getValidationSortOptions(mockT);
-    expect(actual).toHaveLength(3);
-    expect(actual[0]).toEqual({ value: "field", label: "t:sortOptions.field" });
-    expect(actual[1]).toEqual({ value: "status", label: "t:common.status" });
-    expect(actual[2]).toEqual({ value: "match_value", label: "t:sortOptions.matchValue" });
-  });
-
-  it("returns readonly array with correct value types", () => {
-    const mockT = (key: string) => key;
-    const actual = getValidationSortOptions(mockT);
-    const values = actual.map((o) => o.value);
-    expect(values).toEqual(["field", "status", "match_value"]);
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  getCorrectionSortOptions                                           */
-/* ------------------------------------------------------------------ */
-
-describe("getCorrectionSortOptions", () => {
-  it("returns options with translated labels", () => {
-    const mockT = (key: string) => `t:${key}`;
-    const actual = getCorrectionSortOptions(mockT);
-    expect(actual).toHaveLength(4);
-    expect(actual[0]).toEqual({ value: "field", label: "t:sortOptions.field" });
-    expect(actual[1]).toEqual({ value: "match_value", label: "t:sortOptions.matchValue" });
-    expect(actual[2]).toEqual({ value: "replacement_value", label: "t:sortOptions.replacementValue" });
-    expect(actual[3]).toEqual({ value: "status", label: "t:common.status" });
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  getScoringSortOptions                                              */
-/* ------------------------------------------------------------------ */
-
-describe("getScoringSortOptions", () => {
-  it("returns options with translated labels", () => {
-    const mockT = (key: string) => `t:${key}`;
-    const actual = getScoringSortOptions(mockT);
-    expect(actual).toHaveLength(4);
-    expect(actual[0]).toEqual({ value: "rule_order", label: "t:sortOptions.order" });
-    expect(actual[1]).toEqual({ value: "score", label: "t:sortOptions.score" });
-    expect(actual[2]).toEqual({ value: "chest_match", label: "t:sortOptions.chest" });
-    expect(actual[3]).toEqual({ value: "source_match", label: "t:sortOptions.source" });
   });
 });

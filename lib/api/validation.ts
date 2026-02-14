@@ -83,7 +83,3 @@ export const messageQuerySchema = z.object({
 export const sitePageQuerySchema = z.object({
   page: z.string().min(1, "Page is required."),
 });
-
-export type NotificationSettingsBody = z.infer<typeof notificationSettingsSchema>;
-export type ChartQueryParams = z.infer<typeof chartQuerySchema>;
-export type MessageQueryParams = z.infer<typeof messageQuerySchema>;

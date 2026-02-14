@@ -23,6 +23,9 @@ playwright-report/
 # Design system preview screenshots (uploaded at runtime)
 public/design-system-previews/
 
+# Build cache
+tsconfig.tsbuildinfo
+
 # Misc
 *.png.bak
 window bug.png

@@ -760,7 +760,6 @@
     "title": "Profil",
     "heroTitle": "Mitgliederprofil",
     "heroSubtitle": "Identität, Clan-Kontext und Kontostatus auf einen Blick.",
-    "settingsButton": "Einstellungen",
     "accountTitle": "Konto",
     "accountSubtitle": "Supabase-Benutzerdetails",
     "displayName": "Anzeigename",
@@ -1161,15 +1160,6 @@
       "categoryUpdated": "Kategorie aktualisiert.",
       "categoryDeleted": "Kategorie gelöscht.",
       "error": "Fehler"
-    },
-    "sortOptions": {
-      "field": "Feld",
-      "matchValue": "Übereinstimmungswert",
-      "replacementValue": "Ersetzung",
-      "order": "Reihenfolge",
-      "score": "Punktzahl",
-      "chest": "Truhe",
-      "source": "Quelle"
     }
   },
   "about": {
@@ -1367,17 +1357,6 @@
     "minutesAgo": "vor {count}m",
     "hoursAgo": "vor {count}h",
     "daysAgo": "vor {count}d"
-  },
-  "quickActions": {
-    "ariaLabel": "Schnellzugriffe",
-    "uploadCsv": "CSV hochladen",
-    "reviewRules": "Regeln überprüfen",
-    "eventsCalendar": "Veranstaltungskalender"
-  },
-  "clanScopeBanner": {
-    "selectClan": "Wähle einen Clan in der Seitenleiste, um clan-spezifische Inhalte zu sehen.",
-    "viewing": "Anzeige",
-    "separator": "•"
   },
   "displayNameEditor": {
     "label": "Spitzname",
@@ -1719,12 +1698,6 @@
     "deleteConfirmTitle": "Beitrag löschen",
     "deleteConfirmText": "Diese Aktion kann nicht rückgängig gemacht werden.",
     "deleteConfirmButton": "Endgültig löschen",
-    "categoryGeneral": "Allgemein",
-    "categoryStrategy": "Strategie",
-    "categoryWarPlanning": "Kriegsplanung",
-    "categoryHelp": "Hilfe",
-    "categorySuggestions": "Vorschläge",
-    "categoryOffTopic": "Off-Topic",
     "editComment": "Bearbeiten",
     "deleteComment": "Löschen",
     "deleteCommentConfirm": "Diesen Kommentar löschen?",

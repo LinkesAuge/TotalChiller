@@ -48,15 +48,6 @@ export interface MessageRow {
   readonly created_at: string;
 }
 
-export interface MessageRecipientRow {
-  readonly id: string;
-  readonly message_id: string;
-  readonly recipient_id: string;
-  readonly is_read: boolean;
-  readonly deleted_at: string | null;
-  readonly created_at: string;
-}
-
 /** Inbox thread summary — returned by GET /api/messages/inbox */
 export interface InboxThread {
   readonly thread_id: string;

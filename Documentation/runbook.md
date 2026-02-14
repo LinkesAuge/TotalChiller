@@ -262,7 +262,6 @@ tests/
 - API tests accept both expected status codes and 429 (rate-limited) as valid responses.
 - Tests use regex alternation for i18n-aware text matching (`/erstellen|create/i`).
 - Tests handle conditional UI gracefully (e.g. "no clan access" messages).
-- Full design document: `Documentation/plans/2026-02-09-test-suite-design.md`.
 
 ## 16) Navigation Icon Preview (Design Tool)
 

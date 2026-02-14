@@ -56,9 +56,8 @@ d:\Chiller\
 ├── messages/               # i18n translation files (en.json, de.json)
 ├── tests/                  # Playwright E2E specs + auth helpers
 ├── scripts/                # Utility scripts (asset scanner, UI scanner)
-├── Documentation/          # This folder — architecture, changelog, plans, migrations
-│   ├── migrations/         # SQL migration files (run order in runbook.md)
-│   └── plans/              # Design documents for major features
+├── Documentation/          # This folder — architecture, changelog, runbook, migrations
+│   └── migrations/         # SQL migration files (run order in runbook.md)
 ├── public/assets/          # Static assets (game icons, banners, backgrounds, VIP)
 ├── proxy.ts                # Middleware: auth redirect, admin gating, PKCE catch
 ├── next.config.js          # Next.js config (CSP, image domains, redirects)
@@ -301,7 +300,6 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 | Banner upload      | `hooks/use-banner-upload.ts`        | `useBannerUpload()` — shared hook for uploading banner images with type/size validation                                                                   |
 | Dashboard utils    | `dashboard-utils.ts`                | `toDateString()`, `extractAuthorName()`, `calculateTrend()`, `formatCompactNumber()`                                                                      |
 | Corrections        | `correction-applicator.ts`          | Applies correction rules to chest data                                                                                                                    |
-| Dashboard utils    | `dashboard-utils.ts`                | Score/trend/highlight helpers                                                                                                                             |
 | Error utils        | `supabase/error-utils.ts`           | Classifies Supabase errors → i18n keys                                                                                                                    |
 | User role hook     | `hooks/use-user-role.ts`            | React hook: fetches role, exposes permission helpers                                                                                                      |
 | Pagination hook    | `hooks/use-pagination.ts`           | Page state, page count, slice helpers                                                                                                                     |
@@ -420,8 +418,8 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 
 ### Testing
 
-- Unit: Vitest, 514 tests across 25 files colocated as `*.test.ts` in `lib/` and `app/`. Run: `npm run test:unit`.
-- E2E: Playwright, ~396 tests across 27 specs in `tests/`. Pre-authenticated via `storageState`. Run: `npx playwright test`.
+- Unit: Vitest, 596 tests across 30 files colocated as `*.test.ts` in `lib/` and `app/`. Run: `npm run test:unit`.
+- E2E: Playwright, ~270 tests across 28 specs in `tests/`. Pre-authenticated via `storageState`. Run: `npx playwright test`.
 - 6 test roles: owner, admin, moderator, editor, member, guest.
 - All `.content-inner` locators use `.first()` (pages render 2+ instances via `PageShell` + client component).
 

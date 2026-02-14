@@ -89,7 +89,7 @@ export default function UsersTab(): ReactElement {
   );
 
   const loadUsers = useCallback(async () => {
-    const query = supabase.from("profiles").select("id,email,display_name,username,user_db").order("email").limit(25);
+    const query = supabase.from("profiles").select("id,email,display_name,username,user_db").order("email");
     if (userSearch.trim()) {
       const pattern = `%${userSearch.trim()}%`;
       query.or(`email.ilike.${pattern},username.ilike.${pattern},display_name.ilike.${pattern}`);

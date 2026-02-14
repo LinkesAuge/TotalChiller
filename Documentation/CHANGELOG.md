@@ -6,6 +6,12 @@
 
 ---
 
+## 2026-02-14 — Fix: Admin Users tab showing only 25 users
+
+- **Fixed missing users on Benutzer page** (`users-tab.tsx`): The `loadUsers` query had a hard `.limit(25)` that silently truncated the user list. Users beyond the first 25 (ordered by email) were invisible with no indication of missing data. Removed the limit so all registered users are displayed.
+
+---
+
 ## 2026-02-14 — Fix: Remaining E2E test failures (1 failed, 2 flaky → 0)
 
 - **Fixed events CRUD create test** (`crud-flows.spec.ts`): Flatpickr date setting via `page.evaluate` was failing silently in CI because the instance hadn't initialized when the script ran. Added async polling loop (up to 5s) that waits for `_flatpickr` to appear on the input before calling `setDate`. Added assertion that the date was actually set. After form submit, now waits for the `#eventTitle` field to become hidden (confirms submission succeeded) before checking for the event title in the calendar/sidebar.

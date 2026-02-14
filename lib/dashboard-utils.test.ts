@@ -58,8 +58,8 @@ describe("calculateTrend", () => {
     expect(calculateTrend(0, 0)).toBe(0);
   });
 
-  it("returns 100 when previous is 0 and current is positive", () => {
-    expect(calculateTrend(50, 0)).toBe(100);
+  it("returns 0 when previous is 0 (division by zero guard)", () => {
+    expect(calculateTrend(50, 0)).toBe(0);
   });
 
   it("returns positive percentage for increase", () => {

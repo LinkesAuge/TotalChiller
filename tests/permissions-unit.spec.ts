@@ -42,6 +42,8 @@ const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
     "message:send:private",
     "message:send:broadcast",
     "admin_panel:view",
+    "bug:create",
+    "bug:comment",
   ],
   editor: [
     "article:create",
@@ -59,6 +61,8 @@ const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
     "forum:edit:own",
     "forum:delete:own",
     "message:send:private",
+    "bug:create",
+    "bug:comment",
   ],
   member: [
     "article:create",
@@ -72,8 +76,24 @@ const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
     "forum:delete:own",
     "message:send:private",
     "profile:edit:own",
+    "bug:create",
+    "bug:comment",
   ],
-  guest: ["profile:edit:own"],
+  guest: [
+    "article:create",
+    "article:edit:own",
+    "comment:create",
+    "comment:edit:own",
+    "comment:delete:own",
+    "data:view",
+    "forum:create",
+    "forum:edit:own",
+    "forum:delete:own",
+    "message:send:private",
+    "profile:edit:own",
+    "bug:create",
+    "bug:comment",
+  ],
 };
 
 function isValidRole(value: string): value is Role {
@@ -123,8 +143,8 @@ test.describe("Permission map — role definitions", () => {
     expect(ROLE_PERMISSIONS.admin).toEqual(["*"]);
   });
 
-  test("guest has only profile:edit:own", () => {
-    expect(ROLE_PERMISSIONS.guest).toEqual(["profile:edit:own"]);
+  test("guest has the same permissions as member", () => {
+    expect(ROLE_PERMISSIONS.guest).toEqual(ROLE_PERMISSIONS.member);
   });
 
   test("moderator has admin_panel:view", () => {
@@ -202,17 +222,22 @@ test.describe("hasPermission", () => {
     expect(hasPermission("member", "message:send:broadcast")).toBe(false);
   });
 
-  test("guest cannot create articles", () => {
-    expect(hasPermission("guest", "article:create")).toBe(false);
+  test("guest can create articles (same as member)", () => {
+    expect(hasPermission("guest", "article:create")).toBe(true);
   });
 
   test("guest can edit own profile", () => {
     expect(hasPermission("guest", "profile:edit:own")).toBe(true);
   });
 
-  test("unknown role falls back to guest", () => {
+  test("guest cannot create events (same as member)", () => {
+    expect(hasPermission("guest", "event:create")).toBe(false);
+  });
+
+  test("unknown role falls back to guest (which has member permissions)", () => {
     expect(hasPermission("unknown", "profile:edit:own")).toBe(true);
-    expect(hasPermission("unknown", "article:create")).toBe(false);
+    expect(hasPermission("unknown", "article:create")).toBe(true);
+    expect(hasPermission("unknown", "event:create")).toBe(false);
   });
 });
 
@@ -221,8 +246,12 @@ test.describe("canDo — multi-permission check", () => {
     expect(canDo("editor", "article:create", "article:edit:own")).toBe(true);
   });
 
+  test("returns true when guest has any of the listed permissions", () => {
+    expect(canDo("guest", "article:create", "event:create")).toBe(true);
+  });
+
   test("returns false when no permissions match", () => {
-    expect(canDo("guest", "article:create", "event:create")).toBe(false);
+    expect(canDo("guest", "event:create", "event:edit")).toBe(false);
   });
 
   test("works with wildcard roles", () => {
@@ -272,17 +301,17 @@ test.describe("isContentManager", () => {
 
 test.describe("Permission matrix — comprehensive cross-check", () => {
   const matrix: Record<string, Record<Role, boolean>> = {
-    "article:create": { owner: true, admin: true, moderator: true, editor: true, member: true, guest: false },
+    "article:create": { owner: true, admin: true, moderator: true, editor: true, member: true, guest: true },
     "article:edit:any": { owner: true, admin: true, moderator: true, editor: false, member: false, guest: false },
     "article:delete:any": { owner: true, admin: true, moderator: true, editor: false, member: false, guest: false },
     "event:create": { owner: true, admin: true, moderator: true, editor: true, member: false, guest: false },
     "message:send:broadcast": { owner: true, admin: true, moderator: true, editor: false, member: false, guest: false },
-    "data:view": { owner: true, admin: true, moderator: true, editor: true, member: true, guest: false },
+    "data:view": { owner: true, admin: true, moderator: true, editor: true, member: true, guest: true },
     "forum:pin": { owner: true, admin: true, moderator: true, editor: false, member: false, guest: false },
     "profile:edit:own": { owner: true, admin: true, moderator: false, editor: false, member: true, guest: true },
     "admin_panel:view": { owner: true, admin: true, moderator: true, editor: false, member: false, guest: false },
-    "forum:delete:own": { owner: true, admin: true, moderator: false, editor: true, member: true, guest: false },
-    "forum:create": { owner: true, admin: true, moderator: true, editor: true, member: true, guest: false },
+    "forum:delete:own": { owner: true, admin: true, moderator: false, editor: true, member: true, guest: true },
+    "forum:create": { owner: true, admin: true, moderator: true, editor: true, member: true, guest: true },
   };
 
   for (const [permission, expected] of Object.entries(matrix)) {

@@ -15,7 +15,7 @@ const PUBLIC_ROUTES: readonly PublicRoute[] = [
   { path: "/auth/login", changeFrequency: "weekly", priority: 0.7 },
   { path: "/auth/register", changeFrequency: "weekly", priority: 0.7 },
   { path: "/auth/forgot", changeFrequency: "monthly", priority: 0.3 },
-  /* Auth-gated pages excluded: /forum, /events, /charts redirect unauthenticated
+  /* Auth-gated pages excluded: /forum, /events, /analytics redirect unauthenticated
      users to /home, causing duplicate-title warnings and uncrawlable entries. */
 ];
 

@@ -16,7 +16,7 @@ import {
   Legend,
 } from "recharts";
 import { useTranslations, useLocale } from "next-intl";
-import type { ScoreOverTimePoint, TopPlayerPoint, ChestTypePoint, ChartSummary } from "./chart-types";
+import type { ScoreOverTimePoint, TopPlayerPoint, ChestTypePoint, AnalyticsSummary } from "./analytics-types";
 
 /* ── Theme constants ── */
 
@@ -76,7 +76,7 @@ interface ScoreLineChartProps {
  * Renders a line chart showing score accumulated over time.
  */
 function ScoreLineChart({ data, height = 220 }: ScoreLineChartProps): JSX.Element {
-  const t = useTranslations("charts");
+  const t = useTranslations("analytics");
   const locale = useLocale();
   if (data.length === 0) {
     return <div className="chart-empty">{t("noDataAvailable")}</div>;
@@ -135,7 +135,7 @@ interface TopPlayersBarProps {
  * Renders a horizontal bar chart of top players by total score.
  */
 function TopPlayersBar({ data, height = 220 }: TopPlayersBarProps): JSX.Element {
-  const t = useTranslations("charts");
+  const t = useTranslations("analytics");
   const locale = useLocale();
   if (data.length === 0) {
     return <div className="chart-empty">{t("noDataAvailable")}</div>;
@@ -188,7 +188,7 @@ interface ChestTypePieProps {
  * Renders a pie chart showing chest type distribution by count.
  */
 function ChestTypePie({ data, height = 220 }: ChestTypePieProps): JSX.Element {
-  const t = useTranslations("charts");
+  const t = useTranslations("analytics");
   const locale = useLocale();
   if (data.length === 0) {
     return <div className="chart-empty">{t("noDataAvailable")}</div>;
@@ -243,7 +243,7 @@ interface PersonalScoreChartProps {
  * Renders a line chart of the current user's personal score over time.
  */
 function PersonalScoreChart({ data, height = 160 }: PersonalScoreChartProps): JSX.Element {
-  const t = useTranslations("charts");
+  const t = useTranslations("analytics");
   const locale = useLocale();
   if (data.length === 0) {
     return <div className="chart-empty">{t("noPersonalData")}</div>;
@@ -290,14 +290,14 @@ function PersonalScoreChart({ data, height = 160 }: PersonalScoreChartProps): JS
 /* ── Summary Panel ── */
 
 interface SummaryPanelProps {
-  readonly summary: ChartSummary;
+  readonly summary: AnalyticsSummary;
 }
 
 /**
  * Renders a summary statistics panel.
  */
 function SummaryPanel({ summary }: SummaryPanelProps): JSX.Element {
-  const t = useTranslations("charts");
+  const t = useTranslations("analytics");
   const locale = useLocale();
   return (
     <div className="list">

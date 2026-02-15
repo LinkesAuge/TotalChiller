@@ -7,16 +7,18 @@ import { useSupabase } from "../hooks/use-supabase";
 import useClanContext from "../hooks/use-clan-context";
 import { formatRank, formatRole, rankOptions } from "../admin/admin-types";
 import DataState from "../components/data-state";
+import {
+  type MemberRow,
+  NOTABLE_ROLES,
+  RANK_SUBSTITUTE_ROLES,
+  getRoleColor,
+  getRankColor,
+  buildMessageLink,
+  compareMemberOrder,
+  countRoleSubstitutes,
+} from "./members-utils";
 
 /* ── Types ── */
-
-interface MemberRow {
-  readonly membershipId: string;
-  readonly gameUsername: string;
-  readonly displayName: string;
-  readonly userId: string;
-  readonly rank: string;
-}
 
 interface ChestStats {
   readonly totalScore: number;
@@ -26,7 +28,7 @@ interface ChestStats {
 /** Supabase join response for game_account_clan_memberships with game_accounts and clans. */
 interface MembershipSupabaseRow {
   readonly id: string;
-  readonly rank: string;
+  readonly rank: string | null;
   readonly is_active: boolean;
   readonly clan_id: string;
   readonly game_accounts: {
@@ -50,34 +52,7 @@ interface RoleSelectRow {
   readonly role: string;
 }
 
-/** Rank display order (lower index = higher rank). */
-const RANK_ORDER: Record<string, number> = Object.fromEntries(rankOptions.map((rank, index) => [rank, index]));
-
-/** Roles worth showing a badge for (skip "member" / "guest" — those are the default). */
-const NOTABLE_ROLES: ReadonlySet<string> = new Set(["owner", "admin", "moderator", "editor"]);
-
 /* ── Helpers ── */
-
-/** Build a link to the messages page pre-filled with a recipient. */
-function buildMessageLink(userId: string): string {
-  return `/messages?to=${encodeURIComponent(userId)}`;
-}
-
-/** Rank badge colour derived from rank key. Brighter tones for readability on dark rows. */
-function getRankColor(rank: string): string {
-  switch (rank) {
-    case "leader":
-      return "#e4c778";
-    case "superior":
-      return "#d4a54a";
-    case "officer":
-      return "#6ba3d6";
-    case "veteran":
-      return "#5ec07e";
-    default:
-      return "#b0a08a";
-  }
-}
 
 /** Look up chest stats for a member by case-insensitive game username match. */
 function getChestStats(gameUsername: string, chestStatsMap: ReadonlyMap<string, ChestStats>): ChestStats | undefined {
@@ -106,7 +81,6 @@ function MembersClient(): JSX.Element {
 
   /* ── Supplementary data ── */
   const [chestStatsMap, setChestStatsMap] = useState<ReadonlyMap<string, ChestStats>>(new Map());
-  const [roleMap, setRoleMap] = useState<ReadonlyMap<string, string>>(new Map());
 
   /* ── Expand state ── */
   const [expandedIds, setExpandedIds] = useState<readonly string[]>([]);
@@ -155,6 +129,7 @@ function MembersClient(): JSX.Element {
       const unique = [...new Set(userIds)];
       /* Fetch profiles and roles in parallel */
       let profileMap = new Map<string, { display_name: string | null; username: string | null }>();
+      let nextRoleMap = new Map<string, string>();
       if (unique.length > 0) {
         const [{ data: profiles }, { data: roles }] = await Promise.all([
           supabase.from("profiles").select("id, display_name, username").in("id", unique),
@@ -163,31 +138,27 @@ function MembersClient(): JSX.Element {
         for (const p of (profiles ?? []) as ProfileSelectRow[]) {
           profileMap.set(p.id, { display_name: p.display_name, username: p.username });
         }
-        const nextRoleMap = new Map<string, string>();
         for (const r of (roles ?? []) as RoleSelectRow[]) {
           if (NOTABLE_ROLES.has(r.role)) {
             nextRoleMap.set(r.user_id, r.role);
           }
         }
-        setRoleMap(nextRoleMap);
       }
       const mapped: MemberRow[] = rows.map((row) => {
         const ga = row.game_accounts;
         const rawUserId = ga.user_id;
         const profile = profileMap.get(rawUserId);
+        const memberRole = nextRoleMap.get(rawUserId) ?? null;
         return {
           membershipId: row.id,
           gameUsername: ga.game_username ?? "",
           displayName: profile?.display_name || profile?.username || "",
           userId: rawUserId,
-          rank: row.rank ?? "soldier",
+          rank: row.rank ?? null,
+          role: memberRole,
         };
       });
-      mapped.sort((a, b) => {
-        const rankDiff = (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99);
-        if (rankDiff !== 0) return rankDiff;
-        return a.gameUsername.localeCompare(b.gameUsername);
-      });
+      mapped.sort(compareMemberOrder);
       setMembers(mapped);
       setIsLoading(false);
     }
@@ -236,10 +207,14 @@ function MembersClient(): JSX.Element {
   const rankCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const member of members) {
-      counts.set(member.rank, (counts.get(member.rank) ?? 0) + 1);
+      const key = member.rank ?? "__none__";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return rankOptions.filter((rank) => counts.has(rank)).map((rank) => ({ rank, count: counts.get(rank) ?? 0 }));
   }, [members]);
+
+  /** Role-based substitute counts (Webmaster/Administrator with no in-game rank). */
+  const roleSubstituteCounts = useMemo(() => countRoleSubstitutes(members), [members]);
 
   /* ── No clan selected ── */
   if (!clanContext?.clanId && !isLoading) {
@@ -261,18 +236,45 @@ function MembersClient(): JSX.Element {
             <span className="member-dir-clan">{clanName}</span>
             <span className="member-dir-count">{t("totalMembers", { count: members.length })}</span>
           </div>
-          {rankCounts.length > 0 && (
+          {(rankCounts.length > 0 || roleSubstituteCounts.length > 0) && (
             <div className="member-dir-rank-stats">
-              {rankCounts.map(({ rank, count }) => (
-                <span
-                  key={rank}
-                  className="member-dir-rank-chip"
-                  style={{ borderColor: getRankColor(rank), color: getRankColor(rank) }}
-                >
-                  {formatRank(rank, locale) || t("noRank")}
-                  <span className="member-dir-rank-chip-count">{count}</span>
-                </span>
-              ))}
+              {(() => {
+                /* Build unified chip list: ranks in order, with role-substitutes after "superior" */
+                const chips: JSX.Element[] = [];
+                let roleChipsInserted = false;
+                const roleChips = roleSubstituteCounts.map(({ role: r, count: c }) => {
+                  const color = getRoleColor(r);
+                  return (
+                    <span key={`role-${r}`} className="member-dir-rank-chip" style={{ borderColor: color, color }}>
+                      {formatRole(r, locale)}
+                      <span className="member-dir-rank-chip-count">{c}</span>
+                    </span>
+                  );
+                });
+                for (const { rank, count } of rankCounts) {
+                  /* Insert role chips before "officer" (right after "superior" position) */
+                  if (
+                    !roleChipsInserted &&
+                    (rank === "officer" || rank === "veteran" || rank === "soldier" || rank === "guest")
+                  ) {
+                    chips.push(...roleChips);
+                    roleChipsInserted = true;
+                  }
+                  chips.push(
+                    <span
+                      key={rank}
+                      className="member-dir-rank-chip"
+                      style={{ borderColor: getRankColor(rank), color: getRankColor(rank) }}
+                    >
+                      {formatRank(rank, locale) || t("noRank")}
+                      <span className="member-dir-rank-chip-count">{count}</span>
+                    </span>,
+                  );
+                }
+                /* If role chips weren't inserted (only leader/superior ranks, or no ranks), append at end */
+                if (!roleChipsInserted) chips.push(...roleChips);
+                return chips;
+              })()}
             </div>
           )}
         </div>
@@ -302,7 +304,15 @@ function MembersClient(): JSX.Element {
           {members.map((member, index) => {
             const isExpanded = expandedIds.includes(member.membershipId);
             const stats = getChestStats(member.gameUsername, chestStatsMap);
-            const role = roleMap.get(member.userId);
+            const role = member.role;
+            /* If rank is null and user is owner/admin, show role name instead */
+            const useRoleAsRank = !member.rank && !!role && RANK_SUBSTITUTE_ROLES.has(role);
+            const displayRankLabel = useRoleAsRank
+              ? formatRole(role, locale)
+              : member.rank
+                ? formatRank(member.rank, locale)
+                : t("noRank");
+            const displayRankColor = useRoleAsRank ? getRoleColor(role) : getRankColor(member.rank ?? "soldier");
             return (
               <div key={member.membershipId}>
                 {/* ── Main row ── */}
@@ -329,11 +339,11 @@ function MembersClient(): JSX.Element {
                     <span
                       className="badge member-dir-rank"
                       style={{
-                        borderColor: getRankColor(member.rank),
-                        color: getRankColor(member.rank),
+                        borderColor: displayRankColor,
+                        color: displayRankColor,
                       }}
                     >
-                      {formatRank(member.rank, locale) || t("noRank")}
+                      {displayRankLabel}
                     </span>
                   </span>
                   <span className="row-caret" aria-hidden="true">

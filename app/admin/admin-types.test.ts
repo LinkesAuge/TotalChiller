@@ -78,8 +78,8 @@ describe("formatRank", () => {
   });
 
   it("handles all known ranks in en", () => {
-    const ranks = ["leader", "superior", "officer", "veteran", "soldier"];
-    const expected = ["Leader", "Superior", "Officer", "Veteran", "Soldier"];
+    const ranks = ["leader", "superior", "officer", "veteran", "soldier", "guest"];
+    const expected = ["Leader", "Superior", "Officer", "Veteran", "Soldier", "Guest"];
     ranks.forEach((rank, i) => {
       expect(formatRank(rank, "en")).toBe(expected[i]);
     });
@@ -103,7 +103,7 @@ describe("formatRole", () => {
 
   it("falls back to English when locale has no translation", () => {
     const actual = formatRole("owner", "fr");
-    expect(actual).toBe("Owner");
+    expect(actual).toBe("Webmaster");
   });
 
   it("falls back to formatLabel for unknown role", () => {
@@ -112,11 +112,16 @@ describe("formatRole", () => {
   });
 
   it("handles all known roles in en", () => {
-    const roles = ["owner", "admin", "moderator", "editor", "member"];
-    const expected = ["Owner", "Admin", "Moderator", "Editor", "Member"];
+    const roles = ["owner", "admin", "moderator", "editor", "member", "guest"];
+    const expected = ["Webmaster", "Administrator", "Moderator", "Editor", "Member", "Guest"];
     roles.forEach((role, i) => {
       expect(formatRole(role, "en")).toBe(expected[i]);
     });
+  });
+
+  it("returns Webmaster for owner in both de and en", () => {
+    expect(formatRole("owner", "de")).toBe("Webmaster");
+    expect(formatRole("owner", "en")).toBe("Webmaster");
   });
 });
 

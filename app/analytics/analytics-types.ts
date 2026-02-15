@@ -20,7 +20,7 @@ interface ChestTypePoint {
 }
 
 /** Aggregate summary statistics. */
-interface ChartSummary {
+interface AnalyticsSummary {
   readonly totalChests: number;
   readonly totalScore: number;
   readonly avgScore: number;
@@ -28,17 +28,17 @@ interface ChartSummary {
   readonly uniquePlayers: number;
 }
 
-/** Full response payload from the /api/charts endpoint. */
-interface ChartsApiResponse {
+/** Full response payload from the /api/analytics endpoint. */
+interface AnalyticsApiResponse {
   readonly scoreOverTime: readonly ScoreOverTimePoint[];
   readonly topPlayers: readonly TopPlayerPoint[];
   readonly chestTypes: readonly ChestTypePoint[];
   readonly personalScore: readonly ScoreOverTimePoint[];
-  readonly summary: ChartSummary;
+  readonly summary: AnalyticsSummary;
 }
 
-/** Query parameters sent to the /api/charts endpoint. */
-interface ChartsApiParams {
+/** Query parameters sent to the /api/analytics endpoint. */
+interface AnalyticsApiParams {
   readonly clanId?: string;
   readonly gameAccountId?: string;
   readonly dateFrom?: string;
@@ -47,4 +47,11 @@ interface ChartsApiParams {
   readonly source?: string;
 }
 
-export type { ScoreOverTimePoint, TopPlayerPoint, ChestTypePoint, ChartSummary, ChartsApiResponse, ChartsApiParams };
+export type {
+  ScoreOverTimePoint,
+  TopPlayerPoint,
+  ChestTypePoint,
+  AnalyticsSummary,
+  AnalyticsApiResponse,
+  AnalyticsApiParams,
+};

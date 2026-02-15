@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   uuidSchema,
   notificationSettingsSchema,
-  chartQuerySchema,
+  analyticsQuerySchema,
   messageQuerySchema,
   escapeLikePattern,
 } from "./validation";
@@ -80,15 +80,44 @@ describe("notificationSettingsSchema", () => {
     const result = notificationSettingsSchema.safeParse({ events_enabled: true });
     expect(result.success).toBe(true);
   });
+
+  it("accepts bugs_email_enabled as a standalone field", () => {
+    const result = notificationSettingsSchema.safeParse({ bugs_email_enabled: true });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts bugs_email_enabled alongside other fields", () => {
+    const result = notificationSettingsSchema.safeParse({
+      messages_enabled: true,
+      bugs_email_enabled: false,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts all five notification fields together", () => {
+    const result = notificationSettingsSchema.safeParse({
+      messages_enabled: true,
+      news_enabled: false,
+      events_enabled: true,
+      system_enabled: false,
+      bugs_email_enabled: true,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects non-boolean for bugs_email_enabled", () => {
+    const result = notificationSettingsSchema.safeParse({ bugs_email_enabled: "yes" });
+    expect(result.success).toBe(false);
+  });
 });
 
 /* ------------------------------------------------------------------ */
-/*  chartQuerySchema                                                   */
+/*  analyticsQuerySchema                                                */
 /* ------------------------------------------------------------------ */
 
-describe("chartQuerySchema", () => {
+describe("analyticsQuerySchema", () => {
   it("accepts an empty object (all fields have defaults)", () => {
-    const result = chartQuerySchema.safeParse({});
+    const result = analyticsQuerySchema.safeParse({});
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.clanId).toBe("");
@@ -101,72 +130,72 @@ describe("chartQuerySchema", () => {
   });
 
   it("accepts valid UUID for clanId", () => {
-    const result = chartQuerySchema.safeParse({ clanId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" });
+    const result = analyticsQuerySchema.safeParse({ clanId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" });
     expect(result.success).toBe(true);
   });
 
   it("rejects invalid UUID for clanId", () => {
-    const result = chartQuerySchema.safeParse({ clanId: "not-a-uuid" });
+    const result = analyticsQuerySchema.safeParse({ clanId: "not-a-uuid" });
     expect(result.success).toBe(false);
   });
 
   it("accepts valid UUID for gameAccountId", () => {
-    const result = chartQuerySchema.safeParse({ gameAccountId: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22" });
+    const result = analyticsQuerySchema.safeParse({ gameAccountId: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22" });
     expect(result.success).toBe(true);
   });
 
   it("rejects invalid UUID for gameAccountId", () => {
-    const result = chartQuerySchema.safeParse({ gameAccountId: "bad" });
+    const result = analyticsQuerySchema.safeParse({ gameAccountId: "bad" });
     expect(result.success).toBe(false);
   });
 
   it("accepts valid YYYY-MM-DD for dateFrom", () => {
-    const result = chartQuerySchema.safeParse({ dateFrom: "2026-02-11" });
+    const result = analyticsQuerySchema.safeParse({ dateFrom: "2026-02-11" });
     expect(result.success).toBe(true);
   });
 
   it("rejects invalid date format for dateFrom", () => {
-    const result = chartQuerySchema.safeParse({ dateFrom: "02/11/2026" });
+    const result = analyticsQuerySchema.safeParse({ dateFrom: "02/11/2026" });
     expect(result.success).toBe(false);
   });
 
   it("rejects partial date for dateFrom", () => {
-    const result = chartQuerySchema.safeParse({ dateFrom: "2026-02" });
+    const result = analyticsQuerySchema.safeParse({ dateFrom: "2026-02" });
     expect(result.success).toBe(false);
   });
 
   it("accepts valid YYYY-MM-DD for dateTo", () => {
-    const result = chartQuerySchema.safeParse({ dateTo: "2026-12-31" });
+    const result = analyticsQuerySchema.safeParse({ dateTo: "2026-12-31" });
     expect(result.success).toBe(true);
   });
 
   it("rejects invalid date format for dateTo", () => {
-    const result = chartQuerySchema.safeParse({ dateTo: "not-a-date" });
+    const result = analyticsQuerySchema.safeParse({ dateTo: "not-a-date" });
     expect(result.success).toBe(false);
   });
 
   it("accepts short player filter", () => {
-    const result = chartQuerySchema.safeParse({ player: "TestPlayer" });
+    const result = analyticsQuerySchema.safeParse({ player: "TestPlayer" });
     expect(result.success).toBe(true);
   });
 
   it("rejects player filter exceeding 100 characters", () => {
-    const result = chartQuerySchema.safeParse({ player: "x".repeat(101) });
+    const result = analyticsQuerySchema.safeParse({ player: "x".repeat(101) });
     expect(result.success).toBe(false);
   });
 
   it("accepts short source filter", () => {
-    const result = chartQuerySchema.safeParse({ source: "DataSource" });
+    const result = analyticsQuerySchema.safeParse({ source: "DataSource" });
     expect(result.success).toBe(true);
   });
 
   it("rejects source filter exceeding 100 characters", () => {
-    const result = chartQuerySchema.safeParse({ source: "x".repeat(101) });
+    const result = analyticsQuerySchema.safeParse({ source: "x".repeat(101) });
     expect(result.success).toBe(false);
   });
 
   it("accepts all fields together", () => {
-    const result = chartQuerySchema.safeParse({
+    const result = analyticsQuerySchema.safeParse({
       clanId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
       gameAccountId: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
       dateFrom: "2026-01-01",

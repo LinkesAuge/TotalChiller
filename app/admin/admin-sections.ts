@@ -19,14 +19,14 @@ export interface AdminSectionDef {
 }
 
 export const ADMIN_SECTIONS: readonly AdminSectionDef[] = [
+  { labelKey: "users", href: "/admin?tab=users", tab: "users" },
   { labelKey: "clans", href: "/admin?tab=clans", tab: "clans" },
   { labelKey: "approvals", href: "/admin?tab=approvals", tab: "approvals" },
-  { labelKey: "users", href: "/admin?tab=users", tab: "users" },
-  { labelKey: "validation", href: "/admin?tab=validation", tab: "validation" },
-  { labelKey: "corrections", href: "/admin?tab=corrections", tab: "corrections" },
-  { labelKey: "logs", href: "/admin?tab=logs", tab: "logs" },
   { labelKey: "forum", href: "/admin?tab=forum", tab: "forum" },
   { labelKey: "dataImport", href: "/admin/data-import" },
+  { labelKey: "validation", href: "/admin?tab=validation", tab: "validation" },
+  { labelKey: "corrections", href: "/admin?tab=corrections", tab: "corrections" },
   { labelKey: "chestDb", href: "/admin/data-table" },
   { labelKey: "designSystem", href: "/design-system" },
+  { labelKey: "logs", href: "/admin?tab=logs", tab: "logs" },
 ];

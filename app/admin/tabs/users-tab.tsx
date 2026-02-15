@@ -30,7 +30,7 @@ import {
   buildFallbackUserDb,
   normalizeMembershipRows,
 } from "../admin-types";
-import { isAdmin as isAdminRole } from "@/lib/permissions";
+import { isAdmin as isAdminRole, canChangeRoleOf } from "@/lib/permissions";
 
 function getMembershipLabel(membership: MembershipRow): string {
   return membership.game_accounts?.game_username ?? "-";
@@ -46,6 +46,7 @@ export default function UsersTab(): ReactElement {
     unassignedClanId,
     clanNameById,
     currentUserId,
+    currentUserRole,
     setStatus: _setStatus,
     setPendingApprovals,
   } = useAdminContext();
@@ -314,6 +315,11 @@ export default function UsersTab(): ReactElement {
         setUserErrors((c) => ({ ...c, [user.id]: "Role is invalid." }));
         return false;
       }
+      const currentTargetRole = getUserRole(user.id);
+      if (nextRole !== currentTargetRole && !canChangeRoleOf(currentUserRole, currentTargetRole)) {
+        setUserErrors((c) => ({ ...c, [user.id]: "You do not have permission to change this user's role." }));
+        return false;
+      }
       if (nextRole !== getUserRole(user.id)) {
         const { error: roleError } = await supabase
           .from("user_roles")
@@ -358,7 +364,7 @@ export default function UsersTab(): ReactElement {
       if (shouldReload) await loadUsers();
       return true;
     },
-    [getUserEditValue, getUserRole, updateUserEdit, cancelUserEdit, supabase, loadUsers],
+    [getUserEditValue, getUserRole, updateUserEdit, cancelUserEdit, supabase, loadUsers, currentUserRole],
   );
 
   const cancelAllUserEdits = useCallback(() => {
@@ -572,10 +578,11 @@ export default function UsersTab(): ReactElement {
   const openCreateGameAccountModal = useCallback(
     (user: UserRow) => {
       setCreateGameAccountUser(user);
-      setCreateGameAccountForm({ username: "", clanId: unassignedClanId, rank: "soldier" });
+      const defaultRank = getUserRole(user.id) === "guest" ? "guest" : "soldier";
+      setCreateGameAccountForm({ username: "", clanId: unassignedClanId, rank: defaultRank });
       setCreateGameAccountMessage("");
     },
-    [unassignedClanId],
+    [unassignedClanId, getUserRole],
   );
 
   const closeCreateGameAccountModal = useCallback(() => {
@@ -913,13 +920,20 @@ export default function UsersTab(): ReactElement {
                       onPointerDown={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
-                      <RadixSelect
-                        ariaLabel={tAdmin("common.role")}
-                        value={edits.role ?? getUserRole(user.id)}
-                        onValueChange={(v) => updateUserEdit(user.id, "role", v)}
-                        options={roleOptions.map((r) => ({ value: r, label: formatRole(r, locale) }))}
-                        triggerClassName={`select-trigger${isUserFieldChanged(user, "role") ? " is-edited" : ""}`}
-                      />
+                      {(() => {
+                        const targetRole = getUserRole(user.id);
+                        const roleChangeAllowed = canChangeRoleOf(currentUserRole, targetRole);
+                        return (
+                          <RadixSelect
+                            ariaLabel={tAdmin("common.role")}
+                            value={edits.role ?? targetRole}
+                            onValueChange={(v) => updateUserEdit(user.id, "role", v)}
+                            options={roleOptions.map((r) => ({ value: r, label: formatRole(r, locale) }))}
+                            triggerClassName={`select-trigger${isUserFieldChanged(user, "role") ? " is-edited" : ""}`}
+                            disabled={!roleChangeAllowed}
+                          />
+                        );
+                      })()}
                     </div>
                     <div className="text-muted flex items-center gap-1.5">
                       <span className="badge" aria-label={`${accounts.length} game accounts`}>

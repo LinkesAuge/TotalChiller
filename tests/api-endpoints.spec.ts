@@ -47,9 +47,9 @@ test.describe("API: Site List Items", () => {
   });
 });
 
-test.describe("API: Charts", () => {
-  test("GET /api/charts returns 200 or 401", async ({ request }) => {
-    const res = await request.get("/api/charts");
+test.describe("API: Analytics", () => {
+  test("GET /api/analytics returns 200 or 401", async ({ request }) => {
+    const res = await request.get("/api/analytics");
     /* Might require auth, query params, or be rate-limited */
     expect([200, 400, 401, 429]).toContain(res.status());
   });

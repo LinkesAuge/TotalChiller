@@ -28,7 +28,7 @@ async function robots(): Promise<MetadataRoute.Robots> {
           "/settings",
           "/profile",
           "/messages",
-          "/charts",
+          "/analytics",
           "/events",
           "/data-import",
           "/data-table",

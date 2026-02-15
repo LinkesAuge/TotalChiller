@@ -35,6 +35,11 @@ This runbook explains how to set up, run, and use the [THC] Chiller & Killer com
    - `Documentation/migrations/design_system_render_type.sql`
    - `Documentation/migrations/messages_sender_delete.sql`
    - `Documentation/migrations/messages_archive.sql`
+   - `Documentation/migrations/bug_reports.sql`
+   - `Documentation/migrations/bug_reports_v2.sql`
+   - `Documentation/migrations/bug_reports_v3.sql`
+   - `Documentation/migrations/guest_role_permissions.sql`
+   - `Documentation/migrations/role_change_protection.sql`
 
 ## 2) Local Environment
 
@@ -44,6 +49,11 @@ Create `.env.local` in the project root:
 NEXT_PUBLIC_SUPABASE_URL=YOUR_PROJECT_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
+
+# Optional: bug report email notifications (via Resend)
+RESEND_API_KEY=re_xxxxx
+RESEND_FROM_EMAIL=bugs@yourdomain.com
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```
 
 ## 3) Install + Run
@@ -87,11 +97,12 @@ Email templates (dual-theme: light for Outlook, dark for modern clients) are doc
 - Dashboard: `/`
 - Announcements: `/news`
 - Forum: `/forum`
-- Charts (Truhenauswertung): `/charts`
+- Analytics (Analysen): `/analytics`
 - Events (Event-Kalender): `/events`
 - Messages: `/messages`
 - Profile: `/profile`
 - Members: `/members`
+- Bug Reports: `/bugs`
 - Settings: `/settings`
 - Admin: `/admin`
 - Data Import: `/admin/data-import`
@@ -186,7 +197,7 @@ In `/events`:
 
 ### Vitest Unit Tests
 
-**Current status (2026-02-14):** 514 tests across 25 test files in `lib/` and `app/`.
+**Current status (2026-02-15):** 654 tests across 32 test files in `lib/` and `app/`.
 
 ```
 npm run test:unit                            # Run all unit tests once
@@ -196,7 +207,7 @@ npx vitest run lib/permissions.test.ts       # Run a specific test file
 
 ### Playwright E2E Tests
 
-**Current status (2026-02-13):** ~396 tests across 27 spec files, 394 passing (Chromium). 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
+**Current status (2026-02-15):** 346 tests across 29 spec files (Chromium). 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
 
 ```
 npx playwright test                          # Run all tests (all browsers)
@@ -224,13 +235,13 @@ Before running tests for the first time, create test users by running `Documenta
 
 ```
 tests/
-├── auth.setup.ts             # Global setup: pre-authenticate all 6 roles
+├── auth.setup.ts              # Global setup: pre-authenticate all 6 roles
 ├── helpers/auth.ts            # storageStatePath(), loginAs(), TEST_USERS
 ├── smoke.spec.ts              # Page load & redirect checks
 ├── auth.spec.ts               # Login, register, forgot password forms
 ├── navigation.spec.ts         # Sidebar links, access control
 ├── api-endpoints.spec.ts      # API contracts (status codes, response shapes)
-├── cms-*.spec.ts (5 files)    # CMS pages, API, components, markdown, responsive
+├── cms-*.spec.ts (6 files)    # CMS pages, API, components, markdown, responsive, public-view
 ├── news.spec.ts               # News/articles functionality
 ├── events.spec.ts             # Events/calendar functionality
 ├── forum.spec.ts              # Forum posts, comments, moderation
@@ -241,12 +252,15 @@ tests/
 ├── admin.spec.ts              # Admin access control & section rendering
 ├── admin-actions.spec.ts      # Admin interactive tab actions
 ├── crud-flows.spec.ts         # CRUD workflows (news, events, forum, messages)
+├── feature-flows.spec.ts      # Feature integration flows
 ├── data-workflows.spec.ts     # Data import & table workflows
 ├── notifications.spec.ts      # Notification bell, dropdown, API
+├── bugs.spec.ts               # Bug reports: API auth/CRUD, UI, widget, settings, email guard
 ├── i18n.spec.ts               # Language switching, cookies
 ├── accessibility.spec.ts      # axe-core accessibility audits
 ├── permissions-unit.spec.ts   # Permission system unit tests
-└── roles-permissions.spec.ts  # E2E role-based access control
+├── roles-permissions.spec.ts  # E2E role-based access control
+└── debug-game-account-modal.spec.ts  # Game account modal edge cases
 ```
 
 ### CI / Pre-commit
@@ -310,7 +324,42 @@ Flags:
 - `--skip-copy` — skip the file copy step (DB upsert only)
 - `--skip-db` — skip DB upsert (copy files only)
 
-## 18) Troubleshooting
+## 18) Bug Reports
+
+In `/bugs`:
+
+- Any authenticated user can submit bug reports with title, description, category, page URL, and up to 5 screenshots.
+- All reports are visible to all authenticated users (transparent issue tracking).
+- Simple workflow: Open → Resolved → Closed.
+- Admin/content manager controls appear inline for status changes, priority assignment (low/medium/high/critical), and category reassignment.
+- Threaded comments allow back-and-forth between reporters and admins. Reporters receive a notification when someone comments on their report.
+- Admin-managed categories (default: Bug, Feature Request, UI Issue, Data Problem, Other) — add/edit/delete via the admin controls or directly via the `/api/bugs/categories` API.
+- A floating quick-report widget button appears on every page (bottom-right). It auto-captures the current page URL and opens a compact report form in a modal. Hidden on the `/bugs` page itself and for unauthenticated users.
+- Deep-link: `/bugs?report=<id>` opens a specific report directly.
+- Screenshots are stored in the Supabase Storage `bug-screenshots` bucket. The bucket is created by the migration; verify it exists in the Supabase Dashboard under Storage.
+
+### First-time setup
+
+1. Run migrations in order in Supabase SQL Editor:
+   - `Documentation/migrations/bug_reports.sql`
+   - `Documentation/migrations/bug_reports_v2.sql`
+   - `Documentation/migrations/bug_reports_v3.sql`
+2. Verify the `bug-screenshots` storage bucket was created (Dashboard → Storage). If not, create it manually with `public = true`.
+3. Default categories (Bug, Feature Request, UI Issue, Data Problem, Other) are seeded by the migration.
+
+### Email notifications (optional)
+
+Admin email notifications require a [Resend](https://resend.com) account (free tier: 100 emails/day).
+
+1. Create a Resend account and verify your sending domain.
+2. Add these to `.env.local`:
+   - `RESEND_API_KEY` — your Resend API key.
+   - `RESEND_FROM_EMAIL` — verified sender (e.g. `bugs@yourdomain.com`).
+   - `NEXT_PUBLIC_SITE_URL` — your site URL for the "View Report" link.
+3. Admins (owner/admin only) opt in via Settings → Notifications → "Bug report email" toggle (off by default). The toggle is hidden for non-admin users; the API silently ignores `bugs_email_enabled` from non-admins.
+4. If env vars are missing, email notifications are silently skipped — no errors.
+
+## 19) Troubleshooting
 
 - If data insert fails: check RLS policies and membership
 - If user lookup fails: verify `profiles` trigger ran on signup
@@ -322,3 +371,6 @@ Flags:
 - If admin tests fail with timeouts: increase the `timeout` value in `toContainText()` / `toBeVisible()` assertions, or check that the dev server is running
 - If `.next` cache causes stale behavior after refactoring: delete `.next/` and restart `npm run dev`
 - If API routes return HTML instead of JSON: verify that `proxy.ts` skips the auth redirect for `/api/` paths (the proxy should not redirect API requests — they handle their own auth)
+- If bug report screenshot upload fails: verify the `bug-screenshots` storage bucket exists in Supabase Dashboard (Storage section) and that it is public
+- If bug report categories are empty: re-run the `bug_reports.sql` migration — it seeds 5 default categories
+- If Radix Select dropdowns lose their visible scrollbar after upgrading `@radix-ui/react-select`: Radix injects a runtime `<style>` tag hiding scrollbars on `[data-radix-select-viewport]`. Our `!important` overrides in `app/styles/components.css` counter this. Verify the injected styles haven't changed shape — see `handoff_summary.md → Radix Select Scrollbar` for the full explanation.

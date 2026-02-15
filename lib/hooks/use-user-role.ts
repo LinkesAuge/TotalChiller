@@ -7,6 +7,7 @@ import {
   toRole,
   hasPermission,
   canDo,
+  isOwner as isOwnerCheck,
   isAdmin as isAdminCheck,
   isContentManager as isContentManagerCheck,
 } from "@/lib/permissions";
@@ -20,6 +21,8 @@ interface UseUserRoleResult {
   readonly hasPermission: (permission: string) => boolean;
   /** Check if the user holds *any* of the listed permissions. */
   readonly canDo: (...permissions: string[]) => boolean;
+  /** Shortcut — owner (webmaster). */
+  readonly isOwner: boolean;
   /** Shortcut — owner or admin. */
   readonly isAdmin: boolean;
   /** Shortcut — owner, admin, moderator, or editor. */
@@ -74,6 +77,7 @@ export function useUserRole(supabase: SupabaseClient): UseUserRoleResult {
     loading,
     hasPermission: boundHasPermission,
     canDo: boundCanDo,
+    isOwner: isOwnerCheck(role),
     isAdmin: isAdminCheck(role),
     isContentManager: isContentManagerCheck(role),
   };

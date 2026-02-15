@@ -10,6 +10,7 @@ import { SidebarProvider } from "./components/sidebar-context";
 import SidebarShell from "./components/sidebar-shell";
 import { ToastProvider } from "./components/toast-provider";
 import ClanAccessGate from "./components/clan-access-gate";
+import BugReportWidget from "./components/bug-report-widget";
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -113,6 +114,7 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
               <div className="layout">
                 <SidebarShell>
                   <ClanAccessGate>{children}</ClanAccessGate>
+                  <BugReportWidget />
                   <footer className="app-footer">
                     <Image
                       src="/assets/vip/components_decor_5.png"

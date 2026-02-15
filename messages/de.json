@@ -96,7 +96,7 @@
     "home": "Startseite",
     "dashboard": "Dashboard",
     "announcements": "Ankündigungen",
-    "charts": "Truhenauswertung",
+    "analytics": "Analysen",
     "events": "Event-Kalender",
     "messages": "Nachrichten",
     "members": "Mitglieder",
@@ -111,7 +111,9 @@
     "chestDb": "Truhen-DB",
     "forum": "Forum",
     "forumAdmin": "Forenverwaltung",
-    "designSystem": "Design-System"
+    "designSystem": "Design-System",
+    "bugs": "Fehlerberichte",
+    "settings": "Einstellungen"
   },
   "auth": {
     "login": {
@@ -596,9 +598,9 @@
     "confirmDeleteSidebar": "Dieses Event löschen?",
     "goToThread": "Zum Diskussionsthread"
   },
-  "charts": {
+  "analytics": {
     "breadcrumb": "TotalChiller \u2022 Analysen",
-    "title": "Diagramme & Analysen",
+    "title": "Analysen",
     "heroTitle": "Battle Intelligence",
     "heroSubtitle": "Trendlinien, Score-Signale und Clan-Leistung auf einen Blick.",
     "filters": "Filter",
@@ -631,9 +633,9 @@
     "last30Days": "Letzte 30 Tage",
     "last90Days": "Letzte 90 Tage",
     "allTime": "Gesamtzeit",
-    "noChartData": "Keine Diagrammdaten verfügbar.",
-    "loadingCharts": "Diagramme werden geladen...",
-    "loadError": "Diagrammdaten konnten nicht geladen werden.",
+    "noAnalyticsData": "Keine Analysedaten verfügbar.",
+    "loadingAnalytics": "Analysen werden geladen...",
+    "loadError": "Analysedaten konnten nicht geladen werden.",
     "noDataAvailable": "Keine Daten verfügbar",
     "noPersonalData": "Keine persönlichen Daten – verknüpfe ein Spielkonto, um deine Statistiken zu sehen",
     "score": "Punkte",
@@ -808,6 +810,7 @@
     "notifNews": "Ankündigungen",
     "notifEvents": "Events",
     "notifSystem": "System / Genehmigungen",
+    "notifBugsEmail": "Fehlerbericht-E-Mail (neue Berichte)",
     "language": "Sprache",
     "languageLabel": "Anzeigesprache",
     "languageHint": "Sprache der Benutzeroberfläche wählen",
@@ -1827,6 +1830,143 @@
       "assignTitle": "Assets zuweisen: {name}",
       "currentAssignments": "Aktuelle Zuweisungen ({count})",
       "emptyMessage": "Keine Assets zugewiesen. Klicken Sie rechts auf ein Asset, um es zuzuweisen."
+    }
+  },
+  "bugs": {
+    "breadcrumb": "TotalChiller \u2022 Fehlerberichte",
+    "title": "Fehlerberichte",
+    "subtitle": "Probleme melden und deren Lösung verfolgen",
+    "heroTitle": "Fehlerberichte",
+    "heroSubtitle": "Probleme melden und deren Lösung verfolgen",
+    "newReport": "Neuer Bericht",
+    "backToList": "Zurück zur Liste",
+    "backToDetail": "Zurück zum Bericht",
+    "noReports": "Noch keine Fehlerberichte.",
+    "noReportsFiltered": "Keine Berichte entsprechen den aktuellen Filtern.",
+    "loadingReports": "Berichte werden geladen…",
+    "status": {
+      "label": "Status",
+      "all": "Alle",
+      "open": "Offen",
+      "resolved": "Gelöst",
+      "closed": "Geschlossen"
+    },
+    "priority": {
+      "label": "Priorität",
+      "all": "Alle Prioritäten",
+      "none": "Nicht gesetzt",
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch",
+      "critical": "Kritisch"
+    },
+    "sort": {
+      "label": "Sortieren nach",
+      "newest": "Neueste zuerst",
+      "oldest": "Älteste zuerst",
+      "title": "Titel A–Z",
+      "priority": "Priorität (höchste)",
+      "status": "Status"
+    },
+    "form": {
+      "createTitle": "Fehler melden",
+      "createSubtitle": "Beschreiben Sie das aufgetretene Problem",
+      "title": "Titel",
+      "titlePlaceholder": "Kurze Zusammenfassung des Problems",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "Beschreiben Sie das Problem im Detail. Was ist passiert? Was haben Sie erwartet?",
+      "category": "Kategorie",
+      "categoryPlaceholder": "Kategorie auswählen",
+      "pageUrl": "Seiten-URL",
+      "pageUrlPlaceholder": "Wo ist das passiert?",
+      "screenshots": "Screenshots",
+      "screenshotsHint": "Bis zu 5 Screenshots anhängen (JPEG, PNG, GIF, WebP — max. 5 MB pro Datei)",
+      "submit": "Bericht einreichen",
+      "submitting": "Wird eingereicht…",
+      "editTitle": "Bericht bearbeiten",
+      "editSubtitle": "Details dieses Berichts aktualisieren",
+      "saveChanges": "Änderungen speichern"
+    },
+    "detail": {
+      "reportedBy": "Gemeldet von",
+      "reportedOn": "am",
+      "pageUrl": "Seite",
+      "screenshots": "Screenshots",
+      "noScreenshots": "Keine Screenshots angehängt.",
+      "category": "Kategorie",
+      "uncategorized": "Ohne Kategorie",
+      "editReport": "Bearbeiten",
+      "deleteReport": "Löschen",
+      "confirmDeleteTitle": "Diesen Bericht löschen?",
+      "confirmDeleteMessage": "Dadurch werden der Bericht, alle Kommentare und alle angehängten Screenshots dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "dangerZone": "Gefahrenzone"
+    },
+    "comments": {
+      "title": "Kommentare",
+      "noComments": "Noch keine Kommentare.",
+      "addComment": "Kommentar hinzufügen",
+      "placeholder": "Kommentar schreiben…",
+      "submit": "Kommentar senden",
+      "submitting": "Wird gesendet…",
+      "editComment": "Bearbeiten",
+      "deleteComment": "Löschen",
+      "saveEdit": "Speichern",
+      "cancelEdit": "Abbrechen",
+      "confirmDelete": "Diesen Kommentar löschen?",
+      "confirmDeleteBtn": "Löschen",
+      "edited": "bearbeitet"
+    },
+    "admin": {
+      "title": "Admin-Steuerung",
+      "changeStatus": "Status ändern",
+      "setPriority": "Priorität setzen",
+      "changeCategory": "Kategorie ändern",
+      "manageCategories": "Kategorien verwalten",
+      "addCategory": "Kategorie hinzufügen",
+      "categoryName": "Kategoriename",
+      "editCategory": "Bearbeiten",
+      "deleteCategory": "Löschen",
+      "confirmDelete": "Diese Kategorie löschen?"
+    },
+    "categories": {
+      "bug": "Fehler",
+      "feature_request": "Funktionswunsch",
+      "ui_issue": "UI-Problem",
+      "data_problem": "Datenproblem",
+      "other": "Sonstiges"
+    },
+    "pages": {
+      "label": "Betroffene Seite",
+      "placeholder": "Seite auswählen (optional)",
+      "custom": "Andere / Eigene URL",
+      "customPlaceholder": "URL manuell eingeben",
+      "profile": "Profil",
+      "settings": "Einstellungen",
+      "admin": "Admin-Bereich"
+    },
+    "list": {
+      "titleColumn": "Titel",
+      "statusColumn": "Status",
+      "categoryColumn": "Kategorie",
+      "reporterColumn": "Melder",
+      "dateColumn": "Datum",
+      "commentsColumn": "Kommentare",
+      "filterByCategory": "Nach Kategorie filtern",
+      "allCategories": "Alle Kategorien",
+      "searchPlaceholder": "Berichte durchsuchen…"
+    },
+    "widget": {
+      "tooltip": "Fehler melden",
+      "successMessage": "Fehlerbericht eingereicht. Vielen Dank!"
+    },
+    "screenshot": {
+      "upload": "Screenshot hochladen",
+      "dragDrop": "Ziehen & Ablegen oder klicken zum Hochladen",
+      "remove": "Entfernen",
+      "uploading": "Wird hochgeladen…",
+      "maxReached": "Maximal {max} Screenshots erreicht.",
+      "invalidType": "Ungültiger Dateityp. Verwenden Sie JPEG, PNG, GIF oder WebP.",
+      "tooLarge": "Datei zu groß. Maximale Größe ist 5 MB."
     }
   }
 }

@@ -19,7 +19,7 @@ export const ROLES: readonly Role[] = ["owner", "admin", "moderator", "editor", 
 
 /** Human-readable labels for each role (English). */
 export const ROLE_LABELS: Record<Role, string> = {
-  owner: "Owner",
+  owner: "Webmaster",
   admin: "Administrator",
   moderator: "Moderator",
   editor: "Editor",
@@ -58,6 +58,8 @@ const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
     "message:send:private",
     "message:send:broadcast",
     "admin_panel:view",
+    "bug:create",
+    "bug:comment",
   ],
   editor: [
     "article:create",
@@ -75,6 +77,8 @@ const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
     "forum:edit:own",
     "forum:delete:own",
     "message:send:private",
+    "bug:create",
+    "bug:comment",
   ],
   member: [
     "article:create",
@@ -88,8 +92,24 @@ const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
     "forum:delete:own",
     "message:send:private",
     "profile:edit:own",
+    "bug:create",
+    "bug:comment",
   ],
-  guest: ["profile:edit:own"],
+  guest: [
+    "article:create",
+    "article:edit:own",
+    "comment:create",
+    "comment:edit:own",
+    "comment:delete:own",
+    "data:view",
+    "forum:create",
+    "forum:edit:own",
+    "forum:delete:own",
+    "message:send:private",
+    "profile:edit:own",
+    "bug:create",
+    "bug:comment",
+  ],
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -129,10 +149,30 @@ export function canDo(role: Role | string, ...anyOf: string[]): boolean {
   return anyOf.some((p) => hasPermission(role, p));
 }
 
+/** Shortcut: owner (webmaster). */
+export function isOwner(role: Role | string): boolean {
+  return toRole(role as string) === "owner";
+}
+
 /** Shortcut: owner or admin (wildcard holders). */
 export function isAdmin(role: Role | string): boolean {
   const r = toRole(role as string);
   return r === "owner" || r === "admin";
+}
+
+/**
+ * Can `actorRole` change the role of a user who currently has `targetRole`?
+ *
+ * Rules:
+ * - Nobody can change a Webmaster's (owner) role.
+ * - Only the Webmaster (owner) can change an Administrator's (admin) role.
+ * - Admins can change roles of moderator and below.
+ */
+export function canChangeRoleOf(actorRole: Role | string, targetRole: Role | string): boolean {
+  const target = toRole(targetRole as string);
+  if (target === "owner") return false;
+  if (target === "admin") return isOwner(actorRole);
+  return isAdmin(actorRole);
 }
 
 /** Shortcut: owner, admin, moderator, or editor. */

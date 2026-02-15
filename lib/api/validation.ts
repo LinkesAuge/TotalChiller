@@ -57,14 +57,15 @@ export const notificationSettingsSchema = z
     news_enabled: z.boolean().optional(),
     events_enabled: z.boolean().optional(),
     system_enabled: z.boolean().optional(),
+    bugs_email_enabled: z.boolean().optional(),
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one setting must be provided.",
   });
 
-/** Chart query params schema. */
-export const chartQuerySchema = z.object({
+/** Analytics query params schema. */
+export const analyticsQuerySchema = z.object({
   clanId: z.string().uuid("Invalid clanId format.").optional().default(""),
   gameAccountId: z.string().uuid("Invalid gameAccountId format.").optional().default(""),
   dateFrom: dateStringSchema.optional().default(""),
@@ -82,4 +83,43 @@ export const messageQuerySchema = z.object({
 /** Site content / list items GET query params schema (page required). */
 export const sitePageQuerySchema = z.object({
   page: z.string().min(1, "Page is required."),
+});
+
+/* ── Bug Report Schemas ── */
+
+/** Bug report creation body. */
+export const bugReportCreateSchema = z.object({
+  title: z.string().min(1, "Title is required.").max(200, "Title too long."),
+  description: z.string().min(1, "Description is required.").max(10_000, "Description too long."),
+  category_id: z.string().uuid("Invalid category.").optional(),
+  page_url: z.string().max(500, "URL too long.").optional(),
+  screenshot_paths: z.array(z.string().max(500)).max(5).optional(),
+});
+
+/** Bug report update body (admin: status/priority/category; reporter: title/description/page_url). */
+export const bugReportUpdateSchema = z.object({
+  status: z.enum(["open", "resolved", "closed"]).optional(),
+  priority: z.enum(["low", "medium", "high", "critical"]).nullable().optional(),
+  category_id: z.string().uuid("Invalid category.").nullable().optional(),
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().min(1).max(10_000).optional(),
+  page_url: z.string().max(500).nullable().optional(),
+});
+
+/** Bug report comment creation body. */
+export const bugCommentCreateSchema = z.object({
+  content: z.string().min(1, "Comment is required.").max(5_000, "Comment too long."),
+});
+
+/** Bug report category creation/update body. */
+export const bugCategorySchema = z.object({
+  name: z.string().min(1, "Name is required.").max(100, "Name too long."),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+/** Bug list query params schema. */
+export const bugListQuerySchema = z.object({
+  status: z.enum(["all", "open", "resolved", "closed"]).default("all"),
+  category: z.string().uuid().optional().default(""),
+  search: z.string().max(200, "Search term too long.").optional().default(""),
 });

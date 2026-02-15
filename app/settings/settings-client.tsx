@@ -55,6 +55,7 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
     news_enabled: true,
     events_enabled: true,
     system_enabled: true,
+    bugs_email_enabled: false,
   });
   const [notifStatus, setNotifStatus] = useState<string>("");
   const notifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -429,6 +430,20 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
                 <span className="toggle-slider" />
               </label>
             </div>
+            {isAdmin ? (
+              <div className="list-item">
+                <span>{t("notifBugsEmail")}</span>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.bugs_email_enabled}
+                    onChange={() => handleToggleNotification("bugs_email_enabled")}
+                    aria-label={t("notifBugsEmail")}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+            ) : null}
           </div>
           {notifStatus ? <p className="text-muted pt-0 px-[18px] pb-3">{notifStatus}</p> : null}
         </section>

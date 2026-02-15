@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSupabase } from "./use-supabase";
 import { toDateString, getMonday, calculateTrend, extractAuthorName } from "../../lib/dashboard-utils";
-import type { ChartsApiResponse } from "../charts/chart-types";
+import type { AnalyticsApiResponse } from "../analytics/analytics-types";
 import type { ArticleSummary, EventSummary } from "@/lib/types/domain";
 
 interface ArticleWithAuthorJoin {
@@ -191,13 +191,13 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
     };
   }, [clanId, supabase]);
 
-  const fetchCharts = useCallback(
-    async (dateFrom: string, dateTo: string, signal: AbortSignal): Promise<ChartsApiResponse | null> => {
+  const fetchAnalytics = useCallback(
+    async (dateFrom: string, dateTo: string, signal: AbortSignal): Promise<AnalyticsApiResponse | null> => {
       if (!clanId) return null;
       const params = new URLSearchParams({ clanId: clanId ?? "", dateFrom, dateTo });
-      const res = await fetch(`/api/charts?${params.toString()}`, { signal });
+      const res = await fetch(`/api/analytics?${params.toString()}`, { signal });
       if (!res.ok) return null;
-      return (await res.json()) as ChartsApiResponse;
+      return (await res.json()) as AnalyticsApiResponse;
     },
     [clanId],
   );
@@ -217,8 +217,8 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       setIsLoadingStats(true);
       try {
         const [thisWeek, lastWeek, memberResult] = await Promise.all([
-          fetchCharts(thisWeekStart, todayStr, controller.signal),
-          fetchCharts(lastWeekStart, lastWeekEnd, controller.signal),
+          fetchAnalytics(thisWeekStart, todayStr, controller.signal),
+          fetchAnalytics(lastWeekStart, lastWeekEnd, controller.signal),
           supabase
             .from("game_account_clan_memberships")
             .select("id", { count: "exact", head: true })
@@ -272,7 +272,7 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
         statsAbortRef.current.abort();
       }
     };
-  }, [clanId, thisWeekStart, todayStr, lastWeekStart, lastWeekEnd, supabase, fetchCharts]);
+  }, [clanId, thisWeekStart, todayStr, lastWeekStart, lastWeekEnd, supabase, fetchAnalytics]);
 
   return {
     announcements,

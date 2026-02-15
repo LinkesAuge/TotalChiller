@@ -116,6 +116,7 @@ export interface NotificationPrefs {
   readonly news_enabled: boolean;
   readonly events_enabled: boolean;
   readonly system_enabled: boolean;
+  readonly bugs_email_enabled: boolean;
 }
 
 /* ── Game Account View (profile) ── */
@@ -170,6 +171,51 @@ export interface EventSummary {
   readonly ends_at: string;
   readonly author_name: string | null;
   readonly forum_post_id: string | null;
+}
+
+/* ── Bug Reports ── */
+
+export type BugReportStatus = "open" | "resolved" | "closed";
+export type BugReportPriority = "low" | "medium" | "high" | "critical";
+
+export interface BugReportCategory {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string | null;
+  readonly sort_order: number;
+  readonly created_at: string;
+}
+
+export interface BugReport {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly category_id: string | null;
+  readonly status: BugReportStatus;
+  readonly priority: BugReportPriority | null;
+  readonly page_url: string | null;
+  readonly reporter_id: string;
+  readonly created_at: string;
+  readonly updated_at: string;
+  readonly resolved_at: string | null;
+  readonly closed_at: string | null;
+}
+
+export interface BugReportComment {
+  readonly id: string;
+  readonly report_id: string;
+  readonly author_id: string;
+  readonly content: string;
+  readonly created_at: string;
+  readonly updated_at: string | null;
+}
+
+export interface BugReportScreenshot {
+  readonly id: string;
+  readonly report_id: string;
+  readonly storage_path: string;
+  readonly file_name: string;
+  readonly created_at: string;
 }
 
 /* ── Pending Approvals ── */

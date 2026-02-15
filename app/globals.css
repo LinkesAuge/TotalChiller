@@ -27,3 +27,6 @@
 
 /* Feature: Design System editor */
 @import "./styles/design-system.css";
+
+/* Feature: Bug Reports */
+@import "./styles/bugs.css";

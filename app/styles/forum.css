@@ -335,7 +335,7 @@
   color: var(--color-text-2);
   line-height: 1.7;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .forum-detail-actions {
   display: flex;
@@ -419,7 +419,7 @@
   color: var(--color-text-2);
   line-height: 1.65;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .forum-comment-actions {
   display: flex;
@@ -688,7 +688,6 @@
   color: var(--color-text);
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  word-break: break-word;
 }
 .forum-md p {
   margin: 0 0 8px;

@@ -77,6 +77,7 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
     news_enabled: true,
     events_enabled: true,
     system_enabled: true,
+    bugs_email_enabled: false,
   });
   const loadNotifications = useCallback(async (signal?: AbortSignal): Promise<void> => {
     try {

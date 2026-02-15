@@ -19,6 +19,7 @@ interface RadixSelectProps {
   readonly renderOptionContent?: (option: SelectOption) => ReactNode;
   readonly triggerClassName?: string;
   readonly triggerDataRole?: string;
+  readonly contentClassName?: string;
   readonly enableSearch?: boolean;
   readonly searchPlaceholder?: string;
 }
@@ -34,6 +35,7 @@ export default function RadixSelect({
   renderOptionContent,
   triggerClassName,
   triggerDataRole,
+  contentClassName,
   enableSearch = false,
   searchPlaceholder = "Search",
 }: RadixSelectProps): ReactNode {
@@ -93,7 +95,12 @@ export default function RadixSelect({
         </span>
       </Select.Trigger>
       <Select.Portal>
-        <Select.Content className="select-content" position="popper" sideOffset={6}>
+        <Select.Content
+          className={contentClassName ?? "select-content"}
+          position="popper"
+          sideOffset={6}
+          style={{ maxHeight: "min(280px, var(--radix-popper-available-height, 280px))" }}
+        >
           {enableSearch ? (
             <input
               className="select-search"
@@ -104,7 +111,7 @@ export default function RadixSelect({
               placeholder={searchPlaceholder}
             />
           ) : null}
-          <Select.Viewport className="select-viewport">
+          <Select.Viewport className="select-viewport" style={{ maxHeight: 280, overflowY: "scroll" }}>
             {filteredOptions.length === 0 ? (
               <div className="select-empty">No matches</div>
             ) : (

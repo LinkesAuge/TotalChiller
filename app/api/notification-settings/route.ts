@@ -18,7 +18,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { userId, supabase } = auth;
     const { data: existing } = await supabase
       .from("user_notification_settings")
-      .select("messages_enabled,news_enabled,events_enabled,system_enabled")
+      .select("messages_enabled,news_enabled,events_enabled,system_enabled,bugs_email_enabled")
       .eq("user_id", userId)
       .maybeSingle();
     if (existing) {
@@ -30,11 +30,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       news_enabled: true,
       events_enabled: true,
       system_enabled: true,
+      bugs_email_enabled: false,
     };
     const { data: created, error: insertError } = await supabase
       .from("user_notification_settings")
       .upsert(defaults, { onConflict: "user_id" })
-      .select("messages_enabled,news_enabled,events_enabled,system_enabled")
+      .select("messages_enabled,news_enabled,events_enabled,system_enabled,bugs_email_enabled")
       .single();
     if (insertError) {
       captureApiError("GET /api/notification-settings", insertError);
@@ -85,10 +86,16 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     if (typeof body.system_enabled === "boolean") {
       updatePayload.system_enabled = body.system_enabled;
     }
+    if (typeof body.bugs_email_enabled === "boolean") {
+      const { data: isAdmin } = await supabase.rpc("is_any_admin");
+      if (isAdmin) {
+        updatePayload.bugs_email_enabled = body.bugs_email_enabled;
+      }
+    }
     const { data: updated, error: upsertError } = await supabase
       .from("user_notification_settings")
       .upsert({ user_id: userId, ...updatePayload }, { onConflict: "user_id" })
-      .select("messages_enabled,news_enabled,events_enabled,system_enabled")
+      .select("messages_enabled,news_enabled,events_enabled,system_enabled,bugs_email_enabled")
       .single();
     if (upsertError) {
       captureApiError("PATCH /api/notification-settings", upsertError);

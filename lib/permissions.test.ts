@@ -7,7 +7,9 @@ import {
   toRole,
   hasPermission,
   canDo,
+  isOwner,
   isAdmin,
+  canChangeRoleOf,
   isContentManager,
   getPermissions,
 } from "./permissions";
@@ -21,6 +23,14 @@ describe("ROLES constant", () => {
     for (const role of ROLES) {
       expect(ROLE_LABELS[role]).toBeTruthy();
     }
+  });
+
+  it("labels owner as Webmaster", () => {
+    expect(ROLE_LABELS.owner).toBe("Webmaster");
+  });
+
+  it("labels admin as Administrator", () => {
+    expect(ROLE_LABELS.admin).toBe("Administrator");
   });
 });
 
@@ -89,15 +99,20 @@ describe("hasPermission", () => {
     expect(hasPermission("editor", "forum:delete:own")).toBe(true);
   });
 
-  it("guest cannot access forum", () => {
-    expect(hasPermission("guest", "forum:create")).toBe(false);
-    expect(hasPermission("guest", "forum:edit:own")).toBe(false);
-    expect(hasPermission("guest", "forum:delete:own")).toBe(false);
+  it("guest has the same permissions as member", () => {
+    expect(hasPermission("guest", "forum:create")).toBe(true);
+    expect(hasPermission("guest", "forum:edit:own")).toBe(true);
+    expect(hasPermission("guest", "forum:delete:own")).toBe(true);
+    expect(hasPermission("guest", "article:create")).toBe(true);
+    expect(hasPermission("guest", "data:view")).toBe(true);
+    expect(hasPermission("guest", "message:send:private")).toBe(true);
+    expect(hasPermission("guest", "profile:edit:own")).toBe(true);
+    expect(hasPermission("guest", "bug:create")).toBe(true);
+    expect(hasPermission("guest", "bug:comment")).toBe(true);
   });
 
-  it("guest only has profile:edit:own", () => {
-    expect(hasPermission("guest", "profile:edit:own")).toBe(true);
-    expect(hasPermission("guest", "article:create")).toBe(false);
+  it("guest cannot create events (same as member)", () => {
+    expect(hasPermission("guest", "event:create")).toBe(false);
   });
 });
 
@@ -106,8 +121,24 @@ describe("canDo", () => {
     expect(canDo("member", "event:create", "forum:create")).toBe(true);
   });
 
+  it("returns true if guest has any of the listed permissions", () => {
+    expect(canDo("guest", "event:create", "forum:create")).toBe(true);
+  });
+
   it("returns false if the role has none of the listed permissions", () => {
-    expect(canDo("guest", "event:create", "forum:create")).toBe(false);
+    expect(canDo("guest", "event:create", "event:edit")).toBe(false);
+  });
+});
+
+describe("isOwner", () => {
+  it("returns true only for owner", () => {
+    expect(isOwner("owner")).toBe(true);
+  });
+
+  it("returns false for admin and below", () => {
+    expect(isOwner("admin")).toBe(false);
+    expect(isOwner("moderator")).toBe(false);
+    expect(isOwner("member")).toBe(false);
   });
 });
 
@@ -122,6 +153,37 @@ describe("isAdmin", () => {
     expect(isAdmin("editor")).toBe(false);
     expect(isAdmin("member")).toBe(false);
     expect(isAdmin("guest")).toBe(false);
+  });
+});
+
+describe("canChangeRoleOf", () => {
+  it("nobody can change a webmaster (owner) role", () => {
+    expect(canChangeRoleOf("owner", "owner")).toBe(false);
+    expect(canChangeRoleOf("admin", "owner")).toBe(false);
+    expect(canChangeRoleOf("moderator", "owner")).toBe(false);
+  });
+
+  it("only webmaster (owner) can change an admin role", () => {
+    expect(canChangeRoleOf("owner", "admin")).toBe(true);
+    expect(canChangeRoleOf("admin", "admin")).toBe(false);
+    expect(canChangeRoleOf("moderator", "admin")).toBe(false);
+  });
+
+  it("admins can change roles of moderator and below", () => {
+    expect(canChangeRoleOf("admin", "moderator")).toBe(true);
+    expect(canChangeRoleOf("admin", "editor")).toBe(true);
+    expect(canChangeRoleOf("admin", "member")).toBe(true);
+    expect(canChangeRoleOf("admin", "guest")).toBe(true);
+  });
+
+  it("owner can change roles of moderator and below", () => {
+    expect(canChangeRoleOf("owner", "moderator")).toBe(true);
+    expect(canChangeRoleOf("owner", "member")).toBe(true);
+  });
+
+  it("moderator cannot change any roles", () => {
+    expect(canChangeRoleOf("moderator", "editor")).toBe(false);
+    expect(canChangeRoleOf("moderator", "member")).toBe(false);
   });
 });
 
@@ -149,7 +211,7 @@ describe("getPermissions", () => {
     }
   });
 
-  it("guest permissions contain only profile:edit:own", () => {
-    expect(getPermissions("guest")).toEqual(["profile:edit:own"]);
+  it("guest permissions match member permissions", () => {
+    expect(getPermissions("guest")).toEqual(getPermissions("member"));
   });
 });

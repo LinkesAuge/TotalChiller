@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChartsApiResponse, ChartSummary } from "./chart-types";
+import type { AnalyticsApiResponse, AnalyticsSummary } from "./analytics-types";
 
 /** Empty summary used as default before data loads. */
-const EMPTY_SUMMARY: ChartSummary = {
+const EMPTY_SUMMARY: AnalyticsSummary = {
   totalChests: 0,
   totalScore: 0,
   avgScore: 0,
@@ -12,8 +12,8 @@ const EMPTY_SUMMARY: ChartSummary = {
   uniquePlayers: 0,
 };
 
-/** Empty chart data used as default. */
-const EMPTY_DATA: ChartsApiResponse = {
+/** Empty analytics data used as default. */
+const EMPTY_DATA: AnalyticsApiResponse = {
   scoreOverTime: [],
   topPlayers: [],
   chestTypes: [],
@@ -21,7 +21,7 @@ const EMPTY_DATA: ChartsApiResponse = {
   summary: EMPTY_SUMMARY,
 };
 
-export interface UseChartsDataParams {
+export interface UseAnalyticsDataParams {
   readonly clanId?: string;
   readonly gameAccountId?: string;
   readonly dateFrom?: string;
@@ -30,21 +30,21 @@ export interface UseChartsDataParams {
   readonly sourceFilter?: string;
 }
 
-export interface UseChartsDataResult {
-  readonly chartData: ChartsApiResponse;
+export interface UseAnalyticsDataResult {
+  readonly analyticsData: AnalyticsApiResponse;
   readonly isLoading: boolean;
   readonly errorMessage: string;
   readonly fetchData: () => Promise<void>;
 }
 
 /**
- * Fetches aggregated chart data from /api/charts.
+ * Fetches aggregated analytics data from /api/analytics.
  * Uses AbortController for cancellation and supports filter parameters.
  */
-export function useChartsData(params: UseChartsDataParams): UseChartsDataResult {
+export function useAnalyticsData(params: UseAnalyticsDataParams): UseAnalyticsDataResult {
   const { clanId, gameAccountId, dateFrom = "", dateTo = "", playerFilter = "", sourceFilter = "" } = params;
 
-  const [chartData, setChartData] = useState<ChartsApiResponse>(EMPTY_DATA);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsApiResponse>(EMPTY_DATA);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const abortRef = useRef<AbortController | null>(null);
@@ -77,25 +77,25 @@ export function useChartsData(params: UseChartsDataParams): UseChartsDataResult 
       searchParams.set("source", sourceFilter.trim());
     }
     try {
-      const response = await fetch(`/api/charts?${searchParams.toString()}`, {
+      const response = await fetch(`/api/analytics?${searchParams.toString()}`, {
         signal: controller.signal,
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         throw new Error((body as { error?: string }).error ?? `HTTP ${response.status}`);
       }
-      const data = (await response.json()) as ChartsApiResponse;
+      const data = (await response.json()) as AnalyticsApiResponse;
       if (!controller.signal.aborted) {
-        setChartData(data);
+        setAnalyticsData(data);
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
         return;
       }
-      const message = err instanceof Error ? err.message : "Failed to load charts";
+      const message = err instanceof Error ? err.message : "Failed to load analytics";
       if (!controller.signal.aborted) {
         setErrorMessage(message);
-        setChartData(EMPTY_DATA);
+        setAnalyticsData(EMPTY_DATA);
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -113,5 +113,5 @@ export function useChartsData(params: UseChartsDataParams): UseChartsDataResult 
     };
   }, [fetchData]);
 
-  return { chartData, isLoading, errorMessage, fetchData };
+  return { analyticsData, isLoading, errorMessage, fetchData };
 }

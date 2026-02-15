@@ -4,18 +4,18 @@ import { storageStatePath } from "./helpers/auth";
 test.use({ storageState: storageStatePath("member") });
 
 /**
- * Charts / Data visualization page tests.
+ * Analytics / Data visualization page tests.
  */
 
-test.describe("Charts: Page loading", () => {
-  test("charts page loads for authenticated member", async ({ page }) => {
-    await page.goto("/charts");
+test.describe("Analytics: Page loading", () => {
+  test("analytics page loads for authenticated member", async ({ page }) => {
+    await page.goto("/analytics");
     await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/charts");
+    expect(page.url()).toContain("/analytics");
   });
 
-  test("charts page shows filter area", async ({ page }) => {
-    await page.goto("/charts");
+  test("analytics page shows filter area", async ({ page }) => {
+    await page.goto("/analytics");
     await page.waitForLoadState("networkidle");
 
     /* Should have filter controls or a no-clan-access message (test user may not be in a clan) */
@@ -27,11 +27,11 @@ test.describe("Charts: Page loading", () => {
     );
   });
 
-  test("no JS errors on charts page", async ({ page }) => {
+  test("no JS errors on analytics page", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await page.goto("/charts");
+    await page.goto("/analytics");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
@@ -39,9 +39,9 @@ test.describe("Charts: Page loading", () => {
   });
 });
 
-test.describe("Charts: Filters", () => {
+test.describe("Analytics: Filters", () => {
   test("has date range inputs or selectors", async ({ page }) => {
-    await page.goto("/charts");
+    await page.goto("/analytics");
     await page.waitForLoadState("networkidle");
 
     const dateInputs = page.locator('input[type="date"], input[type="text"][placeholder*="dat"]');
@@ -49,7 +49,7 @@ test.describe("Charts: Filters", () => {
   });
 
   test("has clear filters button", async ({ page }) => {
-    await page.goto("/charts");
+    await page.goto("/analytics");
     await page.waitForLoadState("networkidle");
 
     const clearBtn = page.locator("button", { hasText: /clear|zurücksetzen|reset/i });
@@ -57,9 +57,9 @@ test.describe("Charts: Filters", () => {
   });
 });
 
-test.describe("Charts: Visualization", () => {
+test.describe("Analytics: Visualization", () => {
   test("renders chart containers (canvas or svg)", async ({ page }) => {
-    await page.goto("/charts");
+    await page.goto("/analytics");
     await page.waitForLoadState("networkidle");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 

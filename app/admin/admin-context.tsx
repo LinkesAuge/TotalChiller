@@ -16,6 +16,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "../components/toast-provider";
 import type { ClanRow, AdminSection, PendingApprovalRow } from "./admin-types";
 import { resolveSection } from "./admin-types";
+import { toRole, type Role } from "@/lib/permissions";
 
 /* ── Context value ── */
 
@@ -34,6 +35,8 @@ export interface AdminContextValue {
 
   /* User */
   readonly currentUserId: string;
+  /** The logged-in user's role (defaults to "guest" until loaded). */
+  readonly currentUserRole: Role;
 
   /* Section routing */
   readonly activeSection: AdminSection;
@@ -78,6 +81,7 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
   const [unassignedClanId, setUnassignedClanId] = useState("");
   const [defaultClanId, setDefaultClanId] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
+  const [currentUserRole, setCurrentUserRole] = useState<Role>("guest");
   const [activeSection, setActiveSection] = useState<AdminSection>("clans");
   const [status, setStatus] = useState("");
   const [pendingApprovals, setPendingApprovals] = useState<readonly PendingApprovalRow[]>([]);
@@ -112,7 +116,14 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       setDefaultClanId(defClan?.id ?? "");
 
       // Current user
-      setCurrentUserId(authData.user?.id ?? "");
+      const userId = authData.user?.id ?? "";
+      setCurrentUserId(userId);
+
+      // Fetch current user's role
+      if (userId) {
+        const { data: roleRow } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+        if (roleRow) setCurrentUserRole(toRole(roleRow.role));
+      }
 
       // Pending approvals (for badge)
       if (approvalsRes?.ok) {
@@ -188,6 +199,7 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       clanNameById,
       loadClans,
       currentUserId,
+      currentUserRole,
       activeSection,
       updateActiveSection,
       navigateAdmin,
@@ -205,6 +217,7 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       clanNameById,
       loadClans,
       currentUserId,
+      currentUserRole,
       activeSection,
       updateActiveSection,
       navigateAdmin,

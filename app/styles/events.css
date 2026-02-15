@@ -1463,6 +1463,13 @@
   opacity: 1;
 }
 
+/* Touch devices: always show action buttons since there is no hover state */
+@media (hover: none) {
+  .upcoming-event-actions {
+    opacity: 0.7;
+  }
+}
+
 .upcoming-event-thread,
 .upcoming-event-edit,
 .upcoming-event-delete {

@@ -14,6 +14,16 @@ const nextConfig = {
     optimizePackageImports: ["recharts", "@radix-ui/react-select"],
   },
 
+  async redirects() {
+    return [
+      {
+        source: "/charts",
+        destination: "/analytics",
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     return [
       {

@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../lib/api/require-auth";
 import { relaxedLimiter } from "../../../lib/rate-limit";
-import { chartQuerySchema, escapeLikePattern } from "../../../lib/api/validation";
+import { analyticsQuerySchema, escapeLikePattern } from "../../../lib/api/validation";
 import type {
   ScoreOverTimePoint,
   TopPlayerPoint,
   ChestTypePoint,
-  ChartSummary,
-  ChartsApiResponse,
-} from "../../charts/chart-types";
+  AnalyticsSummary,
+  AnalyticsApiResponse,
+} from "../../analytics/analytics-types";
 import type { GameAccountSummary } from "@/lib/types/domain";
 
 /** Maximum number of top players returned. */
@@ -32,9 +32,9 @@ interface ChestRow {
 type GameAccountRow = Pick<GameAccountSummary, "game_username">;
 
 /**
- * GET /api/charts
+ * GET /api/analytics
  *
- * Returns pre-aggregated chart datasets for the authenticated user,
+ * Returns pre-aggregated analytics datasets for the authenticated user,
  * scoped by clan and optional filters.
  */
 export async function GET(request: Request): Promise<Response> {
@@ -50,7 +50,7 @@ export async function GET(request: Request): Promise<Response> {
       player: url.searchParams.get("player") ?? undefined,
       source: url.searchParams.get("source") ?? undefined,
     };
-    const parsed = chartQuerySchema.safeParse(rawParams);
+    const parsed = analyticsQuerySchema.safeParse(rawParams);
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues.map((issue) => issue.message).join(", ") },
@@ -96,7 +96,7 @@ export async function GET(request: Request): Promise<Response> {
     /* ── Fetch chest entries and game accounts in parallel ── */
     const [chestResult, accountResult] = await Promise.all([query, accountsQuery]);
     if (chestResult.error) {
-      captureApiError("GET /api/charts", chestResult.error);
+      captureApiError("GET /api/analytics", chestResult.error);
       return NextResponse.json({ error: "Failed to load chest data." }, { status: 500 });
     }
     const entries = (chestResult.data ?? []) as readonly ChestRow[];
@@ -121,7 +121,7 @@ export async function GET(request: Request): Promise<Response> {
     const personalScore = aggregateScoreOverTime(personalEntries);
     /* ── Summary ── */
     const summary = buildSummary(entries);
-    const payload: ChartsApiResponse = {
+    const payload: AnalyticsApiResponse = {
       scoreOverTime,
       topPlayers,
       chestTypes,
@@ -130,7 +130,7 @@ export async function GET(request: Request): Promise<Response> {
     };
     return NextResponse.json(payload);
   } catch (err) {
-    captureApiError("GET /api/charts", err);
+    captureApiError("GET /api/analytics", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
@@ -199,7 +199,7 @@ function aggregateChestTypes(entries: readonly ChestRow[]): ChestTypePoint[] {
   return top;
 }
 
-function buildSummary(entries: readonly ChestRow[]): ChartSummary {
+function buildSummary(entries: readonly ChestRow[]): AnalyticsSummary {
   const totalChests = entries.length;
   const totalScore = entries.reduce((sum, r) => sum + (r.score ?? 0), 0);
   const avgScore = totalChests > 0 ? Math.round(totalScore / totalChests) : 0;

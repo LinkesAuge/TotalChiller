@@ -655,6 +655,7 @@ select {
 }
 
 select {
+  -webkit-appearance: none;
   appearance: none;
   padding-right: 40px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1L6 6L11 1' fill='none' stroke='%23ffd777' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -730,6 +731,8 @@ option {
     0 0 1px var(--color-gold-a20);
   /* Must exceed .modal-backdrop (300) so portaled dropdowns appear above modals */
   z-index: 400;
+  max-height: min(280px, var(--radix-popper-available-height, 280px));
+  overflow: hidden;
 }
 
 .select-search {
@@ -749,12 +752,39 @@ option {
   box-shadow: 0 0 0 3px var(--color-edge);
 }
 
-.select-viewport {
+.select-viewport,
+[data-radix-select-viewport] {
   display: grid;
   gap: 4px;
-  max-height: 340px;
-  overflow-y: auto;
+  max-height: 260px !important;
+  overflow-y: scroll !important;
   padding-right: 4px;
+  /* Override Radix's injected <style> that sets scrollbar-width:none */
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(201, 163, 74, 0.55) rgba(255, 255, 255, 0.06) !important;
+  -ms-overflow-style: auto !important;
+}
+
+/* Override Radix's injected [data-radix-select-viewport]::-webkit-scrollbar{display:none} */
+.select-viewport::-webkit-scrollbar,
+[data-radix-select-viewport]::-webkit-scrollbar {
+  display: block !important;
+  width: 8px !important;
+}
+.select-viewport::-webkit-scrollbar-track,
+[data-radix-select-viewport]::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+}
+.select-viewport::-webkit-scrollbar-thumb,
+[data-radix-select-viewport]::-webkit-scrollbar-thumb {
+  background: rgba(201, 163, 74, 0.55);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+.select-viewport::-webkit-scrollbar-thumb:hover,
+[data-radix-select-viewport]::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 163, 74, 0.75);
 }
 
 .select-empty {
@@ -1445,6 +1475,13 @@ select:disabled,
   opacity: 1;
 }
 
+/* Touch devices: always show delete button since there is no hover state */
+@media (hover: none) {
+  .notification-bell__delete {
+    opacity: 0.6;
+  }
+}
+
 .notification-bell__delete:hover {
   color: #e05050;
   background: rgba(224, 80, 80, 0.12);
@@ -1506,6 +1543,7 @@ select:disabled,
 .notification-bell__list {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .notification-bell__empty {
@@ -1521,6 +1559,7 @@ select:disabled,
   width: 100%;
   padding: 10px 16px;
   border: none;
+  border-left: 3px solid transparent;
   border-bottom: 1px solid var(--color-gold-a08);
   background: transparent;
   color: var(--color-text);

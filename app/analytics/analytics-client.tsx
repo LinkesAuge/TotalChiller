@@ -7,7 +7,7 @@ import useClanContext from "../hooks/use-clan-context";
 import DatePicker from "../components/date-picker";
 import PageShell from "../components/page-shell";
 import DataState from "../components/data-state";
-import { useChartsData } from "./use-charts-data";
+import { useAnalyticsData } from "./use-analytics-data";
 
 const chartLoading = () => <div className="skeleton h-64 rounded-lg" />;
 
@@ -37,18 +37,18 @@ const SummaryPanel = dynamic(() => import("./chart-components").then((mod) => mo
 });
 
 /**
- * Main charts page client component.
- * Fetches aggregated chart data from /api/charts and renders visualizations.
+ * Main analytics page client component.
+ * Fetches aggregated data from /api/analytics and renders visualizations.
  */
-function ChartsClient(): JSX.Element {
-  const t = useTranslations("charts");
+function AnalyticsClient(): JSX.Element {
+  const t = useTranslations("analytics");
   const clanContext = useClanContext();
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [playerFilter, setPlayerFilter] = useState<string>("");
   const [sourceFilter, setSourceFilter] = useState<string>("");
 
-  const { chartData, isLoading, errorMessage } = useChartsData({
+  const { analyticsData, isLoading, errorMessage } = useAnalyticsData({
     clanId: clanContext?.clanId,
     gameAccountId: clanContext?.gameAccountId,
     dateFrom,
@@ -120,13 +120,13 @@ function ChartsClient(): JSX.Element {
         <DataState
           isLoading={isLoading}
           error={errorMessage || null}
-          loadingMessage={t("loadingCharts")}
+          loadingMessage={t("loadingAnalytics")}
           className="col-span-full"
         >
           {/* ── Summary Panel ── */}
           <section className="panel col-span-1">
             <div className="card-title">{t("summary")}</div>
-            <SummaryPanel summary={chartData.summary} />
+            <SummaryPanel summary={analyticsData.summary} />
           </section>
 
           {/* ── Personal Score ── */}
@@ -138,7 +138,7 @@ function ChartsClient(): JSX.Element {
               </div>
               <span className="badge">{t("badgeLine")}</span>
             </div>
-            <PersonalScoreChart data={chartData.personalScore} />
+            <PersonalScoreChart data={analyticsData.personalScore} />
           </section>
 
           {/* ── Clan Score Over Time ── */}
@@ -152,7 +152,7 @@ function ChartsClient(): JSX.Element {
               </div>
               <span className="badge">{t("badgeLine")}</span>
             </div>
-            <ScoreLineChart data={chartData.scoreOverTime} />
+            <ScoreLineChart data={analyticsData.scoreOverTime} />
           </section>
 
           {/* ── Top Players ── */}
@@ -164,7 +164,7 @@ function ChartsClient(): JSX.Element {
               </div>
               <span className="badge">{t("badgeBar")}</span>
             </div>
-            <TopPlayersBar data={chartData.topPlayers} />
+            <TopPlayersBar data={analyticsData.topPlayers} />
           </section>
 
           {/* ── Chest Type Distribution ── */}
@@ -176,7 +176,7 @@ function ChartsClient(): JSX.Element {
               </div>
               <span className="badge">{t("badgePie")}</span>
             </div>
-            <ChestTypePie data={chartData.chestTypes} height={320} />
+            <ChestTypePie data={analyticsData.chestTypes} height={320} />
           </section>
         </DataState>
       </div>
@@ -184,4 +184,4 @@ function ChartsClient(): JSX.Element {
   );
 }
 
-export default ChartsClient;
+export default AnalyticsClient;

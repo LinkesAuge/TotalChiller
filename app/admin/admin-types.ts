@@ -108,8 +108,8 @@ export type AdminSection = "clans" | "validation" | "corrections" | "logs" | "us
 
 /* ── Constants ── */
 
-export const roleOptions: readonly string[] = ROLES.filter((r) => r !== "guest");
-export const rankOptions: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier"];
+export const roleOptions: readonly string[] = [...ROLES];
+export const rankOptions: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier", "guest"];
 export const ruleFieldOptions: readonly string[] = ["player", "source", "chest", "clan"];
 export const correctionFieldOptions: readonly string[] = ["all", ...ruleFieldOptions];
 export const NEW_VALIDATION_ID = "validation-new";
@@ -119,14 +119,42 @@ export const NEW_CORRECTION_ID = "correction-new";
 
 /** Localised display names for ranks. */
 export const RANK_LABELS: Record<string, Record<string, string>> = {
-  de: { leader: "Anführer", superior: "Vorgesetzter", officer: "Offizier", veteran: "Veteran", soldier: "Soldat" },
-  en: { leader: "Leader", superior: "Superior", officer: "Officer", veteran: "Veteran", soldier: "Soldier" },
+  de: {
+    leader: "Anführer",
+    superior: "Vorgesetzter",
+    officer: "Offizier",
+    veteran: "Veteran",
+    soldier: "Soldat",
+    guest: "Gast",
+  },
+  en: {
+    leader: "Leader",
+    superior: "Superior",
+    officer: "Officer",
+    veteran: "Veteran",
+    soldier: "Soldier",
+    guest: "Guest",
+  },
 };
 
 /** Localised display names for user roles — distinct from lib/permissions ROLE_LABELS (English only). */
 export const LOCALIZED_ROLE_LABELS: Record<string, Record<string, string>> = {
-  de: { owner: "Eigentümer", admin: "Administrator", moderator: "Moderator", editor: "Editor", member: "Mitglied" },
-  en: { owner: "Owner", admin: "Admin", moderator: "Moderator", editor: "Editor", member: "Member" },
+  de: {
+    owner: "Webmaster",
+    admin: "Administrator",
+    moderator: "Moderator",
+    editor: "Editor",
+    member: "Mitglied",
+    guest: "Gast",
+  },
+  en: {
+    owner: "Webmaster",
+    admin: "Administrator",
+    moderator: "Moderator",
+    editor: "Editor",
+    member: "Member",
+    guest: "Guest",
+  },
 };
 
 export function formatLabel(value: string): string {

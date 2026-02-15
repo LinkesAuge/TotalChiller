@@ -42,6 +42,7 @@
   font-size: 0.875rem;
   min-width: max-content;
   position: relative;
+  border-left: 3px solid transparent;
 }
 
 .table header > *,

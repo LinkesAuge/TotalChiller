@@ -65,7 +65,7 @@ const defaultRoutes = [
   "/news",
   "/events",
   "/messages",
-  "/charts",
+  "/analytics",
   "/settings",
   "/profile",
   "/admin",

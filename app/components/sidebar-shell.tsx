@@ -1,14 +1,17 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { useSidebar } from "./sidebar-context";
 import SidebarNav from "./sidebar-nav";
 import LanguageSelector from "./language-selector";
+import RadixSelect, { type SelectOption } from "./ui/radix-select";
 import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
-import { formatRank, rankOptions } from "@/app/admin/admin-types";
+import { formatRank, formatRole, rankOptions } from "@/app/admin/admin-types";
 
 interface ClanOption {
   readonly clanId: string;
@@ -21,6 +24,7 @@ interface ClanOption {
 interface SidebarUserData {
   readonly initials: string;
   readonly displayLabel: string;
+  readonly email: string;
   readonly isAdmin: boolean;
   readonly highestRank: string;
   readonly clanOptions: readonly ClanOption[];
@@ -33,6 +37,7 @@ const GAME_ACCOUNT_STORAGE_KEY = "tc.currentGameAccountId";
 const DEFAULT_USER: SidebarUserData = {
   initials: "",
   displayLabel: "",
+  email: "",
   isAdmin: false,
   highestRank: "",
   clanOptions: [],
@@ -64,7 +69,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
   const locale = useLocale();
   const [userData, setUserData] = useState<SidebarUserData>(DEFAULT_USER);
   const supabase = useSupabase();
-  const { isAdmin } = useUserRole(supabase);
+  const { role: userRole, isAdmin } = useUserRole(supabase);
 
   const loadUserData = useCallback(async (): Promise<void> => {
     const { data } = await supabase.auth.getUser();
@@ -137,6 +142,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     setUserData({
       initials,
       displayLabel: name,
+      email: data.user?.email ?? "",
       isAdmin: false, // Will be overridden by hook-driven value
       highestRank: resolveHighestRank(options),
       clanOptions: options,
@@ -154,8 +160,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     };
   }, [loadUserData, supabase.auth]);
 
-  function handleClanChange(event: React.ChangeEvent<HTMLSelectElement>): void {
-    const value = event.target.value;
+  function handleClanChange(value: string): void {
     const [clanId, gameAccountId] = value.split(":");
     if (clanId && gameAccountId) {
       window.localStorage.setItem(CLAN_STORAGE_KEY, clanId);
@@ -165,9 +170,18 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     }
   }
 
-  const roleLabel = isAdmin ? t("admin") : t("member");
+  const clanSelectOptions: readonly SelectOption[] = useMemo(
+    () =>
+      userData.clanOptions.map((option) => ({
+        value: `${option.clanId}:${option.gameAccountId}`,
+        label: `${option.clanName} — ${option.gameLabel}${option.rank ? ` (${formatRank(option.rank, locale)})` : ""}`,
+      })),
+    [userData.clanOptions, locale],
+  );
+
+  const roleLabel = formatRole(userRole, locale);
   const rankLabel = userData.highestRank ? formatRank(userData.highestRank, locale) : null;
-  /* Show rank + role, e.g. "Officer • Admin" or just "Member" */
+  /* Show rank + role, e.g. "Officer • Webmaster" or just "Mitglied" */
   const statusLine = rankLabel ? `${rankLabel} \u2022 ${roleLabel}` : roleLabel;
 
   return (
@@ -259,20 +273,17 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           <div className="sidebar-bottom-divider mx-auto" style={{ width: isOpen ? "85%" : "60%" }} />
 
           {/* Clan selector */}
-          {userData.clanOptions.length > 0 ? (
+          {clanSelectOptions.length > 0 ? (
             <div className={`sidebar-clan-fade${isOpen ? "" : " collapsed"}`}>
               <div className="sidebar-clan-select">
-                <select value={userData.selectedKey} onChange={handleClanChange} aria-label={t("selectClan")}>
-                  {userData.clanOptions.map((option) => (
-                    <option
-                      key={`${option.clanId}:${option.gameAccountId}`}
-                      value={`${option.clanId}:${option.gameAccountId}`}
-                    >
-                      {option.clanName} — {option.gameLabel}
-                      {option.rank ? ` (${formatRank(option.rank, locale)})` : ""}
-                    </option>
-                  ))}
-                </select>
+                <RadixSelect
+                  ariaLabel={t("selectClan")}
+                  value={userData.selectedKey}
+                  onValueChange={handleClanChange}
+                  options={clanSelectOptions}
+                  triggerClassName="select-trigger sidebar-clan-trigger"
+                  contentClassName="select-content sidebar-clan-dropdown"
+                />
               </div>
             </div>
           ) : null}
@@ -282,28 +293,16 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
             <LanguageSelector compact={!isOpen} />
           </div>
 
-          {/* User identity */}
+          {/* User identity + settings + quick menu */}
           {userData.displayLabel ? (
-            <div className={`sidebar-user${isOpen ? "" : " collapsed"}`}>
-              <div className="sidebar-avatar-wrap">
-                <div className="sidebar-avatar">{userData.initials}</div>
-              </div>
-              <div className={`sidebar-user-info${isOpen ? "" : " collapsed"}`}>
-                <div className="sidebar-user-name">
-                  {userData.displayLabel}
-                  {isAdmin && (
-                    <Image
-                      src="/assets/vip/button_vip_crown_22x33.png"
-                      alt="Admin"
-                      width={12}
-                      height={18}
-                      style={{ width: 12, height: "auto" }}
-                    />
-                  )}
-                </div>
-                <div className="sidebar-user-status">{statusLine}</div>
-              </div>
-            </div>
+            <SidebarUserRow
+              isOpen={isOpen}
+              initials={userData.initials}
+              displayLabel={userData.displayLabel}
+              email={userData.email}
+              statusLine={statusLine}
+              isAdmin={isAdmin}
+            />
           ) : null}
         </div>
       </aside>
@@ -312,6 +311,171 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
         {children}
       </main>
     </>
+  );
+}
+
+/* ── Sidebar user row with settings icon + quick menu ── */
+
+interface SidebarUserRowProps {
+  readonly isOpen: boolean;
+  readonly initials: string;
+  readonly displayLabel: string;
+  readonly email: string;
+  readonly statusLine: string;
+  readonly isAdmin: boolean;
+}
+
+/** User identity row with settings gear and a clickable popup menu. */
+function SidebarUserRow({
+  isOpen,
+  initials,
+  displayLabel,
+  email,
+  statusLine,
+  isAdmin,
+}: SidebarUserRowProps): JSX.Element {
+  const pathname = usePathname();
+  const tNav = useTranslations("nav");
+  const tMenu = useTranslations("userMenu");
+  const supabase = useSupabase();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isSettingsActive = pathname === "/settings";
+
+  /* Close on click outside */
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(e: MouseEvent): void {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  async function handleSignOut(): Promise<void> {
+    await supabase.auth.signOut();
+    window.location.href = "/home";
+  }
+
+  return (
+    <div className={`sidebar-user-row${isOpen ? "" : " collapsed"}`} ref={containerRef}>
+      {/* Clickable user card */}
+      <button
+        type="button"
+        className={`sidebar-user sidebar-user--clickable${isOpen ? "" : " collapsed"}${menuOpen ? " sidebar-user--active" : ""}`}
+        onClick={() => setMenuOpen((prev) => !prev)}
+        aria-expanded={menuOpen}
+      >
+        <div className="sidebar-avatar-wrap">
+          <div className="sidebar-avatar">{initials}</div>
+        </div>
+        <div className={`sidebar-user-info${isOpen ? "" : " collapsed"}`}>
+          <div className="sidebar-user-name">
+            {displayLabel}
+            {isAdmin && (
+              <Image
+                src="/assets/vip/button_vip_crown_22x33.png"
+                alt="Admin"
+                width={12}
+                height={18}
+                style={{ width: 12, height: "auto" }}
+              />
+            )}
+          </div>
+          <div className="sidebar-user-status">{statusLine}</div>
+        </div>
+      </button>
+
+      {/* Profile + Settings icon buttons */}
+      <div className="sidebar-action-btns">
+        <Link
+          href="/profile"
+          className={`sidebar-action-btn${pathname === "/profile" ? " active" : ""}`}
+          data-tip={!isOpen ? tMenu("profile") : undefined}
+          aria-label={tMenu("profile")}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </Link>
+        <Link
+          href="/settings"
+          className={`sidebar-action-btn${isSettingsActive ? " active" : ""}`}
+          data-tip={!isOpen ? tNav("settings") : undefined}
+          aria-label={tNav("settings")}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </Link>
+      </div>
+
+      {/* Popup menu (opens upward) */}
+      {menuOpen && (
+        <div className="sidebar-user-menu">
+          {displayLabel ? <span className="sidebar-user-menu__label">{displayLabel}</span> : null}
+          {email ? <span className="sidebar-user-menu__label">{email}</span> : null}
+          <div className="sidebar-user-menu__divider" />
+          <a className="sidebar-user-menu__link" href="/profile" onClick={() => setMenuOpen(false)}>
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.5" />
+              <path
+                d="M2.5 14C2.5 11 5 9 8 9C11 9 13.5 11 13.5 14"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            {tMenu("profile")}
+          </a>
+          <a className="sidebar-user-menu__link" href="/messages" onClick={() => setMenuOpen(false)}>
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <rect x="1.5" y="3" width="13" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M1.5 5.5L8 9L14.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            {tMenu("messages")}
+          </a>
+          <a className="sidebar-user-menu__link" href="/settings" onClick={() => setMenuOpen(false)}>
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+              <path
+                d="M8 1.5V3M8 13V14.5M1.5 8H3M13 8H14.5M3.05 3.05L4.1 4.1M11.9 11.9L12.95 12.95M12.95 3.05L11.9 4.1M4.1 11.9L3.05 12.95"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+              />
+            </svg>
+            {tMenu("settings")}
+          </a>
+          <div className="sidebar-user-menu__divider" />
+          <button className="button" type="button" onClick={handleSignOut}>
+            {tMenu("signOut")}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

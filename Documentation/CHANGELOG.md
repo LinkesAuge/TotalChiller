@@ -4,6 +4,324 @@
 
 ---
 
+## 2026-02-15 — Fix: Bug report email toggle restricted to admins + test coverage
+
+**Bug report email toggle restricted to admins:**
+
+- **UI**: Toggle in Settings now wrapped in `isAdmin` check — hidden for non-admin users.
+- **API**: `PATCH /api/notification-settings` silently ignores `bugs_email_enabled` if the caller is not an admin (via `is_any_admin` RPC check).
+- **Email query**: Bug report email fan-out now queries only `owner` and `admin` roles (was also including `moderator` and `editor`).
+
+**Test coverage for bug reporting system (new):**
+
+- `tests/bugs.spec.ts`: 27 E2E tests covering: API auth guards (8 endpoints), authenticated CRUD (create, read, update, comment, delete lifecycle), categories admin guard, page UI (load, hero, form, category dropdown, markdown editor, back navigation), floating widget visibility, settings toggle visibility by role, and `bugs_email_enabled` API guard (member silently ignored, admin accepted).
+- `lib/api/validation.test.ts`: 4 new unit tests for `bugs_email_enabled` in `notificationSettingsSchema`.
+- `lib/markdown/strip-markdown.test.ts`: 16 new unit tests for the extracted `stripMarkdown()` utility (headings, bold, italic, strikethrough, inline code, fenced code blocks, images, links, lists, blockquotes, horizontal rules, whitespace collapsing, mixed input).
+- Extracted `stripMarkdown()` from `app/bugs/bugs-list.tsx` to `lib/markdown/strip-markdown.ts` for reusability and testability.
+
+**Files changed:** `app/settings/settings-client.tsx`, `app/api/notification-settings/route.ts`, `app/api/bugs/route.ts`, `tests/bugs.spec.ts` (new), `lib/markdown/strip-markdown.ts` (new), `lib/markdown/strip-markdown.test.ts` (new), `lib/api/validation.test.ts`, `app/bugs/bugs-list.tsx`.
+
+---
+
+## 2026-02-15 — Enhancement: Rename Owner to Webmaster + role protection
+
+**Role rename:**
+
+- "Eigentümer" / "Owner" role renamed to **Webmaster** (both DE and EN). Internal key remains `owner`.
+- `ROLE_LABELS` in `lib/permissions.ts` and `LOCALIZED_ROLE_LABELS` in `app/admin/admin-types.ts` updated.
+- Sidebar status line now shows the actual localized role name (e.g. "Webmaster", "Administrator") instead of generic "Admin"/"Member".
+
+**Rank fallback for Webmaster/Administrator:**
+
+- On the members page, if a user with role `owner` or `admin` has no in-game rank (null), the role name (e.g. "Webmaster") is displayed in the rank column instead of "No Rank".
+
+**Role change protection:**
+
+- Nobody can change a Webmaster's (owner) role — the dropdown is disabled in the admin Users tab.
+- Only the Webmaster can change an Administrator's role.
+- Admins can still change roles of moderator, editor, member, and guest.
+- New helper: `isOwner()`, `canChangeRoleOf()` in `lib/permissions.ts`.
+- `currentUserRole` added to `AdminContextValue` for access in the Users tab.
+
+**Database migration:**
+
+- New migration: `Documentation/migrations/role_change_protection.sql`
+  - `is_owner()` SQL function (mirrors TypeScript `isOwner()`).
+  - `enforce_role_change_protection()` trigger on `user_roles` BEFORE UPDATE:
+    - Blocks any change to the Webmaster (owner) role.
+    - Only the Webmaster can change an Administrator (admin) role.
+    - Service-role operations are exempt.
+  - `enforce_role_delete_protection()` trigger on `user_roles` BEFORE DELETE:
+    - Prevents deleting the Webmaster's role row.
+    - Only the Webmaster can delete an Administrator's role row.
+    - Service-role operations are exempt.
+
+**Files changed:**
+
+- `lib/permissions.ts`: `ROLE_LABELS.owner` → "Webmaster"; new `isOwner()` and `canChangeRoleOf()` helpers.
+- `lib/permissions.test.ts`: Tests for `isOwner` and `canChangeRoleOf`.
+- `lib/hooks/use-user-role.ts`: Exposes `isOwner` in hook result.
+- `app/admin/admin-types.ts`: `LOCALIZED_ROLE_LABELS` — owner → "Webmaster" (DE + EN).
+- `app/admin/admin-types.test.ts`: Updated `formatRole` test expectations.
+- `app/admin/admin-context.tsx`: Added `currentUserRole` state (fetched during init).
+- `app/admin/tabs/users-tab.tsx`: Role dropdown disabled via `canChangeRoleOf()`; save handler blocks unauthorized changes.
+- `app/members/members-client.tsx`: Null rank + owner/admin → shows role name; `MembershipSupabaseRow.rank` typed as `string | null`; dead `roleMap` state removed; sort order places rankless Webmaster/Admin after "Vorgesetzter"; Webmaster/Admin chips in rank stats bar with distinct colours.
+- `app/components/sidebar-shell.tsx`: Status line uses `formatRole(userRole, locale)` for accurate display.
+- `Documentation/ARCHITECTURE.md`: Updated permissions section.
+- `Documentation/runbook.md`: Added `role_change_protection.sql` to migration order.
+
+**Review fixes (post-implementation):**
+
+- Removed dead `roleMap` state variable from `members-client.tsx` (was set but never read after refactor).
+- Fixed `MembershipSupabaseRow.rank` type from `string` to `string | null` to match actual DB schema.
+- Added BEFORE DELETE trigger (`enforce_role_delete_protection`) to the migration — prevents deleting protected role rows via the existing `user_roles_delete` RLS policy.
+
+**Test coverage (post-review):**
+
+- Extracted pure helpers from `members-client.tsx` into `app/members/members-utils.ts` (colours, sort comparator, role-substitute counting, constants).
+- Added `app/members/members-utils.test.ts` with 50 tests: `getRoleColor`, `getRankColor`, `compareMemberOrder`, `countRoleSubstitutes`, `RANK_ORDER`, `ROLE_SUBSTITUTE_ORDER`, `NOTABLE_ROLES`, `RANK_SUBSTITUTE_ROLES`, `buildMessageLink`.
+- Added ROLE_LABELS assertions to `lib/permissions.test.ts` (verifies "Webmaster" and "Administrator" labels).
+- Unit tests: 602 → 654 across 32 files.
+
+---
+
+## 2026-02-15 — Enhancement: Markdown editing for bug reports + scrollbar fix
+
+**Rich text editing (markdown + image upload):**
+
+- Bug report description (create + edit) now uses `MarkdownEditor` with write/preview tabs, formatting toolbar, and image paste/drop/upload — same component used by events, news, and messages.
+- Bug comment add form replaced with `MarkdownEditor` (was plain textarea).
+- Bug comment inline edit form replaced with `MarkdownEditor`.
+- Bug report detail description and comment bodies now rendered with `AppMarkdown` (markdown-to-HTML) instead of plain text.
+- Image uploads go to `bug-screenshots` Supabase storage bucket.
+- List card description previews strip markdown syntax via `stripMarkdown()` so cards show clean plain text instead of raw `##`, `**`, `![](...)` characters.
+
+**Select dropdown scrollbar fix (`RadixSelect`):**
+
+- `@radix-ui/react-select@2.2.6` injects a `<style>` tag that hides all scrollbars on the viewport (`scrollbar-width: none`, `::-webkit-scrollbar { display: none }`). Radix expects `ScrollUpButton`/`ScrollDownButton` instead of native scrollbars. Our CSS rules had no effect because Radix's injected styles silently overrode them.
+- Fixed by overriding every axis with `!important`: `scrollbar-width: thin !important` (Firefox + Chrome 121+), `scrollbar-color` with visible gold colors, and `display: block !important` on `::-webkit-scrollbar` (Chrome < 121 / Safari).
+- Also added `max-height` on `Select.Content` to cap the dropdown size and inline `maxHeight` + `overflowY: scroll` on `Select.Viewport` as belt-and-suspenders.
+
+**Files changed:**
+
+- `app/bugs/bugs-form.tsx`: Imports `MarkdownEditor`, `useSupabase`, `useAuth`; description field uses `MarkdownEditor`.
+- `app/bugs/bugs-detail.tsx`: Imports `AppMarkdown` (dynamic); description renders as markdown.
+- `app/bugs/bugs-comments.tsx`: Imports `MarkdownEditor`, `AppMarkdown`, `useSupabase`; add + edit comment forms use `MarkdownEditor`; comment bodies render as markdown.
+- `app/bugs/bugs-list.tsx`: Added `stripMarkdown()` for clean card description previews.
+- `app/components/ui/radix-select.tsx`: Inline `maxHeight` + `overflowY: scroll` on `Select.Viewport`; inline `maxHeight` on `Select.Content`.
+- `app/styles/components.css`: Scrollbar overrides with `!important` to defeat Radix's injected `<style>` that hides all scrollbars.
+
+---
+
+## 2026-02-15 — Enhancement: Bug report UX improvements (scrollbar, list actions, consistent styling)
+
+**Select dropdown scrollbar (initial attempt):**
+
+- Added custom scrollbar styles to `.select-viewport` (gold-tinted thumb, dark track). Reduced `max-height` from 340px to 280px. Note: these styles alone were insufficient — see the later "Select dropdown scrollbar fix" entry for the root cause (`@radix-ui/react-select` injects a `<style>` tag hiding all scrollbars).
+
+**Edit/delete actions on list cards:**
+
+- Report cards in the overview list now show edit (pencil) and delete (trash) icon buttons on hover (always visible on mobile).
+- Actions appear for the report author and content managers, matching the permission model of the detail view.
+- Delete from list triggers a `ConfirmModal` before proceeding.
+- Edit from list loads the full report, then switches to the edit form.
+
+**Consistent icon/styling patterns:**
+
+- Introduced `.bugs-action-btn` CSS class matching the established `.day-panel-action-btn` / `.news-action-btn` pattern (24px icon buttons, gold border, dark background).
+- Detail view edit/delete buttons replaced with icon buttons (were generic `.button` elements with inline font-size).
+- Comment action buttons (`.bugs-comment-action-btn`) updated to match `.forum-comment-action-btn` exactly (padding, border-radius, hover background).
+
+**Files changed:**
+
+- `app/styles/components.css`: Custom scrollbar on `.select-viewport`.
+- `app/styles/bugs.css`: `.bugs-action-btn`, `.bugs-card-actions`, `.bugs-card-header-left`, updated `.bugs-comment-action-btn`, mobile rule.
+- `app/bugs/bugs-list.tsx`: Accepts `onEditReport`, `onDeleteReport`, `currentUserId`, `isContentManager`; renders icon action buttons on cards.
+- `app/bugs/bugs-detail.tsx`: Edit/delete buttons replaced with `.bugs-action-btn` icon buttons.
+- `app/bugs/bugs-client.tsx`: Wires list-level edit/delete; adds `ConfirmModal` for list deletion; imports `useAuth`/`useUserRole`. Tracks `editOrigin` so the back button and cancel action return to the correct view (list vs detail) depending on where the edit was initiated.
+
+---
+
+## 2026-02-15 — Enhancement: Bug report category i18n + page selector dropdown
+
+**Category translations:**
+
+- Added `slug` column to `bug_report_categories` table. Built-in categories get slugs (`bug`, `feature_request`, `ui_issue`, `data_problem`, `other`).
+- Categories are now translated via `bugs.categories.<slug>` in `en.json`/`de.json`, with fallback to raw name for custom admin-created categories.
+- Updated all UI displaying category names: list badges, detail view, form dropdown, admin controls dropdown.
+- Admin controls status/priority dropdowns also now use i18n strings instead of hardcoded English.
+
+**Page selector dropdown:**
+
+- Replaced the free-text "Page URL" input with a dropdown listing all known site pages: 9 main pages, Profile, Settings, and all 10 admin sub-pages (Clan Management, Approvals, Users, Validation, Corrections, Logs, Forum Management, Data Import, Chest DB, Design System).
+- Includes an "Other / Custom URL" option that reveals a text input for arbitrary URLs.
+- Auto-detects known pages from `initialPageUrl` (e.g., the floating widget auto-captures the current path; on admin tabs it detects the generic `/admin` since `usePathname()` doesn't include query params).
+- Sidebar pages pull labels from `nav.*` translations (single source of truth); extra pages (Profile, Settings, generic Admin) use `bugs.pages.*`.
+
+**DB migration:** `Documentation/migrations/bug_reports_v3.sql` — adds `slug` column and populates it for the 5 seeded categories.
+
+**Files changed:**
+
+- `lib/types/domain.ts`: `BugReportCategory` gains `slug: string | null`.
+- `app/bugs/bugs-types.ts`: `BugReportListItem` and `BugReportDetail` gain `category_slug`.
+- `app/api/bugs/route.ts`, `app/api/bugs/[id]/route.ts`: Return `category_slug` from joined data.
+- `app/api/bugs/categories/route.ts`: Return `slug` in GET/POST/PATCH responses.
+- `app/bugs/bugs-form.tsx`: Page dropdown with `SITE_PAGES` constant, `RadixSelect` + conditional custom input.
+- `app/bugs/bugs-list.tsx`, `bugs-detail.tsx`, `bugs-admin-controls.tsx`: `translateCategory()` helper for i18n display.
+- `messages/en.json`, `messages/de.json`: New `bugs.categories.*` section; `bugs.pages.*` reduced to form strings + 3 extra pages (Profile, Settings, Admin) — sidebar pages now share `nav.*` labels.
+
+---
+
+## 2026-02-15 — Enhancement: Bug Reports list redesign + pagination
+
+**List layout overhaul:**
+
+- Each report is now a distinct card (`.bugs-report-card`) instead of a row inside a single card.
+- Cards show status/priority badges, a truncated description preview (120 chars), reporter name, date, category, comment count, and screenshot count.
+- Toolbar (filters + search + sort) is its own separate card above the report cards.
+- Search field is constrained to 260px max-width and grouped on the same row as the sort dropdown.
+- Filter dropdowns (status, priority, category) are on their own row above search/sort.
+
+**Pagination:**
+
+- Integrated existing `usePagination` hook + `PaginationBar` component into the list.
+- Default page size: 15 reports. Compact pagination bar with 15/30/50 page size options.
+- Toolbar always visible even when results are empty (empty state handled inside `BugsList`).
+
+**Files changed:**
+
+- `app/bugs/bugs-list.tsx`: Rewrote layout — card grid, search+sort row, pagination.
+- `app/bugs/bugs-client.tsx`: Removed `isEmpty`/`emptyMessage` from `DataState`; now passed into `BugsList`.
+- `app/styles/bugs.css`: New classes for `.bugs-list-wrapper`, `.bugs-toolbar-card`, `.bugs-search-row`, `.bugs-search-field`, `.bugs-report-grid`, `.bugs-report-card`, `.bugs-card-*`, `.bugs-empty-state`. Removed old `.bugs-list-item*` and `.bugs-sort-group` rules. Updated responsive rules.
+
+---
+
+## 2026-02-15 — Enhancement: Guest role + rank
+
+**Guest role promoted to member-level permissions:**
+The "guest" role now has the same permissions as "member" (article, forum, messages, data view, bugs). Previously guests could only edit their own profile. Guest is now selectable in the admin user role dropdown with localized labels (EN: "Guest", DE: "Gast").
+
+**Guest rank added:**
+New "guest" rank (EN: "Guest", DE: "Gast") added below soldier in the rank hierarchy. On the members page, guests appear as the last category. When an admin creates a game account for a user with the "guest" role, the rank defaults to "guest". Badge color: purple (`#9a8ec2`).
+
+**Changes:**
+
+- `lib/permissions.ts`: Guest permission set matches member.
+- `app/admin/admin-types.ts`: Guest added to `roleOptions`, `rankOptions`, `RANK_LABELS`, and `LOCALIZED_ROLE_LABELS`.
+- `app/admin/tabs/users-tab.tsx`: Default rank set to "guest" when creating a game account for a guest-role user.
+- `app/members/members-client.tsx`: Guest rank color added; sort order automatic via `rankOptions` index.
+- `lib/permissions.test.ts`, `app/admin/admin-types.test.ts`: Tests updated.
+- **Migration:** `Documentation/migrations/guest_role_permissions.sql` — updates `has_permission()` SQL function. Also syncs `bug:create`/`bug:comment` into all non-admin roles.
+
+---
+
+## 2026-02-15 — Enhancement: Bug Reports edit/delete + admin email notifications
+
+**Report edit/delete:**
+
+- Reports can be edited (title, description, category, page URL) by the author or admins. Edit switches to form view with pre-filled data (like forum post editing).
+- Reports can be deleted by the author or admins. Uses `ConfirmModal` with danger variant.
+- `DELETE /api/bugs/[id]` route added. Cascades to comments and screenshots.
+- `PATCH /api/bugs/[id]` extended: reporters can now update title, category, and page URL (previously only description).
+- `bugReportUpdateSchema` extended with `title` and `page_url` fields.
+
+**Comment edit/delete:**
+
+- Inline edit/delete on comments (same pattern as forum comments) for authors and admins.
+- New `PATCH` and `DELETE` routes at `/api/bugs/[id]/comments/[commentId]`.
+- `BugReportComment` type gains `updated_at` field; "(edited)" indicator shown on modified comments.
+- `useBugComments` hook now exposes `editComment` and `deleteComment`.
+
+**Larger text areas:**
+
+- Bug report description: 8 rows (was 6); compact widget: 5 rows (was 4).
+- Comment textarea: 5 rows (was 3).
+
+**Admin email notifications:**
+
+- Admins (owner/admin/moderator/editor) can opt in to receive an email when a new bug report is submitted.
+- New `bugs_email_enabled` column on `user_notification_settings` (default: `false`).
+- Toggle added to the Settings page notification section.
+- Email sent via Resend API (no npm dependency — raw `fetch`). Requires `RESEND_API_KEY` and `RESEND_FROM_EMAIL` env vars; silently skipped if not configured.
+- HTML email template with dark theme, report details, and direct link.
+- Email logic is fire-and-forget; failures are logged but never block the request.
+
+**Migration:** `Documentation/migrations/bug_reports_v2.sql` — adds `updated_at` to comments, `bugs_email_enabled` to settings, plus RLS policies for comment/report edit and delete.
+
+---
+
+## 2026-02-15 — Fix: Project-wide CSS browser compatibility audit
+
+Audited all 9 feature CSS files for five classes of cross-browser issues. Fixed 17 issues across 7 files.
+
+**Messages reply area cutoff (root cause):**
+
+- Reply form clipped or invisible in thread panel. Flexbox `min-height: auto` default prevented `.messages-thread-list` from shrinking, pushing `.messages-reply-form` outside the `overflow: hidden` boundary.
+- Added `flex-shrink: 0` to `.messages-reply-form` so it always keeps its full height.
+- Mobile (< 900px): removed shared `max-height`, gave each panel its own constraint. Media query placed at end of file to avoid cascade override by base rules.
+
+**Flex shrinking (`min-height: 0`):**
+
+- `layout.css`: `.nav` in sidebar.
+- `components.css`: `.notification-bell__list`.
+- `messages.css`: `.messages-list-panel`, `.messages-conversation-list`, `.messages-thread-panel`, `.messages-thread-list`.
+
+**Non-standard `word-break: break-word` → `overflow-wrap: break-word`:**
+
+- `forum.css`: `.forum-detail-content`, `.forum-comment-text`; removed redundant `word-break` from `.forum-md`.
+- `messages.css`: `.messages-email-body`.
+
+**Border shift (content jump on selection):**
+
+- `tables.css`: added transparent `border-left: 3px` to shared `.table header, .table .row` rule so `.row.selected` and `.row.is-shadow` don't shift content and header/row columns stay aligned.
+- `components.css`: `.notification-bell__item` for `.unread` state.
+- `messages.css`: `.messages-conversation-item` for `.active` state.
+
+**Hover-only elements invisible on touch (`@media (hover: none)`):**
+
+- `events.css`: `.upcoming-event-actions`.
+- `components.css`: `.notification-bell__delete`.
+- `design-system.css`: `.editable-text-pencil`, `.editable-list-drag-handle`, `.editable-list-actions`.
+- `messages.css`: `.messages-list-action-btn`.
+
+**Missing `-webkit-appearance: none` prefix:**
+
+- `components.css`: global `select` rule.
+- `layout.css`: `.sidebar-clan-select select`.
+- `messages.css`: `.messages-checkbox`.
+
+---
+
+## 2026-02-15 — Enhancement: Bug Reports page layout & filters
+
+- Added hero banner (gold dragon) and restored `AuthActions` (profile widget + notification bell) in the top bar — page now matches the standard template used by all other sections.
+- Moved "New Report" and "Back to list" buttons from the top bar into the content area (top-left), freeing the top bar for navigation controls.
+- Added priority filter dropdown alongside existing status and category filters.
+- Added sort dropdown (newest, oldest, title A–Z, priority highest, status) — client-side sorting via `useMemo`.
+- Added `BugSortOption` type and extended `BugListFilter` with `priority` and `sort` fields.
+- Sort group floats right on desktop, goes full-width on mobile.
+- Full i18n: added `heroTitle`, `heroSubtitle`, `priority.all`, and `sort.*` keys in EN + DE.
+
+---
+
+## 2026-02-15 — Feature: Bug Report / Ticket System
+
+- Added complete bug reporting system with dedicated `/bugs` page and sidebar navigation link.
+- Users can submit reports with title, description, category, page URL, and up to 5 screenshots.
+- All tickets visible to all authenticated users (transparent tracking).
+- Simple workflow: Open → Resolved → Closed, with admin-only priority (low/medium/high/critical).
+- Threaded comments for back-and-forth between reporters and admins.
+- Admin-managed categories with CRUD (default: Bug, Feature Request, UI Issue, Data Problem, Other).
+- Floating quick-report widget on every page — auto-captures current page URL, doesn't show on `/bugs`.
+- Admin controls inline on the bugs page (status, priority, category changes) for content managers.
+- Screenshot upload via drag-and-drop with preview thumbnails and lightbox viewer.
+- New DB tables: `bug_reports`, `bug_report_categories`, `bug_report_comments`, `bug_report_screenshots`.
+- New Supabase Storage bucket: `bug-screenshots`.
+- Full i18n support (English + German).
+- New permissions: `bug:create`, `bug:comment` (member+), admin wildcard covers `bug:manage`.
+
+---
+
 ## 2026-02-14 — Fix: Event cards always show original author
 
 - Event cards (day panel, upcoming sidebar, past list) now always display the original author via `createdBy` label instead of misleadingly showing "Edited by {author}" when the event was modified. Events lack an `updated_by` column, so the previous "Edited by" label incorrectly implied the original author was the editor.
@@ -18,7 +336,7 @@
 - Added `sizes` attribute to small icon images on auth pages and dashboard (`batler_icons_star_4/5.png`) to prevent oversized file serving.
 - Added explicit `loading="lazy"` to footer divider image.
 - Improved `--color-text-muted` contrast from `#8a7b65` to `#9d8d76` (WCAG AA compliance on dark card backgrounds).
-- Removed auth-gated pages (`/forum`, `/events`, `/charts`) from sitemap — they redirect unauthenticated crawlers to `/home`, causing duplicate titles and uncrawlable entries.
+- Removed auth-gated pages (`/forum`, `/events`, `/analytics`) from sitemap — they redirect unauthenticated crawlers to `/home`, causing duplicate titles and uncrawlable entries.
 
 ---
 
@@ -255,7 +573,7 @@ Eliminated ~1,230 lines of duplicate code across 50+ files:
 
 ## 2026-02-11 — Notable bug fixes
 
-- Dashboard widgets: live data from `/api/charts`.
+- Dashboard widgets: live data from `/api/analytics`.
 - Member directory: `/members` page.
 - Author FK constraints enabling PostgREST joins.
 - Events RLS updated to `has_permission()`.
@@ -304,5 +622,5 @@ Eliminated ~1,230 lines of duplicate code across 50+ files:
 
 - App scaffold with Next.js App Router + "Fortress Sanctum" design system.
 - Supabase Auth, profile/settings, game account approval, admin panel.
-- Data import, chest database, events calendar, announcements, charts.
+- Data import, chest database, events calendar, announcements, analytics.
 - Notification system, clan context, Design System Asset Manager.

@@ -96,7 +96,7 @@
     "home": "Home",
     "dashboard": "Dashboard",
     "announcements": "Announcements",
-    "charts": "Charts",
+    "analytics": "Analytics",
     "events": "Events",
     "messages": "Messages",
     "members": "Members",
@@ -111,7 +111,9 @@
     "chestDb": "Chest DB",
     "forum": "Forum",
     "forumAdmin": "Forum Management",
-    "designSystem": "Design System"
+    "designSystem": "Design System",
+    "bugs": "Bug Reports",
+    "settings": "Settings"
   },
   "auth": {
     "login": {
@@ -596,9 +598,9 @@
     "confirmDeleteSidebar": "Delete this event?",
     "goToThread": "Go to discussion thread"
   },
-  "charts": {
+  "analytics": {
     "breadcrumb": "TotalChiller \u2022 Analytics",
-    "title": "Charts & Analytics",
+    "title": "Analytics",
     "heroTitle": "Battle Intelligence",
     "heroSubtitle": "Trend lines, score signals, and clan performance at a glance.",
     "filters": "Filters",
@@ -631,9 +633,9 @@
     "last30Days": "Last 30 Days",
     "last90Days": "Last 90 Days",
     "allTime": "All Time",
-    "noChartData": "No chart data available.",
-    "loadingCharts": "Loading charts...",
-    "loadError": "Failed to load chart data.",
+    "noAnalyticsData": "No analytics data available.",
+    "loadingAnalytics": "Loading analytics...",
+    "loadError": "Failed to load analytics data.",
     "noDataAvailable": "No data available",
     "noPersonalData": "No personal data — link a game account to see your stats",
     "score": "Score",
@@ -808,6 +810,7 @@
     "notifNews": "Announcements",
     "notifEvents": "Events",
     "notifSystem": "System / Approvals",
+    "notifBugsEmail": "Bug report email (new reports)",
     "language": "Language",
     "languageLabel": "Display Language",
     "languageHint": "Choose interface language",
@@ -1827,6 +1830,143 @@
       "assignTitle": "Assign Assets: {name}",
       "currentAssignments": "Current Assignments ({count})",
       "emptyMessage": "No assets assigned. Click an asset on the right to assign it."
+    }
+  },
+  "bugs": {
+    "breadcrumb": "TotalChiller \u2022 Bug Reports",
+    "title": "Bug Reports",
+    "subtitle": "Report issues and track their resolution",
+    "heroTitle": "Bug Reports",
+    "heroSubtitle": "Report issues and track their resolution",
+    "newReport": "New Report",
+    "backToList": "Back to list",
+    "backToDetail": "Back to report",
+    "noReports": "No bug reports yet.",
+    "noReportsFiltered": "No reports match the current filters.",
+    "loadingReports": "Loading reports…",
+    "status": {
+      "label": "Status",
+      "all": "All",
+      "open": "Open",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "priority": {
+      "label": "Priority",
+      "all": "All priorities",
+      "none": "Not set",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "sort": {
+      "label": "Sort by",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "title": "Title A–Z",
+      "priority": "Priority (highest)",
+      "status": "Status"
+    },
+    "form": {
+      "createTitle": "Report a Bug",
+      "createSubtitle": "Describe the issue you encountered",
+      "title": "Title",
+      "titlePlaceholder": "Brief summary of the issue",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe the problem in detail. What happened? What did you expect?",
+      "category": "Category",
+      "categoryPlaceholder": "Select a category",
+      "pageUrl": "Page URL",
+      "pageUrlPlaceholder": "Where did this happen?",
+      "screenshots": "Screenshots",
+      "screenshotsHint": "Attach up to 5 screenshots (JPEG, PNG, GIF, WebP — max 5 MB each)",
+      "submit": "Submit Report",
+      "submitting": "Submitting…",
+      "editTitle": "Edit Report",
+      "editSubtitle": "Update the details of this report",
+      "saveChanges": "Save Changes"
+    },
+    "detail": {
+      "reportedBy": "Reported by",
+      "reportedOn": "on",
+      "pageUrl": "Page",
+      "screenshots": "Screenshots",
+      "noScreenshots": "No screenshots attached.",
+      "category": "Category",
+      "uncategorized": "Uncategorized",
+      "editReport": "Edit",
+      "deleteReport": "Delete",
+      "confirmDeleteTitle": "Delete this report?",
+      "confirmDeleteMessage": "This will permanently delete the report, all comments, and all attached screenshots. This action cannot be undone.",
+      "dangerZone": "Danger Zone"
+    },
+    "comments": {
+      "title": "Comments",
+      "noComments": "No comments yet.",
+      "addComment": "Add a comment",
+      "placeholder": "Write a comment…",
+      "submit": "Post Comment",
+      "submitting": "Posting…",
+      "editComment": "Edit",
+      "deleteComment": "Delete",
+      "saveEdit": "Save",
+      "cancelEdit": "Cancel",
+      "confirmDelete": "Delete this comment?",
+      "confirmDeleteBtn": "Delete",
+      "edited": "edited"
+    },
+    "admin": {
+      "title": "Admin Controls",
+      "changeStatus": "Change Status",
+      "setPriority": "Set Priority",
+      "changeCategory": "Change Category",
+      "manageCategories": "Manage Categories",
+      "addCategory": "Add Category",
+      "categoryName": "Category name",
+      "editCategory": "Edit",
+      "deleteCategory": "Delete",
+      "confirmDelete": "Delete this category?"
+    },
+    "categories": {
+      "bug": "Bug",
+      "feature_request": "Feature Request",
+      "ui_issue": "UI Issue",
+      "data_problem": "Data Problem",
+      "other": "Other"
+    },
+    "pages": {
+      "label": "Affected page",
+      "placeholder": "Select a page (optional)",
+      "custom": "Other / Custom URL",
+      "customPlaceholder": "Enter URL manually",
+      "profile": "Profile",
+      "settings": "Settings",
+      "admin": "Admin Panel"
+    },
+    "list": {
+      "titleColumn": "Title",
+      "statusColumn": "Status",
+      "categoryColumn": "Category",
+      "reporterColumn": "Reporter",
+      "dateColumn": "Date",
+      "commentsColumn": "Comments",
+      "filterByCategory": "Filter by category",
+      "allCategories": "All categories",
+      "searchPlaceholder": "Search reports…"
+    },
+    "widget": {
+      "tooltip": "Report a Bug",
+      "successMessage": "Bug report submitted. Thank you!"
+    },
+    "screenshot": {
+      "upload": "Upload Screenshot",
+      "dragDrop": "Drag & drop or click to upload",
+      "remove": "Remove",
+      "uploading": "Uploading…",
+      "maxReached": "Maximum {max} screenshots reached.",
+      "invalidType": "Invalid file type. Use JPEG, PNG, GIF, or WebP.",
+      "tooLarge": "File too large. Maximum size is 5 MB."
     }
   }
 }

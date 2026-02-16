@@ -6,6 +6,10 @@
 
 ## [Unreleased] – 2026-02-16
 
+### Fixed
+
+- **Messages tab badges**: Unread-count badges in Posteingang/Benachrichtigungen tabs no longer cause layout shift when they appear/disappear; replaced oversized global `.badge` styling with compact `.messages-tab-badge` class; removed hover jitter (`translateY`) on badges inside tabs; stabilized tab row height with `min-height`
+
 ### Removed
 
 - **Datenimport**: Removed all data import routes, components, API endpoints, CSV parser, and import utilities

@@ -175,11 +175,7 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
           onClick={() => handleViewModeChange("inbox")}
         >
           {t("inbox")}
-          {totalInboxUnread > 0 ? (
-            <span className="badge ml-1.5" style={{ fontSize: "0.7rem" }}>
-              {totalInboxUnread}
-            </span>
-          ) : null}
+          {totalInboxUnread > 0 ? <span className="badge messages-tab-badge">{totalInboxUnread}</span> : null}
         </button>
         <button
           className={`messages-view-tab ${viewMode === "sent" ? "active" : ""}`}
@@ -201,11 +197,7 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
           onClick={() => handleViewModeChange("notifications")}
         >
           {t("notifications")}
-          {notifUnreadCount > 0 ? (
-            <span className="badge ml-1.5" style={{ fontSize: "0.7rem" }}>
-              {notifUnreadCount}
-            </span>
-          ) : null}
+          {notifUnreadCount > 0 ? <span className="badge messages-tab-badge">{notifUnreadCount}</span> : null}
         </button>
       </div>
 

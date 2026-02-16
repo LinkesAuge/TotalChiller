@@ -20,6 +20,7 @@
     "noData": "No data available",
     "required": "Required",
     "saveFailed": "Save failed",
+    "loadContentFailed": "Content could not be loaded.",
     "editContent": "Edit content",
     "closeError": "Close error",
     "dragToSort": "Drag to sort",
@@ -377,7 +378,8 @@
   "bannerPicker": {
     "noBanner": "No Banner",
     "customBanner": "Upload custom",
-    "uploadingImage": "Uploading image\u2026"
+    "uploadingImage": "Uploading image\u2026",
+    "selectedBanner": "Selected banner"
   },
   "markdownEditor": {
     "write": "Write",

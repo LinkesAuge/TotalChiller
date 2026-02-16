@@ -128,7 +128,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data: { id: body.game_account_id, approval_status: "rejected", deleted: true } });
   } catch (err) {
     captureApiError("PATCH /api/admin/game-account-approvals", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -183,6 +183,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data: result });
   } catch (err) {
     captureApiError("GET /api/admin/game-account-approvals", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import { useAuth } from "@/app/hooks/use-auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -113,6 +113,7 @@ async function checkIsAdmin(supabase: SupabaseClient): Promise<boolean> {
 export function useSiteContent(page: string): SiteContentHook {
   const supabase = useSupabase();
   const locale = useLocale();
+  const tCommon = useTranslations("common");
 
   const [canEdit, setCanEdit] = useState(false);
   const [userId, setUserId] = useState<string | undefined>();
@@ -152,12 +153,11 @@ export function useSiteContent(page: string): SiteContentHook {
         }
         setLists(listMap);
       }
-    } catch (err) {
-      console.warn("[useSiteContent] Load error:", err);
-      setError("Inhalte konnten nicht geladen werden.");
+    } catch {
+      setError(tCommon("loadContentFailed"));
     }
     setIsLoaded(true);
-  }, [page]);
+  }, [page, tCommon]);
 
   const { userId: authUserId } = useAuth();
   useEffect(() => {
@@ -215,7 +215,7 @@ export function useSiteContent(page: string): SiteContentHook {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Speichern fehlgeschlagen (${res.status})`);
+        throw new Error(body.error || `${tCommon("saveFailed")} (${res.status})`);
       }
       /* Optimistic update only after successful save */
       setContent((prev) => ({
@@ -226,7 +226,7 @@ export function useSiteContent(page: string): SiteContentHook {
         },
       }));
     },
-    [page],
+    [page, tCommon],
   );
 
   /* ── List helpers ── */
@@ -252,7 +252,7 @@ export function useSiteContent(page: string): SiteContentHook {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Erstellen fehlgeschlagen (${res.status})`);
+        throw new Error(body.error || `${tCommon("addFailed")} (${res.status})`);
       }
       const { item } = await res.json();
       /* Update local state */
@@ -262,7 +262,7 @@ export function useSiteContent(page: string): SiteContentHook {
       }));
       return item;
     },
-    [page],
+    [page, tCommon],
   );
 
   const updateListItem = useCallback(
@@ -277,7 +277,7 @@ export function useSiteContent(page: string): SiteContentHook {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Aktualisieren fehlgeschlagen (${res.status})`);
+        throw new Error(body.error || `${tCommon("saveFailed")} (${res.status})`);
       }
       const { item } = await res.json();
       /* Update local state */
@@ -293,58 +293,64 @@ export function useSiteContent(page: string): SiteContentHook {
         return newLists;
       });
     },
-    [],
+    [tCommon],
   );
 
-  const removeListItem = useCallback(async (id: string): Promise<void> => {
-    const res = await fetch("/api/site-list-items", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", id }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `Löschen fehlgeschlagen (${res.status})`);
-    }
-    /* Remove from local state */
-    setLists((prev) => {
-      const newLists = { ...prev };
-      for (const [key, items] of Object.entries(newLists)) {
-        const idx = items.findIndex((i) => i.id === id);
-        if (idx !== -1) {
-          newLists[key] = [...items.slice(0, idx), ...items.slice(idx + 1)];
-          break;
+  const removeListItem = useCallback(
+    async (id: string): Promise<void> => {
+      const res = await fetch("/api/site-list-items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", id }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `${tCommon("deleteFailed")} (${res.status})`);
+      }
+      /* Remove from local state */
+      setLists((prev) => {
+        const newLists = { ...prev };
+        for (const [key, items] of Object.entries(newLists)) {
+          const idx = items.findIndex((i) => i.id === id);
+          if (idx !== -1) {
+            newLists[key] = [...items.slice(0, idx), ...items.slice(idx + 1)];
+            break;
+          }
         }
-      }
-      return newLists;
-    });
-  }, []);
+        return newLists;
+      });
+    },
+    [tCommon],
+  );
 
-  const reorderListItems = useCallback(async (items: Array<{ id: string; sort_order: number }>): Promise<void> => {
-    const res = await fetch("/api/site-list-items", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "reorder", items }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `Sortierung fehlgeschlagen (${res.status})`);
-    }
-    /* Update sort_order in local state */
-    setLists((prev) => {
-      const newLists = { ...prev };
-      const orderMap = new Map(items.map((i) => [i.id, i.sort_order]));
-      for (const [key, sectionItems] of Object.entries(newLists)) {
-        const updated = sectionItems.map((item) => {
-          const newOrder = orderMap.get(item.id);
-          return newOrder !== undefined ? { ...item, sort_order: newOrder } : item;
-        });
-        updated.sort((a, b) => a.sort_order - b.sort_order);
-        newLists[key] = updated;
+  const reorderListItems = useCallback(
+    async (items: Array<{ id: string; sort_order: number }>): Promise<void> => {
+      const res = await fetch("/api/site-list-items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reorder", items }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `${tCommon("reorderFailed")} (${res.status})`);
       }
-      return newLists;
-    });
-  }, []);
+      /* Update sort_order in local state */
+      setLists((prev) => {
+        const newLists = { ...prev };
+        const orderMap = new Map(items.map((i) => [i.id, i.sort_order]));
+        for (const [key, sectionItems] of Object.entries(newLists)) {
+          const updated = sectionItems.map((item) => {
+            const newOrder = orderMap.get(item.id);
+            return newOrder !== undefined ? { ...item, sort_order: newOrder } : item;
+          });
+          updated.sort((a, b) => a.sort_order - b.sort_order);
+          newLists[key] = updated;
+        }
+        return newLists;
+      });
+    },
+    [tCommon],
+  );
 
   return {
     content,

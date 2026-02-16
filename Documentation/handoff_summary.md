@@ -132,6 +132,21 @@ Full bug reporting system with dedicated `/bugs` page and floating quick-report 
 
 **Layout:** Uses standard `PageShell` with hero banner (`banner_gold_dragon.png`), `AuthActions` profile widget in top bar. Action buttons (New Report / Back) render inside the content area, not the top bar. List view features status, priority, and category filter dropdowns, a search field, and a sort dropdown (newest/oldest/title/priority/status). Sorting is client-side via `useMemo` in `use-bugs.ts`.
 
+### Codebase Audit (2026-02-16)
+
+Comprehensive audit covering security, bugs, performance, code quality, and accessibility. Key changes:
+
+- **Deleted** `/redesign` pages and all exclusive references (public paths, robots.txt, ESLint override, playwright script).
+- **Security**: SVG XSS blocked in markdown URLs, LIKE injection fixed in game-accounts, auth-before-parse in admin routes, email validation in sendEmail, CAPTCHA fails in production when unconfigured, reporter emails no longer exposed in bugs API.
+- **Bugs**: Banner filename typo fixed (`exhange` -> `exchange`), `statsError` exposed in dashboard hook, hardcoded German strings replaced with i18n.
+- **Performance**: Sidebar nav inline object extracted to constant, `loading.tsx` added for `/bugs` and `/data-import`.
+- **Quality**: Unguarded `console.warn` removed, "Internal server error" punctuation standardized across all API routes.
+- **Config**: `no-console` ESLint rule added, `audit:deps` npm script added, CSP `unsafe-inline` documented.
+- **Accessibility**: Descriptive alt text on event banners, forum thumbnails, and banner picker.
+- **Review fixes**: Stale `statsError` cleared when `clanId` becomes falsy; `tCommon` added to `useCallback` deps in `useSiteContent`; indentation fixed.
+
+**Remaining follow-ups**: Migrate ~130 API error responses from `NextResponse.json({ error })` to shared `apiError()` helper. Split large admin tab components (users-tab ~1270 lines, clans-tab ~1370 lines). Centralize inline Zod schemas into `validation.ts`. Full DE/EN translation key parity audit.
+
 ## Pending Tasks
 
 ### Navigation Icons (Medieval Theme)

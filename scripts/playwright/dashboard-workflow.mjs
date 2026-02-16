@@ -111,7 +111,7 @@ runPwcli([
     if (await page.getByRole('link', { name: 'Upload CSV' }).count()) {
       return;
     }
-    await page.goto('${safeBaseUrl}/redesign/preview');
+    await page.goto('${safeBaseUrl}/');
     await page.waitForLoadState('networkidle');
   }`),
 ]);
@@ -134,7 +134,7 @@ runPwcli([
       throw new Error('Upload CSV quick action did not navigate to expected route. Current URL: ' + page.url());
     }
     await page.screenshot({ path: '${safeOutputDir}/quick-action-upload.png', fullPage: true });
-    await page.goto('${safeBaseUrl}/redesign/preview');
+    await page.goto('${safeBaseUrl}/');
   }`),
 ]);
 
@@ -156,7 +156,7 @@ runPwcli([
       throw new Error('Review Rules quick action did not navigate to expected route. Current URL: ' + page.url());
     }
     await page.screenshot({ path: '${safeOutputDir}/quick-action-review-rules.png', fullPage: true });
-    await page.goto('${safeBaseUrl}/redesign/preview');
+    await page.goto('${safeBaseUrl}/');
   }`),
 ]);
 

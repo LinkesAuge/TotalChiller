@@ -18,14 +18,14 @@ export async function POST(request: Request): Promise<Response> {
   if (blocked) return blocked;
 
   try {
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
+
     const rawBody = await request.json().catch(() => null);
     const parsed = RESEND_INVITE_SCHEMA.safeParse(rawBody);
     if (!parsed.success) {
       return NextResponse.json({ error: "Valid email is required." }, { status: 400 });
     }
-
-    const auth = await requireAdmin();
-    if (auth.error) return auth.error;
 
     const supabase = createSupabaseServiceRoleClient();
     const normalizedEmail = parsed.data.email.toLowerCase();
@@ -46,6 +46,6 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ success: true });
   } catch (err) {
     captureApiError("POST /api/admin/resend-invite", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

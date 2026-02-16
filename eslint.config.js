@@ -39,16 +39,13 @@ module.exports = [
       /* Headings must have content */
       "jsx-a11y/heading-has-content": "warn",
 
+      /* ── Console output ── */
+      /* Prevent console.log from leaking into production; allow warn/error */
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+
       /* ── React best practices ── */
       /* Prevent security issues with target="_blank" */
       "react/jsx-no-target-blank": "error",
-    },
-  },
-  /* ── Redesign prototypes: allow <img> in design mockup pages ── */
-  {
-    files: ["app/redesign/**/*.tsx"],
-    rules: {
-      "@next/next/no-img-element": "off",
     },
   },
 ];

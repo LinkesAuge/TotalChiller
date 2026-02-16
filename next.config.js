@@ -55,6 +55,7 @@ const nextConfig = {
           },
           {
             key: "Content-Security-Policy",
+            /* unsafe-inline required: Next.js injects inline scripts for hydration; Tailwind and Google Fonts use inline styles */
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",

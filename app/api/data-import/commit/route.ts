@@ -106,6 +106,6 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ insertedCount: payload.length, skippedCount }, { status: 201 });
   } catch (err) {
     captureApiError("POST /api/data-import/commit", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

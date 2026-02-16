@@ -75,7 +75,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data: data ?? [] });
   } catch (err) {
     captureApiError("GET /api/design-system/assignments", err);
-    return apiError("Internal server error", 500);
+    return apiError("Internal server error.", 500);
   }
 }
 
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data }, { status: 201 });
   } catch (err) {
     captureApiError("POST /api/design-system/assignments", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -147,6 +147,6 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data: { success: true } });
   } catch (err) {
     captureApiError("DELETE /api/design-system/assignments", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

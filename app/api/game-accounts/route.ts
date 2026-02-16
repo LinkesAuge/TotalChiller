@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
 import { requireAuth } from "../../../lib/api/require-auth";
+import { escapeLikePattern } from "../../../lib/api/validation";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../lib/rate-limit";
 
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { data: existingAccounts, error: lookupError } = await serviceClient
       .from("game_accounts")
       .select("id,user_id,approval_status")
-      .ilike("game_username", gameUsername)
+      .ilike("game_username", escapeLikePattern(gameUsername))
       .in("approval_status", ["pending", "approved"]);
     if (lookupError) {
       captureApiError("POST /api/game-accounts", lookupError);
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data: insertedAccount }, { status: 201 });
   } catch (err) {
     captureApiError("POST /api/game-accounts", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -134,7 +135,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
   } catch (err) {
     captureApiError("GET /api/game-accounts", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -193,6 +194,6 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data: { default_game_account_id: newDefaultId } });
   } catch (err) {
     captureApiError("PATCH /api/game-accounts", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

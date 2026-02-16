@@ -30,9 +30,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     let query = svc
       .from("bug_reports")
-      .select(
-        "*, bug_report_categories(name, slug), profiles!bug_reports_reporter_id_fkey(email, username, display_name)",
-      )
+      .select("*, bug_report_categories(name, slug), profiles!bug_reports_reporter_id_fkey(username, display_name)")
       .order("created_at", { ascending: false });
 
     if (status !== "all") query = query.eq("status", status);
@@ -71,7 +69,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       id: string;
       title: string;
       bug_report_categories: { name: string; slug: string | null } | null;
-      profiles: { email: string; username: string | null; display_name: string | null } | null;
+      profiles: { username: string | null; display_name: string | null } | null;
     };
 
     let items = (reports ?? []).map((raw) => {

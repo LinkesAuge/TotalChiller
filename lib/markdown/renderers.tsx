@@ -13,10 +13,13 @@ import type { Components } from "react-markdown";
 /* ─── Security helpers ─── */
 
 const DANGEROUS_PROTOCOL_REGEX = /^\s*(javascript|vbscript|data(?!:image\/))\s*:/i;
+const SVG_DATA_REGEX = /^\s*data:image\/svg/i;
 
-/** Block dangerous URL protocols (javascript:, vbscript:, data: except data:image). */
+/** Block dangerous URL protocols (javascript:, vbscript:, data: except data:image; SVG data URIs are also blocked because SVG can embed scripts). */
 function isSafeUrl(url: string): boolean {
-  return !DANGEROUS_PROTOCOL_REGEX.test(url);
+  if (DANGEROUS_PROTOCOL_REGEX.test(url)) return false;
+  if (SVG_DATA_REGEX.test(url)) return false;
+  return true;
 }
 
 /* ─── Media detection helpers ─── */

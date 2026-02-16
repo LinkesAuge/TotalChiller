@@ -19,8 +19,7 @@ const ForgotPasswordSchema = z.object({
 async function verifyTurnstileToken(token: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
-    // When no secret is configured, skip verification (development mode).
-    console.warn("[forgot-password] TURNSTILE_SECRET_KEY not set — skipping CAPTCHA verification.");
+    if (process.env.NODE_ENV === "production") return false;
     return true;
   }
 

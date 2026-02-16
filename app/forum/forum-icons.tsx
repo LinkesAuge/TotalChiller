@@ -61,7 +61,14 @@ export function PostThumbnailBox({ thumbnail }: { readonly thumbnail: PostThumbn
   if (thumbnail.thumbnailUrl) {
     return (
       <div className="forum-thumb">
-        <Image src={thumbnail.thumbnailUrl} alt="" width={140} height={100} unoptimized className="forum-thumb-img" />
+        <Image
+          src={thumbnail.thumbnailUrl}
+          alt={`${thumbnail.type === "youtube" ? "Video" : "Image"} thumbnail`}
+          width={140}
+          height={100}
+          unoptimized
+          className="forum-thumb-img"
+        />
         {thumbnail.type === "youtube" && <span className="forum-thumb-play">&#9654;</span>}
       </div>
     );

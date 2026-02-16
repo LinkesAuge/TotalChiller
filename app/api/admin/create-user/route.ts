@@ -37,14 +37,15 @@ export async function POST(request: Request): Promise<Response> {
   if (blocked) return blocked;
 
   try {
+    /* ── Auth guard: require authenticated admin ── */
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
+
     const rawBody = await request.json().catch(() => null);
     const parsed = CREATE_USER_SCHEMA.safeParse(rawBody);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input." }, { status: 400 });
     }
-    /* ── Auth guard: require authenticated admin ── */
-    const auth = await requireAdmin();
-    if (auth.error) return auth.error;
     const supabase = createSupabaseServiceRoleClient();
     const { email, username, displayName } = parsed.data;
     const normalizedEmail = email.toLowerCase();
@@ -114,6 +115,6 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ data: { id: userId } }, { status: 201 });
   } catch (err) {
     captureApiError("POST /api/admin/create-user", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

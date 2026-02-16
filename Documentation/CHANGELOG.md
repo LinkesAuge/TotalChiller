@@ -4,6 +4,60 @@
 
 ---
 
+## 2026-02-16 — Codebase audit: security, bugs, performance, quality, accessibility
+
+**Deleted:**
+
+- Removed `/redesign` pages (v3a, v3b, v3c, preview, selector, layout) and all exclusive references.
+
+**Security fixes:**
+
+- Block `data:image/svg+xml` in markdown URL sanitizer to prevent XSS via SVG scripts.
+- Escape LIKE wildcards in game-accounts search (`escapeLikePattern`).
+- Move `requireAdmin()` before body parsing in `admin/create-user` and `admin/resend-invite` routes.
+- Validate email recipient in `sendEmail()` to prevent header injection (reject newlines/null bytes).
+- Fail CAPTCHA verification in production when `TURNSTILE_SECRET_KEY` is unset instead of silently skipping.
+- Remove `email` from bug report/comment API profile selects — only expose `username` and `display_name`.
+
+**Bug fixes:**
+
+- Fix banner preset filename typo: `banner_event_exhange_708.png` renamed to `banner_event_exchange_708.png`.
+- Add `statsError` state to `useDashboardData` — stats failures now surface an error instead of silent zeros.
+- Replace hardcoded German strings in `useSiteContent` with i18n keys (`loadContentFailed`, `saveFailed`, etc.).
+
+**Performance:**
+
+- Extract inline `HOME_NAV_ITEM` constant in sidebar-nav to avoid re-creating objects on every render.
+- Add `loading.tsx` for `/bugs` and `/data-import` routes.
+
+**Code quality:**
+
+- Remove unguarded `console.warn` in `useDashboardData` (announcements/events fetch errors already stored in state).
+- Standardize all API "Internal server error" messages to include trailing period across 15+ route files.
+
+**Configuration:**
+
+- Add `no-console` ESLint rule (warn, allowing `warn`/`error`).
+- Add `audit:deps` npm script for dependency vulnerability checks.
+- Add CSP documentation comment explaining `unsafe-inline` necessity.
+- Remove `/redesign` from public paths, robots.txt disallow list, and ESLint overrides.
+
+**Accessibility:**
+
+- Add descriptive `alt` text to event banner images (uses event title).
+- Add media-type alt text to forum post thumbnails.
+- Add `selectedBanner` alt text to banner picker preview (new i18n key in DE + EN).
+
+**Review fixes:**
+
+- Fix stale `statsError` when `clanId` becomes falsy (add `setStatsError(null)` in early-return branch).
+- Add `tCommon` to all `useCallback` dependency arrays in `useSiteContent` for correct locale-aware error messages.
+- Fix indentation on two `throw` statements in `useSiteContent`.
+
+**Files changed:** `lib/markdown/renderers.tsx`, `app/api/game-accounts/route.ts`, `app/api/admin/create-user/route.ts`, `app/api/admin/resend-invite/route.ts`, `lib/email/send-email.ts`, `app/api/auth/forgot-password/route.ts`, `app/api/bugs/route.ts`, `app/api/bugs/[id]/route.ts`, `app/api/bugs/[id]/comments/route.ts`, `app/bugs/bugs-types.ts`, `app/bugs/bugs-list.tsx`, `app/bugs/bugs-detail.tsx`, `app/bugs/bugs-comments.tsx`, `lib/constants/banner-presets.ts`, `app/hooks/use-dashboard-data.ts`, `app/components/use-site-content.ts`, `app/components/sidebar-nav.tsx`, `app/components/banner-picker.tsx`, `app/events/upcoming-event-card.tsx`, `app/events/day-panel-event-card.tsx`, `app/forum/forum-icons.tsx`, `lib/public-paths.ts`, `eslint.config.js`, `next.config.js`, `package.json`, `app/robots.ts`, `scripts/playwright/dashboard-workflow.mjs`, `messages/de.json`, `messages/en.json`, `app/bugs/loading.tsx` (new), `app/data-import/loading.tsx` (new), 15+ API route files (error message standardization).
+
+---
+
 ## 2026-02-15 — Fix: Bug report email toggle restricted to admins + test coverage
 
 **Bug report email toggle restricted to admins:**

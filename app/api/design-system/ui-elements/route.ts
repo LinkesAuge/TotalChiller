@@ -99,7 +99,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data: data ?? [], count: count ?? 0 });
   } catch (err) {
     captureApiError("GET /api/design-system/ui-elements", err);
-    return apiError("Internal server error", 500);
+    return apiError("Internal server error.", 500);
   }
 }
 
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data }, { status: 201 });
   } catch (err) {
     captureApiError("POST /api/design-system/ui-elements", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -168,7 +168,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data });
   } catch (err) {
     captureApiError("PATCH /api/design-system/ui-elements", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -202,6 +202,6 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data: { success: true } });
   } catch (err) {
     captureApiError("DELETE /api/design-system/ui-elements", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

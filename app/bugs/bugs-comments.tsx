@@ -20,9 +20,9 @@ interface BugsCommentsProps {
   readonly canManage: boolean;
 }
 
-function getAuthorName(author: { email: string; username: string | null; display_name: string | null } | null): string {
+function getAuthorName(author: { username: string | null; display_name: string | null } | null): string {
   if (!author) return "Unknown";
-  return author.display_name ?? author.username ?? author.email;
+  return author.display_name ?? author.username ?? "Unknown";
 }
 
 /* ── Single comment item with inline edit/delete ── */

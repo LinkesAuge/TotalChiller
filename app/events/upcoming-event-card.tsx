@@ -93,7 +93,7 @@ function UpcomingEventCardInner({
     >
       {entry.banner_url && (
         <div className="upcoming-event-banner">
-          <Image src={entry.banner_url} alt="" width={708} height={123} unoptimized />
+          <Image src={entry.banner_url} alt={entry.title} width={708} height={123} unoptimized />
         </div>
       )}
       <div className="upcoming-event-body">

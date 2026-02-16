@@ -20,6 +20,7 @@
     "noData": "Keine Daten verfügbar",
     "required": "Pflichtfeld",
     "saveFailed": "Speichern fehlgeschlagen",
+    "loadContentFailed": "Inhalte konnten nicht geladen werden.",
     "editContent": "Inhalt bearbeiten",
     "closeError": "Fehler schließen",
     "dragToSort": "Ziehen zum Sortieren",
@@ -377,7 +378,8 @@
   "bannerPicker": {
     "noBanner": "Kein Banner",
     "customBanner": "Eigenes hochladen",
-    "uploadingImage": "Bild wird hochgeladen\u2026"
+    "uploadingImage": "Bild wird hochgeladen\u2026",
+    "selectedBanner": "Ausgewähltes Banner"
   },
   "markdownEditor": {
     "write": "Schreiben",

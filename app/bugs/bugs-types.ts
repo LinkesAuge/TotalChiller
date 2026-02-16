@@ -12,7 +12,7 @@ import type {
 export interface BugReportListItem extends BugReport {
   readonly category_name: string | null;
   readonly category_slug: string | null;
-  readonly reporter: Pick<ProfileSummary, "email" | "username" | "display_name"> | null;
+  readonly reporter: Pick<ProfileSummary, "username" | "display_name"> | null;
   readonly comment_count: number;
   readonly screenshot_count: number;
 }
@@ -21,13 +21,13 @@ export interface BugReportListItem extends BugReport {
 export interface BugReportDetail extends BugReport {
   readonly category_name: string | null;
   readonly category_slug: string | null;
-  readonly reporter: Pick<ProfileSummary, "email" | "username" | "display_name"> | null;
+  readonly reporter: Pick<ProfileSummary, "username" | "display_name"> | null;
   readonly screenshots: readonly BugReportScreenshot[];
 }
 
 /** Comment with author profile. */
 export interface BugCommentWithAuthor extends BugReportComment {
-  readonly author: Pick<ProfileSummary, "email" | "username" | "display_name"> | null;
+  readonly author: Pick<ProfileSummary, "username" | "display_name"> | null;
 }
 
 /** Active view in the bugs page. */

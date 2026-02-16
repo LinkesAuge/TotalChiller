@@ -71,12 +71,14 @@ const SIDEBAR_ADMIN_META: Record<string, { labelKey: string; iconKey: string; vi
   designSystem: { labelKey: "designSystem", iconKey: "settings" },
 };
 
+const HOME_NAV_ITEM: NavItem = { href: "/home", labelKey: "home", iconKey: "home" };
+
 const NAV_SECTIONS: readonly NavSection[] = [
   {
     title: "Main",
     groupLabel: "main",
     items: [
-      { href: "/home", labelKey: "home", iconKey: "home" },
+      HOME_NAV_ITEM,
       { href: "/", labelKey: "dashboard", iconKey: "dashboard" },
       { href: "/news", labelKey: "announcements", iconKey: "news" },
       { href: "/events", labelKey: "events", iconKey: "events" },
@@ -196,7 +198,7 @@ function SidebarNav(): JSX.Element {
           >
             <div className="nav-icon-glow" />
             <span className="nav-icon" style={{ color: pathname === "/home" ? "var(--color-gold-2)" : undefined }}>
-              <NavItemIcon item={{ href: "/home", labelKey: "home", iconKey: "home" }} />
+              <NavItemIcon item={HOME_NAV_ITEM} />
             </span>
             <span className={`nav-label${isOpen ? "" : " collapsed"}`}>{t("home")}</span>
           </Link>

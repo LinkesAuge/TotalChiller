@@ -34,11 +34,9 @@ interface BugsDetailProps {
   readonly onDelete: () => Promise<void>;
 }
 
-function getDisplayName(
-  reporter: { email: string; username: string | null; display_name: string | null } | null,
-): string {
+function getDisplayName(reporter: { username: string | null; display_name: string | null } | null): string {
   if (!reporter) return "Unknown";
-  return reporter.display_name ?? reporter.username ?? reporter.email;
+  return reporter.display_name ?? reporter.username ?? "Unknown";
 }
 
 function BugsDetail({ report, categories, onUpdate, onEdit, onDelete }: BugsDetailProps): ReactElement {

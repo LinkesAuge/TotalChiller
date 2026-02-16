@@ -167,7 +167,7 @@ function DayPanelEventCardInner({
       {/* ── Full banner when expanded ── */}
       {isExpanded && entry.banner_url && (
         <div className="day-panel-full-banner">
-          <Image src={entry.banner_url} alt="" width={708} height={123} unoptimized />
+          <Image src={entry.banner_url} alt={entry.title} width={708} height={123} unoptimized />
         </div>
       )}
 
@@ -176,7 +176,7 @@ function DayPanelEventCardInner({
         {/* Small banner strip only when collapsed */}
         {!isExpanded && entry.banner_url && (
           <div className="day-panel-card-banner">
-            <Image src={entry.banner_url} alt="" width={708} height={123} unoptimized />
+            <Image src={entry.banner_url} alt={entry.title} width={708} height={123} unoptimized />
           </div>
         )}
         <div className="day-panel-card-body">

@@ -33,6 +33,6 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ data: { success: true } });
   } catch (err) {
     captureApiError("POST /api/admin/delete-user", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

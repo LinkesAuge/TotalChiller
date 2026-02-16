@@ -14,6 +14,11 @@ interface EmailPayload {
   readonly html: string;
 }
 
+/** Reject addresses that could cause header injection (newlines, multiple @). */
+function isValidRecipient(email: string): boolean {
+  return /^[^\r\n]+@[^\r\n]+$/.test(email) && !email.includes("\0");
+}
+
 /**
  * Sends a single transactional email via the Resend REST API.
  * Returns `true` on success, `false` on failure (never throws).
@@ -23,6 +28,7 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 
   if (!apiKey || !fromEmail) return false;
+  if (!isValidRecipient(payload.to)) return false;
 
   try {
     const res = await fetch("https://api.resend.com/emails", {

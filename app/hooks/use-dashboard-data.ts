@@ -71,6 +71,7 @@ export interface UseDashboardDataResult {
   readonly isLoadingStats: boolean;
   readonly announcementsError: string | null;
   readonly eventsError: string | null;
+  readonly statsError: string | null;
 }
 
 /**
@@ -105,6 +106,7 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
 
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
   const [isLoadingStats, setIsLoadingStats] = useState<boolean>(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,7 +134,6 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       setIsLoadingAnnouncements(false);
       if (error) {
         setAnnouncementsError(error.message);
-        console.warn("Dashboard announcements fetch failed:", error);
         return;
       }
       setAnnouncements(
@@ -175,7 +176,6 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       setIsLoadingEvents(false);
       if (error) {
         setEventsError(error.message);
-        console.warn("Dashboard events fetch failed:", error);
         return;
       }
       setEvents(
@@ -207,6 +207,7 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       if (!clanId) {
         setStats(EMPTY_STATS);
         setIsLoadingStats(false);
+        setStatsError(null);
         return;
       }
       if (statsAbortRef.current) {
@@ -215,6 +216,7 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
       const controller = new AbortController();
       statsAbortRef.current = controller;
       setIsLoadingStats(true);
+      setStatsError(null);
       try {
         const [thisWeek, lastWeek, memberResult] = await Promise.all([
           fetchAnalytics(thisWeekStart, todayStr, controller.signal),
@@ -256,9 +258,10 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
           topPlayerScore: topPlayer?.totalScore ?? 0,
           topChestType: tw.topChestType,
         });
-      } catch {
+      } catch (_err) {
         if (!controller.signal.aborted) {
           setStats(EMPTY_STATS);
+          setStatsError("Failed to load stats.");
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -283,5 +286,6 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
     isLoadingStats,
     announcementsError,
     eventsError,
+    statsError,
   };
 }

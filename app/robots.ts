@@ -32,7 +32,6 @@ async function robots(): Promise<MetadataRoute.Robots> {
           "/events",
           "/data-import",
           "/data-table",
-          "/redesign",
         ],
       },
     ],

@@ -29,9 +29,7 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
 
     const { data: report, error: reportErr } = await svc
       .from("bug_reports")
-      .select(
-        "*, bug_report_categories(name, slug), profiles!bug_reports_reporter_id_fkey(email, username, display_name)",
-      )
+      .select("*, bug_report_categories(name, slug), profiles!bug_reports_reporter_id_fkey(username, display_name)")
       .eq("id", id)
       .maybeSingle();
 
@@ -50,7 +48,7 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
 
     type RawReport = Record<string, unknown> & {
       bug_report_categories: { name: string; slug: string | null } | null;
-      profiles: { email: string; username: string | null; display_name: string | null } | null;
+      profiles: { username: string | null; display_name: string | null } | null;
     };
     const r = report as RawReport;
 

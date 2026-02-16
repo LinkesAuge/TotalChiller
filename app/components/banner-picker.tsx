@@ -43,7 +43,7 @@ function BannerPicker({
       {/* Live preview */}
       {value && (
         <div className="banner-picker-preview">
-          <Image src={value} alt="" width={708} height={123} unoptimized />
+          <Image src={value} alt={t("selectedBanner")} width={708} height={123} unoptimized />
         </div>
       )}
       <div className="banner-picker-grid" role="group" aria-labelledby={labelId}>

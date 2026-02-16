@@ -9,10 +9,9 @@ export function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/about") ||
     pathname.startsWith("/contact") ||
     pathname.startsWith("/privacy-policy") ||
-    pathname.startsWith("/profile") ||
-    pathname.startsWith("/settings") ||
+    pathname.startsWith("/profile") /* bypasses clan-access gate; auth is enforced by the page itself */ ||
+    pathname.startsWith("/settings") /* bypasses clan-access gate; auth is enforced by the page itself */ ||
     pathname.startsWith("/not-authorized") ||
-    pathname.startsWith("/redesign") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/sitemap") ||
     pathname.startsWith("/robots") ||

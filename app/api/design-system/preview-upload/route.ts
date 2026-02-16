@@ -81,6 +81,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ data, path: publicPath });
   } catch (err) {
     captureApiError("POST /api/design-system/preview-upload", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

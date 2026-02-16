@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
 
     const { data: comments, error: commentsErr } = await svc
       .from("bug_report_comments")
-      .select("*, profiles!bug_report_comments_author_id_fkey(email, username, display_name)")
+      .select("*, profiles!bug_report_comments_author_id_fkey(username, display_name)")
       .eq("report_id", id)
       .order("created_at", { ascending: true });
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     }
 
     type RawComment = Record<string, unknown> & {
-      profiles: { email: string; username: string | null; display_name: string | null } | null;
+      profiles: { username: string | null; display_name: string | null } | null;
     };
 
     const items = (comments ?? []).map((raw) => {

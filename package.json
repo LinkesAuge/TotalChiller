@@ -16,6 +16,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "analyze": "ANALYZE=true next build",
+    "audit:deps": "npm audit --omit=dev",
     "prepare": "husky",
     "playwright:dashboard-workflow": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/playwright/dashboard-workflow.ps1",
     "playwright:ui-audit": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/playwright/ui-audit.ps1"

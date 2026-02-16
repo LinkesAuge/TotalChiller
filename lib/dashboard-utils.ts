@@ -11,30 +11,6 @@ export function toDateString(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-/** Returns the Monday of the week containing the given date. */
-export function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-/** Calculate percentage trend between two values. */
-export function calculateTrend(current: number, previous: number): number {
-  if (previous === 0) return 0;
-  return Math.round(((current - previous) / previous) * 100);
-}
-
-/** Format a number with compact notation for display (e.g. 1.5K, 2.3M). */
-export function formatCompactNumber(n: number): string {
-  if (!Number.isFinite(n)) return "0";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
-}
-
 /** Returns a relative time string (e.g. "2h ago"). */
 export function formatRelativeTime(isoDate: string): string {
   const now = new Date();

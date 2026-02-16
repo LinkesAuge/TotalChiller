@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     template: "%s | TotalChiller",
   },
   description:
-    "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, track chest scores, manage data imports, and stay connected with your clan.",
+    "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, manage your clan, and stay connected.",
   icons: {
     icon: "/assets/vip/icons_chest_1.png",
   },
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     siteName: "TotalChiller",
     title: "TotalChiller - [THC] Chiller & Killer Community Hub",
     description:
-      "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, track chest scores, manage data imports, and stay connected.",
+      "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, manage your clan, and stay connected.",
     images: [{ url: "/assets/banners/banner_gold_dragon.png", width: 1200, height: 630 }],
   },
   twitter: {
@@ -92,7 +92,7 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
                   alternateName: "[THC] Chiller & Killer Community Hub",
                   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.de",
                   description:
-                    "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, track chest scores, manage data imports, and stay connected.",
+                    "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, manage your clan, and stay connected.",
                 },
                 {
                   "@type": "Organization",

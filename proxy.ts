@@ -6,12 +6,7 @@ import { getSupabaseUrl, getSupabaseAnonKey } from "./lib/supabase/config";
 import { isPublicPath } from "./lib/public-paths";
 
 function isAdminPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/data-import") ||
-    pathname.startsWith("/data-table") ||
-    pathname.startsWith("/design-system")
-  );
+  return pathname.startsWith("/admin") || pathname.startsWith("/design-system");
 }
 
 async function isUserAdmin(supabase: ReturnType<typeof createServerClient>): Promise<boolean> {
@@ -96,16 +91,6 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/not-authorized";
       redirectUrl.searchParams.set("reason", "admin");
-      return NextResponse.redirect(redirectUrl);
-    }
-    if (request.nextUrl.pathname === "/data-import") {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/admin/data-import";
-      return NextResponse.redirect(redirectUrl);
-    }
-    if (request.nextUrl.pathname === "/data-table") {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/admin/data-table";
       return NextResponse.redirect(redirectUrl);
     }
   }

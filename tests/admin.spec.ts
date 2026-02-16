@@ -78,22 +78,6 @@ test.describe("Admin: Tab navigation", () => {
     });
   });
 
-  test("can switch to validation tab", async ({ page }) => {
-    await page.goto("/admin?tab=validation");
-    await waitForAdminShell(page);
-
-    await expect(page.locator(".content-inner").first()).toContainText(/validation|validierung|rule|regel/i, {
-      timeout: 20000,
-    });
-  });
-
-  test("can switch to corrections tab", async ({ page }) => {
-    await page.goto("/admin?tab=corrections");
-    await waitForAdminShell(page);
-
-    await expect(page.locator(".content-inner").first()).toContainText(/correction|korrektur/i, { timeout: 20000 });
-  });
-
   test("can switch to logs tab", async ({ page }) => {
     await page.goto("/admin?tab=logs");
     await waitForAdminShell(page);
@@ -146,31 +130,5 @@ test.describe("Admin: Users section", () => {
 
     const selects = page.locator("select, [role=combobox], button[class*='select'], .select-trigger");
     expect(await selects.count()).toBeGreaterThan(0);
-  });
-});
-
-test.describe("Admin: Data Import", () => {
-  test.use({ storageState: storageStatePath("admin") });
-  test("data import page loads for admin", async ({ page }) => {
-    await page.goto("/admin/data-import");
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/data-import");
-  });
-
-  test("has file upload area", async ({ page }) => {
-    await page.goto("/admin/data-import");
-    await page.waitForLoadState("networkidle");
-
-    const fileInput = page.locator('input[type="file"]');
-    expect(await fileInput.count()).toBeGreaterThanOrEqual(0);
-  });
-});
-
-test.describe("Admin: Data Table", () => {
-  test.use({ storageState: storageStatePath("admin") });
-  test("data table page loads for admin", async ({ page }) => {
-    await page.goto("/admin/data-table");
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/data-table");
   });
 });

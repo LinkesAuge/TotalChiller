@@ -4,6 +4,33 @@
 
 ---
 
+## [Unreleased] – 2026-02-16
+
+### Removed
+
+- **Datenimport**: Removed all data import routes, components, API endpoints, CSV parser, and import utilities
+- **Truhen-Datenbank**: Removed chest database viewer, filters, batch editing, and all related routes
+- **Validierung**: Removed validation rules tab, validation evaluator, and all validation rule management
+- **Korrekturen**: Removed correction rules tab, correction applicator, and all correction rule management
+- **Analytics/Charts**: Removed analytics client, chart components, recharts dependency, and analytics API endpoint
+- **Database tables**: Created migration to drop `chest_entries`, `validation_rules`, `correction_rules`, `scoring_rules` (see `Documentation/migrations/drop_chest_data_tables.sql`)
+- **Tests**: Removed `charts.spec.ts`, `data-workflows.spec.ts`, `validation-evaluator.test.ts`, `correction-applicator.test.ts`; updated remaining test files to remove references
+
+### Added
+
+- Analytics placeholder page with "coming soon" messaging
+- Dashboard stats placeholder cards replacing Quick Stats and Week Highlights sections
+
+### Changed
+
+- Admin panel: Removed dataImport, validation, corrections, chestDb sections; kept clans, users, approvals, forum, designSystem, logs
+- Sidebar navigation: Removed entries for data import, validation, corrections, chest DB
+- Proxy middleware: Removed /data-import and /data-table redirect logic
+- Dashboard: Announcements and events remain functional; stats sections show placeholder
+- Translations: Cleaned up de.json and en.json, removed ~300 unused keys
+
+---
+
 ## 2026-02-16 — Codebase audit: security, bugs, performance, quality, accessibility
 
 **Deleted:**

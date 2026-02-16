@@ -1,12 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  toDateString,
-  getMonday,
-  calculateTrend,
-  formatCompactNumber,
-  formatRelativeTime,
-  extractAuthorName,
-} from "./dashboard-utils";
+import { toDateString, formatRelativeTime, extractAuthorName } from "./dashboard-utils";
 
 describe("toDateString", () => {
   it("formats a date as YYYY-MM-DD using local time", () => {
@@ -22,79 +15,6 @@ describe("toDateString", () => {
   it("pads single-digit months and days", () => {
     const actual = toDateString(new Date(2026, 0, 5)); // Jan 5 local
     expect(actual).toBe("2026-01-05");
-  });
-});
-
-describe("getMonday", () => {
-  it("returns Monday for a Wednesday", () => {
-    const wed = new Date(2026, 1, 11, 12, 0); // Wed Feb 11 local
-    const monday = getMonday(wed);
-    expect(monday.getDay()).toBe(1);
-    expect(toDateString(monday)).toBe("2026-02-09");
-  });
-
-  it("returns same day for a Monday", () => {
-    const mon = new Date(2026, 1, 9, 12, 0); // Mon Feb 9 local
-    const monday = getMonday(mon);
-    expect(toDateString(monday)).toBe("2026-02-09");
-  });
-
-  it("returns previous Monday for a Sunday", () => {
-    const sun = new Date(2026, 1, 15, 12, 0); // Sun Feb 15 local
-    const monday = getMonday(sun);
-    expect(monday.getDay()).toBe(1);
-    expect(toDateString(monday)).toBe("2026-02-09");
-  });
-
-  it("returns Monday for a Saturday", () => {
-    const sat = new Date(2026, 1, 14, 12, 0); // Sat Feb 14 local
-    const monday = getMonday(sat);
-    expect(toDateString(monday)).toBe("2026-02-09");
-  });
-});
-
-describe("calculateTrend", () => {
-  it("returns 0 when both values are 0", () => {
-    expect(calculateTrend(0, 0)).toBe(0);
-  });
-
-  it("returns 0 when previous is 0 (division by zero guard)", () => {
-    expect(calculateTrend(50, 0)).toBe(0);
-  });
-
-  it("returns positive percentage for increase", () => {
-    expect(calculateTrend(150, 100)).toBe(50);
-  });
-
-  it("returns negative percentage for decrease", () => {
-    expect(calculateTrend(75, 100)).toBe(-25);
-  });
-
-  it("returns 0 for no change", () => {
-    expect(calculateTrend(100, 100)).toBe(0);
-  });
-
-  it("rounds to nearest integer", () => {
-    expect(calculateTrend(133, 100)).toBe(33);
-  });
-});
-
-describe("formatCompactNumber", () => {
-  it("formats small numbers as-is", () => {
-    expect(formatCompactNumber(0)).toBe("0");
-    expect(formatCompactNumber(42)).toBe("42");
-    expect(formatCompactNumber(999)).toBe("999");
-  });
-
-  it("formats thousands with K suffix", () => {
-    expect(formatCompactNumber(1000)).toBe("1.0K");
-    expect(formatCompactNumber(1500)).toBe("1.5K");
-    expect(formatCompactNumber(99999)).toBe("100.0K");
-  });
-
-  it("formats millions with M suffix", () => {
-    expect(formatCompactNumber(1000000)).toBe("1.0M");
-    expect(formatCompactNumber(2500000)).toBe("2.5M");
   });
 });
 

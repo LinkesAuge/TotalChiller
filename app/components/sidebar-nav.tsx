@@ -30,12 +30,8 @@ const ICONS: Record<string, string> = {
     "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
   approvals: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
   users: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-  validation:
-    "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
-  corrections: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
   auditLogs:
     "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
-  dataImport: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
   admin: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
   profile: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
   settings:
@@ -47,7 +43,7 @@ interface NavItem {
   readonly href: string;
   readonly labelKey: string;
   readonly iconKey: string;
-  readonly tab?: "clans" | "users" | "validation" | "corrections" | "logs" | "approvals" | "forum";
+  readonly tab?: "clans" | "users" | "logs" | "approvals" | "forum";
   readonly vipIcon?: string;
 }
 
@@ -62,12 +58,8 @@ const SIDEBAR_ADMIN_META: Record<string, { labelKey: string; iconKey: string; vi
   clans: { labelKey: "clanManagement", iconKey: "clanManagement" },
   approvals: { labelKey: "approvals", iconKey: "approvals" },
   users: { labelKey: "users", iconKey: "users" },
-  validation: { labelKey: "validation", iconKey: "validation" },
-  corrections: { labelKey: "corrections", iconKey: "corrections" },
   logs: { labelKey: "auditLogs", iconKey: "auditLogs" },
   forum: { labelKey: "forumAdmin", iconKey: "forum" },
-  dataImport: { labelKey: "dataImport", iconKey: "dataImport" },
-  chestDb: { labelKey: "chestDb", iconKey: "admin", vipIcon: "/assets/vip/icons_chest_1.png" },
   designSystem: { labelKey: "designSystem", iconKey: "settings" },
 };
 
@@ -107,11 +99,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
 
 function isNavItemActive(pathname: string, activeTab: string | null, item: NavItem): boolean {
   if (item.tab) {
-    const normalizedTab = activeTab === "rules" ? "validation" : activeTab;
-    return pathname === "/admin" && normalizedTab === item.tab;
-  }
-  if (item.href.startsWith("/admin/data-")) {
-    return pathname.startsWith(item.href);
+    return pathname === "/admin" && activeTab === item.tab;
   }
   if (item.href === "/" || item.href === "/home") {
     return pathname === item.href;

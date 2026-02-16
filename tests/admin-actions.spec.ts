@@ -82,32 +82,6 @@ test.describe("Admin Actions: Clans tab", () => {
   });
 });
 
-test.describe("Admin Actions: Validation tab", () => {
-  test("validation tab shows field tabs (player, source, chest, clan)", async ({ page }) => {
-    await page.goto("/admin?tab=validation");
-    await waitForAdmin(page);
-    await expect(page.locator(".content-inner").first()).toContainText(/validation|validierung|rule|regel/i, {
-      timeout: 20000,
-    });
-
-    /* Should have sub-tabs for different field types */
-    const fieldTabs = page.locator("button, [role=tab]", { hasText: /player|source|chest|clan|spieler|quelle|truhe/i });
-    expect(await fieldTabs.count()).toBeGreaterThan(0);
-  });
-
-  test("validation tab has add rule button", async ({ page }) => {
-    await page.goto("/admin?tab=validation");
-    await waitForAdmin(page);
-    await expect(page.locator(".content-inner").first()).toContainText(/validation|validierung/i, { timeout: 25000 });
-
-    /* Button may be an IconButton with aria-label or a text button — wait for it to render */
-    const addBtn = page.locator(
-      'button:has-text("add"), button:has-text("hinzufügen"), button:has-text("new"), button:has-text("neu"), button[aria-label*="add" i], button[aria-label*="hinzufügen" i], button[aria-label*="regel" i], button[aria-label*="rule" i]',
-    );
-    await expect(addBtn.first()).toBeVisible({ timeout: 20000 });
-  });
-});
-
 test.describe("Admin Actions: Forum management", () => {
   test("forum tab shows category management", async ({ page }) => {
     await page.goto("/admin?tab=forum");

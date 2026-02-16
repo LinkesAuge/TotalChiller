@@ -40,12 +40,9 @@ describe("isPublicPath", () => {
       "/events",
       "/members",
       "/analytics",
-      "/data-table",
-      "/data-import",
       "/news",
       "/admin",
       "/admin/users",
-      "/admin/data-import",
     ])("returns false for %s", (pathname) => {
       expect(isPublicPath(pathname)).toBe(false);
     });

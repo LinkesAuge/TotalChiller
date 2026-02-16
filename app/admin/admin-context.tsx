@@ -161,12 +161,7 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
     const rawTab = searchParams.get("tab");
     const next = resolveSection(rawTab);
     setActiveSection(next);
-    if (rawTab === "rules") {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("tab", "validation");
-      router.replace(`/admin?${params.toString()}`);
-    }
-  }, [router, searchParams]);
+  }, [searchParams]);
 
   /* ── Toast status messages ── */
   useEffect(() => {

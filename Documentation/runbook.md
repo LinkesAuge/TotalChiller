@@ -40,6 +40,7 @@ This runbook explains how to set up, run, and use the [THC] Chiller & Killer com
    - `Documentation/migrations/bug_reports_v3.sql`
    - `Documentation/migrations/guest_role_permissions.sql`
    - `Documentation/migrations/role_change_protection.sql`
+   - `Documentation/migrations/drop_chest_data_tables.sql`
 
 ## 2) Local Environment
 
@@ -89,7 +90,7 @@ Email templates (dual-theme: light for Outlook, dark for modern clients) are doc
 - **API routes** (`/api/`) are **not** redirected by the proxy — they handle their own auth and return JSON error responses (e.g. 401, 403)
 - **PKCE catch-all:** Stray auth codes (when Supabase ignores redirectTo) are caught by the proxy and redirected to `/auth/callback`. Registration, email change, and forgot-password set `auth_redirect_next` fallback cookie.
 - Non-API, non-public page routes redirect unauthenticated users to `/home`
-- Admin page routes (`/admin`, `/data-import`, `/data-table`, `/design-system`) require admin role; non-admins redirected to `/not-authorized?reason=admin` (admin-specific access denied message). "Verwaltung" nav section is visible to all authenticated users.
+- Admin page routes (`/admin`, `/design-system`) require admin role; non-admins redirected to `/not-authorized?reason=admin` (admin-specific access denied message). "Verwaltung" nav section is visible to all authenticated users.
 
 ## 6) Core Pages
 
@@ -105,34 +106,16 @@ Email templates (dual-theme: light for Outlook, dark for modern clients) are doc
 - Bug Reports: `/bugs`
 - Settings: `/settings`
 - Admin: `/admin`
-- Data Import: `/admin/data-import`
-- Chest Database: `/admin/data-table`
 - Design System: `/design-system` (admin only)
 
-## 7) Data Import Workflow
-
-1. Go to `/admin/data-import`
-2. Upload a Pattern 1 CSV (DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN)
-3. Optional: toggle **Auto-correct** and **Validation**
-4. Use filters/sorting or batch edit if needed
-5. Click **Commit Data** (warning modal appears if invalid rows exist)
-
-## 8) Admin: Clans + Memberships
+## 7) Admin: Clans + Memberships
 
 1. Go to `/admin`
 2. Create a clan
 3. Add members by **user_id** or **email**
 4. Assign role and active status
 
-## 9) Admin: Rules
-
-In `/admin`:
-
-- Create/edit/delete validation rules (global)
-- Create/edit/delete correction rules (global, active/inactive)
-- Create/edit/delete scoring rules (per clan)
-
-## 10) Admin: Forum Categories
+## 8) Admin: Forum Categories
 
 In `/admin` → Forum tab:
 
@@ -145,9 +128,9 @@ The admin panel uses a modular, code-split architecture:
 
 - **`admin-client.tsx`**: Slim orchestrator (~140 lines) — renders the tab bar and dynamically imports the active tab.
 - **`admin-context.tsx`**: `AdminProvider` context — shared Supabase client, clan data, section routing, status. All tabs call `useAdminContext()`.
-- **Tabs** (`app/admin/tabs/`): Each tab is a self-contained component lazy-loaded via `next/dynamic`. Tab names: `clans-tab`, `users-tab`, `validation-tab`, `corrections-tab`, `logs-tab`, `approvals-tab`, `forum-tab`.
-- **Shared hooks** (`app/admin/hooks/`): `usePagination`, `useSortable`, `useConfirmDelete`, `useRuleList`.
-- **Shared components** (`app/admin/components/`): `DangerConfirmModal`, `SortableColumnHeader`, `PaginationBar`, `RuleImportModal`.
+- **Tabs** (`app/admin/tabs/`): Each tab is a self-contained component lazy-loaded via `next/dynamic`. Tab names: `clans-tab`, `users-tab`, `logs-tab`, `approvals-tab`, `forum-tab`.
+- **Shared hooks** (`app/admin/hooks/`): `usePagination`, `useSortable`, `useConfirmDelete`.
+- **Shared components** (`app/admin/components/`): `DangerConfirmModal`, `SortableColumnHeader`, `PaginationBar`.
 
 When modifying the admin panel:
 
@@ -155,16 +138,7 @@ When modifying the admin panel:
 - Use shared hooks for pagination, sorting, and delete flows instead of reimplementing.
 - Context state is in `admin-context.tsx` — add new shared state there, not in individual tabs.
 
-## 11) Chest Database
-
-In `/admin/data-table`:
-
-- Inline edit rows and save
-- Batch edit/delete
-- Search + filters + pagination
-- Per-row correction/validation rule actions
-
-## 12) Announcements
+## 9) Announcements
 
 In `/news`:
 
@@ -174,7 +148,7 @@ In `/news`:
 - Pinned announcements appear at top
 - Edit tracking: original author is preserved, editor tracked separately
 
-## 13) Forum
+## 10) Forum
 
 In `/forum`:
 
@@ -184,7 +158,7 @@ In `/forum`:
 - Pin important posts (content managers only)
 - Post thumbnails extracted from content
 
-## 14) Events
+## 11) Events
 
 In `/events`:
 
@@ -193,7 +167,7 @@ In `/events`:
 - Calendar view with day-detail panel (auto-scrolls on day click)
 - Optional organizer field
 
-## 15) Running Tests
+## 12) Running Tests
 
 ### Vitest Unit Tests
 
@@ -247,13 +221,11 @@ tests/
 ├── forum.spec.ts              # Forum posts, comments, moderation
 ├── messages.spec.ts           # Messaging system
 ├── profile-settings.spec.ts   # Profile & settings forms
-├── charts.spec.ts             # Data visualization
 ├── dashboard.spec.ts          # Authenticated landing page
 ├── admin.spec.ts              # Admin access control & section rendering
 ├── admin-actions.spec.ts      # Admin interactive tab actions
 ├── crud-flows.spec.ts         # CRUD workflows (news, events, forum, messages)
 ├── feature-flows.spec.ts      # Feature integration flows
-├── data-workflows.spec.ts     # Data import & table workflows
 ├── notifications.spec.ts      # Notification bell, dropdown, API
 ├── bugs.spec.ts               # Bug reports: API auth/CRUD, UI, widget, settings, email guard
 ├── i18n.spec.ts               # Language switching, cookies
@@ -277,7 +249,7 @@ tests/
 - Tests use regex alternation for i18n-aware text matching (`/erstellen|create/i`).
 - Tests handle conditional UI gracefully (e.g. "no clan access" messages).
 
-## 16) Navigation Icon Preview (Design Tool)
+## 13) Navigation Icon Preview (Design Tool)
 
 A standalone icon preview page is available at `public/icon-preview.html` for browsing game assets and choosing medieval-themed replacements for sidebar navigation icons.
 
@@ -290,7 +262,7 @@ See **handoff_summary.md → "Navigation Icons — Medieval Theme Overhaul"** fo
 
 **Note**: Remove `icon-preview.html` before production deployment.
 
-## 17) Design System Asset Manager
+## 14) Design System Asset Manager
 
 Admin-only tool at `/design-system` for managing game assets, UI inventory, and assignments.
 
@@ -324,7 +296,7 @@ Flags:
 - `--skip-copy` — skip the file copy step (DB upsert only)
 - `--skip-db` — skip DB upsert (copy files only)
 
-## 18) Bug Reports
+## 15) Bug Reports
 
 In `/bugs`:
 
@@ -359,7 +331,7 @@ Admin email notifications require a [Resend](https://resend.com) account (free t
 3. Admins (owner/admin only) opt in via Settings → Notifications → "Bug report email" toggle (off by default). The toggle is hidden for non-admin users; the API silently ignores `bugs_email_enabled` from non-admins.
 4. If env vars are missing, email notifications are silently skipped — no errors.
 
-## 19) Troubleshooting
+## 16) Troubleshooting
 
 - If data insert fails: check RLS policies and membership
 - If user lookup fails: verify `profiles` trigger ran on signup

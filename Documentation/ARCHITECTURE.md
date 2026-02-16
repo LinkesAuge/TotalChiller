@@ -6,7 +6,7 @@
 
 ## 1. Project Identity
 
-**[THC] Chiller & Killer** — A clan management platform for a Total Battle gaming community. Features: messaging, forum, events calendar, performance analytics, announcements, member directory, admin panel with data import/validation/correction workflows. Medieval "Fortress Sanctum" dark theme with gold accents.
+**[THC] Chiller & Killer** — A clan management platform for a Total Battle gaming community. Features: messaging, forum, events calendar, announcements, member directory, admin panel. Medieval "Fortress Sanctum" dark theme with gold accents. Analytics, data import, validation, corrections, and chest database features have been removed.
 
 ## 2. Tech Stack
 
@@ -19,7 +19,6 @@
 | Styling        | Global CSS (`globals.css`), CSS variables, no Tailwind in app |
 | i18n           | `next-intl` with `messages/en.json` + `messages/de.json`      |
 | Markdown       | `react-markdown` + `remark-gfm` + `remark-breaks`             |
-| Charts         | Recharts (dark blue/gold theme)                               |
 | Unit tests     | Vitest (`npm run test:unit`)                                  |
 | E2E tests      | Playwright (`npx playwright test`)                            |
 | Linting        | ESLint (flat config) + Prettier + Husky pre-commit            |
@@ -49,9 +48,7 @@ d:\Chiller\
 │   ├── permissions.ts      # Role → permission map (single source of truth)
 │   ├── rate-limit.ts       # Rate limiter factory (isolated stores per instance)
 │   ├── date-format.ts      # Date formatting helpers
-│   ├── correction-applicator.ts  # Correction rule engine
-│   ├── validation-evaluator.ts   # Validation rule engine (moved from app/components)
-│   ├── string-utils.ts           # Shared string normalization helpers
+│   ├── string-utils.ts     # Shared string normalization helpers
 │   └── constants.ts        # Global constants (DATE_REGEX, bucket names, bug screenshot limits, etc.)
 ├── messages/               # i18n translation files (en.json, de.json)
 ├── tests/                  # Playwright E2E specs + auth helpers
@@ -155,17 +152,14 @@ Rich cards with banner headers, markdown content, server-side pagination, edit t
 
 ### 4.6 Analytics (`app/analytics/`)
 
-Recharts-powered analytics: clan score over time, top players, chest distribution, personal score. Server-side aggregation from `chest_entries`.
+Placeholder page. Recharts and chest-based analytics have been removed.
 
-| File                                  | Purpose                     |
-| ------------------------------------- | --------------------------- |
-| `app/analytics/analytics-client.tsx`  | Analytics UI with filters   |
-| `app/analytics/chart-components.tsx`  | Recharts wrapper components |
-| `app/analytics/analytics-types.ts`    | TypeScript types            |
-| `app/analytics/use-analytics-data.ts` | Data fetching hook          |
-| `app/api/analytics/route.ts`          | `GET` aggregated chest data |
+| File                                      | Purpose                      |
+| ----------------------------------------- | ---------------------------- |
+| `app/analytics/page.tsx`                  | Thin server component        |
+| `app/analytics/analytics-placeholder.tsx` | "Coming soon" placeholder UI |
 
-**DB tables**: `chest_entries`, `game_accounts`
+**DB tables**: none
 
 ### 4.7 CMS (`app/components/editable-*`)
 
@@ -199,34 +193,25 @@ Bell icon in header with dropdown. DB-stored, polls every 60s. Fan-out on news/e
 
 Modular tab-based admin. Slim orchestrator (`admin-client.tsx`, ~140 lines) with `AdminProvider` context. Each tab lazy-loaded via `next/dynamic`.
 
-| File                                 | Purpose                                                                                      |
-| ------------------------------------ | -------------------------------------------------------------------------------------------- |
-| `app/admin/admin-client.tsx`         | Tab orchestrator + dynamic imports                                                           |
-| `app/admin/admin-context.tsx`        | Shared state (supabase, clans, user, routing)                                                |
-| `app/admin/admin-types.ts`           | Types, constants, rank/role formatters (`LOCALIZED_ROLE_LABELS`, `formatRole`, `formatRank`) |
-| `app/admin/tabs/clans-tab.tsx`       | Clan management + game account memberships                                                   |
-| `app/admin/tabs/users-tab.tsx`       | User CRUD, game account management                                                           |
-| `app/admin/tabs/validation-tab.tsx`  | Validation rules (global)                                                                    |
-| `app/admin/tabs/corrections-tab.tsx` | Correction rules (global)                                                                    |
-| `app/admin/tabs/logs-tab.tsx`        | Audit log viewer                                                                             |
-| `app/admin/tabs/approvals-tab.tsx`   | Game account approval queue                                                                  |
-| `app/admin/tabs/forum-tab.tsx`       | Forum category management                                                                    |
+| File                               | Purpose                                                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| `app/admin/admin-client.tsx`       | Tab orchestrator + dynamic imports                                                           |
+| `app/admin/admin-context.tsx`      | Shared state (supabase, clans, user, routing)                                                |
+| `app/admin/admin-types.ts`         | Types, constants, rank/role formatters (`LOCALIZED_ROLE_LABELS`, `formatRole`, `formatRank`) |
+| `app/admin/tabs/clans-tab.tsx`     | Clan management + game account memberships                                                   |
+| `app/admin/tabs/users-tab.tsx`     | User CRUD, game account management                                                           |
+| `app/admin/tabs/logs-tab.tsx`      | Audit log viewer                                                                             |
+| `app/admin/tabs/approvals-tab.tsx` | Game account approval queue                                                                  |
+| `app/admin/tabs/forum-tab.tsx`     | Forum category management                                                                    |
+| `app/design-system/`               | Design system (assets, inventory, assignments) — linked from admin                           |
 
-**DB tables**: `profiles`, `user_roles`, `game_accounts`, `game_account_clan_memberships`, `clans`, `validation_rules`, `correction_rules`, `audit_logs`
+**DB tables**: `profiles`, `user_roles`, `game_accounts`, `game_account_clan_memberships`, `clans`, `audit_logs`
 
-### 4.10 Data Import & Chest Database
+**Removed admin sections**: dataImport, validation, corrections, chestDb. Removed: `admin-sub-page-layout.tsx`, `admin-section-tabs.tsx`, `use-rule-list.ts`, `rule-import-modal.tsx`.
 
-| File                                     | Purpose                                          |
-| ---------------------------------------- | ------------------------------------------------ |
-| `app/data-import/data-import-client.tsx` | CSV import with preview, corrections, validation |
-| `app/data-import/csv-parser.ts`          | Pure CSV parsing/validation functions            |
-| `app/data-import/import-utils.ts`        | Sort value extraction and comparators            |
-| `app/data-table/data-table-client.tsx`   | Chest database viewer/editor                     |
-| `app/api/data-import/commit/route.ts`    | `POST` commit import data                        |
-| `lib/correction-applicator.ts`           | Correction rule engine                           |
-| `lib/validation-evaluator.ts`            | Validation rule evaluator                        |
+### 4.10 Data Import & Chest Database — _removed_
 
-**DB tables**: `chest_entries`, `validation_rules`, `correction_rules`, `clans`
+Data import (`app/data-import/`, `app/admin/data-import/`, `app/api/data-import/`), chest database (`app/data-table/`, `app/admin/data-table/`), validation (`app/admin/tabs/validation-tab.tsx`, `lib/validation-evaluator.ts`), and corrections (`app/admin/tabs/corrections-tab.tsx`, `lib/correction-applicator.ts`) have been removed. Tables `chest_entries`, `validation_rules`, `correction_rules`, `scoring_rules` dropped via `Documentation/migrations/drop_chest_data_tables.sql`.
 
 ### 4.11 Members (`app/members/`)
 
@@ -237,19 +222,19 @@ Clan member directory. Game accounts sorted by rank, with expandable detail rows
 | `app/members/members-client.tsx` | Member table with rank badges, expandable rows                   |
 | `app/members/members-utils.ts`   | Pure helpers: colours, sort comparator, role-substitute counting |
 
-**DB tables**: `game_account_clan_memberships`, `game_accounts`, `profiles`, `chest_entries`
+**DB tables**: `game_account_clan_memberships`, `game_accounts`, `profiles`
 
 ### 4.12 Dashboard (`app/`)
 
-Main landing page after login. Shows announcements, upcoming events, quick stats, and week highlights. Items are clickable deep-links: announcements link to `/news?article=<id>`, events link to `/events?date=<YYYY-MM-DD>&event=<id>`. Items with a linked forum thread show a chat icon button linking to `/forum?post=<forum_post_id>`.
+Main landing page after login. Shows announcements, upcoming events, and "coming soon" placeholders for quick stats and week highlights. Items are clickable deep-links: announcements link to `/news?article=<id>`, events link to `/events?date=<YYYY-MM-DD>&event=<id>`. Items with a linked forum thread show a chat icon button linking to `/forum?post=<forum_post_id>`.
 
-| File                              | Purpose                                               |
-| --------------------------------- | ----------------------------------------------------- |
-| `app/dashboard-client.tsx`        | Dashboard UI (announcements, events, stats, links)    |
-| `app/hooks/use-dashboard-data.ts` | Data fetching hook (articles, events, stats, members) |
-| `lib/dashboard-utils.ts`          | `toDateString()`, trends, formatting helpers          |
+| File                              | Purpose                                            |
+| --------------------------------- | -------------------------------------------------- |
+| `app/dashboard-client.tsx`        | Dashboard UI (announcements, events, placeholders) |
+| `app/hooks/use-dashboard-data.ts` | Data fetching hook (articles, events)              |
+| `lib/dashboard-utils.ts`          | `toDateString()`, trends, formatting helpers       |
 
-**DB tables**: `articles`, `events`, `chest_entries`, `game_account_clan_memberships`
+**DB tables**: `articles`, `events`, `game_account_clan_memberships`
 
 ### 4.13 Design System (`app/design-system/`)
 
@@ -292,53 +277,49 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 ## 5. Shared Components (`app/components/`)
 
-| Component              | File                            | Purpose                                                                                              |
-| ---------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| ClanAccessGate         | `clan-access-gate.tsx`          | Clan membership gate for scoped pages. Bypasses `/admin` routes. Syncs locale via `router.refresh()` |
-| MarkdownEditor         | `markdown-editor.tsx`           | Write/preview tabs, toolbar, image upload. Props: `storageBucket`                                    |
-| BannerPicker           | `banner-picker.tsx`             | 51 game-asset presets + custom upload                                                                |
-| ConfirmModal           | `confirm-modal.tsx`             | Danger/warning/info variants, optional phrase confirmation                                           |
-| FormModal              | `form-modal.tsx`                | Shared modal wrapper (backdrop, form, status)                                                        |
-| AddCorrectionRuleModal | `add-correction-rule-modal.tsx` | Shared correction rule creation modal                                                                |
-| AddValidationRuleModal | `add-validation-rule-modal.tsx` | Shared validation rule creation modal                                                                |
-| DataState              | `data-state.tsx`                | Loading/empty/error state wrapper                                                                    |
-| PaginationBar          | `pagination-bar.tsx`            | Page controls (compact mode available)                                                               |
-| SortableColumnHeader   | `sortable-column-header.tsx`    | Clickable sort header with direction arrow                                                           |
-| NotificationBell       | `notification-bell.tsx`         | Header bell icon + dropdown panel                                                                    |
-| DatePicker             | `date-picker.tsx`               | Flatpickr wrapper (date or datetime)                                                                 |
-| BugReportWidget        | `bug-report-widget.tsx`         | Floating bug report button + modal (root layout)                                                     |
-| SearchInput            | `ui/search-input.tsx`           | Labeled search field                                                                                 |
-| RadixSelect            | `ui/radix-select.tsx`           | Styled dropdown select                                                                               |
-| ComboboxInput          | `ui/combobox-input.tsx`         | Text input with suggestion dropdown                                                                  |
-| IconButton             | `ui/icon-button.tsx`            | Icon-only action button                                                                              |
+| Component            | File                         | Purpose                                                                                              |
+| -------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| ClanAccessGate       | `clan-access-gate.tsx`       | Clan membership gate for scoped pages. Bypasses `/admin` routes. Syncs locale via `router.refresh()` |
+| MarkdownEditor       | `markdown-editor.tsx`        | Write/preview tabs, toolbar, image upload. Props: `storageBucket`                                    |
+| BannerPicker         | `banner-picker.tsx`          | 51 game-asset presets + custom upload                                                                |
+| ConfirmModal         | `confirm-modal.tsx`          | Danger/warning/info variants, optional phrase confirmation                                           |
+| FormModal            | `form-modal.tsx`             | Shared modal wrapper (backdrop, form, status)                                                        |
+| DataState            | `data-state.tsx`             | Loading/empty/error state wrapper                                                                    |
+| PaginationBar        | `pagination-bar.tsx`         | Page controls (compact mode available)                                                               |
+| SortableColumnHeader | `sortable-column-header.tsx` | Clickable sort header with direction arrow                                                           |
+| NotificationBell     | `notification-bell.tsx`      | Header bell icon + dropdown panel                                                                    |
+| DatePicker           | `date-picker.tsx`            | Flatpickr wrapper (date or datetime)                                                                 |
+| BugReportWidget      | `bug-report-widget.tsx`      | Floating bug report button + modal (root layout)                                                     |
+| SearchInput          | `ui/search-input.tsx`        | Labeled search field                                                                                 |
+| RadixSelect          | `ui/radix-select.tsx`        | Styled dropdown select                                                                               |
+| ComboboxInput        | `ui/combobox-input.tsx`      | Text input with suggestion dropdown                                                                  |
+| IconButton           | `ui/icon-button.tsx`         | Icon-only action button                                                                              |
 
 ## 6. Shared Libraries (`lib/`)
 
-| Module             | File                                | Purpose                                                                                                                                                                                                               |
-| ------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth helpers       | `api/require-auth.ts`               | Validates session, returns `{ userId, supabase }` or error                                                                                                                                                            |
-| Admin helpers      | `api/require-admin.ts`              | Validates admin role (wraps requireAuth)                                                                                                                                                                              |
-| Zod schemas        | `api/validation.ts`                 | `uuidSchema`, `notificationSettingsSchema`, `analyticsQuerySchema`, `messageQuerySchema`, `dateStringSchema`, `bugReportCreateSchema`, `bugReportUpdateSchema`, `bugListQuerySchema`, `apiError()`, `parseJsonBody()` |
-| Error logging      | `api/logger.ts`                     | `captureApiError()` — logs to console + Sentry. Use in all API catch blocks.                                                                                                                                          |
-| String utils       | `string-utils.ts`                   | `normalizeString()` — canonical `trim().toLowerCase()`. Use everywhere instead of inline.                                                                                                                             |
-| Permissions        | `permissions.ts`                    | Role→permission map. `hasPermission()`, `canDo()`, `isAdmin()`                                                                                                                                                        |
-| Rate limiter       | `rate-limit.ts`                     | `createRateLimiter()` factory. Pre-built: `strictLimiter` (10/min), `standardLimiter` (30/min), `relaxedLimiter` (120/min). Isolated stores per instance.                                                             |
-| Domain types       | `types/domain.ts`                   | Shared interfaces: `InboxThread`, `SentMessage`, `ThreadMessage`, `ProfileSummary`, `ArchivedItem`, `BugReport`, `BugReportComment`, `BugReportScreenshot`, etc.                                                      |
-| Markdown           | `markdown/app-markdown.tsx`         | Unified renderer (`variant="cms"` or `"forum"`)                                                                                                                                                                       |
-| Markdown toolbar   | `markdown/app-markdown-toolbar.tsx` | Formatting buttons, image upload                                                                                                                                                                                      |
-| Markdown sanitizer | `markdown/sanitize-markdown.ts`     | Normalizes content before rendering                                                                                                                                                                                   |
-| Markdown stripper  | `markdown/strip-markdown.ts`        | Strips markdown syntax to plain text (card previews, search excerpts)                                                                                                                                                 |
-| Date formatting    | `date-format.ts`                    | `formatLocalDateTime()`, `formatTimeAgo()` — shared "time ago" helper with locale fallback                                                                                                                            |
-| Banner upload      | `hooks/use-banner-upload.ts`        | `useBannerUpload()` — shared hook for uploading banner images with type/size validation                                                                                                                               |
-| Dashboard utils    | `dashboard-utils.ts`                | `toDateString()`, `extractAuthorName()`, `calculateTrend()`, `formatCompactNumber()`                                                                                                                                  |
-| Corrections        | `correction-applicator.ts`          | Applies correction rules to chest data                                                                                                                                                                                |
-| Error utils        | `supabase/error-utils.ts`           | Classifies Supabase errors → i18n keys                                                                                                                                                                                |
-| User role hook     | `hooks/use-user-role.ts`            | React hook: fetches role, exposes permission helpers                                                                                                                                                                  |
-| Pagination hook    | `hooks/use-pagination.ts`           | Page state, page count, slice helpers                                                                                                                                                                                 |
-| Sortable hook      | `hooks/use-sortable.ts`             | Sort key + direction + generic comparator                                                                                                                                                                             |
-| Rule processing    | `hooks/use-rule-processing.ts`      | Evaluator/applicator/suggestion computation                                                                                                                                                                           |
-| Email (send)       | `email/send-email.ts`               | Lightweight Resend API wrapper (raw `fetch`, no npm dep). Returns silently if env vars missing.                                                                                                                       |
-| Email (bug tpl)    | `email/bug-report-email.ts`         | HTML email template for new bug report notifications                                                                                                                                                                  |
+| Module             | File                                | Purpose                                                                                                                                                                                       |
+| ------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth helpers       | `api/require-auth.ts`               | Validates session, returns `{ userId, supabase }` or error                                                                                                                                    |
+| Admin helpers      | `api/require-admin.ts`              | Validates admin role (wraps requireAuth)                                                                                                                                                      |
+| Zod schemas        | `api/validation.ts`                 | `uuidSchema`, `notificationSettingsSchema`, `messageQuerySchema`, `dateStringSchema`, `bugReportCreateSchema`, `bugReportUpdateSchema`, `bugListQuerySchema`, `apiError()`, `parseJsonBody()` |
+| Error logging      | `api/logger.ts`                     | `captureApiError()` — logs to console + Sentry. Use in all API catch blocks.                                                                                                                  |
+| String utils       | `string-utils.ts`                   | `normalizeString()` — canonical `trim().toLowerCase()`. Use everywhere instead of inline.                                                                                                     |
+| Permissions        | `permissions.ts`                    | Role→permission map. `hasPermission()`, `canDo()`, `isAdmin()`                                                                                                                                |
+| Rate limiter       | `rate-limit.ts`                     | `createRateLimiter()` factory. Pre-built: `strictLimiter` (10/min), `standardLimiter` (30/min), `relaxedLimiter` (120/min). Isolated stores per instance.                                     |
+| Domain types       | `types/domain.ts`                   | Shared interfaces: `InboxThread`, `SentMessage`, `ThreadMessage`, `ProfileSummary`, `ArchivedItem`, `BugReport`, `BugReportComment`, `BugReportScreenshot`, etc.                              |
+| Markdown           | `markdown/app-markdown.tsx`         | Unified renderer (`variant="cms"` or `"forum"`)                                                                                                                                               |
+| Markdown toolbar   | `markdown/app-markdown-toolbar.tsx` | Formatting buttons, image upload                                                                                                                                                              |
+| Markdown sanitizer | `markdown/sanitize-markdown.ts`     | Normalizes content before rendering                                                                                                                                                           |
+| Markdown stripper  | `markdown/strip-markdown.ts`        | Strips markdown syntax to plain text (card previews, search excerpts)                                                                                                                         |
+| Date formatting    | `date-format.ts`                    | `formatLocalDateTime()`, `formatTimeAgo()` — shared "time ago" helper with locale fallback                                                                                                    |
+| Banner upload      | `hooks/use-banner-upload.ts`        | `useBannerUpload()` — shared hook for uploading banner images with type/size validation                                                                                                       |
+| Dashboard utils    | `dashboard-utils.ts`                | `toDateString()`, `extractAuthorName()`, `calculateTrend()`, `formatCompactNumber()`                                                                                                          |
+| Error utils        | `supabase/error-utils.ts`           | Classifies Supabase errors → i18n keys                                                                                                                                                        |
+| User role hook     | `hooks/use-user-role.ts`            | React hook: fetches role, exposes permission helpers                                                                                                                                          |
+| Pagination hook    | `hooks/use-pagination.ts`           | Page state, page count, slice helpers                                                                                                                                                         |
+| Sortable hook      | `hooks/use-sortable.ts`             | Sort key + direction + generic comparator                                                                                                                                                     |
+| Email (send)       | `email/send-email.ts`               | Lightweight Resend API wrapper (raw `fetch`, no npm dep). Returns silently if env vars missing.                                                                                               |
+| Email (bug tpl)    | `email/bug-report-email.ts`         | HTML email template for new bug report notifications                                                                                                                                          |
 
 ## 7. API Route Index
 
@@ -356,12 +337,10 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 | `/api/notifications/mark-all-read`  | POST                     | user         | standard         | Mark all read                                       |
 | `/api/notifications/fan-out`        | POST                     | user         | strict           | Fan-out to clan members                             |
 | `/api/notification-settings`        | GET, PATCH               | user         | standard         | Notification preferences                            |
-| `/api/analytics`                    | GET                      | user         | relaxed          | Aggregated analytics data                           |
 | `/api/game-accounts`                | GET, POST, PATCH         | user         | standard         | Game account CRUD                                   |
 | `/api/site-content`                 | GET, PATCH               | public/admin | relaxed/standard | CMS text content                                    |
 | `/api/site-list-items`              | GET, PATCH               | public/admin | relaxed/standard | CMS list items                                      |
 | `/api/auth/forgot-password`         | POST                     | public       | standard         | Password reset email                                |
-| `/api/data-import/commit`           | POST                     | admin        | strict           | Commit imported data                                |
 | `/api/admin/create-user`            | POST                     | admin        | strict           | Invite new user                                     |
 | `/api/admin/delete-user`            | POST                     | admin        | strict           | Delete user                                         |
 | `/api/admin/user-lookup`            | POST                     | admin        | strict           | Lookup user by email                                |
@@ -387,9 +366,6 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 | `game_accounts`                 | Per-user game accounts with approval_status                                                                     |
 | `game_account_clan_memberships` | Links game accounts to clans (rank, is_active)                                                                  |
 | `clans`                         | Clan metadata (name, is_default, is_unassigned)                                                                 |
-| `chest_entries`                 | Imported chest data (date, player, source, chest, score, clan_id)                                               |
-| `validation_rules`              | Global validation rules for chest data                                                                          |
-| `correction_rules`              | Global correction rules for chest data                                                                          |
 | `audit_logs`                    | Action audit trail (entity, action, actor, details)                                                             |
 | `messages`                      | One row per authored message (sender, subject, content, type, threading, sender_deleted_at, sender_archived_at) |
 | `message_recipients`            | One row per recipient (is_read, deleted_at for soft delete, archived_at for archive)                            |
@@ -463,7 +439,7 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 ### i18n
 
 - Two locale files: `messages/en.json` + `messages/de.json`.
-- Namespaced: `"messagesPage"`, `"forum"`, `"events"`, `"analytics"`, `"admin"`, `"common"`, etc.
+- Namespaced: `"messagesPage"`, `"forum"`, `"events"`, `"admin"`, `"common"`, etc.
 - Components use `useTranslations("namespace")` (client) or `getTranslations("namespace")` (server).
 
 ### Testing
@@ -493,21 +469,22 @@ SENTRY_DSN=...                      # Optional: Sentry error tracking
 
 All migrations are in `Documentation/migrations/`. Run order documented in `Documentation/runbook.md` section 1. Key migrations:
 
-| File                            | Purpose                                                                       |
-| ------------------------------- | ----------------------------------------------------------------------------- |
-| `messages_v2.sql`               | Messages + recipients tables, threading, data migration                       |
-| `notifications.sql`             | Notifications + user settings tables                                          |
-| `forum_tables.sql`              | Forum categories, posts, comments, votes                                      |
-| `forum_rls_permissions.sql`     | Forum RLS using `has_permission()`                                            |
-| `game_account_approval.sql`     | Approval workflow for game accounts                                           |
-| `roles_permissions_cleanup.sql` | Drop legacy role tables, new permission functions                             |
-| `event_templates.sql`           | Event templates table                                                         |
-| `event_recurrence.sql`          | Recurrence fields on events                                                   |
-| `design_system_tables.sql`      | Design asset management tables                                                |
-| `author_fk_constraints.sql`     | FK constraints enabling PostgREST joins                                       |
-| `messages_sender_delete.sql`    | Adds `sender_deleted_at` column + index to messages                           |
-| `messages_archive.sql`          | Adds `archived_at` to recipients, `sender_archived_at` to messages + indexes  |
-| `bug_reports.sql`               | Bug report tables, RLS policies, indexes, storage bucket, default categories  |
-| `bug_reports_v2.sql`            | Comment edit/delete, `bugs_email_enabled` setting, edit/delete RLS policies   |
-| `bug_reports_v3.sql`            | Adds `slug` column to `bug_report_categories` for i18n                        |
-| `guest_role_permissions.sql`    | Promotes guest to member-level permissions in `has_permission()` SQL function |
+| File                            | Purpose                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------ |
+| `messages_v2.sql`               | Messages + recipients tables, threading, data migration                        |
+| `notifications.sql`             | Notifications + user settings tables                                           |
+| `forum_tables.sql`              | Forum categories, posts, comments, votes                                       |
+| `forum_rls_permissions.sql`     | Forum RLS using `has_permission()`                                             |
+| `game_account_approval.sql`     | Approval workflow for game accounts                                            |
+| `roles_permissions_cleanup.sql` | Drop legacy role tables, new permission functions                              |
+| `event_templates.sql`           | Event templates table                                                          |
+| `event_recurrence.sql`          | Recurrence fields on events                                                    |
+| `design_system_tables.sql`      | Design asset management tables                                                 |
+| `author_fk_constraints.sql`     | FK constraints enabling PostgREST joins                                        |
+| `messages_sender_delete.sql`    | Adds `sender_deleted_at` column + index to messages                            |
+| `messages_archive.sql`          | Adds `archived_at` to recipients, `sender_archived_at` to messages + indexes   |
+| `bug_reports.sql`               | Bug report tables, RLS policies, indexes, storage bucket, default categories   |
+| `bug_reports_v2.sql`            | Comment edit/delete, `bugs_email_enabled` setting, edit/delete RLS policies    |
+| `bug_reports_v3.sql`            | Adds `slug` column to `bug_report_categories` for i18n                         |
+| `guest_role_permissions.sql`    | Promotes guest to member-level permissions in `has_permission()` SQL function  |
+| `drop_chest_data_tables.sql`    | Drops `chest_entries`, `validation_rules`, `correction_rules`, `scoring_rules` |

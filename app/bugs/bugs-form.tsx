@@ -34,12 +34,8 @@ const SITE_PAGES: readonly { path: string; navKey: string | null; pageKey: strin
   { path: "/admin?tab=clans", navKey: "clanManagement", pageKey: null },
   { path: "/admin?tab=approvals", navKey: "approvals", pageKey: null },
   { path: "/admin?tab=users", navKey: "users", pageKey: null },
-  { path: "/admin?tab=validation", navKey: "validation", pageKey: null },
-  { path: "/admin?tab=corrections", navKey: "corrections", pageKey: null },
   { path: "/admin?tab=logs", navKey: "auditLogs", pageKey: null },
   { path: "/admin?tab=forum", navKey: "forumAdmin", pageKey: null },
-  { path: "/admin/data-import", navKey: "dataImport", pageKey: null },
-  { path: "/admin/data-table", navKey: "chestDb", pageKey: null },
   { path: "/design-system", navKey: "designSystem", pageKey: null },
 ];
 

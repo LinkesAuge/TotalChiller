@@ -65,7 +65,7 @@ test.describe("Smoke: Protected pages redirect unauthenticated users", () => {
 
 /* ── Admin pages redirect non-admin users ── */
 
-const ADMIN_PAGES = ["/admin", "/admin/data-import", "/admin/data-table"];
+const ADMIN_PAGES = ["/admin"];
 
 test.describe("Smoke: Admin pages redirect unauthenticated users", () => {
   for (const path of ADMIN_PAGES) {

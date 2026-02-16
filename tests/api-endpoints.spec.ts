@@ -47,14 +47,6 @@ test.describe("API: Site List Items", () => {
   });
 });
 
-test.describe("API: Analytics", () => {
-  test("GET /api/analytics returns 200 or 401", async ({ request }) => {
-    const res = await request.get("/api/analytics");
-    /* Might require auth, query params, or be rate-limited */
-    expect([200, 400, 401, 429]).toContain(res.status());
-  });
-});
-
 test.describe("API: Messages", () => {
   test("GET /api/messages without auth returns gracefully", async ({ request }) => {
     const res = await request.get("/api/messages");
@@ -172,15 +164,6 @@ test.describe("API: Notifications Mark All Read", () => {
   test("POST /api/notifications/mark-all-read without auth returns 401 or rate-limited", async ({ request }) => {
     const res = await request.post("/api/notifications/mark-all-read");
     expect([401, 429]).toContain(res.status());
-  });
-});
-
-test.describe("API: Data Import", () => {
-  test("POST /api/data-import/commit without auth returns gracefully", async ({ request }) => {
-    const res = await request.post("/api/data-import/commit", {
-      data: { clan_id: "test", rows: [] },
-    });
-    expect([200, 400, 401, 429]).toContain(res.status());
   });
 });
 

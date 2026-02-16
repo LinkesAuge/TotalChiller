@@ -5,7 +5,6 @@ import type { AdminSection } from "./admin-types";
  *
  * Consumed by:
  * - admin-client.tsx  (tab buttons on the main admin page)
- * - admin-section-tabs.tsx  (link tabs on data-import / data-table sub-pages)
  * - sidebar-nav.tsx  (admin group in the sidebar)
  */
 
@@ -23,10 +22,6 @@ export const ADMIN_SECTIONS: readonly AdminSectionDef[] = [
   { labelKey: "clans", href: "/admin?tab=clans", tab: "clans" },
   { labelKey: "approvals", href: "/admin?tab=approvals", tab: "approvals" },
   { labelKey: "forum", href: "/admin?tab=forum", tab: "forum" },
-  { labelKey: "dataImport", href: "/admin/data-import" },
-  { labelKey: "validation", href: "/admin?tab=validation", tab: "validation" },
-  { labelKey: "corrections", href: "/admin?tab=corrections", tab: "corrections" },
-  { labelKey: "chestDb", href: "/admin/data-table" },
   { labelKey: "designSystem", href: "/design-system" },
   { labelKey: "logs", href: "/admin?tab=logs", tab: "logs" },
 ];

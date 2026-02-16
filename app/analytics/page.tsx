@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
-import AnalyticsClient from "./analytics-client";
+import AnalyticsPlaceholder from "./analytics-placeholder";
 
 export const metadata: Metadata = {
   title: "Analytics",
-  description: "Score tracking, player rankings, and performance analytics for [THC] Chiller & Killer.",
+  description: "Clan analytics and performance insights.",
   alternates: { canonical: "/analytics" },
 };
 
-/**
- * Renders the analytics and stats page.
- */
 function AnalyticsPage(): JSX.Element {
-  return <AnalyticsClient />;
+  return <AnalyticsPlaceholder />;
 }
 
 export default AnalyticsPage;

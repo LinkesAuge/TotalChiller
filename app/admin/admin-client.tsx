@@ -15,12 +15,6 @@ const ClansTab = dynamic(() => import("./tabs/clans-tab"), {
 const UsersTab = dynamic(() => import("./tabs/users-tab"), {
   loading: () => <TabSkeleton />,
 });
-const ValidationTab = dynamic(() => import("./tabs/validation-tab"), {
-  loading: () => <TabSkeleton />,
-});
-const CorrectionsTab = dynamic(() => import("./tabs/corrections-tab"), {
-  loading: () => <TabSkeleton />,
-});
 const LogsTab = dynamic(() => import("./tabs/logs-tab"), {
   loading: () => <TabSkeleton />,
 });
@@ -53,8 +47,6 @@ function TabSkeleton(): ReactElement {
 const TAB_MAP: Record<AdminSection, React.ComponentType> = {
   clans: ClansTab,
   users: UsersTab,
-  validation: ValidationTab,
-  corrections: CorrectionsTab,
   logs: LogsTab,
   approvals: ApprovalsTab,
   forum: ForumTab,

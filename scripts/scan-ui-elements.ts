@@ -689,18 +689,6 @@ const UI_CHECKLIST: UiElementRecord[] = [
 
   // ── Tables ──
   {
-    name: "Data Table",
-    description: "Full data table with sortable headers, selection, alternating rows",
-    category: "table",
-    subcategory: "data",
-    component_file: "app/data-table/data-table-client.tsx",
-    current_css: ".table",
-    status: "active",
-    notes: null,
-    render_type: "css",
-    preview_html: null,
-  },
-  {
     name: "Sortable Column Header",
     description: "Table header with sort direction indicator",
     category: "table",
@@ -878,19 +866,6 @@ const UI_CHECKLIST: UiElementRecord[] = [
     preview_html:
       '<div style="width:220px;padding:16px;border-radius:12px;border:1px solid var(--color-edge);background:var(--color-surface)"><div style="font-weight:600;margin-bottom:8px">Form</div><input type="text" placeholder="Field..." style="width:100%;margin-bottom:8px" /><button class="button primary" style="padding:3px 10px;font-size:0.75rem;width:100%">Submit</button></div>',
   },
-  {
-    name: "Import Modal",
-    description: "CSV/TXT import preview modal with validation",
-    category: "modal",
-    subcategory: "import",
-    component_file: "app/admin/components/rule-import-modal.tsx",
-    current_css: null,
-    status: "active",
-    notes: null,
-    render_type: "composite",
-    preview_html: null,
-  },
-
   // ── Badges ──
   {
     name: "Status Badge",

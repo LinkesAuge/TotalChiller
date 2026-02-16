@@ -298,14 +298,6 @@
     font-size: 0.8rem;
     padding: 12px 14px;
   }
-  .table.data-import header,
-  .table.data-import .row {
-    grid-template-columns: 70px 100px 1fr 1fr 1fr 70px 1fr;
-  }
-  .table.data-table header,
-  .table.data-table .row {
-    grid-template-columns: 70px 100px 1fr 1fr 1fr 70px 1.3fr 140px;
-  }
 }
 
 /* ═══════════════════════════════════════════════════════

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useDashboardData } from "./hooks/use-dashboard-data";
-import { formatCompactNumber, formatRelativeTime, toDateString } from "../lib/dashboard-utils";
+import { formatRelativeTime, toDateString } from "../lib/dashboard-utils";
 import useClanContext from "./hooks/use-clan-context";
 import DataState from "./components/data-state";
 
@@ -62,44 +62,17 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 const DEFAULT_TAG_COLOR = "#4a6ea0";
 
-/** Render a trend indicator arrow + percentage. */
-function TrendIndicator({ trend }: { readonly trend: number }): JSX.Element {
-  const isUp = trend > 0;
-  const isDown = trend < 0;
-  const color = isUp ? "var(--color-accent-green)" : isDown ? "var(--color-accent-red)" : "var(--color-text-muted)";
-  const arrow = isUp ? "↑" : isDown ? "↓" : "–";
-  return (
-    <span className="text-[0.65rem] font-medium" style={{ color }}>
-      {arrow} {Math.abs(trend)}%
-    </span>
-  );
-}
-
-/** Clamp a trend percentage to a progress bar width (50% baseline ± half the trend). */
-function trendToProgressWidth(trend: number): string {
-  if (!Number.isFinite(trend)) return "50%";
-  return `${Math.min(100, Math.max(0, 50 + trend / 2))}%`;
-}
-
 /* ── Component ── */
 
 /**
- * Dashboard client — announcements, live stats, events, week highlights.
+ * Dashboard client — announcements, events, and placeholder sections for stats.
  */
 function DashboardClient(): JSX.Element {
   const t = useTranslations("dashboard");
   const clanContext = useClanContext();
 
-  const {
-    announcements,
-    events,
-    stats,
-    isLoadingAnnouncements,
-    isLoadingEvents,
-    isLoadingStats,
-    announcementsError,
-    eventsError,
-  } = useDashboardData({ clanId: clanContext?.clanId });
+  const { announcements, events, isLoadingAnnouncements, isLoadingEvents, announcementsError, eventsError } =
+    useDashboardData({ clanId: clanContext?.clanId });
 
   /* ── Tag color helper ── */
   const tagColorMap = useMemo(() => {
@@ -199,62 +172,30 @@ function DashboardClient(): JSX.Element {
           </div>
         </section>
 
-        {/* ── Quick Stats (live data) ── */}
+        {/* ── Quick Stats — placeholder ── */}
         <section className="card col-span-2">
           <div className="tooltip-head">
             <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
             <div className="tooltip-head-inner">
               <Image src="/assets/vip/batler_icons_stat_armor.png" alt="Stats" width={18} height={18} />
               <h3 className="card-title">{t("quickStatsTitle")}</h3>
-              <span className="ml-auto" style={{ fontSize: "0.6rem", color: "var(--color-text-muted)" }}>
-                {t("quickStatsPeriod")}
-              </span>
             </div>
           </div>
-          <div className="stat-grid">
-            {[
-              {
-                value: isLoadingStats ? "…" : formatCompactNumber(stats.personalScore),
-                label: t("personalScore"),
-                icon: "/assets/vip/batler_icons_stat_damage.png",
-                trend: stats.personalTrend,
-              },
-              {
-                value: isLoadingStats ? "…" : formatCompactNumber(stats.clanScore),
-                label: t("clanScore"),
-                icon: "/assets/vip/batler_icons_stat_armor.png",
-                trend: stats.clanTrend,
-              },
-              {
-                value: isLoadingStats ? "…" : formatCompactNumber(stats.totalChests),
-                label: t("chests"),
-                icon: "/assets/vip/icons_chest_2.png",
-                trend: stats.chestTrend,
-              },
-              {
-                value: isLoadingStats ? "…" : String(stats.activeMembers),
-                label: t("activeMembers"),
-                icon: "/assets/vip/batler_icons_stat_heal.png",
-                trend: null,
-              },
-            ].map((stat, i) => (
-              <div key={i} className="stat-cell">
-                <Image
-                  src={stat.icon}
-                  alt={stat.label}
-                  width={20}
-                  height={20}
-                  className="my-0 mx-auto mb-1 block object-contain"
-                />
-                <div className="stat-value">{stat.value}</div>
-                <div className="stat-label">{stat.label}</div>
-                {stat.trend !== null && (
-                  <div className="mt-0.5">
-                    <TrendIndicator trend={stat.trend} />
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="flex flex-col items-center justify-center gap-2 py-10 px-4">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--color-text-muted)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M18 20V10M12 20V4M6 20v-6" />
+            </svg>
+            <p className="text-sm text-text-muted text-center m-0">{t("statsComingSoon")}</p>
           </div>
         </section>
 
@@ -329,103 +270,26 @@ function DashboardClient(): JSX.Element {
           </div>
         </section>
 
-        {/* ── Week Highlights ── */}
+        {/* ── Week Highlights — placeholder ── */}
         <section className="card">
           <div className="card-header" style={{ alignItems: "center" }}>
             <h3 className="card-title">{t("weekHighlightsTitle")}</h3>
           </div>
-          <div className="flex flex-col gap-3.5 p-3.5 px-4">
-            <DataState
-              isLoading={isLoadingStats}
-              loadingNode={<div className="py-2 text-sm text-text-muted">{t("loading")}</div>}
+          <div className="flex flex-col items-center justify-center gap-2 py-10 px-4">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--color-text-muted)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
             >
-              {/* Top player */}
-              <div>
-                <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
-                  <span>{t("topPlayer")}</span>
-                  <span className="font-bold" style={{ color: "#c9a34a" }}>
-                    {stats.topPlayerName !== "—"
-                      ? `${stats.topPlayerName} (${formatCompactNumber(stats.topPlayerScore)})`
-                      : t("noData")}
-                  </span>
-                </div>
-                <div className="game-progress">
-                  <Image
-                    src="/assets/vip/battler_stage_bar_empty.png"
-                    alt=""
-                    className="game-progress-bg"
-                    width={400}
-                    height={20}
-                  />
-                  <div className="game-progress-fill" style={{ width: `${stats.topPlayerScore > 0 ? 100 : 0}%` }}>
-                    <Image
-                      src="/assets/vip/battler_stage_bar_full.png"
-                      alt=""
-                      className="game-progress-bg"
-                      width={400}
-                      height={20}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Score change vs last week */}
-              <div>
-                <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
-                  <span>{t("scoreChange")}</span>
-                  <span className="font-bold" style={{ color: stats.clanTrend >= 0 ? "#4a9960" : "#c94a3a" }}>
-                    {stats.clanTrend > 0 ? "+" : ""}
-                    {stats.clanTrend}% {t("vsLastWeek")}
-                  </span>
-                </div>
-                <div className="game-progress">
-                  <Image
-                    src="/assets/vip/battler_stage_bar_empty.png"
-                    alt=""
-                    className="game-progress-bg"
-                    width={400}
-                    height={20}
-                  />
-                  <div className="game-progress-fill" style={{ width: trendToProgressWidth(stats.clanTrend) }}>
-                    <Image
-                      src="/assets/vip/battler_stage_bar_full.png"
-                      alt=""
-                      className="game-progress-bg"
-                      width={400}
-                      height={20}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Top chest type */}
-              <div>
-                <div className="flex justify-between text-[0.82rem] text-text-2 mb-1">
-                  <span>{t("topChestType")}</span>
-                  <span className="font-bold" style={{ color: "#4a6ea0" }}>
-                    {stats.topChestType}
-                  </span>
-                </div>
-                <div className="game-progress">
-                  <Image
-                    src="/assets/vip/battler_stage_bar_empty.png"
-                    alt=""
-                    className="game-progress-bg"
-                    width={400}
-                    height={20}
-                  />
-                  <div className="game-progress-fill" style={{ width: `${stats.topChestType !== "—" ? 100 : 0}%` }}>
-                    <Image
-                      src="/assets/vip/battler_stage_bar_full.png"
-                      alt=""
-                      className="game-progress-bg"
-                      width={400}
-                      height={20}
-                    />
-                  </div>
-                </div>
-              </div>
-            </DataState>
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
+            </svg>
+            <p className="text-sm text-text-muted text-center m-0">{t("statsComingSoon")}</p>
           </div>
         </section>
       </div>

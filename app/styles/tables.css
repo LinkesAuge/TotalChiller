@@ -50,73 +50,6 @@
   min-width: 0;
 }
 
-.table.data-import header,
-.table.data-import .row {
-  grid-template-columns:
-    minmax(44px, max-content)
-    minmax(44px, max-content)
-    minmax(110px, 140px)
-    minmax(160px, 1fr)
-    minmax(160px, 1fr)
-    minmax(160px, 1fr)
-    minmax(40px, 80px)
-    minmax(60px, 100px)
-    minmax(80px, 120px);
-}
-
-.table.data-import {
-  min-width: 100%;
-  width: max-content;
-}
-
-.table.data-table header,
-.table.data-table .row {
-  grid-template-columns:
-    60px
-    70px
-    130px
-    minmax(0, 1fr)
-    minmax(0, 1fr)
-    minmax(0, 1fr)
-    120px
-    minmax(0, 1.3fr)
-    200px;
-  min-width: 100%;
-  width: 100%;
-}
-
-.table.validation-list header,
-.table.validation-list .row {
-  grid-template-columns: 50px 60px 1fr 90px 160px;
-}
-
-.table.correction-list header,
-.table.correction-list .row {
-  grid-template-columns: 50px 60px 1fr 1fr 110px 160px;
-}
-
-.table.validation-import-list header,
-.table.validation-import-list .row {
-  grid-template-columns: 50px 48px 1fr 90px 140px;
-}
-
-.table.correction-import-list header,
-.table.correction-import-list .row {
-  grid-template-columns: 50px 48px 1fr 1fr 110px 140px;
-}
-
-.table.batch-preview header,
-.table.batch-preview .row {
-  grid-template-columns: 60px 120px 1fr 1fr 1fr 100px 1.3fr;
-}
-
-.table.data-table input:not([type="checkbox"]),
-.table.data-table .select-trigger,
-.table.data-table .date-picker-input {
-  width: 100%;
-  min-width: 0;
-}
-
 /* Compact inputs and selects inside all tables */
 .table input:not([type="checkbox"]),
 .table textarea,
@@ -206,31 +139,6 @@
   transform: rotate(180deg);
 }
 
-.table .row.selected {
-  background: rgba(201, 163, 74, 0.14);
-  border-left: 3px solid var(--color-gold);
-}
-
-.table .row.validation-valid {
-  background: rgba(74, 153, 96, 0.16);
-}
-
-.table .row.validation-invalid {
-  background: rgba(201, 74, 58, 0.18);
-}
-
-.validation-cell-invalid {
-  border-color: rgba(201, 74, 58, 0.8);
-  box-shadow: 0 0 0 2px rgba(201, 74, 58, 0.25);
-  background-color: rgba(54, 22, 18, 0.5);
-}
-
-.correction-cell-corrected {
-  border-color: rgba(74, 153, 96, 0.8);
-  box-shadow: 0 0 0 2px rgba(74, 153, 96, 0.25);
-  background-color: rgba(25, 58, 36, 0.45);
-}
-
 .table.members header,
 .table.members .row {
   grid-template-columns: 60px 1fr minmax(120px, 0.9fr) 0.8fr 0.7fr 80px minmax(190px, 220px);
@@ -260,7 +168,7 @@
 /* Member directory (public member list) */
 .table.member-dir header,
 .table.member-dir .row {
-  grid-template-columns: 56px 1fr 90px 90px 140px 28px;
+  grid-template-columns: 56px 1fr 140px 28px;
   align-items: center;
 }
 
@@ -323,13 +231,6 @@
   white-space: nowrap;
 }
 
-.member-dir-stat-cell {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-}
-
 .member-dir-rank {
   padding: 3px 12px;
   font-size: 0.78rem;
@@ -357,15 +258,6 @@
 .member-dir-stat svg {
   color: var(--color-gold-2);
   flex-shrink: 0;
-}
-
-.member-dir-stat-value {
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.member-dir-stat-label {
-  color: var(--color-text-muted);
 }
 
 .member-dir-role-badge {
@@ -450,14 +342,6 @@
   .table.member-dir header,
   .table.member-dir .row {
     grid-template-columns: 40px 1fr 110px 24px;
-  }
-
-  /* Hide score + chests columns on small screens */
-  .table.member-dir header > *:nth-child(3),
-  .table.member-dir header > *:nth-child(4),
-  .table.member-dir .row > *:nth-child(3),
-  .table.member-dir .row > *:nth-child(4) {
-    display: none;
   }
 
   .table.member-dir .row {
@@ -629,22 +513,4 @@
   border: 1px solid var(--color-gold-a35);
   color: var(--color-gold-2);
   box-shadow: 0 0 6px var(--color-gold-glow);
-}
-
-.status.warn {
-  background: linear-gradient(180deg, rgba(228, 180, 60, 0.18), rgba(180, 140, 40, 0.08));
-  border-color: rgba(228, 180, 60, 0.45);
-  color: #e8c44a;
-}
-
-.status.error {
-  background: linear-gradient(180deg, rgba(201, 74, 58, 0.18), rgba(160, 50, 40, 0.08));
-  border-color: rgba(201, 74, 58, 0.45);
-  color: #f5a090;
-}
-
-.status.success {
-  background: linear-gradient(180deg, rgba(74, 153, 96, 0.18), rgba(50, 110, 65, 0.08));
-  border-color: rgba(74, 153, 96, 0.45);
-  color: #6fd68c;
 }

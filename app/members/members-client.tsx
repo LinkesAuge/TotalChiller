@@ -20,11 +20,6 @@ import {
 
 /* ── Types ── */
 
-interface ChestStats {
-  readonly totalScore: number;
-  readonly chestCount: number;
-}
-
 /** Supabase join response for game_account_clan_memberships with game_accounts and clans. */
 interface MembershipSupabaseRow {
   readonly id: string;
@@ -52,19 +47,12 @@ interface RoleSelectRow {
   readonly role: string;
 }
 
-/* ── Helpers ── */
-
-/** Look up chest stats for a member by case-insensitive game username match. */
-function getChestStats(gameUsername: string, chestStatsMap: ReadonlyMap<string, ChestStats>): ChestStats | undefined {
-  return chestStatsMap.get(gameUsername.toLowerCase());
-}
-
 /* ── Component ── */
 
 /**
  * Member directory showing active game accounts for the currently selected clan.
  * Each row is a game account with the owning user shown as secondary info.
- * Rows expand on click to reveal chest stats, website role, and a message link.
+ * Rows expand on click to reveal website role and a message link.
  */
 function MembersClient(): JSX.Element {
   const t = useTranslations("members");
@@ -78,9 +66,6 @@ function MembersClient(): JSX.Element {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-
-  /* ── Supplementary data ── */
-  const [chestStatsMap, setChestStatsMap] = useState<ReadonlyMap<string, ChestStats>>(new Map());
 
   /* ── Expand state ── */
   const [expandedIds, setExpandedIds] = useState<readonly string[]>([]);
@@ -169,39 +154,6 @@ function MembersClient(): JSX.Element {
     setLoadError(null);
     setRetryCount((c) => c + 1);
   }, []);
-
-  /* ── Load chest stats for the active clan ── */
-  useEffect(() => {
-    async function loadChestStats(): Promise<void> {
-      if (!clanContext?.clanId) {
-        setChestStatsMap(new Map());
-        return;
-      }
-      const { data: entries } = await supabase
-        .from("chest_entries")
-        .select("player, score")
-        .eq("clan_id", clanContext.clanId);
-      if (!entries) {
-        setChestStatsMap(new Map());
-        return;
-      }
-      const statsMap = new Map<string, ChestStats>();
-      for (const entry of entries as Array<{ player: string; score: number }>) {
-        const key = entry.player.toLowerCase();
-        const existing = statsMap.get(key);
-        if (existing) {
-          statsMap.set(key, {
-            totalScore: existing.totalScore + entry.score,
-            chestCount: existing.chestCount + 1,
-          });
-        } else {
-          statsMap.set(key, { totalScore: entry.score, chestCount: 1 });
-        }
-      }
-      setChestStatsMap(statsMap);
-    }
-    void loadChestStats();
-  }, [supabase, clanContext?.clanId]);
 
   /** Per-rank member counts (only ranks that have at least one member). */
   const rankCounts = useMemo(() => {
@@ -296,14 +248,11 @@ function MembersClient(): JSX.Element {
           <header>
             <span>#</span>
             <span>{t("gameAccount")}</span>
-            <span>{t("totalScore")}</span>
-            <span>{t("chestCount")}</span>
             <span>{t("rank")}</span>
             <span />
           </header>
           {members.map((member, index) => {
             const isExpanded = expandedIds.includes(member.membershipId);
-            const stats = getChestStats(member.gameUsername, chestStatsMap);
             const role = member.role;
             /* If rank is null and user is owner/admin, show role name instead */
             const useRoleAsRank = !member.rank && !!role && RANK_SUBSTITUTE_ROLES.has(role);
@@ -333,8 +282,6 @@ function MembersClient(): JSX.Element {
                     <span className="member-dir-username">{member.gameUsername}</span>
                     {member.displayName && <span className="member-dir-user">{member.displayName}</span>}
                   </div>
-                  <span className="member-dir-stat-cell">{stats?.totalScore ?? 0}</span>
-                  <span className="member-dir-stat-cell">{stats?.chestCount ?? 0}</span>
                   <span>
                     <span
                       className="badge member-dir-rank"

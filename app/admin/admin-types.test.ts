@@ -267,16 +267,9 @@ describe("resolveSection", () => {
     expect(actual).toBe("clans");
   });
 
-  it("maps 'rules' to 'validation'", () => {
-    const actual = resolveSection("rules");
-    expect(actual).toBe("validation");
-  });
-
   it("returns valid section unchanged", () => {
-    const valid: Array<"clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum"> = [
+    const valid: Array<"clans" | "logs" | "users" | "approvals" | "forum"> = [
       "clans",
-      "validation",
-      "corrections",
       "logs",
       "users",
       "approvals",

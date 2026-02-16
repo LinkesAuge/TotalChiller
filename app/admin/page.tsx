@@ -10,7 +10,7 @@ import SectionHero from "../components/section-hero";
 
 export const metadata: Metadata = {
   title: "Admin Panel",
-  description: "Clan administration — user management, approvals, validation rules, and audit logs.",
+  description: "Clan administration — user management, approvals, and audit logs.",
 };
 
 /** Async content streamed via Suspense. */

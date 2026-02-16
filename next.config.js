@@ -11,17 +11,7 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
   experimental: {
-    optimizePackageImports: ["recharts", "@radix-ui/react-select"],
-  },
-
-  async redirects() {
-    return [
-      {
-        source: "/charts",
-        destination: "/analytics",
-        permanent: true,
-      },
-    ];
+    optimizePackageImports: ["@radix-ui/react-select"],
   },
 
   async headers() {

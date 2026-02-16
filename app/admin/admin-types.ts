@@ -74,25 +74,6 @@ export interface UserEditState {
   readonly role?: string | null;
 }
 
-export interface RuleRow {
-  readonly id: string;
-  readonly field?: string;
-  readonly match_value?: string;
-  readonly replacement_value?: string;
-  readonly status?: string;
-  readonly chest_match?: string;
-  readonly source_match?: string;
-  readonly min_level?: number | null;
-  readonly max_level?: number | null;
-  readonly score?: number;
-  readonly rule_order?: number;
-}
-
-export interface ValidationFieldCount {
-  total: number;
-  active: number;
-}
-
 export interface AuditLogRow {
   readonly id: string;
   readonly clan_id: string;
@@ -104,16 +85,12 @@ export interface AuditLogRow {
   readonly created_at: string;
 }
 
-export type AdminSection = "clans" | "validation" | "corrections" | "logs" | "users" | "approvals" | "forum";
+export type AdminSection = "clans" | "logs" | "users" | "approvals" | "forum";
 
 /* ── Constants ── */
 
 export const roleOptions: readonly string[] = [...ROLES];
 export const rankOptions: readonly string[] = ["leader", "superior", "officer", "veteran", "soldier", "guest"];
-export const ruleFieldOptions: readonly string[] = ["player", "source", "chest", "clan"];
-export const correctionFieldOptions: readonly string[] = ["all", ...ruleFieldOptions];
-export const NEW_VALIDATION_ID = "validation-new";
-export const NEW_CORRECTION_ID = "correction-new";
 
 /* ── Utility functions ── */
 
@@ -189,7 +166,6 @@ export function normalizeMembershipRows(
 
 export function resolveSection(raw: string | null): AdminSection {
   if (!raw) return "clans";
-  if (raw === "rules") return "validation";
-  const valid: readonly AdminSection[] = ["clans", "validation", "corrections", "logs", "users", "approvals", "forum"];
+  const valid: readonly AdminSection[] = ["clans", "logs", "users", "approvals", "forum"];
   return valid.includes(raw as AdminSection) ? (raw as AdminSection) : "clans";
 }

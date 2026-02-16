@@ -11,7 +11,7 @@ interface PaginationBarProps {
   readonly pagination: PaginationState;
   /** Page size options. Defaults to [25, 50, 100, 250]. */
   readonly pageSizeOptions?: readonly number[];
-  /** Unique id prefix for accessibility (e.g. "validation", "correction"). */
+  /** Unique id prefix for accessibility (e.g. "clans", "users"). */
   readonly idPrefix?: string;
   /** When true, hides the page-size selector and page-jump input. */
   readonly compact?: boolean;

@@ -2,6 +2,8 @@
 
 Context transfer for a new chat session. For architecture and file locations, see `ARCHITECTURE.md`. For change history, see `CHANGELOG.md`.
 
+**Removed features (replaced with placeholders):** Data import, chest database viewer, validation rules, correction rules, analytics/charts, and related tables (`chest_entries`, `validation_rules`, `correction_rules`, `scoring_rules`). See `CHANGELOG.md` for details.
+
 ## Quick Start
 
 ```bash
@@ -29,26 +31,25 @@ Run SQL migrations in the order listed in `Documentation/runbook.md` section 1. 
 
 ## Test Suite
 
-### Unit Tests (Vitest) — 654 tests, 32 files
+### Unit Tests (Vitest) — ~630 tests, 31 files
 
 Run: `npm run test:unit`
 
-| File                                   | Tests | Covers                                                                                                                                                                                                                                                                                   |
-| -------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app/events/events-utils.test.ts`      | 53    | Date/time, recurrence, display helpers                                                                                                                                                                                                                                                   |
-| `lib/permissions.test.ts`              | 45    | Roles, validation, permission helpers, isOwner, canChangeRoleOf, ROLE_LABELS                                                                                                                                                                                                             |
-| `app/members/members-utils.test.ts`    | 50    | getRoleColor, getRankColor, compareMemberOrder, countRoleSubstitutes, rank/role constants                                                                                                                                                                                                |
-| `lib/api/validation.test.ts`           | 30    | UUID, notification settings (incl. bugs_email_enabled), analytics query schemas                                                                                                                                                                                                          |
-| `lib/dashboard-utils.test.ts`          | 25    | Trends, formatting, author extraction                                                                                                                                                                                                                                                    |
-| `lib/messages-schemas.test.ts`         | 23    | SEND_SCHEMA for messages API                                                                                                                                                                                                                                                             |
-| `lib/forum-categories-schemas.test.ts` | 23    | UUID, category schema validation                                                                                                                                                                                                                                                         |
-| `lib/correction-applicator.test.ts`    | 21    | Correction rule application                                                                                                                                                                                                                                                              |
-| `lib/fan-out-schema.test.ts`           | 18    | Fan-out notification schema                                                                                                                                                                                                                                                              |
-| `lib/create-user-schema.test.ts`       | 14    | Admin create-user schema                                                                                                                                                                                                                                                                 |
-| `lib/supabase/error-utils.test.ts`     | 12    | Error classification + i18n keys                                                                                                                                                                                                                                                         |
-| `lib/rate-limit.test.ts`               | 12    | Rate limiting, IP tracking                                                                                                                                                                                                                                                               |
-| `lib/markdown/strip-markdown.test.ts`  | 16    | Markdown-to-plain-text stripping (headings, bold, code, links, images, lists, blockquotes)                                                                                                                                                                                               |
-| Others (19 files)                      | ~334  | check-role, forum-sync, role-access, admin-access, config, date-format, sanitize-markdown, renderers, validation-evaluator, forum-utils, forum-thumbnail, admin-types, use-sortable, design-system-types, public-paths, validation-helpers, banner-presets, use-pagination, is-test-user |
+| File                                   | Tests | Covers                                                                                                                                                                                                                                                             |
+| -------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `app/events/events-utils.test.ts`      | 53    | Date/time, recurrence, display helpers                                                                                                                                                                                                                             |
+| `lib/permissions.test.ts`              | 45    | Roles, validation, permission helpers, isOwner, canChangeRoleOf, ROLE_LABELS                                                                                                                                                                                       |
+| `app/members/members-utils.test.ts`    | 50    | getRoleColor, getRankColor, compareMemberOrder, countRoleSubstitutes, rank/role constants                                                                                                                                                                          |
+| `lib/api/validation.test.ts`           | 30    | UUID, notification settings (incl. bugs_email_enabled)                                                                                                                                                                                                             |
+| `lib/dashboard-utils.test.ts`          | 25    | Trends, formatting, author extraction                                                                                                                                                                                                                              |
+| `lib/messages-schemas.test.ts`         | 23    | SEND_SCHEMA for messages API                                                                                                                                                                                                                                       |
+| `lib/forum-categories-schemas.test.ts` | 23    | UUID, category schema validation                                                                                                                                                                                                                                   |
+| `lib/fan-out-schema.test.ts`           | 18    | Fan-out notification schema                                                                                                                                                                                                                                        |
+| `lib/create-user-schema.test.ts`       | 14    | Admin create-user schema                                                                                                                                                                                                                                           |
+| `lib/supabase/error-utils.test.ts`     | 12    | Error classification + i18n keys                                                                                                                                                                                                                                   |
+| `lib/rate-limit.test.ts`               | 12    | Rate limiting, IP tracking                                                                                                                                                                                                                                         |
+| `lib/markdown/strip-markdown.test.ts`  | 16    | Markdown-to-plain-text stripping (headings, bold, code, links, images, lists, blockquotes)                                                                                                                                                                         |
+| Others (19 files)                      | ~334  | check-role, forum-sync, role-access, admin-access, config, date-format, sanitize-markdown, renderers, forum-utils, forum-thumbnail, admin-types, use-sortable, design-system-types, public-paths, validation-helpers, banner-presets, use-pagination, is-test-user |
 
 ### E2E Tests (Playwright) — 346 tests, 29 spec files
 
@@ -139,7 +140,7 @@ Comprehensive audit covering security, bugs, performance, code quality, and acce
 - **Deleted** `/redesign` pages and all exclusive references (public paths, robots.txt, ESLint override, playwright script).
 - **Security**: SVG XSS blocked in markdown URLs, LIKE injection fixed in game-accounts, auth-before-parse in admin routes, email validation in sendEmail, CAPTCHA fails in production when unconfigured, reporter emails no longer exposed in bugs API.
 - **Bugs**: Banner filename typo fixed (`exhange` -> `exchange`), `statsError` exposed in dashboard hook, hardcoded German strings replaced with i18n.
-- **Performance**: Sidebar nav inline object extracted to constant, `loading.tsx` added for `/bugs` and `/data-import`.
+- **Performance**: Sidebar nav inline object extracted to constant, `loading.tsx` added for `/bugs`.
 - **Quality**: Unguarded `console.warn` removed, "Internal server error" punctuation standardized across all API routes.
 - **Config**: `no-console` ESLint rule added, `audit:deps` npm script added, CSP `unsafe-inline` documented.
 - **Accessibility**: Descriptive alt text on event banners, forum thumbnails, and banner picker.
@@ -157,17 +158,17 @@ Dashboard and Home share the same SVG icon — dashboard needs a distinct one.
 
 **Steps**: Browse icons, pick one per nav item, update `sidebar-nav.tsx`, test at both sidebar widths (280px/60px).
 
-| Nav Item  | Suggested Icon   | Path                                              |
-| --------- | ---------------- | ------------------------------------------------- |
-| Home      | Medieval house   | `/assets/game/icons/icons_card_house_1.png`       |
-| Dashboard | Rating/stats     | `/assets/game/icons/icons_main_menu_rating_1.png` |
-| News      | Scroll           | `/assets/game/icons/icons_scroll_1.png`           |
-| Analytics | Points clipboard | `/assets/game/icons/icons_clip_points_1.png`      |
-| Events    | Events banner    | `/assets/game/icons/icons_events_1.png`           |
-| Forum     | Message bubble   | `/assets/game/icons/icons_message_1.png`          |
-| Messages  | Envelope         | `/assets/game/icons/icons_envelope_1.png`         |
-| Members   | Clan menu        | `/assets/game/icons/icons_main_menu_clan_1.png`   |
-| Bugs      | Bug/warning      | _(SVG inline — already implemented)_              |
+| Nav Item  | Suggested Icon   | Path                                                            |
+| --------- | ---------------- | --------------------------------------------------------------- |
+| Home      | Medieval house   | `/assets/game/icons/icons_card_house_1.png`                     |
+| Dashboard | Rating/stats     | `/assets/game/icons/icons_main_menu_rating_1.png`               |
+| News      | Scroll           | `/assets/game/icons/icons_scroll_1.png`                         |
+| Analytics | Points clipboard | `/assets/game/icons/icons_clip_points_1.png` (placeholder page) |
+| Events    | Events banner    | `/assets/game/icons/icons_events_1.png`                         |
+| Forum     | Message bubble   | `/assets/game/icons/icons_message_1.png`                        |
+| Messages  | Envelope         | `/assets/game/icons/icons_envelope_1.png`                       |
+| Members   | Clan menu        | `/assets/game/icons/icons_main_menu_clan_1.png`                 |
+| Bugs      | Bug/warning      | _(SVG inline — already implemented)_                            |
 
 ### Other
 
@@ -186,8 +187,6 @@ Dashboard and Home share the same SVG icon — dashboard needs a distinct one.
 ### Data Formats
 
 - Date pickers display `dd.mm.yyyy`, stored as `YYYY-MM-DD`. Default timestamp display: German format (`dd.MM.yyyy, HH:mm`).
-- Data import accepts Pattern 1 CSV only: `DATE, PLAYER, SOURCE, CHEST, SCORE, CLAN`.
-- Analytics personal score relies on case-insensitive match: `LOWER(chest_entries.player) = LOWER(game_accounts.game_username)`.
 
 ### Radix Select Scrollbar
 
@@ -209,7 +208,6 @@ Radix expects developers to use `Select.ScrollUpButton` / `Select.ScrollDownButt
 
 - `signOut` uses `window.location.href` (not `router.push`) — full reload clears stale auth state.
 - Recurring events store one DB row; occurrences are expanded client-side. `recurrence_parent_id` column is deprecated.
-- Validation and correction rules are global (not clan-scoped). `clan_id` is nullable.
 - Default game account (`profiles.default_game_account_id`) takes priority over `localStorage` in sidebar selector.
 - `sanitizeMarkdown()` emphasis-fix regexes use `[^\S\n]+` (horizontal whitespace only), not `\s+` — prevents matching across line boundaries.
 - API routes bypass the proxy auth redirect entirely. Each route handles its own authentication.

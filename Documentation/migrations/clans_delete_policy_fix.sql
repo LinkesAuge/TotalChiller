@@ -7,6 +7,8 @@
 -- Issue 2: chest_entries.clan_id had ON DELETE RESTRICT, which blocked
 --          clan deletion when entries existed. Changed to ON DELETE CASCADE
 --          so deleting a clan also removes its chest entries.
+--
+-- NOTE: Part 2 is obsolete — chest_entries was dropped via drop_chest_data_tables.sql.
 
 -- ── 1. Fix RLS delete policy ──
 

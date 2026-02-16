@@ -1,11 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  uuidSchema,
-  notificationSettingsSchema,
-  analyticsQuerySchema,
-  messageQuerySchema,
-  escapeLikePattern,
-} from "./validation";
+import { uuidSchema, notificationSettingsSchema, messageQuerySchema, escapeLikePattern } from "./validation";
 
 /* ------------------------------------------------------------------ */
 /*  uuidSchema                                                         */
@@ -108,102 +102,6 @@ describe("notificationSettingsSchema", () => {
   it("rejects non-boolean for bugs_email_enabled", () => {
     const result = notificationSettingsSchema.safeParse({ bugs_email_enabled: "yes" });
     expect(result.success).toBe(false);
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  analyticsQuerySchema                                                */
-/* ------------------------------------------------------------------ */
-
-describe("analyticsQuerySchema", () => {
-  it("accepts an empty object (all fields have defaults)", () => {
-    const result = analyticsQuerySchema.safeParse({});
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.clanId).toBe("");
-      expect(result.data.gameAccountId).toBe("");
-      expect(result.data.dateFrom).toBe("");
-      expect(result.data.dateTo).toBe("");
-      expect(result.data.player).toBe("");
-      expect(result.data.source).toBe("");
-    }
-  });
-
-  it("accepts valid UUID for clanId", () => {
-    const result = analyticsQuerySchema.safeParse({ clanId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects invalid UUID for clanId", () => {
-    const result = analyticsQuerySchema.safeParse({ clanId: "not-a-uuid" });
-    expect(result.success).toBe(false);
-  });
-
-  it("accepts valid UUID for gameAccountId", () => {
-    const result = analyticsQuerySchema.safeParse({ gameAccountId: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects invalid UUID for gameAccountId", () => {
-    const result = analyticsQuerySchema.safeParse({ gameAccountId: "bad" });
-    expect(result.success).toBe(false);
-  });
-
-  it("accepts valid YYYY-MM-DD for dateFrom", () => {
-    const result = analyticsQuerySchema.safeParse({ dateFrom: "2026-02-11" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects invalid date format for dateFrom", () => {
-    const result = analyticsQuerySchema.safeParse({ dateFrom: "02/11/2026" });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects partial date for dateFrom", () => {
-    const result = analyticsQuerySchema.safeParse({ dateFrom: "2026-02" });
-    expect(result.success).toBe(false);
-  });
-
-  it("accepts valid YYYY-MM-DD for dateTo", () => {
-    const result = analyticsQuerySchema.safeParse({ dateTo: "2026-12-31" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects invalid date format for dateTo", () => {
-    const result = analyticsQuerySchema.safeParse({ dateTo: "not-a-date" });
-    expect(result.success).toBe(false);
-  });
-
-  it("accepts short player filter", () => {
-    const result = analyticsQuerySchema.safeParse({ player: "TestPlayer" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects player filter exceeding 100 characters", () => {
-    const result = analyticsQuerySchema.safeParse({ player: "x".repeat(101) });
-    expect(result.success).toBe(false);
-  });
-
-  it("accepts short source filter", () => {
-    const result = analyticsQuerySchema.safeParse({ source: "DataSource" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects source filter exceeding 100 characters", () => {
-    const result = analyticsQuerySchema.safeParse({ source: "x".repeat(101) });
-    expect(result.success).toBe(false);
-  });
-
-  it("accepts all fields together", () => {
-    const result = analyticsQuerySchema.safeParse({
-      clanId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-      gameAccountId: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
-      dateFrom: "2026-01-01",
-      dateTo: "2026-12-31",
-      player: "TestPlayer",
-      source: "DataSource",
-    });
-    expect(result.success).toBe(true);
   });
 });
 

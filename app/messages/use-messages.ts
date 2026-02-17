@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
+import { resolveMessageProfileLabel } from "@/lib/messages/profile-utils";
 import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useToast } from "../components/toast-provider";
@@ -13,6 +14,14 @@ import type {
   ThreadMessage,
   RecipientResult,
 } from "@/lib/types/domain";
+import type {
+  MessageSendResponseDto,
+  MessagesArchiveResponseDto,
+  MessagesInboxResponseDto,
+  MessagesSearchRecipientsResponseDto,
+  MessagesSentResponseDto,
+  MessagesThreadResponseDto,
+} from "@/lib/types/messages-api";
 import type { ProfileMap, ViewMode, ClanOption, SelectedRecipient, ComposeMode } from "./messages-types";
 
 const REPLY_SUBJECT_PREFIX = "Re: ";
@@ -260,7 +269,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         if (!controller.signal.aborted) pushToast(t("failedToLoad"));
         return;
       }
-      const result = await response.json();
+      const result = (await response.json()) as MessagesInboxResponseDto;
       if (!controller.signal.aborted) {
         setInboxThreads(result.data ?? []);
         setInboxProfiles(result.profiles ?? {});
@@ -288,7 +297,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         if (!controller.signal.aborted) pushToast(t("failedToLoad"));
         return;
       }
-      const result = await response.json();
+      const result = (await response.json()) as MessagesSentResponseDto;
       if (!controller.signal.aborted) {
         setSentMessages(result.data ?? []);
         setSentProfiles(result.profiles ?? {});
@@ -312,7 +321,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         if (!controller.signal.aborted) pushToast(t("failedToLoad"));
         return;
       }
-      const result = await response.json();
+      const result = (await response.json()) as MessagesArchiveResponseDto;
       if (!controller.signal.aborted) {
         setArchivedItems(result.data ?? []);
         setArchiveProfiles(result.profiles ?? {});
@@ -394,7 +403,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
           if (!controller.signal.aborted) pushToast(t("failedToLoad"));
           return;
         }
-        const result = await response.json();
+        const result = (await response.json()) as MessagesThreadResponseDto;
         if (!controller.signal.aborted) {
           setThreadMessages(result.data ?? []);
           setThreadProfiles(result.profiles ?? {});
@@ -490,8 +499,8 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
           signal: controller.signal,
         });
         if (response.ok && !controller.signal.aborted) {
-          const result = await response.json();
-          const results = (result.data ?? []) as RecipientResult[];
+          const result = (await response.json()) as MessagesSearchRecipientsResponseDto;
+          const results = (result.data ?? []) as readonly RecipientResult[];
           const selectedIds = new Set(composeRecipients.map((r) => r.id));
           setRecipientResults(results.filter((r) => !selectedIds.has(r.id)));
           setIsSearchDropdownOpen(true);
@@ -522,8 +531,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     (profileId: string, fallback?: string): string => {
       if (profileId === userId) return t("you");
       const profile = allProfiles[profileId];
-      if (!profile) return fallback ?? t("unknownPartner");
-      return profile.display_name ?? profile.username ?? profile.email;
+      return resolveMessageProfileLabel(profile, fallback ?? t("unknownPartner"));
     },
     [userId, allProfiles, t],
   );
@@ -685,7 +693,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
           }),
         });
         if (!response.ok) {
-          const result = await response.json();
+          const result = (await response.json()) as { readonly error?: string };
           setReplyStatus(result.error ?? t("failedToSend"));
           return;
         }
@@ -723,7 +731,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
             }),
           });
           if (!response.ok) {
-            const result = await response.json();
+            const result = (await response.json()) as { readonly error?: string };
             setComposeStatus(result.error ?? t("failedToSend"));
             return;
           }
@@ -746,7 +754,10 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
               clan_id: composeMode === "clan" ? composeClanId : undefined,
             }),
           });
-          const result = await response.json();
+          const result = (await response.json()) as Partial<MessageSendResponseDto> & {
+            readonly error?: string;
+            readonly recipient_count?: number;
+          };
           if (!response.ok) {
             setComposeStatus(result.error ?? t("failedToSend"));
             return;

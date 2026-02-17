@@ -204,7 +204,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           width={280}
           height={900}
           sizes="280px"
-          priority
+          loading="eager"
         />
 
         {/* Header — clan identity with logo */}
@@ -267,7 +267,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
             alt="Gold scepter divider"
             width={200}
             height={12}
-            priority
+            loading="eager"
             style={{ width: isOpen ? "85%" : 38 }}
           />
         </div>

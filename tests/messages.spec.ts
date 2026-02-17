@@ -73,6 +73,22 @@ test.describe("Messages: Type filters", () => {
   });
 });
 
+test.describe("Messages: Recipient search privacy", () => {
+  test.use({ storageState: storageStatePath("admin") });
+
+  test("search recipients payload does not expose email fields", async ({ page }) => {
+    const response = await page.request.get("/api/messages/search-recipients?q=ad");
+    expect([200, 429]).toContain(response.status());
+    if (response.status() === 429) return;
+
+    const body = (await response.json()) as { data?: Array<Record<string, unknown>> };
+    const entries = Array.isArray(body.data) ? body.data : [];
+    for (const entry of entries) {
+      expect(Object.prototype.hasOwnProperty.call(entry, "email")).toBe(false);
+    }
+  });
+});
+
 test.describe("Messages: Notifications tab", () => {
   test.use({ storageState: storageStatePath("member") });
 

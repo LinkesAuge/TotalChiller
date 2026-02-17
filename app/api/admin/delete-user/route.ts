@@ -17,13 +17,15 @@ export async function POST(request: Request): Promise<Response> {
   if (blocked) return blocked;
 
   try {
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
+
     const rawBody = await request.json().catch(() => null);
     const parsed = DELETE_USER_SCHEMA.safeParse(rawBody);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input." }, { status: 400 });
     }
-    const auth = await requireAdmin();
-    if (auth.error) return auth.error;
+
     const serviceClient = createSupabaseServiceRoleClient();
     const { error } = await serviceClient.auth.admin.deleteUser(parsed.data.userId);
     if (error) {

@@ -31,7 +31,7 @@ Run SQL migrations in the order listed in `Documentation/runbook.md` section 1. 
 
 ## Test Suite
 
-### Unit Tests (Vitest) — ~630 tests, 31 files
+### Unit Tests (Vitest) — 581 tests, 30 files
 
 Run: `npm run test:unit`
 
@@ -51,7 +51,7 @@ Run: `npm run test:unit`
 | `lib/markdown/strip-markdown.test.ts`  | 16    | Markdown-to-plain-text stripping (headings, bold, code, links, images, lists, blockquotes)                                                                                                                                                                         |
 | Others (19 files)                      | ~334  | check-role, forum-sync, role-access, admin-access, config, date-format, sanitize-markdown, renderers, forum-utils, forum-thumbnail, admin-types, use-sortable, design-system-types, public-paths, validation-helpers, banner-presets, use-pagination, is-test-user |
 
-### E2E Tests (Playwright) — 346 tests, 29 spec files
+### E2E Tests (Playwright) — 435 tests, 29 files (Chromium listing)
 
 Run: `npx playwright test`
 
@@ -62,6 +62,43 @@ Run: `npx playwright test`
 - All `.content-inner` locators must use `.first()` (pages render 2+ via `PageShell`).
 
 ## Recently Completed
+
+### Messaging Contract + Modularity Hardening (2026-02-17)
+
+Completed a messaging-focused modularity pass to centralize profile/label behavior and harden endpoint contracts.
+
+- **Shared profile helper module:** Added `lib/messages/profile-utils.ts` and replaced duplicated profile map / recipient label logic across message API routes.
+- **Centralized API DTO contracts:** Added `lib/types/messages-api.ts` and wired typed messaging response envelopes into routes and `useMessages`.
+- **Client fallback consistency:** `useMessages` now uses the shared profile-label resolver to keep sender/recipient fallback behavior aligned with server payloads.
+- **Contract coverage for all message endpoints:** Added `tests/messages-api-contract.spec.ts`, covering `/api/messages`, `/api/messages/[id]`, `/api/messages/sent`, `/api/messages/sent/[id]`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, and `/api/messages/search-recipients` with shape + privacy assertions.
+- **Architecture convention documented:** Added explicit auth-first handler ordering guidance (`requireAuth`/`requireAdmin` before body parsing) in `Documentation/ARCHITECTURE.md`.
+
+**Validation run (all passing):**
+
+- `npm run lint`
+- `npm run type-check`
+- `npm run test:unit`
+- `npx playwright test tests/messages-api-contract.spec.ts --project=chromium`
+- `npx playwright test tests/messages.spec.ts --project=chromium`
+- `npx playwright test tests/bugs.spec.ts --project=chromium`
+
+### Project-Wide Review Hardening Pass (2026-02-17)
+
+Completed a full review cycle across pages, APIs, DB policies/migrations, and reliability checks.
+
+- **Messaging privacy hardening:** Recipient/profile payloads in message APIs no longer include user emails (`/api/messages`, `/api/messages/sent`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, `/api/messages/search-recipients`).
+- **Auth guard consistency:** `POST /api/admin/delete-user` now enforces `requireAdmin()` before body parsing.
+- **Navigation/runtime consistency:** Bugs deep-link navigation now uses App Router (`router.push`) instead of `window.history.pushState`, keeping URL/query state in sync with Next navigation.
+- **Performance cleanup:** `useBugs()` avoids redundant detail reloads and list reloads outside list mode; home page internal CTAs now use `Link` instead of raw anchors to avoid full reloads.
+- **Regression guard:** Added a new Playwright test in `tests/messages.spec.ts` to ensure recipient search responses do not expose an `email` field.
+
+**Validation run (all passing):**
+
+- `npm run lint`
+- `npm run type-check`
+- `npm run test:unit`
+- `npx playwright test tests/messages.spec.ts --project=chromium`
+- `npx playwright test tests/bugs.spec.ts --project=chromium`
 
 ### Webmaster Role Rename + Role Protection (2026-02-15)
 

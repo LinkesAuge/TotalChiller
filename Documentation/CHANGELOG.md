@@ -8,6 +8,12 @@
 
 ### Fixed
 
+- **Messages recipient privacy**: Removed `email` fields from message-related profile payloads returned to clients (`/api/messages`, `/api/messages/sent`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, `/api/messages/search-recipients`) to prevent exposing user email addresses in messaging API responses
+- **Message profile fallback consistency**: Unified sender/recipient label fallback behavior through shared resolver logic so message routes and `useMessages` use the same display-name/username fallback order
+- **Admin auth guard order**: `POST /api/admin/delete-user` now executes `requireAdmin()` before request body parsing for consistent auth-first protection across admin mutation routes
+- **Bugs deep-link routing consistency**: Replaced `window.history.pushState` with App Router navigation in `useBugs()` so `/bugs?report=<id>` URL state stays synchronized with `useSearchParams()`
+- **Bugs list/detail reload churn**: Optimized `useBugs()` deep-link effect to avoid redundant detail reloads and to skip unnecessary list reloads outside list mode
+- **Home internal navigation**: Replaced raw anchor links with `Link` in `home-client.tsx` CTA buttons to avoid full page reloads on internal routes
 - **Admin hydration mismatch (Radix Select)**: Eliminated recurring SSR/client hydration warnings on `/admin` by making `RadixSelect` trigger/content wiring deterministic (`aria-controls` + content id), so filter/select controls now hydrate cleanly in both dev and production builds
 - **Hero clipping on narrow screens**: Updated shared hero typography/layout to prevent title/subtitle clipping on 393px/360px/320px widths (balanced wrapping, constrained widths, mobile font/spacing tuning)
 - **Mobile touch targets in dense UIs**: Increased critical control sizes on small screens (sidebar toggle, notification bell, icon buttons, messages row actions/checkboxes, table sort controls) to improve tap reliability
@@ -41,6 +47,10 @@
 
 ### Added
 
+- **Vercel Web Analytics integration**: Added `@vercel/analytics` dependency and mounted `<Analytics />` in `app/layout.tsx` to enable route-aware traffic tracking on Vercel deployments
+- **Shared messaging contract + helper modules**: Added `lib/types/messages-api.ts` (message endpoint DTO contracts) and `lib/messages/profile-utils.ts` (profile map loading, recipient mapping, label fallback resolution)
+- **Messages API contract suite**: Added `tests/messages-api-contract.spec.ts` covering all `/api/messages*` endpoints for response envelope shape and privacy guarantees (no `email` field leakage)
+- **Messages privacy regression coverage**: Added Playwright test coverage in `tests/messages.spec.ts` to assert recipient search responses do not expose an `email` field
 - **Playwright mobile thread-flow coverage**: Added a dedicated mobile inbox test in `tests/messages.spec.ts` that validates list→thread switch and back navigation; if inbox is empty, the test seeds a private message via authenticated admin API context before asserting behavior
 - **Inline membership editing in Users tab**: Game account subrows now have editable dropdowns for clan, rank, and active/inactive status (RadixSelect), matching the Clan-Verwaltung tab; includes shadow toggle button, combined save/cancel for game account name + membership fields, and integration with Save All / Cancel All bulk actions
 - **Email confirmation status in Users tab**: New "Confirmed" column shows whether each user has verified their email (green "Bestätigt"/"Confirmed" badge or yellow "Unbestätigt"/"Unconfirmed" badge); sortable, filterable (All/Confirmed/Unconfirmed); admin can manually confirm unconfirmed users via action button with confirmation modal
@@ -50,6 +60,14 @@
 - `clearSelection` method on `useMessages` hook for programmatic back-navigation
 - `backToInbox` i18n key (EN: "Back to list", DE: "Zurück zur Liste")
 - `.messages-back-btn` CSS class (hidden on desktop, shown on mobile)
+
+### Changed
+
+- **Messaging route internals**: Refactored `/api/messages`, `/api/messages/sent`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, and `/api/messages/search-recipients` to use shared profile map + recipient label helpers instead of duplicated local mapping blocks
+- **Messages client typing**: Updated `useMessages` and `messages-types.ts` to consume centralized message API DTOs for inbox/sent/thread/archive/search payloads
+- **Brand copy refresh**: Replaced legacy brand wording with `[THC] Chiller & Killer` across EN/DE locale bundles, auth/privacy metadata, root app metadata, bug report email copy, and Supabase email template docs
+- **Runbook migration order**: Updated `Documentation/runbook.md` to use `messages_v2.sql` for fresh setups (legacy `messages.sql` is now explicitly marked as legacy-only) and added missing migrations to the primary setup sequence
+- **Doc test counts**: Updated current Vitest/Playwright totals in `Documentation/runbook.md` and `Documentation/handoff_summary.md`
 
 ## 2026-02-16
 

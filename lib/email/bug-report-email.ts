@@ -30,7 +30,7 @@ export function buildBugReportEmail(data: BugReportEmailData): string {
         <!-- Header -->
         <tr><td style="padding:24px 24px 16px;border-bottom:1px solid #374151;">
           <h1 style="margin:0;font-size:18px;color:#fbbf24;">New Bug Report</h1>
-          <p style="margin:4px 0 0;font-size:13px;color:#9ca3af;">A new report was submitted on TotalChiller.</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#9ca3af;">A new report was submitted on [THC] Chiller & Killer.</p>
         </td></tr>
         <!-- Body -->
         <tr><td style="padding:20px 24px;">
@@ -52,7 +52,7 @@ export function buildBugReportEmail(data: BugReportEmailData): string {
         </td></tr>
         <!-- Footer -->
         <tr><td style="padding:16px 24px;border-top:1px solid #374151;">
-          <p style="margin:0;font-size:11px;color:#6b7280;">You received this because you have bug report email notifications enabled in your TotalChiller settings.</p>
+          <p style="margin:0;font-size:11px;color:#6b7280;">You received this because you have bug report email notifications enabled in your [THC] Chiller & Killer settings.</p>
         </td></tr>
       </table>
     </td></tr>

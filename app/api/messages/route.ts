@@ -1,11 +1,14 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
+import { loadMessageProfilesByIds, resolveMessageProfileLabel } from "@/lib/messages/profile-utils";
 import { requireAuth } from "../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
 import getIsContentManager from "../../../lib/supabase/role-access";
 import { standardLimiter } from "../../../lib/rate-limit";
 import { messageQuerySchema } from "../../../lib/api/validation";
+import type { MessageRow } from "@/lib/types/domain";
+import type { MessageSendResponseDto, MessagesInboxResponseDto } from "@/lib/types/messages-api";
 
 /* ── Schemas ── */
 
@@ -20,18 +23,6 @@ const SEND_SCHEMA = z.object({
 });
 
 const INBOX_LIMIT = 200;
-
-/* ── Helpers ── */
-
-function buildProfileMap(
-  profiles: readonly { id: string; email: string; username: string | null; display_name: string | null }[],
-): Record<string, { email: string; username: string | null; display_name: string | null }> {
-  const map: Record<string, { email: string; username: string | null; display_name: string | null }> = {};
-  for (const p of profiles) {
-    map[p.id] = { email: p.email, username: p.username, display_name: p.display_name };
-  }
-  return map;
-}
 
 /**
  * GET /api/messages — Inbox
@@ -75,7 +66,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const entries = recipientEntries ?? [];
     if (entries.length === 0) {
-      return NextResponse.json({ data: [], profiles: {} });
+      return NextResponse.json<MessagesInboxResponseDto>({ data: [], profiles: {} });
     }
 
     const messageIds = entries.map((e) => e.message_id as string);
@@ -170,18 +161,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const senderIds = Array.from(
       new Set(filteredMessages.map((m) => m.sender_id).filter((id): id is string => id !== null && id !== userId)),
     );
-    let profilesById: Record<string, { email: string; username: string | null; display_name: string | null }> = {};
-    if (senderIds.length > 0) {
-      const { data: profileData } = await svc
-        .from("profiles")
-        .select("id,email,username,display_name")
-        .in("id", senderIds);
-      profilesById = buildProfileMap(
-        (profileData ?? []) as { id: string; email: string; username: string | null; display_name: string | null }[],
-      );
-    }
+    const profilesById = await loadMessageProfilesByIds(svc, senderIds);
 
-    return NextResponse.json({ data: threads, profiles: profilesById });
+    return NextResponse.json<MessagesInboxResponseDto>({ data: threads, profiles: profilesById });
   } catch (err) {
     captureApiError("GET /api/messages", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
@@ -336,13 +318,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     /* ── Notifications (async) ── */
-    const senderProfile = await svc
-      .from("profiles")
-      .select("display_name,username,email")
-      .eq("id", senderId)
-      .maybeSingle();
-    const senderLabel =
-      senderProfile.data?.display_name ?? senderProfile.data?.username ?? senderProfile.data?.email ?? "Someone";
+    const senderProfile = await svc.from("profiles").select("display_name,username").eq("id", senderId).maybeSingle();
+    const senderLabel = resolveMessageProfileLabel(
+      senderProfile.data
+        ? {
+            display_name: senderProfile.data.display_name as string | null,
+            username: senderProfile.data.username as string | null,
+          }
+        : null,
+      "Someone",
+    );
 
     after(async () => {
       const notifRows = resolvedRecipientIds.map((recipientId) => ({
@@ -363,7 +348,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     });
 
-    return NextResponse.json({ data: insertedMsg, recipient_count: resolvedRecipientIds.length }, { status: 201 });
+    return NextResponse.json<MessageSendResponseDto>(
+      { data: insertedMsg as MessageRow, recipient_count: resolvedRecipientIds.length },
+      { status: 201 },
+    );
   } catch (err) {
     captureApiError("POST /api/messages", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });

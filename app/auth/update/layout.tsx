@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Update Password",
-  description: "Set a new password for your TotalChiller account.",
+  description: "Set a new password for your [THC] Chiller & Killer account.",
 };
 
 /** Layout wrapper providing metadata for the password update page. */

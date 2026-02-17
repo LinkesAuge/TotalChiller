@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export const metadata: Metadata = {
   title: "Reset Your Password",
   description:
-    "Request a password reset link for your TotalChiller account. We'll email you instructions to regain access to the Chiller & Killer community hub.",
+    "Request a password reset link for your [THC] Chiller & Killer account. We'll email you instructions to regain access to the [THC] Chiller & Killer community hub.",
   alternates: { canonical: "/auth/forgot" },
 };
 

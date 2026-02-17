@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/app/components/toast-provider";
 import type {
   BugReportListItem,
@@ -73,6 +73,7 @@ interface UseBugsResult {
 
 export function useBugs(): UseBugsResult {
   const { pushToast } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [reports, setReports] = useState<readonly BugReportListItem[]>([]);
@@ -219,16 +220,16 @@ export function useBugs(): UseBugsResult {
     (id: string) => {
       setView("detail");
       void loadReport(id);
-      window.history.pushState(null, "", `/bugs?report=${id}`);
+      router.push(`/bugs?report=${id}`, { scroll: false });
     },
-    [loadReport],
+    [loadReport, router],
   );
 
   const backToList = useCallback(() => {
     setView("list");
     setSelectedReport(null);
-    window.history.pushState(null, "", "/bugs");
-  }, []);
+    router.push("/bugs", { scroll: false });
+  }, [router]);
 
   const updateFilter = useCallback((partial: Partial<BugListFilter>) => {
     setFilter((prev) => ({ ...prev, ...partial }));
@@ -243,11 +244,13 @@ export function useBugs(): UseBugsResult {
     const reportId = searchParams.get("report");
     if (reportId) {
       setView("detail");
-      void loadReport(reportId);
-    } else {
+      if (selectedReport?.id !== reportId) {
+        void loadReport(reportId);
+      }
+    } else if (view === "list") {
       void loadReports();
     }
-  }, [searchParams, loadReport, loadReports]);
+  }, [searchParams, loadReport, loadReports, selectedReport?.id, view]);
 
   return {
     reports,

@@ -9,6 +9,7 @@
  */
 
 import Image from "next/image";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useSiteContent } from "../components/use-site-content";
 import EditableText from "../components/editable-text";
@@ -51,7 +52,7 @@ function HomeClient(): JSX.Element {
         height={300}
         priority
       />
-      <Image src="/assets/vip/decor_light_1.png" alt="" className="hero-light" width={400} height={400} priority />
+      <Image src="/assets/vip/decor_light_1.png" alt="" className="hero-light" width={400} height={400} />
       <div className="hero-content">
         <Image src="/assets/vip/components_decor_6.png" alt="" className="hero-decor" width={300} height={20} />
         <h2 className="hero-title">{t("heroTitle")}</h2>
@@ -181,9 +182,9 @@ function HomeClient(): JSX.Element {
             />
           </div>
           <div className="flex justify-center mt-4">
-            <a className="button primary" href="/about">
+            <Link className="button primary" href="/about">
               {t("learnMoreAbout")}
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -240,9 +241,9 @@ function HomeClient(): JSX.Element {
             userId={userId}
           />
           <div className="flex justify-center mt-4">
-            <a className="button primary" href="/auth/register">
+            <Link className="button primary" href="/auth/register">
               {t("applyNow")}
-            </a>
+            </Link>
           </div>
         </div>
       </section>

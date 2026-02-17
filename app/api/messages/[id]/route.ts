@@ -4,6 +4,7 @@ import { requireAuth } from "../../../../lib/api/require-auth";
 import { uuidSchema } from "../../../../lib/api/validation";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
+import type { MessageDeleteMutationResponseDto, MessageReadMutationResponseDto } from "@/lib/types/messages-api";
 
 interface RouteContext {
   readonly params: Promise<{ readonly id: string }>;
@@ -36,7 +37,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       captureApiError("PATCH /api/messages/[id]", updateError);
       return NextResponse.json({ error: "Failed to update message." }, { status: 500 });
     }
-    return NextResponse.json({ data: { id: parsed.data, is_read: true } });
+    return NextResponse.json<MessageReadMutationResponseDto>({ data: { id: parsed.data, is_read: true } });
   } catch (err) {
     captureApiError("PATCH /api/messages/[id]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
@@ -74,7 +75,7 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
     if (!affected || affected.length === 0) {
       return NextResponse.json({ error: "Message not found." }, { status: 404 });
     }
-    return NextResponse.json({ data: { id: parsed.data, deleted: true } });
+    return NextResponse.json<MessageDeleteMutationResponseDto>({ data: { id: parsed.data, deleted: true } });
   } catch (err) {
     captureApiError("DELETE /api/messages/[id]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });

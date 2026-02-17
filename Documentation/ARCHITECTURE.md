@@ -10,20 +10,20 @@
 
 ## 2. Tech Stack
 
-| Layer          | Technology                                                    |
-| -------------- | ------------------------------------------------------------- |
-| Framework      | Next.js 16 (App Router, server + client components)           |
-| Language       | TypeScript (strict: `noUncheckedIndexedAccess`)               |
-| Database       | Supabase (PostgreSQL + RLS + Storage)                         |
-| Auth           | Supabase Auth (email/password, PKCE)                          |
-| Styling        | Global CSS (`globals.css`), CSS variables, no Tailwind in app |
-| i18n           | `next-intl` with `messages/en.json` + `messages/de.json`      |
-| Markdown       | `react-markdown` + `remark-gfm` + `remark-breaks`             |
-| Unit tests     | Vitest (`npm run test:unit`)                                  |
-| E2E tests      | Playwright (`npx playwright test`)                            |
-| Linting        | ESLint (flat config) + Prettier + Husky pre-commit            |
-| Error tracking | Sentry (client + server + edge configs)                       |
-| Rate limiting  | Custom in-memory sliding window (`lib/rate-limit.ts`)         |
+| Layer          | Technology                                                     |
+| -------------- | -------------------------------------------------------------- |
+| Framework      | Next.js 16 (App Router, server + client components)            |
+| Language       | TypeScript (strict: `noUncheckedIndexedAccess`)                |
+| Database       | Supabase (PostgreSQL + RLS + Storage)                          |
+| Auth           | Supabase Auth (email/password, PKCE)                           |
+| Styling        | Global CSS (`globals.css`), CSS variables, no Tailwind in app  |
+| i18n           | `next-intl` with `messages/en.json` + `messages/de.json`       |
+| Markdown       | `react-markdown` + `remark-gfm` + `remark-breaks`              |
+| Unit tests     | Vitest (`npm run test:unit`)                                   |
+| E2E tests      | Playwright (`npx playwright test`)                             |
+| Linting        | ESLint (flat config) + Prettier + Husky pre-commit             |
+| Error tracking | Sentry (client + server + edge configs) + Vercel Web Analytics |
+| Rate limiting  | Custom in-memory sliding window (`lib/rate-limit.ts`)          |
 
 ## 3. Directory Map
 
@@ -43,6 +43,7 @@ d:\Chiller\
 │   ├── constants/          # Shared constants (banner-presets)
 │   ├── hooks/              # Shared React hooks (pagination, sortable, roles)
 │   ├── markdown/           # Unified markdown system (renderer, toolbar, sanitizer)
+│   ├── messages/           # Shared messaging helpers (profile maps, labels)
 │   ├── supabase/           # Supabase clients (browser, server, service-role)
 │   ├── types/              # Shared TypeScript types (domain.ts)
 │   ├── permissions.ts      # Role → permission map (single source of truth)
@@ -94,6 +95,8 @@ Email-style messaging with Gmail threading. One `messages` row per sent message 
 | `app/messages/messages-compose.tsx`           | Compose form (direct/clan/global)                               |
 | `app/messages/use-messages.ts`                | State hook (data, CRUD, delete, archive, multi-select)          |
 | `app/messages/messages-types.ts`              | Local types (ViewMode: inbox/sent/archive, ProfileMap, etc.)    |
+| `lib/messages/profile-utils.ts`               | Shared profile map + label helpers used by routes and client    |
+| `lib/types/messages-api.ts`                   | Shared DTO contracts for messaging API response envelopes       |
 | `app/api/messages/route.ts`                   | `GET` inbox (threaded, filters archived), `POST` send           |
 | `app/api/messages/sent/route.ts`              | `GET` sent messages (filters archived/deleted)                  |
 | `app/api/messages/sent/[id]/route.ts`         | `DELETE` sender soft-delete (`sender_deleted_at`)               |
@@ -309,6 +312,8 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 | Permissions        | `permissions.ts`                    | Role→permission map. `hasPermission()`, `canDo()`, `isAdmin()`                                                                                                                                |
 | Rate limiter       | `rate-limit.ts`                     | `createRateLimiter()` factory. Pre-built: `strictLimiter` (10/min), `standardLimiter` (30/min), `relaxedLimiter` (120/min). Isolated stores per instance.                                     |
 | Domain types       | `types/domain.ts`                   | Shared interfaces: `InboxThread`, `SentMessage`, `ThreadMessage`, `ProfileSummary`, `ArchivedItem`, `BugReport`, `BugReportComment`, `BugReportScreenshot`, etc.                              |
+| Message API DTOs   | `types/messages-api.ts`             | Shared response contracts for `/api/messages*` endpoints (`data` + `profiles` envelopes, mutation payloads)                                                                                   |
+| Message helpers    | `messages/profile-utils.ts`         | Shared profile-map loading, recipient mapping, and label fallback logic for messaging routes/UI                                                                                               |
 | Markdown           | `markdown/app-markdown.tsx`         | Unified renderer (`variant="cms"` or `"forum"`)                                                                                                                                               |
 | Markdown toolbar   | `markdown/app-markdown-toolbar.tsx` | Formatting buttons, image upload                                                                                                                                                              |
 | Markdown sanitizer | `markdown/sanitize-markdown.ts`     | Normalizes content before rendering                                                                                                                                                           |
@@ -399,6 +404,7 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 - Every route uses `try/catch` returning `{ error: "..." }` on failure.
 - Every route calls a rate limiter **before** `try/catch`: `const blocked = limiter.check(request); if (blocked) return blocked;`
 - Auth: `requireAuth()` for user routes, `requireAdmin()` for admin routes. Service role client for DB operations that bypass RLS.
+- Auth-first ordering: run `requireAuth()` / `requireAdmin()` before body parsing (`request.json()`), unless an endpoint intentionally validates anonymous input.
 - Input validation: Zod schemas for request bodies and route params. Use `parseJsonBody(request, schema)` from `lib/api/validation.ts` for JSON body parsing + validation.
 - Error logging: Always use `captureApiError()` from `lib/api/logger.ts` — never raw `console.error` — to ensure errors reach Sentry.
 - Error responses: Return generic user-facing messages (e.g. "Failed to load data."), never raw DB error messages.
@@ -435,6 +441,7 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 - Broadcasts send a nil UUID (`00000000-0000-0000-0000-000000000000`) as `recipient_ids` placeholder; server resolves actual recipients.
 - Threading: `thread_id` = root message ID, `parent_id` = direct parent. All replies share `thread_id`.
 - No reply on broadcast/clan messages (one-way notifications).
+- Profile label + recipient/profile map logic is centralized in `lib/messages/profile-utils.ts` to keep payload shaping and fallback behavior consistent.
 - Soft delete: `deleted_at` on `message_recipients` (per-recipient, message stays for sender/others). `sender_deleted_at` on `messages` (sender outbox only).
 - Archive: `archived_at` on `message_recipients` (hides from inbox), `sender_archived_at` on `messages` (hides from outbox). Reversible via unarchive. Archive tab shows combined inbox+sent archived items with source badges.
 - Multi-select: Checkboxes on each list item, batch action bar for delete/archive/unarchive. Uses `Promise.allSettled` for parallel API calls.
@@ -447,11 +454,12 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 ### Testing
 
-- Unit: Vitest, 654 tests across 32 files colocated as `*.test.ts` in `lib/` and `app/`. Run: `npm run test:unit`.
-- E2E: Playwright, 347 tests across 29 specs in `tests/`. Pre-authenticated via `storageState`. Run: `npx playwright test`.
+- Unit: Vitest, 581 tests across 30 files colocated as `*.test.ts` in `lib/` and `app/`. Run: `npm run test:unit`.
+- E2E: Playwright, 435 tests across 29 files in Chromium listing (`npx playwright test --list --project=chromium`). Pre-authenticated via `storageState`. Run: `npx playwright test`.
 - 6 test roles: owner, admin, moderator, editor, member, guest.
 - All `.content-inner` locators use `.first()` (pages render 2+ instances via `PageShell` + client component).
 - `tests/messages.spec.ts` includes a mobile-only thread panel flow test (list → thread → back) and seeds a private message via admin API context when inbox data is empty.
+- `tests/messages-api-contract.spec.ts` validates all messaging endpoints for response envelope shape and privacy constraints (no `email` leakage in recipient/profile payloads).
 
 ### Styling
 

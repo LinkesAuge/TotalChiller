@@ -5,12 +5,13 @@ import Link from "next/link";
 import { Cinzel, Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { SidebarProvider } from "./components/sidebar-context";
 import SidebarShell from "./components/sidebar-shell";
 import { ToastProvider } from "./components/toast-provider";
 import ClanAccessGate from "./components/clan-access-gate";
-import BugReportWidget from "./components/bug-report-widget";
+import BugReportWidgetLoader from "./components/bug-report-widget-loader";
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -33,8 +34,8 @@ interface RootLayoutProps {
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.de"),
   title: {
-    default: "TotalChiller - [THC] Chiller & Killer Community Hub",
-    template: "%s | TotalChiller",
+    default: "[THC] Chiller & Killer Community Hub",
+    template: "%s | [THC] Chiller & Killer",
   },
   description:
     "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, manage your clan, and stay connected.",
@@ -43,15 +44,15 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "TotalChiller",
-    title: "TotalChiller - [THC] Chiller & Killer Community Hub",
+    siteName: "[THC] Chiller & Killer",
+    title: "[THC] Chiller & Killer Community Hub",
     description:
       "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, manage your clan, and stay connected.",
     images: [{ url: "/assets/banners/banner_gold_dragon.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "TotalChiller - [THC] Chiller & Killer Community Hub",
+    title: "[THC] Chiller & Killer Community Hub",
     description:
       "Community hub for [THC] Chiller & Killer Total Battle clan. Coordinate events, track scores, and stay connected.",
     images: ["/assets/banners/banner_gold_dragon.png"],
@@ -88,7 +89,7 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
               "@graph": [
                 {
                   "@type": "WebSite",
-                  name: "TotalChiller",
+                  name: "[THC] Chiller & Killer",
                   alternateName: "[THC] Chiller & Killer Community Hub",
                   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://totalchiller.de",
                   description:
@@ -114,7 +115,7 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
               <div className="layout">
                 <SidebarShell>
                   <ClanAccessGate>{children}</ClanAccessGate>
-                  <BugReportWidget />
+                  <BugReportWidgetLoader />
                   <footer className="app-footer">
                     <Image
                       src="/assets/vip/components_decor_5.png"
@@ -144,6 +145,7 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
             </SidebarProvider>
           </ToastProvider>
         </NextIntlClientProvider>
+        <Analytics />
       </body>
     </html>
   );

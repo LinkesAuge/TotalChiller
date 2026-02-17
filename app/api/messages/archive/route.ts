@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
+import { loadMessageProfilesByIds, mapRecipientsWithProfiles } from "@/lib/messages/profile-utils";
 import { apiError, parseJsonBody } from "@/lib/api/validation";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
+import type { MessagesArchiveMutationResponseDto, MessagesArchiveResponseDto } from "@/lib/types/messages-api";
 
 /* ── Schemas ── */
 
@@ -153,33 +155,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         if (rid !== userId) allRecipientIds.add(rid);
       }
 
-      /* Resolve profiles */
-      const profilesById: Record<string, { display_name: string | null; username: string | null; email: string }> = {};
-      if (allRecipientIds.size > 0) {
-        const { data: profileData } = await svc
-          .from("profiles")
-          .select("id,email,username,display_name")
-          .in("id", Array.from(allRecipientIds).slice(0, 200));
-        for (const p of profileData ?? []) {
-          profilesById[p.id as string] = {
-            email: p.email as string,
-            username: p.username as string | null,
-            display_name: p.display_name as string | null,
-          };
-        }
-      }
+      const profilesById = await loadMessageProfilesByIds(svc, Array.from(allRecipientIds));
 
       for (const [mid, rids] of rawByMsg) {
-        recipientsByMsgId.set(
-          mid,
-          rids.map((rid) => {
-            const profile = profilesById[rid];
-            return {
-              id: rid,
-              label: profile?.display_name ?? profile?.username ?? profile?.email ?? "Unknown",
-            };
-          }),
-        );
+        recipientsByMsgId.set(mid, mapRecipientsWithProfiles(rids, profilesById, "Unknown"));
       }
     }
 
@@ -209,22 +188,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const senderIds = Array.from(
       new Set(inboxItems.map((i) => i.sender_id).filter((id): id is string => id !== null && id !== userId)),
     );
-    const profiles: Record<string, { email: string; username: string | null; display_name: string | null }> = {};
-    if (senderIds.length > 0) {
-      const { data: profileData } = await svc
-        .from("profiles")
-        .select("id,email,username,display_name")
-        .in("id", senderIds);
-      for (const p of profileData ?? []) {
-        profiles[p.id as string] = {
-          email: p.email as string,
-          username: p.username as string | null,
-          display_name: p.display_name as string | null,
-        };
-      }
-    }
+    const profiles = await loadMessageProfilesByIds(svc, senderIds);
 
-    return NextResponse.json({ data: combined, profiles });
+    return NextResponse.json<MessagesArchiveResponseDto>({ data: combined, profiles });
   } catch (err) {
     captureApiError("GET /api/messages/archive", err);
     return apiError("Internal server error.", 500);
@@ -293,7 +259,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    return NextResponse.json({ data: { type, ids, action } });
+    return NextResponse.json<MessagesArchiveMutationResponseDto>({ data: { type, ids, action } });
   } catch (err) {
     captureApiError("POST /api/messages/archive", err);
     return apiError("Internal server error.", 500);

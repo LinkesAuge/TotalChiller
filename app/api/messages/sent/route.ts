@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { captureApiError } from "@/lib/api/logger";
+import { loadMessageProfilesByIds, mapRecipientsWithProfiles } from "@/lib/messages/profile-utils";
 import { apiError, messageQuerySchema } from "@/lib/api/validation";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
+import type { MessagesSentResponseDto } from "@/lib/types/messages-api";
 
 const SENT_LIMIT = 200;
 
@@ -71,7 +73,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     if (messages.length === 0) {
-      return NextResponse.json({ data: [], profiles: {} });
+      return NextResponse.json<MessagesSentResponseDto>({ data: [], profiles: {} });
     }
 
     /* Fetch recipients for each message */
@@ -99,31 +101,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     /* Fetch profiles */
-    let profilesById: Record<string, { email: string; username: string | null; display_name: string | null }> = {};
-    if (allRecipientIds.size > 0) {
-      const { data: profileData } = await svc
-        .from("profiles")
-        .select("id,email,username,display_name")
-        .in("id", Array.from(allRecipientIds).slice(0, 200));
-      for (const p of profileData ?? []) {
-        profilesById[p.id as string] = {
-          email: p.email as string,
-          username: p.username as string | null,
-          display_name: p.display_name as string | null,
-        };
-      }
-    }
+    const profilesById = await loadMessageProfilesByIds(svc, Array.from(allRecipientIds));
 
     /* Build response with recipient info */
     const sentMessages = messages.map((msg) => {
       const recipientIds = recipientsByMsgId.get(msg.id) ?? [];
-      const recipients = recipientIds.map((id) => {
-        const profile = profilesById[id];
-        return {
-          id,
-          label: profile?.display_name ?? profile?.username ?? profile?.email ?? "Unknown",
-        };
-      });
+      const recipients = mapRecipientsWithProfiles(recipientIds, profilesById, "Unknown");
       return {
         ...msg,
         recipient_count: recipientIds.length,
@@ -131,7 +114,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       };
     });
 
-    return NextResponse.json({ data: sentMessages, profiles: profilesById });
+    return NextResponse.json<MessagesSentResponseDto>({ data: sentMessages, profiles: profilesById });
   } catch (err) {
     captureApiError("GET /api/messages/sent", err);
     return apiError("Internal server error.", 500);

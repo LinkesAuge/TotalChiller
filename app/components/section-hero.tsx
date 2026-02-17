@@ -22,15 +22,7 @@ function SectionHero({ title, subtitle, bannerSrc }: SectionHeroProps): JSX.Elem
         sizes="100vw"
         priority
       />
-      <Image
-        src="/assets/vip/decor_light_1.png"
-        alt=""
-        className="hero-light"
-        width={400}
-        height={400}
-        sizes="400px"
-        priority
-      />
+      <Image src="/assets/vip/decor_light_1.png" alt="" className="hero-light" width={400} height={400} sizes="400px" />
       <div className="hero-content">
         <Image src="/assets/vip/components_decor_6.png" alt="" className="hero-decor" width={300} height={20} />
         <h2 className="hero-title">{title}</h2>

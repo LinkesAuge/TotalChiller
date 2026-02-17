@@ -28,7 +28,7 @@ export default function PageTopBar({ breadcrumb, title, actions }: PageTopBarPro
         width={1200}
         height={56}
         sizes="100vw"
-        priority
+        loading="eager"
       />
       <div className="top-bar-inner">
         <div>

@@ -23,7 +23,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
 
 ## 1. Confirm Signup
 
-**Subject:** Willkommen bei TotalChiller – E-Mail bestätigen / Welcome to TotalChiller – Confirm Your Email
+**Subject:** Willkommen bei [THC] Chiller & Killer – E-Mail bestätigen / Welcome to [THC] Chiller & Killer – Confirm Your Email
 
 **HTML Body:**
 
@@ -34,7 +34,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>TotalChiller</title>
+    <title>[THC] Chiller & Killer</title>
   </head>
   <body style="margin:0;padding:0;" bgcolor="#f5f3ef">
     <!--[if mso]>
@@ -55,14 +55,14 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                     [THC] Chiller &amp; Killer
                   </h1>
                   <p style="margin:4px 0 0;font-size:13px;color:#999999;font-family:Arial,sans-serif;">
-                    TotalChiller Community Platform
+                    [THC] Chiller & Killer Community Platform
                   </p>
                 </td>
               </tr>
               <tr>
                 <td bgcolor="#ffffff" style="padding:24px 24px 0;">
                   <h2 style="font-size:18px;color:#c8a84e;margin:0 0 12px;font-family:Arial,sans-serif;">
-                    Willkommen bei TotalChiller!
+                    Willkommen bei [THC] Chiller & Killer!
                   </h2>
                   <p style="margin:0 0 12px;line-height:1.6;font-size:14px;color:#333333;font-family:Arial,sans-serif;">
                     Dein Konto wurde erfolgreich erstellt. Bitte best&auml;tige deine E-Mail-Adresse, um dein Konto zu
@@ -205,7 +205,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
               <tr>
                 <td bgcolor="#ffffff" style="padding:0 24px;">
                   <h2 style="font-size:18px;color:#c8a84e;margin:0 0 12px;font-family:Arial,sans-serif;">
-                    Welcome to TotalChiller!
+                    Welcome to [THC] Chiller & Killer!
                   </h2>
                   <p style="margin:0 0 12px;line-height:1.6;font-size:14px;color:#333333;font-family:Arial,sans-serif;">
                     Your account has been created. Please confirm your email address to activate your account.
@@ -348,7 +348,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                   bgcolor="#ffffff"
                   style="padding:0 24px 24px;font-size:12px;color:#999999;font-family:Arial,sans-serif;"
                 >
-                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                   <p style="margin:4px 0 0;">
                     <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                   </p>
@@ -387,12 +387,12 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                 <h1 style="margin:0;font-size:22px;color:#c8a84e;font-family:Arial,sans-serif;">
                   [THC] Chiller &amp; Killer
                 </h1>
-                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">TotalChiller Community Platform</p>
+                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">[THC] Chiller & Killer Community Platform</p>
               </td>
             </tr>
             <tr>
               <td bgcolor="#1a1a2e" style="padding:24px 24px 0;background-color:#1a1a2e;">
-                <h2 style="font-size:18px;color:#c8a84e;margin:0 0 12px;">Willkommen bei TotalChiller!</h2>
+                <h2 style="font-size:18px;color:#c8a84e;margin:0 0 12px;">Willkommen bei [THC] Chiller & Killer!</h2>
                 <p style="margin:0 0 12px;line-height:1.6;font-size:14px;color:#e0d8c8;">
                   Dein Konto wurde erfolgreich erstellt. Bitte best&auml;tige deine E-Mail-Adresse, um dein Konto zu
                   aktivieren.
@@ -523,7 +523,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
             </tr>
             <tr>
               <td bgcolor="#1a1a2e" style="padding:0 24px;background-color:#1a1a2e;">
-                <h2 style="font-size:18px;color:#c8a84e;margin:0 0 12px;">Welcome to TotalChiller!</h2>
+                <h2 style="font-size:18px;color:#c8a84e;margin:0 0 12px;">Welcome to [THC] Chiller & Killer!</h2>
                 <p style="margin:0 0 12px;line-height:1.6;font-size:14px;color:#e0d8c8;">
                   Your account has been created. Please confirm your email address to activate your account.
                 </p>
@@ -655,7 +655,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                 bgcolor="#1a1a2e"
                 style="padding:0 24px 24px;font-size:12px;color:#6a6a7a;background-color:#1a1a2e;"
               >
-                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                 <p style="margin:4px 0 0;">
                   <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                 </p>
@@ -674,7 +674,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
 
 ## 2. Reset Password
 
-**Subject:** TotalChiller – Passwort zurücksetzen / Reset Your Password
+**Subject:** [THC] Chiller & Killer – Passwort zurücksetzen / Reset Your Password
 
 **HTML Body:**
 
@@ -684,7 +684,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TotalChiller</title>
+    <title>[THC] Chiller & Killer</title>
   </head>
   <body style="margin:0;padding:0;" bgcolor="#f5f3ef">
     <!--[if mso]>
@@ -705,7 +705,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                     [THC] Chiller &amp; Killer
                   </h1>
                   <p style="margin:4px 0 0;font-size:13px;color:#999999;font-family:Arial,sans-serif;">
-                    TotalChiller Community Platform
+                    [THC] Chiller & Killer Community Platform
                   </p>
                 </td>
               </tr>
@@ -804,7 +804,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                   bgcolor="#ffffff"
                   style="padding:0 24px 24px;font-size:12px;color:#999999;font-family:Arial,sans-serif;"
                 >
-                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                   <p style="margin:4px 0 0;">
                     <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                   </p>
@@ -843,7 +843,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                 <h1 style="margin:0;font-size:22px;color:#c8a84e;font-family:Arial,sans-serif;">
                   [THC] Chiller &amp; Killer
                 </h1>
-                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">TotalChiller Community Platform</p>
+                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">[THC] Chiller & Killer Community Platform</p>
               </td>
             </tr>
             <tr>
@@ -937,7 +937,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                 bgcolor="#1a1a2e"
                 style="padding:0 24px 24px;font-size:12px;color:#6a6a7a;background-color:#1a1a2e;"
               >
-                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                 <p style="margin:4px 0 0;">
                   <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                 </p>
@@ -956,7 +956,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
 
 ## 3. Change Email Address
 
-**Subject:** TotalChiller – E-Mail-Adresse bestätigen / Confirm Your New Email Address
+**Subject:** [THC] Chiller & Killer – E-Mail-Adresse bestätigen / Confirm Your New Email Address
 
 **HTML Body:**
 
@@ -966,7 +966,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TotalChiller</title>
+    <title>[THC] Chiller & Killer</title>
   </head>
   <body style="margin:0;padding:0;" bgcolor="#f5f3ef">
     <!--[if mso]>
@@ -987,7 +987,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                     [THC] Chiller &amp; Killer
                   </h1>
                   <p style="margin:4px 0 0;font-size:13px;color:#999999;font-family:Arial,sans-serif;">
-                    TotalChiller Community Platform
+                    [THC] Chiller & Killer Community Platform
                   </p>
                 </td>
               </tr>
@@ -1085,7 +1085,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                   bgcolor="#ffffff"
                   style="padding:0 24px 24px;font-size:12px;color:#999999;font-family:Arial,sans-serif;"
                 >
-                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                   <p style="margin:4px 0 0;">
                     <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                   </p>
@@ -1124,7 +1124,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                 <h1 style="margin:0;font-size:22px;color:#c8a84e;font-family:Arial,sans-serif;">
                   [THC] Chiller &amp; Killer
                 </h1>
-                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">TotalChiller Community Platform</p>
+                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">[THC] Chiller & Killer Community Platform</p>
               </td>
             </tr>
             <tr>
@@ -1215,7 +1215,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
                 bgcolor="#1a1a2e"
                 style="padding:0 24px 24px;font-size:12px;color:#6a6a7a;background-color:#1a1a2e;"
               >
-                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                 <p style="margin:4px 0 0;">
                   <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                 </p>
@@ -1236,7 +1236,7 @@ The app cannot set these programmatically. Copy the HTML below into the correspo
 
 Used when an admin creates a new user via the admin panel (`/api/admin/create-user`).
 
-**Subject:** TotalChiller – Du wurdest eingeladen! / You've Been Invited!
+**Subject:** [THC] Chiller & Killer – Du wurdest eingeladen! / You've Been Invited!
 
 **HTML Body:**
 
@@ -1246,7 +1246,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TotalChiller</title>
+    <title>[THC] Chiller & Killer</title>
   </head>
   <body style="margin:0;padding:0;" bgcolor="#f5f3ef">
     <!--[if mso]>
@@ -1267,7 +1267,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                     [THC] Chiller &amp; Killer
                   </h1>
                   <p style="margin:4px 0 0;font-size:13px;color:#999999;font-family:Arial,sans-serif;">
-                    TotalChiller Community Platform
+                    [THC] Chiller & Killer Community Platform
                   </p>
                 </td>
               </tr>
@@ -1508,7 +1508,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                   bgcolor="#ffffff"
                   style="padding:0 24px 24px;font-size:12px;color:#999999;font-family:Arial,sans-serif;"
                 >
-                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                   <p style="margin:4px 0 0;">
                     <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                   </p>
@@ -1547,7 +1547,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                 <h1 style="margin:0;font-size:22px;color:#c8a84e;font-family:Arial,sans-serif;">
                   [THC] Chiller &amp; Killer
                 </h1>
-                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">TotalChiller Community Platform</p>
+                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">[THC] Chiller & Killer Community Platform</p>
               </td>
             </tr>
             <tr>
@@ -1767,7 +1767,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                 bgcolor="#1a1a2e"
                 style="padding:0 24px 24px;font-size:12px;color:#6a6a7a;background-color:#1a1a2e;"
               >
-                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                 <p style="margin:4px 0 0;">
                   <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                 </p>
@@ -1788,7 +1788,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
 
 > **Note:** Magic Link login is not currently used in the app. Included for completeness.
 
-**Subject:** TotalChiller – Anmelde-Link / Your Login Link
+**Subject:** [THC] Chiller & Killer – Anmelde-Link / Your Login Link
 
 **HTML Body:**
 
@@ -1798,7 +1798,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TotalChiller</title>
+    <title>[THC] Chiller & Killer</title>
   </head>
   <body style="margin:0;padding:0;" bgcolor="#f5f3ef">
     <!--[if mso]>
@@ -1819,7 +1819,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                     [THC] Chiller &amp; Killer
                   </h1>
                   <p style="margin:4px 0 0;font-size:13px;color:#999999;font-family:Arial,sans-serif;">
-                    TotalChiller Community Platform
+                    [THC] Chiller & Killer Community Platform
                   </p>
                 </td>
               </tr>
@@ -1829,8 +1829,8 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                     Dein Anmelde-Link
                   </h2>
                   <p style="margin:0 0 12px;line-height:1.6;font-size:14px;color:#333333;font-family:Arial,sans-serif;">
-                    Klicke auf den Button, um dich bei TotalChiller anzumelden. Dieser Link kann nur einmal verwendet
-                    werden.
+                    Klicke auf den Button, um dich bei [THC] Chiller & Killer anzumelden. Dieser Link kann nur einmal
+                    verwendet werden.
                   </p>
                 </td>
               </tr>
@@ -1842,7 +1842,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                         <a
                           href="{{ .ConfirmationURL }}"
                           style="color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;font-family:Arial,sans-serif;"
-                          >Bei TotalChiller anmelden</a
+                          >Bei [THC] Chiller & Killer anmelden</a
                         >
                       </td>
                     </tr>
@@ -1871,7 +1871,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                     Your Login Link
                   </h2>
                   <p style="margin:0 0 12px;line-height:1.6;font-size:14px;color:#333333;font-family:Arial,sans-serif;">
-                    Click the button to log in to TotalChiller. This link can only be used once.
+                    Click the button to log in to [THC] Chiller & Killer. This link can only be used once.
                   </p>
                 </td>
               </tr>
@@ -1883,7 +1883,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                         <a
                           href="{{ .ConfirmationURL }}"
                           style="color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;font-family:Arial,sans-serif;"
-                          >Log in to TotalChiller</a
+                          >Log in to [THC] Chiller & Killer</a
                         >
                       </td>
                     </tr>
@@ -1912,7 +1912,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                   bgcolor="#ffffff"
                   style="padding:0 24px 24px;font-size:12px;color:#999999;font-family:Arial,sans-serif;"
                 >
-                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                  <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                   <p style="margin:4px 0 0;">
                     <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                   </p>
@@ -1951,15 +1951,15 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                 <h1 style="margin:0;font-size:22px;color:#c8a84e;font-family:Arial,sans-serif;">
                   [THC] Chiller &amp; Killer
                 </h1>
-                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">TotalChiller Community Platform</p>
+                <p style="margin:4px 0 0;font-size:13px;color:#8a8a9a;">[THC] Chiller & Killer Community Platform</p>
               </td>
             </tr>
             <tr>
               <td bgcolor="#1a1a2e" style="padding:24px 24px 0;background-color:#1a1a2e;">
                 <h2 style="font-size:18px;color:#c8a84e;margin:0 0 12px;">Dein Anmelde-Link</h2>
                 <p style="margin:0 0 12px;line-height:1.6;font-size:14px;color:#e0d8c8;">
-                  Klicke auf den Button, um dich bei TotalChiller anzumelden. Dieser Link kann nur einmal verwendet
-                  werden.
+                  Klicke auf den Button, um dich bei [THC] Chiller & Killer anzumelden. Dieser Link kann nur einmal
+                  verwendet werden.
                 </p>
               </td>
             </tr>
@@ -1971,7 +1971,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                       <a
                         href="{{ .ConfirmationURL }}"
                         style="color:#1a1a2e;text-decoration:none;font-weight:bold;font-size:14px;font-family:Arial,sans-serif;"
-                        >Bei TotalChiller anmelden</a
+                        >Bei [THC] Chiller & Killer anmelden</a
                       >
                     </td>
                   </tr>
@@ -1998,7 +1998,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
               <td bgcolor="#1a1a2e" style="padding:0 24px;background-color:#1a1a2e;">
                 <h2 style="font-size:18px;color:#c8a84e;margin:0 0 12px;">Your Login Link</h2>
                 <p style="margin:0 0 12px;line-height:1.6;font-size:14px;color:#e0d8c8;">
-                  Click the button to log in to TotalChiller. This link can only be used once.
+                  Click the button to log in to [THC] Chiller & Killer. This link can only be used once.
                 </p>
               </td>
             </tr>
@@ -2010,7 +2010,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                       <a
                         href="{{ .ConfirmationURL }}"
                         style="color:#1a1a2e;text-decoration:none;font-weight:bold;font-size:14px;font-family:Arial,sans-serif;"
-                        >Log in to TotalChiller</a
+                        >Log in to [THC] Chiller & Killer</a
                       >
                     </td>
                   </tr>
@@ -2039,7 +2039,7 @@ Used when an admin creates a new user via the admin panel (`/api/admin/create-us
                 bgcolor="#1a1a2e"
                 style="padding:0 24px 24px;font-size:12px;color:#6a6a7a;background-color:#1a1a2e;"
               >
-                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; TotalChiller Platform</p>
+                <p style="margin:0;">[THC] Chiller &amp; Killer &bull; [THC] Chiller & Killer Platform</p>
                 <p style="margin:4px 0 0;">
                   <a href="{{ .SiteURL }}" style="color:#c8a84e;text-decoration:none;">totalchiller.de</a>
                 </p>

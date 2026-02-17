@@ -76,7 +76,7 @@ INSERT INTO public.site_content (page, section_key, field_key, content_de, conte
 
 -- Clan News (formerly Public News)
 ('home', 'publicNews', 'title', 'Clan-Neuigkeiten', 'Clan News'),
-('home', 'publicNews', 'text', 'Bleib informiert über das Geschehen in der Chiller & Killer Community. Neueste Updates und Rekrutierungsankündigungen werden hier veröffentlicht.', 'Stay informed about what is happening in the Chiller & Killer community. Latest updates and recruitment announcements are posted here.'),
+('home', 'publicNews', 'text', 'Bleib informiert über das Geschehen in der [THC] Chiller & Killer Community. Neueste Updates und Rekrutierungsankündigungen werden hier veröffentlicht.', 'Stay informed about what is happening in the [THC] Chiller & Killer community. Latest updates and recruitment announcements are posted here.'),
 ('home', 'publicNews', 'news1', 'Rekrutierungsfenster öffnet diese Woche für neue Mitglieder', 'Recruitment window opens this week for new members'),
 ('home', 'publicNews', 'news1Badge', 'News', 'News'),
 ('home', 'publicNews', 'news2', 'Allianz-Turnier-Update und Ergebnisse veröffentlicht', 'Alliance tournament update and results posted'),
@@ -85,8 +85,8 @@ INSERT INTO public.site_content (page, section_key, field_key, content_de, conte
 ('home', 'publicNews', 'news3Badge', 'Update', 'Update'),
 
 -- How It Works
-('home', 'howItWorks', 'title', 'Wie TotalChiller funktioniert', 'How TotalChiller Works'),
-('home', 'howItWorks', 'text1', 'TotalChiller ist ein speziell entwickelter Community-Hub, der alles zusammenbringt, was unsere Mitglieder an einem Ort benötigen. Spieler können Truhenberichtsdaten hochladen, die automatisch validiert und zur Analyse gespeichert werden. Die Plattform erstellt Leistungsdiagramme mit individuellen Scores, Allianz-Trends und Top-Spieler-Bestenlisten.', 'TotalChiller is a purpose-built community hub that brings together everything our members need in one place. Players can upload chest report data that is automatically validated and stored for analysis. The platform generates performance charts showing individual scores, alliance trends, and top player leaderboards.'),
+('home', 'howItWorks', 'title', 'Wie [THC] Chiller & Killer funktioniert', 'How [THC] Chiller & Killer Works'),
+('home', 'howItWorks', 'text1', '[THC] Chiller & Killer ist ein speziell entwickelter Community-Hub, der alles zusammenbringt, was unsere Mitglieder an einem Ort benötigen. Spieler können Truhenberichtsdaten hochladen, die automatisch validiert und zur Analyse gespeichert werden. Die Plattform erstellt Leistungsdiagramme mit individuellen Scores, Allianz-Trends und Top-Spieler-Bestenlisten.', '[THC] Chiller & Killer is a purpose-built community hub that brings together everything our members need in one place. Players can upload chest report data that is automatically validated and stored for analysis. The platform generates performance charts showing individual scores, alliance trends, and top player leaderboards.'),
 ('home', 'howItWorks', 'text2', 'Alle Datensätze sind mit Row-Level-Security-Richtlinien gesichert. Die Plattform ist mit Next.js, TypeScript und Supabase gebaut und bietet ein schnelles, zuverlässiges Erlebnis auf jedem Gerät.', 'All records are secured with row-level security policies. The platform is built with Next.js, TypeScript, and Supabase, delivering a fast, reliable experience on any device.'),
 
 -- Contact

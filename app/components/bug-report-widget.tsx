@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactElement } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/app/hooks/use-auth";
 import { useToast } from "@/app/components/toast-provider";
-import BugsForm from "@/app/bugs/bugs-form";
 import type { BugReportCategory, BugsFormSubmitData } from "@/app/bugs/bugs-types";
+
+const BugsForm = dynamic(() => import("@/app/bugs/bugs-form"));
 
 /**
  * Floating bug report button + modal.

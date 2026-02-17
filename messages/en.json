@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "TotalChiller",
+    "appName": "[THC] Chiller & Killer",
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -84,7 +84,7 @@
   },
   "sidebar": {
     "title": "[THC]",
-    "subtitle": "Chiller & Killer",
+    "subtitle": "[THC] Chiller & Killer",
     "collapse": "Collapse",
     "expand": "Expand",
     "selectClan": "Select clan",
@@ -120,15 +120,15 @@
       "identifierPlaceholder": "you@example.com or username",
       "password": "Password",
       "passwordPlaceholder": "••••••••",
-      "submit": "Enter Chiller & Killer Community",
+      "submit": "Enter [THC] Chiller & Killer Community",
       "signingIn": "Signing in...",
       "signedIn": "Signed in. Redirecting...",
       "usernameNotFound": "Username not found.",
       "forgotPassword": "Reset your forgotten password",
       "createAccount": "Create a new account",
       "welcomeBack": "Welcome Back to [THC] Chiller & Killer Hub",
-      "welcomeText": "Sign in with an email address or username to access the full TotalChiller community platform. Once authenticated, members can view performance charts, coordinate war strategies, check event schedules, and read the latest announcements from leadership. The platform is designed to be fast, secure, and accessible from any device, so staying connected with the alliance is always convenient.",
-      "aboutPlatform": "TotalChiller is the dedicated management hub for [THC] Chiller & Killer, a competitive Total Battle alliance focused on teamwork and strategic coordination. Our platform provides chest score tracking, automated leaderboards, an interactive event calendar, and a messaging system that keeps every member aligned and informed about upcoming activities. Members also benefit from detailed performance analytics, automated data validation, and a notification system that ensures no important update is missed.",
+      "welcomeText": "Sign in with an email address or username to access the full [THC] Chiller & Killer community platform. Once authenticated, members can view performance charts, coordinate war strategies, check event schedules, and read the latest announcements from leadership. The platform is designed to be fast, secure, and accessible from any device, so staying connected with the alliance is always convenient.",
+      "aboutPlatform": "[THC] Chiller & Killer is the dedicated management hub for [THC] Chiller & Killer, a competitive Total Battle alliance focused on teamwork and strategic coordination. Our platform provides chest score tracking, automated leaderboards, an interactive event calendar, and a messaging system that keeps every member aligned and informed about upcoming activities. Members also benefit from detailed performance analytics, automated data validation, and a notification system that ensures no important update is missed.",
       "afterSignIn": "What You Can Do After Signing In",
       "feature1": "View personal and alliance-wide performance analytics",
       "feature2": "Track chest scores with historical trend charts",
@@ -138,7 +138,7 @@
       "feature6": "Access the messaging system for direct communication with members",
       "feature7": "Review data import history and validation reports",
       "secureAuth": "Secure Authentication",
-      "secureAuthText": "TotalChiller uses Supabase Auth for secure session management. All credentials are encrypted in transit and at rest, following industry best practices for web application security. The platform supports email-based login as well as username lookup, so members can sign in with whichever identifier they prefer. Sessions are maintained securely with HTTP-only cookies, and row-level security policies ensure that each member only accesses information relevant to their assigned division. Two-factor authentication support and automatic session expiration provide additional layers of account protection. If access has been lost, use the",
+      "secureAuthText": "[THC] Chiller & Killer uses Supabase Auth for secure session management. All credentials are encrypted in transit and at rest, following industry best practices for web application security. The platform supports email-based login as well as username lookup, so members can sign in with whichever identifier they prefer. Sessions are maintained securely with HTTP-only cookies, and row-level security policies ensure that each member only accesses information relevant to their assigned division. Two-factor authentication support and automatic session expiration provide additional layers of account protection. If access has been lost, use the",
       "passwordRecoveryPage": "password recovery page",
       "toRegainEntry": "to regain entry.",
       "newToChillers": "New to [THC] Chiller & Killer?",
@@ -181,9 +181,9 @@
       "alreadyHaveAccount": "Already have an account?",
       "signInToExisting": "Sign in to your existing account",
       "joinCommunity": "Join [THC] Chiller & Killer Community",
-      "joinText": "Create an account to apply for membership in [THC] Chiller & Killer, a competitive Total Battle alliance that values teamwork, strategic planning, and active participation. Registration is the first step toward accessing our full suite of community tools and resources. The TotalChiller platform provides everything needed to coordinate with fellow members and track progress toward shared goals. Our tools include interactive dashboards, automated score tracking, and real-time event coordination designed for competitive alliance gameplay.",
+      "joinText": "Create an account to apply for membership in [THC] Chiller & Killer, a competitive Total Battle alliance that values teamwork, strategic planning, and active participation. Registration is the first step toward accessing our full suite of community tools and resources. The [THC] Chiller & Killer platform provides everything needed to coordinate with fellow members and track progress toward shared goals. Our tools include interactive dashboards, automated score tracking, and real-time event coordination designed for competitive alliance gameplay.",
       "afterRegistration": "What Happens After Registration",
-      "afterRegText": "After creating an account, a verification email will be sent to the provided address. Once the email is verified, an administrator reviews the application and assigns the new member to the appropriate division within the alliance. This review process typically takes 24 to 48 hours, and a confirmation email is sent once the application has been approved. Upon approval, the full TotalChiller platform becomes accessible immediately.",
+      "afterRegText": "After creating an account, a verification email will be sent to the provided address. Once the email is verified, an administrator reviews the application and assigns the new member to the appropriate division within the alliance. This review process typically takes 24 to 48 hours, and a confirmation email is sent once the application has been approved. Upon approval, the full [THC] Chiller & Killer platform becomes accessible immediately.",
       "benefits": "Member Benefits",
       "benefit1": "Access performance analytics and personal chest score history",
       "benefit2": "Participate in coordinated war strategies and training sessions",
@@ -209,7 +209,7 @@
     "forgot": {
       "title": "Reset Password",
       "heading": "Reset Password",
-      "description": "Enter the email address associated with your TotalChiller account and we will send you a secure link to create a new password.",
+      "description": "Enter the email address associated with your [THC] Chiller & Killer account and we will send you a secure link to create a new password.",
       "email": "Email",
       "emailPlaceholder": "you@example.com",
       "submit": "Send Reset Link",
@@ -217,11 +217,11 @@
       "sent": "Reset email sent. Check your inbox.",
       "backToLogin": "Return to the login page",
       "createAccount": "Create a new account",
-      "recoveryTitle": "Password Recovery for TotalChiller",
-      "recoveryText": "Lost access to the TotalChiller platform? The password reset process is straightforward and secure. Use the form above to request a recovery link, which will be sent to the email address associated with the account. The link remains valid for a limited time to ensure security. This page is available to all visitors and does not require an active session. Once your password is reset, you will regain full access to all platform features including performance analytics, event coordination, and the messaging system.",
+      "recoveryTitle": "Password Recovery for [THC] Chiller & Killer",
+      "recoveryText": "Lost access to the [THC] Chiller & Killer platform? The password reset process is straightforward and secure. Use the form above to request a recovery link, which will be sent to the email address associated with the account. The link remains valid for a limited time to ensure security. This page is available to all visitors and does not require an active session. Once your password is reset, you will regain full access to all platform features including performance analytics, event coordination, and the messaging system.",
       "howItWorks": "How the Reset Process Works",
       "step1": "Enter the email address linked to the account in the form above",
-      "step2": "Check the inbox for a message from TotalChiller",
+      "step2": "Check the inbox for a message from [THC] Chiller & Killer",
       "step3": "Click the secure recovery link in the email",
       "step4": "Choose a new password and confirm it on the update page",
       "step5": "Sign in with the updated credentials to resume access",
@@ -229,7 +229,7 @@
       "troubleshootingText": "If the reset email does not arrive within a few minutes, check the spam or junk folder. Ensure the entered email matches the one used during registration. Members who continue to experience issues should reach out to our team through the",
       "contactPage": "contact page",
       "orDiscord": "or via Discord for personalized assistance.",
-      "securityTitle": "Account Security at TotalChiller",
+      "securityTitle": "Account Security at [THC] Chiller & Killer",
       "securityText": "All password reset links are generated securely through Supabase Auth and encrypted in transit via TLS. We never store passwords in plain text, and the platform enforces modern security standards including Content-Security-Policy headers, Strict-Transport-Security, and row-level database access controls. Password reset tokens expire automatically after a limited time window, preventing unauthorized reuse. This ensures that member accounts remain protected at every level.",
       "rememberPassword": "Remember your password?",
       "goToLogin": "Go back to the login page",
@@ -291,8 +291,8 @@
     "news2Badge": "Info",
     "news3": "Platform update with new chart features and improved data imports",
     "news3Badge": "Update",
-    "howItWorksTitle": "How TotalChiller Works",
-    "howItWorksText1": "TotalChiller is a purpose-built community hub that brings together everything our members need in one place. Players can upload chest report information, which is automatically validated and stored for analysis. The platform generates performance charts showing individual scores, alliance trends, and top player leaderboards. Our event calendar keeps everyone aligned on war schedules, training sessions, and guild meetings. Leaders use the admin panel for user management, validation rules, and approval workflows.",
+    "howItWorksTitle": "How [THC] Chiller & Killer Works",
+    "howItWorksText1": "[THC] Chiller & Killer is a purpose-built community hub that brings together everything our members need in one place. Players can upload chest report information, which is automatically validated and stored for analysis. The platform generates performance charts showing individual scores, alliance trends, and top player leaderboards. Our event calendar keeps everyone aligned on war schedules, training sessions, and guild meetings. Leaders use the admin panel for user management, validation rules, and approval workflows.",
     "howItWorksText2": "All records are secured with row-level security policies, ensuring members only access information relevant to their division. The platform is built with modern web technologies including Next.js, TypeScript, and Supabase, delivering a fast, reliable experience on any device.",
     "contactTitle": "Contact [THC] Chiller & Killer",
     "contactText": "Want to reach out? Connect with us through Discord for real-time communication, or send an email for formal inquiries and recruitment questions.",
@@ -304,7 +304,7 @@
     "learnMoreAbout": "Learn More About Us"
   },
   "dashboard": {
-    "breadcrumb": "TotalChiller \u2022 Clan Platform",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Clan Platform",
     "title": "Clan Dashboard",
     "refreshTooltip": "Refresh data",
     "overviewTitle": "Overview",
@@ -343,7 +343,7 @@
     "goToThread": "Go to discussion thread"
   },
   "members": {
-    "breadcrumb": "TotalChiller \u2022 Community",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Community",
     "title": "Member Directory",
     "heroTitle": "Clan Members",
     "heroSubtitle": "Active members and ranks of your clan.",
@@ -371,7 +371,7 @@
     "uploadingImage": "Uploading image\u2026"
   },
   "news": {
-    "breadcrumb": "TotalChiller \u2022 Clan Platform",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Clan Platform",
     "title": "Announcements",
     "heroTitle": "Announcements",
     "heroSubtitle": "Clan updates, priorities, and community announcements.",
@@ -438,7 +438,7 @@
     "goToThread": "Go to discussion thread"
   },
   "events": {
-    "breadcrumb": "TotalChiller \u2022 Clan Platform",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Clan Platform",
     "title": "Events",
     "heroTitle": "Events Calendar",
     "heroSubtitle": "Plan coordination, attendance, and event timings in one place.",
@@ -583,14 +583,14 @@
     "goToThread": "Go to discussion thread"
   },
   "analytics": {
-    "breadcrumb": "TotalChiller \u2022 Analytics",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Analytics",
     "title": "Analytics",
     "heroTitle": "Battle Intelligence",
     "heroSubtitle": "Analytics and charts coming soon.",
     "comingSoon": "Analytics coming soon."
   },
   "messagesPage": {
-    "breadcrumb": "TotalChiller \u2022 Clan Platform",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Clan Platform",
     "title": "Messages",
     "heroTitle": "Message Center",
     "heroSubtitle": "Direct messages, broadcasts, and clan messages.",
@@ -703,7 +703,7 @@
     "backToList": "Back"
   },
   "profile": {
-    "breadcrumb": "TotalChiller \u2022 Account",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Account",
     "title": "Profile",
     "heroTitle": "Member Profile",
     "heroSubtitle": "Identity, clan context, and account readiness at a glance.",
@@ -733,7 +733,7 @@
     "noGameAccounts": "No game accounts linked."
   },
   "settings": {
-    "breadcrumb": "TotalChiller \u2022 Settings",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Settings",
     "title": "Settings",
     "accountDetails": "Account Details",
     "email": "Email address",
@@ -782,7 +782,7 @@
     "failedToSave": "Failed to save."
   },
   "admin": {
-    "breadcrumb": "TotalChiller \u2022 Command",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Command",
     "title": "Admin Panel",
     "heroTitle": "Command Center",
     "heroSubtitle": "Administration and approvals.",
@@ -1058,14 +1058,14 @@
     }
   },
   "about": {
-    "breadcrumb": "TotalChiller \u2022 Community",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Community",
     "title": "About [THC] Chiller & Killer",
     "missionTitle": "Our Mission",
-    "missionSubtitle": "Why we built TotalChiller",
+    "missionSubtitle": "Why we built [THC] Chiller & Killer",
     "missionByline": "Written by [THC] Chiller & Killer Leadership Team",
-    "missionText1": "[THC] Chiller & Killer are a dedicated Total Battle alliance that believes in coordinated play, informed decision making, and a welcoming community. TotalChiller is our custom-built platform that helps us stay organized, track performance, and communicate effectively across every division of our growing community.",
+    "missionText1": "[THC] Chiller & Killer are a dedicated Total Battle alliance that believes in coordinated play, informed decision making, and a welcoming community. [THC] Chiller & Killer is our custom-built platform that helps us stay organized, track performance, and communicate effectively across every division of our growing community.",
     "missionText2": "We created this platform because off-the-shelf tools could not meet the specific needs of a competitive Total Battle group. From real-time chest score tracking to automated event coordination, every feature was designed by members, for members. Our goal is to remove the friction of managing a large alliance so that leaders can focus on strategy and players can focus on contributing to collective success.",
-    "missionText3": "Whether you are a seasoned veteran or a newcomer exploring competitive gameplay for the first time, TotalChiller provides the tools and resources you need to thrive. We believe that transparency, shared goals, and mutual respect form the foundation of a strong gaming community, and every feature on this platform reflects those principles.",
+    "missionText3": "Whether you are a seasoned veteran or a newcomer exploring competitive gameplay for the first time, [THC] Chiller & Killer provides the tools and resources you need to thrive. We believe that transparency, shared goals, and mutual respect form the foundation of a strong gaming community, and every feature on this platform reflects those principles.",
     "featuresTitle": "What We Do",
     "featuresSubtitle": "Platform features",
     "feature1": "Chest Score Tracking",
@@ -1087,7 +1087,7 @@
     "value5": "Continuous improvement",
     "techTitle": "Built With Modern Technology",
     "techSubtitle": "Our technology stack and approach",
-    "techText1": "TotalChiller is built with <strong>Next.js</strong> and <strong>TypeScript</strong> on the frontend, powered by <strong>Supabase</strong> for authentication, real-time updates, and PostgreSQL storage. The platform is deployed on <strong>Vercel</strong> for optimal performance and global availability, ensuring fast load times regardless of where our members are located.",
+    "techText1": "[THC] Chiller & Killer is built with <strong>Next.js</strong> and <strong>TypeScript</strong> on the frontend, powered by <strong>Supabase</strong> for authentication, real-time updates, and PostgreSQL storage. The platform is deployed on <strong>Vercel</strong> for optimal performance and global availability, ensuring fast load times regardless of where our members are located.",
     "techText2": "We follow modern web best practices including responsive design, accessibility standards (WCAG), progressive enhancement, and security-first architecture with row-level security policies. Every page is optimized for search engines, uses semantic HTML, and meets accessibility guidelines to ensure an inclusive experience for all users.",
     "ctaText": "Interested in joining [THC] Chiller & Killer? We are always looking for dedicated players who value teamwork and want to be part of an organized, competitive alliance.",
     "applyForMembership": "Register",
@@ -1095,12 +1095,12 @@
     "visitHome": "Visit the Home Page"
   },
   "contact": {
-    "breadcrumb": "TotalChiller \u2022 Community",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Community",
     "title": "Contact Us",
     "getInTouchTitle": "Get In Touch",
     "getInTouchSubtitle": "Multiple ways to reach [THC] Chiller & Killer",
     "byline": "Maintained by [THC] Chiller & Killer Leadership Team",
-    "introText": "We welcome messages from current members, prospective recruits, and anyone interested in learning more about our Total Battle community. Whether you have a question about joining, need technical support with the TotalChiller platform, or want to discuss partnership opportunities, we are happy to hear from you. Choose the contact method that works best for your situation below.",
+    "introText": "We welcome messages from current members, prospective recruits, and anyone interested in learning more about our Total Battle community. Whether you have a question about joining, need technical support with the [THC] Chiller & Killer platform, or want to discuss partnership opportunities, we are happy to hear from you. Choose the contact method that works best for your situation below.",
     "discord": "Discord Server",
     "discordDesc": "Our primary communication channel for real-time chat, strategy discussions, and event coordination. This is the fastest way to reach active members and leadership.",
     "discordBadge": "Preferred",
@@ -1149,13 +1149,13 @@
     "faq3HomeLink": "home page"
   },
   "privacyPolicy": {
-    "breadcrumb": "TotalChiller \u2022 Legal",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Legal",
     "title": "Privacy Policy & Data Protection",
     "cardTitle": "Privacy Policy",
     "lastUpdated": "Last updated",
     "byline": "Published by [THC] Chiller & Killer Leadership Team",
     "section1Title": "1. Introduction",
-    "section1Text": "TotalChiller (\"we\", \"us\", \"our\") operates a community hub for [THC] Chiller & Killer Total Battle clan. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform at totalchiller.de.",
+    "section1Text": "[THC] Chiller & Killer (\"we\", \"us\", \"our\") operates a community hub for [THC] Chiller & Killer Total Battle clan. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform at totalchiller.de.",
     "section2Title": "2. Information We Collect",
     "section2Text": "We collect the following categories of personal information:",
     "section2Item1": "<strong>Account details</strong> — email address, username, and display name provided during registration.",
@@ -1290,7 +1290,7 @@
     "removeDefault": "Remove default"
   },
   "forum": {
-    "breadcrumb": "TotalChiller \u2022 Clan Platform",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Clan Platform",
     "title": "Forum",
     "subtitle": "Community discussions and knowledge sharing",
     "newPost": "New Post",
@@ -1480,7 +1480,7 @@
     }
   },
   "bugs": {
-    "breadcrumb": "TotalChiller \u2022 Bug Reports",
+    "breadcrumb": "[THC] Chiller & Killer \u2022 Bug Reports",
     "title": "Bug Reports",
     "subtitle": "Report issues and track their resolution",
     "heroTitle": "Bug Reports",

@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { captureApiError } from "@/lib/api/logger";
+import { loadMessageProfilesByIds, mapRecipientsWithProfiles } from "@/lib/messages/profile-utils";
 import { requireAuth } from "../../../../../lib/api/require-auth";
 import { uuidSchema } from "../../../../../lib/api/validation";
 import createSupabaseServiceRoleClient from "../../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../../lib/rate-limit";
+import type { MessageThreadDeleteResponseDto, MessagesThreadResponseDto } from "@/lib/types/messages-api";
 
 interface RouteContext {
   readonly params: Promise<{ readonly threadId: string }>;
@@ -58,7 +60,7 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
       return NextResponse.json({ error: "Failed to delete thread." }, { status: 500 });
     }
 
-    return NextResponse.json({ data: { thread_id: tid, deleted: true } });
+    return NextResponse.json<MessageThreadDeleteResponseDto>({ data: { thread_id: tid, deleted: true } });
   } catch (err) {
     captureApiError("DELETE /api/messages/thread/[threadId]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
@@ -115,7 +117,7 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     }>;
 
     if (messages.length === 0) {
-      return NextResponse.json({ data: [], profiles: {} });
+      return NextResponse.json<MessagesThreadResponseDto>({ data: [], profiles: {} });
     }
 
     /* Verify user has access: must be sender or recipient of at least one message */
@@ -177,31 +179,12 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     }
     for (const id of allRecipientIds) profileIds.add(id);
 
-    let profilesById: Record<string, { email: string; username: string | null; display_name: string | null }> = {};
-    if (profileIds.size > 0) {
-      const { data: profileData } = await svc
-        .from("profiles")
-        .select("id,email,username,display_name")
-        .in("id", Array.from(profileIds).slice(0, 200));
-      for (const p of profileData ?? []) {
-        profilesById[p.id as string] = {
-          email: p.email as string,
-          username: p.username as string | null,
-          display_name: p.display_name as string | null,
-        };
-      }
-    }
+    const profilesById = await loadMessageProfilesByIds(svc, Array.from(profileIds));
 
     /* Build response */
     const threadMessages = messages.map((msg) => {
       const recipientIds = recipientsByMsgId.get(msg.id) ?? [];
-      const recipients = recipientIds.map((id) => {
-        const profile = profilesById[id];
-        return {
-          id,
-          label: profile?.display_name ?? profile?.username ?? profile?.email ?? "Unknown",
-        };
-      });
+      const recipients = mapRecipientsWithProfiles(recipientIds, profilesById, "Unknown");
       return {
         ...msg,
         is_read: msg.sender_id === userId ? true : (readByMsgId.get(msg.id) ?? true),
@@ -210,7 +193,7 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
       };
     });
 
-    return NextResponse.json({ data: threadMessages, profiles: profilesById });
+    return NextResponse.json<MessagesThreadResponseDto>({ data: threadMessages, profiles: profilesById });
   } catch (err) {
     captureApiError("GET /api/messages/thread/[threadId]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });

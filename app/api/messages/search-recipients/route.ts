@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
+import { resolveMessageProfileLabel } from "@/lib/messages/profile-utils";
 import { apiError, escapeLikePattern } from "@/lib/api/validation";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
 
 import type { RecipientResult } from "@/lib/types/domain";
+import type { MessagesSearchRecipientsResponseDto } from "@/lib/types/messages-api";
 
 const searchRecipientsQuerySchema = z.object({
   q: z.string().max(200, "Search term too long.").optional(),
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
     const query = (parsed.data.q ?? "").trim();
     if (query.length < 2) {
-      return NextResponse.json({ data: [] });
+      return NextResponse.json<MessagesSearchRecipientsResponseDto>({ data: [] });
     }
 
     const serviceClient = createSupabaseServiceRoleClient();
@@ -41,9 +43,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const [{ data: profileMatches }, { data: gameAccountMatches }] = await Promise.all([
       serviceClient
         .from("profiles")
-        .select("id, email, username, display_name")
+        .select("id, username, display_name")
         .neq("id", currentUserId)
-        .or(`username.ilike.${searchPattern},display_name.ilike.${searchPattern},email.ilike.${searchPattern}`)
+        .or(`username.ilike.${searchPattern},display_name.ilike.${searchPattern}`)
         .limit(20),
       serviceClient
         .from("game_accounts")
@@ -66,14 +68,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     if (userIdSet.size === 0) {
-      return NextResponse.json({ data: [] });
+      return NextResponse.json<MessagesSearchRecipientsResponseDto>({ data: [] });
     }
 
     const userIds = Array.from(userIdSet);
 
     /* Fetch full profiles and game accounts in parallel (independent queries) */
     const [{ data: allProfiles }, { data: allGameAccounts }] = await Promise.all([
-      serviceClient.from("profiles").select("id, email, username, display_name").in("id", userIds),
+      serviceClient.from("profiles").select("id, username, display_name").in("id", userIds),
       serviceClient
         .from("game_accounts")
         .select("user_id, game_username")
@@ -95,8 +97,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const id = profile.id as string;
       return {
         id,
-        label:
-          (profile.display_name as string | null) ?? (profile.username as string | null) ?? (profile.email as string),
+        label: resolveMessageProfileLabel(
+          {
+            display_name: profile.display_name as string | null,
+            username: profile.username as string | null,
+          },
+          `user-${id.slice(0, 8)}`,
+        ),
         username: profile.username as string | null,
         gameAccounts: gameAccountsByUserId.get(id) ?? [],
       };
@@ -118,7 +125,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return a.label.localeCompare(b.label);
     });
 
-    return NextResponse.json({ data: results.slice(0, 15) });
+    return NextResponse.json<MessagesSearchRecipientsResponseDto>({ data: results.slice(0, 15) });
   } catch (err) {
     captureApiError("GET /api/messages/search-recipients", err);
     return apiError("Internal server error.", 500);

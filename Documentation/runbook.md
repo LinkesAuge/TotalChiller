@@ -12,35 +12,44 @@ This runbook explains how to set up, run, and use the [THC] Chiller & Killer com
 3. In Supabase SQL Editor, run in order:
    - `Documentation/supabase_chest_entries.sql` (base schema)
    - `Documentation/migrations/game_account_approval.sql`
-   - `Documentation/migrations/messages.sql`
+   - `Documentation/migrations/messages_v2.sql`
+   - `Documentation/migrations/messages_sender_delete.sql`
+   - `Documentation/migrations/messages_archive.sql`
    - `Documentation/migrations/notifications.sql`
    - `Documentation/migrations/event_recurrence.sql`
    - `Documentation/migrations/event_organizer.sql`
    - `Documentation/migrations/event_templates.sql`
+   - `Documentation/migrations/event_banner_url.sql`
+   - `Documentation/migrations/event_is_pinned.sql`
    - `Documentation/migrations/forum_tables.sql`
    - `Documentation/migrations/forum_storage.sql`
    - `Documentation/migrations/forum_seed_categories.sql`
+   - `Documentation/migrations/forum_thread_linking.sql`
+   - `Documentation/migrations/forum_rls_permissions.sql`
+   - `Documentation/migrations/member_forum_delete_permission.sql`
+   - `Documentation/migrations/forum_comment_count_trigger.sql`
    - `Documentation/migrations/profile_default_game_account.sql`
+   - `Documentation/migrations/shadow_membership.sql`
+   - `Documentation/migrations/member_directory_rls.sql`
    - `Documentation/migrations/article_banner.sql`
    - `Documentation/migrations/article_updated_by.sql`
+   - `Documentation/migrations/author_fk_constraints.sql`
    - `Documentation/migrations/site_content.sql`
    - `Documentation/migrations/site_list_items.sql`
+   - `Documentation/migrations/site_list_items_bulk_reorder.sql`
    - `Documentation/migrations/cms_icons_bucket.sql` (manual bucket creation — see file)
    - `Documentation/migrations/fix_broken_markdown.sql`
    - `Documentation/migrations/roles_permissions_cleanup.sql`
-   - `Documentation/migrations/author_fk_constraints.sql`
-   - `Documentation/migrations/forum_rls_permissions.sql`
-   - `Documentation/migrations/event_banner_url.sql`
+   - `Documentation/migrations/guest_role_permissions.sql`
+   - `Documentation/migrations/role_change_protection.sql`
+   - `Documentation/migrations/clans_delete_policy_fix.sql`
    - `Documentation/migrations/design_system_tables.sql`
    - `Documentation/migrations/design_system_render_type.sql`
-   - `Documentation/migrations/messages_sender_delete.sql`
-   - `Documentation/migrations/messages_archive.sql`
    - `Documentation/migrations/bug_reports.sql`
    - `Documentation/migrations/bug_reports_v2.sql`
    - `Documentation/migrations/bug_reports_v3.sql`
-   - `Documentation/migrations/guest_role_permissions.sql`
-   - `Documentation/migrations/role_change_protection.sql`
    - `Documentation/migrations/drop_chest_data_tables.sql`
+   - Legacy only (do not run on fresh setup): `Documentation/migrations/messages.sql` (pre-v2 single-table model)
 
 ## 2) Local Environment
 
@@ -171,7 +180,7 @@ In `/events`:
 
 ### Vitest Unit Tests
 
-**Current status (2026-02-15):** 654 tests across 32 test files in `lib/` and `app/`.
+**Current status (2026-02-17):** 581 tests across 30 test files in `lib/` and `app/`.
 
 ```
 npm run test:unit                            # Run all unit tests once
@@ -181,7 +190,7 @@ npx vitest run lib/permissions.test.ts       # Run a specific test file
 
 ### Playwright E2E Tests
 
-**Current status (2026-02-17):** 347 tests across 29 spec files (Chromium). 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
+**Current status (2026-02-17):** 435 tests across 29 files in Chromium (`npx playwright test --list --project=chromium`). 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
 
 ```
 npx playwright test                          # Run all tests (all browsers)
@@ -221,6 +230,7 @@ tests/
 ├── events.spec.ts             # Events/calendar functionality
 ├── forum.spec.ts              # Forum posts, comments, moderation
 ├── messages.spec.ts           # Messaging system
+├── messages-api-contract.spec.ts  # Messaging API contract + privacy assertions
 ├── profile-settings.spec.ts   # Profile & settings forms
 ├── dashboard.spec.ts          # Authenticated landing page
 ├── admin.spec.ts              # Admin access control & section rendering

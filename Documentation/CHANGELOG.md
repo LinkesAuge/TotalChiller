@@ -12,6 +12,7 @@
 - **Messages tablet overflow**: Changed fixed 420px list panel to `minmax(280px, 420px)` so it shrinks gracefully on tablets instead of causing horizontal scroll
 - **Messages reply form mobile**: Reduced reply textarea height and padding on mobile so thread messages remain scrollable; added iOS safe-area padding; MarkdownEditor in reply context uses smaller `minHeight` (100px vs 200px default)
 - **Messages touch targets**: Increased action button size from 26px to 36px on touch devices and mobile; increased delete button padding; improved touch-device action button discoverability (opacity 0.7)
+- **Messages thread panel height**: Thread panel on mobile now uses `calc(100vh - 120px)` instead of `calc(100vh - 200px)`, gaining 80px for message content; reply form capped at `40vh` with scrollable overflow so it can't dominate the viewport; textarea capped at `20vh`
 - **Messages mobile layout**: Conversation item subject rows wrap on mobile to prevent timestamp overlap; email card padding optimized for small screens
 - **Grid responsive**: Added `@media (max-width: 900px)` breakpoint to `.grid` class (single column) — all pages using the 2-column grid now properly stack on mobile
 - **Notification bell overflow**: Panel width constrained to `calc(100vw - 32px)` on screens under 420px to prevent clipping

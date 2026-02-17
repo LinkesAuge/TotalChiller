@@ -549,7 +549,7 @@
   }
 
   .messages-thread-panel {
-    max-height: calc(100vh - 200px);
+    max-height: calc(100vh - 120px);
   }
 
   /* When a thread/message is selected: hide list, show thread */
@@ -567,17 +567,22 @@
     display: flex;
   }
 
-  /* Compact reply form on mobile so thread messages remain scrollable */
+  /* Compact reply form on mobile: cap height so thread messages stay visible */
   .messages-reply-form {
     padding: 12px 14px;
+    max-height: 40vh;
+    overflow-y: auto;
   }
 
   .messages-reply-form textarea {
     min-height: 60px !important;
+    max-height: 20vh;
   }
 
   .messages-reply-form .forum-editor-preview {
     min-height: 60px;
+    max-height: 20vh;
+    overflow-y: auto;
   }
 
   /* Safe area padding for iOS notch devices */

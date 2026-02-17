@@ -548,8 +548,16 @@
     max-height: calc(100vh - 200px);
   }
 
+  /* Thread panel: remove height constraint, let page scroll naturally */
   .messages-thread-panel {
-    max-height: calc(100vh - 120px);
+    max-height: none;
+    overflow: visible;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Thread list: show all messages instead of internal scroll */
+  .messages-thread-list {
+    overflow-y: visible;
   }
 
   /* When a thread/message is selected: hide list, show thread */
@@ -567,27 +575,17 @@
     display: flex;
   }
 
-  /* Compact reply form on mobile: cap height so thread messages stay visible */
+  /* Reply form: comfortable sizing, page scrolls if needed */
   .messages-reply-form {
     padding: 12px 14px;
-    max-height: 40vh;
-    overflow-y: auto;
   }
 
   .messages-reply-form textarea {
     min-height: 60px !important;
-    max-height: 20vh;
   }
 
   .messages-reply-form .forum-editor-preview {
     min-height: 60px;
-    max-height: 20vh;
-    overflow-y: auto;
-  }
-
-  /* Safe area padding for iOS notch devices */
-  .messages-thread-panel {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* Conversation items: allow subject row to wrap so timestamp drops below */

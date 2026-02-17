@@ -45,7 +45,7 @@ function RenderTypeBadge({ renderType }: { readonly renderType: RenderType }): R
   const label = t(`renderType.${renderType}`);
   const cls = color ? `badge ${color}` : "badge";
   return (
-    <span className={cls} style={{ fontSize: "0.6rem", padding: "0 6px" }}>
+    <span className={cls} style={{ fontSize: "0.65rem", padding: "2px 8px" }}>
       {label}
     </span>
   );
@@ -384,8 +384,9 @@ function UiInventoryTab(): ReactElement {
           alignItems: "center",
           justifyContent: "center",
           padding: 16,
-          color: "var(--color-text-muted)",
-          fontSize: "0.72rem",
+          color: "var(--color-text-2)",
+          fontSize: "0.75rem",
+          fontStyle: "italic",
         }}
       >
         {el.render_type === "composite" ? t("uiInventory.uploadScreenshot") : t("uiInventory.noPreview")}
@@ -406,11 +407,11 @@ function UiInventoryTab(): ReactElement {
         onChange={handleFileChange}
       />
 
-      <section className="card">
+      <section className="card ui-inventory-card">
         <div className="card-header">
           <div>
             <div className="card-title">{t("uiInventory.title")}</div>
-            <div className="card-subtitle">
+            <div className="card-subtitle" style={{ color: "var(--color-text)", opacity: 0.7 }}>
               {t("uiInventory.subtitle", { count: totalCount, categories: Object.keys(grouped).length })}
             </div>
           </div>
@@ -424,17 +425,8 @@ function UiInventoryTab(): ReactElement {
         </div>
 
         {/* Toolbar */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            padding: "12px 16px",
-            flexWrap: "wrap",
-            alignItems: "center",
-            borderBottom: "1px solid var(--color-edge)",
-          }}
-        >
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ minWidth: 140 }}>
+        <div className="ui-inventory-toolbar">
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
             <option value="all">{t("common.allCategories")}</option>
             {UI_ELEMENT_CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>
@@ -442,17 +434,13 @@ function UiInventoryTab(): ReactElement {
               </option>
             ))}
           </select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ minWidth: 100 }}>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">{t("common.allStatus")}</option>
             <option value="active">{t("status.active")}</option>
             <option value="planned">{t("status.planned")}</option>
             <option value="deprecated">{t("status.deprecated")}</option>
           </select>
-          <select
-            value={renderTypeFilter}
-            onChange={(e) => setRenderTypeFilter(e.target.value)}
-            style={{ minWidth: 120 }}
-          >
+          <select value={renderTypeFilter} onChange={(e) => setRenderTypeFilter(e.target.value)}>
             <option value="all">{t("common.allTypes")}</option>
             {RENDER_TYPES.map((rt) => (
               <option key={rt} value={rt}>
@@ -465,27 +453,19 @@ function UiInventoryTab(): ReactElement {
             placeholder={t("uiInventory.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ flex: 1, minWidth: 160 }}
           />
           <ThumbnailSizePicker
             sizes={UI_ELEMENT_SIZES}
             value={previewSize}
             onChange={setPreviewSize}
             label={t("common.preview")}
+            className="ui-inventory-size-picker"
           />
         </div>
 
         {/* Add form */}
         {isAdding && (
-          <div
-            style={{
-              padding: 16,
-              borderBottom: "1px solid var(--color-edge)",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: 12,
-            }}
-          >
+          <div className="ui-inventory-add-form">
             <input
               type="text"
               placeholder={t("uiInventory.namePlaceholder")}
@@ -533,7 +513,7 @@ function UiInventoryTab(): ReactElement {
               value={addForm.current_css}
               onChange={(e) => setAddForm({ ...addForm, current_css: e.target.value })}
             />
-            <div>
+            <div className="ui-inventory-add-form-actions">
               <button
                 className="button primary"
                 style={{ fontSize: "0.85rem", padding: "6px 16px" }}
@@ -557,14 +537,7 @@ function UiInventoryTab(): ReactElement {
 
         {/* Loading */}
         {isLoading && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: 12,
-              padding: 16,
-            }}
-          >
+          <div className="ui-inventory-loading-grid">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="skeleton" style={{ width: "100%", height: 140, borderRadius: 10 }} />
             ))}
@@ -573,26 +546,13 @@ function UiInventoryTab(): ReactElement {
 
         {/* Card grid grouped by category */}
         {!isLoading && (
-          <div style={{ maxHeight: "calc(100vh - 360px)", overflowY: "auto", padding: "8px 16px 16px" }}>
+          <div className="ui-inventory-scroll-wrap">
             {Object.entries(grouped)
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([cat, items]) => (
-                <div key={cat} style={{ marginBottom: 20 }}>
+                <div key={cat} className="ui-inventory-category-section">
                   {/* Category header */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 10,
-                      padding: "8px 0",
-                      borderBottom: "1px solid var(--color-edge)",
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 1,
-                      background: "var(--color-bg)",
-                    }}
-                  >
+                  <div className="ui-inventory-category-header">
                     <span
                       style={{
                         fontWeight: 600,
@@ -603,45 +563,29 @@ function UiInventoryTab(): ReactElement {
                     >
                       {cat}
                     </span>
-                    <span className="badge" style={{ fontSize: "0.7rem", padding: "1px 8px" }}>
+                    <span className="badge" style={{ fontSize: "0.72rem", padding: "2px 10px" }}>
                       {items.length}
                     </span>
                   </div>
 
                   {/* Cards grid */}
-                  <div
-                    style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 10 }}
-                  >
+                  <div className="ui-inventory-cards-grid">
                     {items.map((el) => {
                       const isEditing = editingId === el.id;
                       return (
-                        <div
-                          key={el.id}
-                          style={{
-                            borderRadius: 10,
-                            border: "1px solid var(--color-edge)",
-                            background: "var(--color-surface)",
-                            overflow: "hidden",
-                            display: "flex",
-                            flexDirection: "column",
-                          }}
-                        >
+                        <div key={el.id} className="ui-inventory-item-card">
                           {/* Card top: preview area */}
                           <div
+                            className="ui-inventory-preview"
                             style={{
                               minHeight: previewSize + 16,
-                              background: "var(--color-bg)",
-                              borderBottom: "1px solid var(--color-edge)",
-                              overflow: "hidden",
                             }}
                           >
                             {renderPreviewArea(el)}
                           </div>
 
                           {/* Card body */}
-                          <div
-                            style={{ padding: "10px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 4 }}
-                          >
+                          <div className="ui-inventory-item-body">
                             {isEditing ? (
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{el.name}</div>
@@ -659,13 +603,13 @@ function UiInventoryTab(): ReactElement {
                                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                                   style={{ fontSize: "0.8rem" }}
                                 />
-                                <div style={{ display: "flex", gap: 8 }}>
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                                   <select
                                     value={editForm.status ?? "active"}
                                     onChange={(e) =>
                                       setEditForm({ ...editForm, status: e.target.value as UiElement["status"] })
                                     }
-                                    style={{ fontSize: "0.8rem" }}
+                                    style={{ fontSize: "0.8rem", flex: 1, minWidth: 120 }}
                                   >
                                     <option value="active">{t("status.active")}</option>
                                     <option value="planned">{t("status.planned")}</option>
@@ -678,7 +622,7 @@ function UiInventoryTab(): ReactElement {
                                     onChange={(e) =>
                                       setEditForm({ ...editForm, render_type: e.target.value as RenderType })
                                     }
-                                    style={{ fontSize: "0.8rem" }}
+                                    style={{ fontSize: "0.8rem", flex: 1, minWidth: 120 }}
                                   >
                                     {RENDER_TYPES.map((rt) => (
                                       <option key={rt} value={rt}>
@@ -687,7 +631,7 @@ function UiInventoryTab(): ReactElement {
                                     ))}
                                   </select>
                                 </div>
-                                <div style={{ display: "flex", gap: 6 }}>
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                                   <button
                                     className="button primary"
                                     style={{ fontSize: "0.75rem", padding: "3px 10px" }}
@@ -707,34 +651,35 @@ function UiInventoryTab(): ReactElement {
                             ) : (
                               <>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                  <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{el.name}</span>
+                                  <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--color-text)" }}>
+                                    {el.name}
+                                  </span>
                                   {el.subcategory && (
-                                    <span style={{ fontSize: "0.7rem", color: "var(--color-text-muted)" }}>
+                                    <span style={{ fontSize: "0.72rem", color: "var(--color-text-2)" }}>
                                       ({el.subcategory})
                                     </span>
                                   )}
                                   <span
                                     className={statusBadgeClass(el.status)}
-                                    style={{ fontSize: "0.6rem", padding: "0 6px" }}
+                                    style={{ fontSize: "0.65rem", padding: "2px 8px" }}
                                   >
                                     {el.status}
                                   </span>
                                   <RenderTypeBadge renderType={el.render_type} />
                                 </div>
                                 {el.description && (
-                                  <div style={{ fontSize: "0.78rem", color: "var(--color-text-2)", lineHeight: 1.3 }}>
+                                  <div
+                                    style={{
+                                      fontSize: "0.8rem",
+                                      color: "var(--color-text)",
+                                      lineHeight: 1.4,
+                                      opacity: 0.85,
+                                    }}
+                                  >
                                     {el.description}
                                   </div>
                                 )}
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: 8,
-                                    fontSize: "0.7rem",
-                                    color: "var(--color-text-muted)",
-                                    flexWrap: "wrap",
-                                  }}
-                                >
+                                <div className="ui-inventory-item-meta">
                                   {el.component_file && (
                                     <span>
                                       {t("uiInventory.file")} {el.component_file}
@@ -742,16 +687,20 @@ function UiInventoryTab(): ReactElement {
                                   )}
                                   {el.current_css && (
                                     <span>
-                                      {t("uiInventory.css")} <code>{el.current_css}</code>
+                                      {t("uiInventory.css")}{" "}
+                                      <code style={{ color: "var(--color-gold-2)", opacity: 0.8 }}>
+                                        {el.current_css}
+                                      </code>
                                     </span>
                                   )}
                                 </div>
                                 {el.notes && (
                                   <div
                                     style={{
-                                      fontSize: "0.7rem",
-                                      color: "var(--color-text-muted)",
+                                      fontSize: "0.72rem",
+                                      color: "var(--color-text-2)",
                                       fontStyle: "italic",
+                                      opacity: 0.8,
                                     }}
                                   >
                                     {el.notes}
@@ -763,20 +712,11 @@ function UiInventoryTab(): ReactElement {
 
                           {/* Card actions bar */}
                           {!isEditing && (
-                            <div
-                              style={{
-                                display: "flex",
-                                gap: 6,
-                                padding: "8px 12px",
-                                borderTop: "1px solid var(--color-edge)",
-                                background: "rgba(0,0,0,0.1)",
-                                flexWrap: "wrap",
-                              }}
-                            >
+                            <div className="ui-inventory-item-actions">
                               {isAssignable(el) && (
                                 <button
                                   className="button primary"
-                                  style={{ fontSize: "0.72rem", padding: "3px 10px", flex: 1, minWidth: 80 }}
+                                  style={{ fontSize: "0.75rem", padding: "4px 12px", flex: 1, minWidth: 80 }}
                                   onClick={() => setAssignElement(el)}
                                 >
                                   {t("uiInventory.assignAssets", { count: (previewMap[el.id] ?? []).length })}
@@ -785,7 +725,7 @@ function UiInventoryTab(): ReactElement {
                               {(el.render_type === "composite" || (!el.preview_html && !el.preview_image)) && (
                                 <button
                                   className="button"
-                                  style={{ fontSize: "0.72rem", padding: "3px 10px" }}
+                                  style={{ fontSize: "0.75rem", padding: "4px 12px" }}
                                   onClick={() => triggerUpload(el.id)}
                                 >
                                   {t("uiInventory.screenshot")}
@@ -793,14 +733,14 @@ function UiInventoryTab(): ReactElement {
                               )}
                               <button
                                 className="button"
-                                style={{ fontSize: "0.72rem", padding: "3px 10px" }}
+                                style={{ fontSize: "0.75rem", padding: "4px 12px" }}
                                 onClick={() => startEdit(el)}
                               >
                                 {t("common.edit")}
                               </button>
                               <button
                                 className="button danger"
-                                style={{ fontSize: "0.72rem", padding: "3px 10px" }}
+                                style={{ fontSize: "0.75rem", padding: "4px 12px" }}
                                 onClick={() => handleDelete(el.id)}
                               >
                                 {t("common.delete")}
@@ -818,7 +758,7 @@ function UiInventoryTab(): ReactElement {
 
         {/* Empty */}
         {!isLoading && elements.length === 0 && !error && (
-          <div style={{ padding: 32, textAlign: "center", color: "var(--color-text-muted)" }}>
+          <div style={{ padding: 32, textAlign: "center", color: "var(--color-text-2)" }}>
             {t("uiInventory.emptyMessage")}
             <br />
             <code

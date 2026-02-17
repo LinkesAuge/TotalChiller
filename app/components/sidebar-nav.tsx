@@ -142,6 +142,22 @@ function SidebarNav(): JSX.Element {
   const clanContext = useClanContext();
   const { isAuthenticated, isLoading } = useAuth();
   const [forumCategories, setForumCategories] = useState<ForumCategorySub[]>([]);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
+
+  /* Keep behavior in sync with mobile collapsed-sidebar breakpoint. */
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 900px)");
+    const syncCompactState = (): void => setIsCompactViewport(mediaQuery.matches);
+    syncCompactState();
+
+    if ("addEventListener" in mediaQuery) {
+      mediaQuery.addEventListener("change", syncCompactState);
+      return () => mediaQuery.removeEventListener("change", syncCompactState);
+    }
+
+    mediaQuery.addListener(syncCompactState);
+    return () => mediaQuery.removeListener(syncCompactState);
+  }, []);
 
   /* Load forum categories when on the forum page */
   const isOnForum = pathname.startsWith("/forum");
@@ -229,24 +245,28 @@ function SidebarNav(): JSX.Element {
                         {/* Label */}
                         <span className={`nav-label${isOpen ? "" : " collapsed"}`}>{label}</span>
                       </Link>
-                      {/* Forum category sub-items */}
-                      {item.iconKey === "forum" && isOnForum && isOpen && forumCategories.length > 0 && (
-                        <div className="nav-sub-items">
-                          {forumCategories.map((cat) => {
-                            const isCatActive = activeCategory === cat.slug;
-                            return (
-                              <Link
-                                key={cat.id}
-                                href={`/forum?category=${encodeURIComponent(cat.slug)}`}
-                                className={`nav-sub-item${isCatActive ? " active" : ""}`}
-                              >
-                                <span className="nav-sub-dot" />
-                                <span className="nav-sub-label">{cat.name}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {/* Forum category sub-items (expanded desktop sidebar only) */}
+                      {item.iconKey === "forum" &&
+                        isOnForum &&
+                        isOpen &&
+                        !isCompactViewport &&
+                        forumCategories.length > 0 && (
+                          <div className="nav-sub-items">
+                            {forumCategories.map((cat) => {
+                              const isCatActive = activeCategory === cat.slug;
+                              return (
+                                <Link
+                                  key={cat.id}
+                                  href={`/forum?category=${encodeURIComponent(cat.slug)}`}
+                                  className={`nav-sub-item${isCatActive ? " active" : ""}`}
+                                >
+                                  <span className="nav-sub-dot" />
+                                  <span className="nav-sub-label">{cat.name}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
                     </div>
                   );
                 })}

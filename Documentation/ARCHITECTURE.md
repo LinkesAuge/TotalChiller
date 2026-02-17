@@ -279,6 +279,8 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 | Component            | File                         | Purpose                                                                                              |
 | -------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| SidebarShell         | `sidebar-shell.tsx`          | App chrome wrapper (fixed sidebar + content), user card/menu, compact mobile account flyout          |
+| SidebarNav           | `sidebar-nav.tsx`            | Main/admin nav groups, active route logic, forum category sub-items (desktop-expanded only)          |
 | ClanAccessGate       | `clan-access-gate.tsx`       | Clan membership gate for scoped pages. Bypasses `/admin` routes. Syncs locale via `router.refresh()` |
 | MarkdownEditor       | `markdown-editor.tsx`        | Write/preview tabs, toolbar, image upload. Props: `storageBucket`                                    |
 | BannerPicker         | `banner-picker.tsx`          | 51 game-asset presets + custom upload                                                                |
@@ -460,7 +462,7 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 All sidebar/layout responsive rules live in `layout.css` (consolidated from previously split locations).
 
-- **900px** — Primary breakpoint: sidebar collapses to icon-only strip; `.content` adjusts margin; `.content-inner` padding reduces to `16px 12px 32px`; `.grid` and `.grid-12` switch to 1-column; messages tabs wrap (`flex-wrap`); top-bar wraps; footer padding tightens; action-icons and inline action lists allow wrapping; forum/news/bugs flex containers wrap
+- **900px** — Primary breakpoint: sidebar collapses to icon-only strip; `.content` adjusts margin; `.content-inner` padding reduces to `16px 12px 32px`; `.grid` and `.grid-12` switch to 1-column; messages tabs wrap (`flex-wrap`); top-bar wraps; footer padding tightens; action-icons and inline action lists allow wrapping; forum/news/bugs flex containers wrap; sidebar nav sub-items (forum categories) hidden when collapsed — in-page filter pills serve as the mobile alternative; sidebar bottom switches to compact account-trigger pattern (avatar opens a fixed-position flyout with profile/settings/messages/signout and DE/EN toggle)
 - **768px** — Tables: member directory switches layout; events calendar and bugs search go compact
 - **720px** — Settings grid switches to single column
 - **640px** — News card banner heights; home about section padding

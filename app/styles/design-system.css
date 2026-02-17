@@ -599,6 +599,220 @@
   padding: 2px;
 }
 
+/* =============================
+   UI Inventory — Responsive Layout
+   ============================= */
+
+.ui-inventory-toolbar {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  border-bottom: 1px solid var(--color-edge);
+}
+
+.ui-inventory-toolbar > select {
+  flex: 0 1 150px;
+  min-width: 120px;
+}
+
+.ui-inventory-toolbar > input[type="text"] {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.ui-inventory-size-picker {
+  margin-left: auto;
+}
+
+.ui-inventory-add-form {
+  padding: 16px;
+  border-bottom: 1px solid var(--color-edge);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ui-inventory-add-form-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.ui-inventory-loading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.ui-inventory-scroll-wrap {
+  max-height: calc(100vh - 360px);
+  overflow-y: auto;
+  padding: 8px 16px 16px;
+}
+
+.ui-inventory-category-section {
+  margin-bottom: 20px;
+}
+
+.ui-inventory-category-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-edge);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-bg);
+}
+
+.ui-inventory-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: 10px;
+}
+
+.ui-inventory-item-card {
+  border-radius: 10px;
+  border: 1px solid var(--color-edge-glow);
+  background: linear-gradient(180deg, rgba(22, 44, 66, 0.95), rgba(14, 30, 45, 0.95));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ui-inventory-preview {
+  background: rgba(10, 20, 32, 0.6);
+  border-bottom: 1px solid var(--color-edge-glow);
+  overflow: hidden;
+}
+
+.ui-inventory-item-body {
+  padding: 10px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ui-inventory-item-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--color-text-2);
+  flex-wrap: wrap;
+}
+
+.ui-inventory-item-meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ui-inventory-item-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-edge-glow);
+  background: rgba(10, 20, 32, 0.5);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .ui-inventory-card .card-header {
+    flex-wrap: wrap;
+  }
+
+  .ui-inventory-toolbar {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .ui-inventory-toolbar > select,
+  .ui-inventory-toolbar > input[type="text"] {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .ui-inventory-size-picker {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .ui-inventory-add-form {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .ui-inventory-add-form-actions .button {
+    width: 100%;
+  }
+
+  .ui-inventory-loading-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .ui-inventory-scroll-wrap {
+    max-height: none;
+    overflow: visible;
+    padding: 8px 12px 12px;
+  }
+
+  .ui-inventory-category-header {
+    position: static;
+    top: auto;
+    padding: 6px 0;
+    background: transparent;
+  }
+
+  .ui-inventory-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .ui-inventory-item-body {
+    padding: 10px;
+  }
+
+  .ui-inventory-item-actions {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .ui-inventory-item-actions .button {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .ui-inventory-item-actions .button.primary {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .ui-inventory-card .card-header {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .ui-inventory-card .card-header .button {
+    font-size: 0.8rem !important;
+    padding: 6px 12px !important;
+    width: 100%;
+  }
+
+  .ui-inventory-item-actions .button {
+    flex-basis: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .home-about-body {
     padding: 18px 16px 20px;

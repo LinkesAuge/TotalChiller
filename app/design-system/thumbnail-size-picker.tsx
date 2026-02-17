@@ -34,11 +34,12 @@ interface ThumbnailSizePickerProps {
   readonly value: number;
   readonly onChange: (px: number) => void;
   readonly label?: string;
+  readonly className?: string;
 }
 
-function ThumbnailSizePicker({ sizes, value, onChange, label }: ThumbnailSizePickerProps): ReactElement {
+function ThumbnailSizePicker({ sizes, value, onChange, label, className }: ThumbnailSizePickerProps): ReactElement {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+    <div className={className} style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
       {label && <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", marginRight: 2 }}>{label}</span>}
       {sizes.map((s) => (
         <button

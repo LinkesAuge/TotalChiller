@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- **UI Inventory contrast + mobile responsiveness**: Improved visibility across the entire UI-Inventar tab — card backgrounds use opaque gradients instead of semi-transparent surfaces, preview area lightened from darkest bg to a readable level, text colors upgraded from muted to visible tones (descriptions, metadata, notes, subcategories), badge font sizes increased, action bar border and background brightened, CSS code snippets highlighted in gold, empty states use readable text color; added phone/tablet layout fixes (single-column add form and card grid, full-width filters, wrapped header/actions, disabled nested-scroll sticky behavior on small screens)
 - **Sidebar responsive code consolidation**: Moved all sidebar/layout mobile rules from `events.css` into `layout.css` — eliminates a CSS cascade conflict where `events.css` was overriding `layout.css` content-inner padding
 - **Content padding mobile**: Consolidated `.content-inner` padding to `16px 12px 32px` on mobile, with `overflow-x: hidden` to prevent horizontal scroll
 - **Footer mobile**: Added responsive rules for `.app-footer` — tighter padding and `flex-wrap` on links at 900px
@@ -26,6 +27,8 @@
 - **Messages mobile layout**: Conversation item subject rows wrap on mobile to prevent timestamp overlap; email card padding optimized for small screens
 - **Grid responsive**: Added `@media (max-width: 900px)` breakpoint to `.grid` class (single column) — all pages using the 2-column grid now properly stack on mobile
 - **Notification bell overflow**: Panel width constrained to `calc(100vw - 32px)` on screens under 420px to prevent clipping
+- **Sidebar forum sub-items on collapsed/mobile**: Forum category sub-items are now properly hidden when sidebar is collapsed (mobile); added a viewport-aware guard in `sidebar-nav.tsx` plus CSS fallback so sub-items stay hidden even if the sidebar `isOpen` state remains true after resizing to small widths
+- **Sidebar bottom controls on mobile/small screens**: Reworked cramped bottom area into a compact account flyout pattern — standalone language toggle and profile/settings icon buttons are hidden in compact viewport, user avatar becomes the single trigger, and the flyout now contains user identity, quick links, sign out, and full DE/EN language toggle; compact flyout now uses fixed positioning (not clipped by sidebar overflow), avatar touch target is enlarged, and empty clan-slot/divider artifacts are removed in icon-only mode
 
 ### Added
 

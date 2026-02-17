@@ -1225,7 +1225,7 @@ select:disabled,
 .pagination-actions {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   margin-left: auto;
 }
 
@@ -1250,7 +1250,7 @@ select:disabled,
 .pagination-page-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .pagination-page-input {

@@ -357,6 +357,29 @@
   gap: 6px;
 }
 
+.sidebar-user-row.compact-viewport {
+  justify-content: center;
+}
+
+.sidebar-user-row.compact-viewport .sidebar-user {
+  flex: 0 0 auto;
+  padding: 6px 4px;
+}
+
+.sidebar-user-row.compact-viewport .sidebar-user--compact-trigger {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px 0;
+  border-radius: 10px;
+  justify-content: center;
+}
+
+.sidebar-user-row.compact-viewport .sidebar-avatar {
+  width: 34px;
+  height: 34px;
+}
+
 /* Clickable user card */
 .sidebar-user--clickable {
   cursor: pointer;
@@ -392,6 +415,18 @@
   animation: sidebar-menu-appear 0.15s ease-out;
 }
 
+.sidebar-user-menu.compact {
+  position: fixed;
+  left: calc(var(--sidebar-collapsed) + 8px);
+  right: auto;
+  bottom: 10px;
+  width: min(82vw, 280px);
+  min-width: 220px;
+  max-height: min(72vh, 420px);
+  overflow-y: auto;
+  z-index: 1200;
+}
+
 @keyframes sidebar-menu-appear {
   from {
     opacity: 0;
@@ -416,6 +451,22 @@
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--color-gold-a20), transparent);
   margin: 2px 0;
+}
+
+.sidebar-user-menu__lang {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.sidebar-user-menu__lang .lang-toggle {
+  width: 100%;
+}
+
+.sidebar-user-menu__lang .lang-toggle-btn {
+  flex: 1;
+  text-align: center;
 }
 
 .sidebar-user-menu__link {
@@ -833,6 +884,7 @@
   .sidebar-toggle span,
   .sidebar .nav-group-title,
   .sidebar .nav-label,
+  .sidebar .sidebar-clan-fade,
   .sidebar-clan-select,
   .sidebar-user .sidebar-user-name,
   .sidebar-user .sidebar-user-status,
@@ -846,6 +898,28 @@
   .nav a {
     justify-content: center !important;
     padding: 8px 0 !important;
+  }
+  .sidebar .nav-sub-items,
+  .sidebar .nav-sub-item {
+    display: none !important;
+  }
+  .sidebar-lang-slot,
+  .sidebar-action-btns {
+    display: none !important;
+  }
+  .sidebar-bottom {
+    align-items: center;
+    gap: 6px;
+    padding: 8px 4px 10px;
+  }
+  .sidebar-bottom-divider {
+    display: none;
+  }
+  .sidebar-user-row.collapsed {
+    gap: 2px;
+  }
+  .sidebar-user-row.compact-viewport .sidebar-user {
+    padding: 0;
   }
   .sidebar-user {
     justify-content: center;
@@ -909,6 +983,14 @@
   .app-footer-links {
     flex-wrap: wrap;
     justify-content: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .sidebar-user-menu.compact {
+    left: calc(var(--sidebar-collapsed) + 6px);
+    width: calc(100vw - var(--sidebar-collapsed) - 12px);
+    min-width: 0;
   }
 }
 

@@ -68,8 +68,23 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
   const t = useTranslations("sidebar");
   const locale = useLocale();
   const [userData, setUserData] = useState<SidebarUserData>(DEFAULT_USER);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
   const supabase = useSupabase();
   const { role: userRole, isAdmin } = useUserRole(supabase);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 900px)");
+    const syncCompactState = (): void => setIsCompactViewport(mediaQuery.matches);
+    syncCompactState();
+
+    if ("addEventListener" in mediaQuery) {
+      mediaQuery.addEventListener("change", syncCompactState);
+      return () => mediaQuery.removeEventListener("change", syncCompactState);
+    }
+
+    mediaQuery.addListener(syncCompactState);
+    return () => mediaQuery.removeListener(syncCompactState);
+  }, []);
 
   const loadUserData = useCallback(async (): Promise<void> => {
     const { data } = await supabase.auth.getUser();
@@ -288,15 +303,18 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
             </div>
           ) : null}
 
-          {/* Language selector */}
-          <div className={`flex justify-center ${isOpen ? "px-1.5" : "p-0"}`}>
-            <LanguageSelector compact={!isOpen} />
-          </div>
+          {/* Language selector (desktop/tablet); compact viewport uses account flyout */}
+          {!isCompactViewport ? (
+            <div className={`sidebar-lang-slot flex justify-center ${isOpen ? "px-1.5" : "p-0"}`}>
+              <LanguageSelector compact={!isOpen} />
+            </div>
+          ) : null}
 
           {/* User identity + settings + quick menu */}
           {userData.displayLabel ? (
             <SidebarUserRow
               isOpen={isOpen}
+              isCompactViewport={isCompactViewport}
               initials={userData.initials}
               displayLabel={userData.displayLabel}
               email={userData.email}
@@ -318,6 +336,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
 
 interface SidebarUserRowProps {
   readonly isOpen: boolean;
+  readonly isCompactViewport: boolean;
   readonly initials: string;
   readonly displayLabel: string;
   readonly email: string;
@@ -328,6 +347,7 @@ interface SidebarUserRowProps {
 /** User identity row with settings gear and a clickable popup menu. */
 function SidebarUserRow({
   isOpen,
+  isCompactViewport,
   initials,
   displayLabel,
   email,
@@ -360,11 +380,14 @@ function SidebarUserRow({
   }
 
   return (
-    <div className={`sidebar-user-row${isOpen ? "" : " collapsed"}`} ref={containerRef}>
+    <div
+      className={`sidebar-user-row${isOpen ? "" : " collapsed"}${isCompactViewport ? " compact-viewport" : ""}`}
+      ref={containerRef}
+    >
       {/* Clickable user card */}
       <button
         type="button"
-        className={`sidebar-user sidebar-user--clickable${isOpen ? "" : " collapsed"}${menuOpen ? " sidebar-user--active" : ""}`}
+        className={`sidebar-user sidebar-user--clickable${isOpen ? "" : " collapsed"}${menuOpen ? " sidebar-user--active" : ""}${isCompactViewport ? " sidebar-user--compact-trigger" : ""}`}
         onClick={() => setMenuOpen((prev) => !prev)}
         aria-expanded={menuOpen}
       >
@@ -388,55 +411,58 @@ function SidebarUserRow({
         </div>
       </button>
 
-      {/* Profile + Settings icon buttons */}
-      <div className="sidebar-action-btns">
-        <Link
-          href="/profile"
-          className={`sidebar-action-btn${pathname === "/profile" ? " active" : ""}`}
-          data-tip={!isOpen ? tMenu("profile") : undefined}
-          aria-label={tMenu("profile")}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      {/* Profile + Settings icon buttons (desktop only) */}
+      {!isCompactViewport ? (
+        <div className="sidebar-action-btns">
+          <Link
+            href="/profile"
+            className={`sidebar-action-btn${pathname === "/profile" ? " active" : ""}`}
+            data-tip={!isOpen ? tMenu("profile") : undefined}
+            aria-label={tMenu("profile")}
           >
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </Link>
-        <Link
-          href="/settings"
-          className={`sidebar-action-btn${isSettingsActive ? " active" : ""}`}
-          data-tip={!isOpen ? tNav("settings") : undefined}
-          aria-label={tNav("settings")}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </Link>
+          <Link
+            href="/settings"
+            className={`sidebar-action-btn${isSettingsActive ? " active" : ""}`}
+            data-tip={!isOpen ? tNav("settings") : undefined}
+            aria-label={tNav("settings")}
           >
-            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-        </Link>
-      </div>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </Link>
+        </div>
+      ) : null}
 
       {/* Popup menu (opens upward) */}
       {menuOpen && (
-        <div className="sidebar-user-menu">
+        <div className={`sidebar-user-menu${isCompactViewport ? " compact" : ""}`}>
           {displayLabel ? <span className="sidebar-user-menu__label">{displayLabel}</span> : null}
           {email ? <span className="sidebar-user-menu__label">{email}</span> : null}
+          {statusLine ? <span className="sidebar-user-menu__label">{statusLine}</span> : null}
           <div className="sidebar-user-menu__divider" />
           <a className="sidebar-user-menu__link" href="/profile" onClick={() => setMenuOpen(false)}>
             <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -469,6 +495,14 @@ function SidebarUserRow({
             </svg>
             {tMenu("settings")}
           </a>
+          {isCompactViewport ? (
+            <>
+              <div className="sidebar-user-menu__divider" />
+              <div className="sidebar-user-menu__lang">
+                <LanguageSelector />
+              </div>
+            </>
+          ) : null}
           <div className="sidebar-user-menu__divider" />
           <button className="button" type="button" onClick={handleSignOut}>
             {tMenu("signOut")}

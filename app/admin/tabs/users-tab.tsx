@@ -21,6 +21,7 @@ import {
   type GameAccountRow,
   type GameAccountEditState,
   type MembershipRow,
+  type MembershipEditState,
   type MembershipQueryRow,
   type UserSortKey,
   roleOptions,
@@ -75,6 +76,7 @@ export default function UsersTab(): ReactElement {
   const [activeEditingUserId, setActiveEditingUserId] = useState("");
   const [activeGameAccountId, setActiveGameAccountId] = useState("");
   const [gameAccountEdits, setGameAccountEdits] = useState<Record<string, GameAccountEditState>>({});
+  const [membershipEdits, setMembershipEdits] = useState<Record<string, MembershipEditState>>({});
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
   const [createUserEmail, setCreateUserEmail] = useState("");
   const [createUserUsername, setCreateUserUsername] = useState("");
@@ -402,6 +404,7 @@ export default function UsersTab(): ReactElement {
     setUserEdits({});
     setUserErrors({});
     setGameAccountEdits({});
+    setMembershipEdits({});
     setActiveGameAccountId("");
     setActiveEditingUserId("");
     setUserStatus("All changes cleared.");
@@ -429,6 +432,94 @@ export default function UsersTab(): ReactElement {
     });
     setActiveGameAccountId((cur) => (cur === accountId ? "" : cur));
   }, []);
+
+  /* ── Membership edit helpers ── */
+
+  const getMembershipEditValue = useCallback(
+    (membership: MembershipRow): MembershipEditState => ({
+      is_active: membershipEdits[membership.id]?.is_active ?? membership.is_active,
+      is_shadow: membershipEdits[membership.id]?.is_shadow ?? membership.is_shadow,
+      rank: membershipEdits[membership.id]?.rank ?? membership.rank ?? "",
+      clan_id: membershipEdits[membership.id]?.clan_id ?? membership.clan_id,
+    }),
+    [membershipEdits],
+  );
+
+  const updateMembershipEdit = useCallback(
+    (membershipId: string, field: keyof MembershipEditState, value: string) => {
+      const membership = Object.values(userMembershipsByAccountId).find((m) => m.id === membershipId);
+      const base: MembershipEditState = membership
+        ? {
+            is_active: membership.is_active,
+            is_shadow: membership.is_shadow,
+            rank: membership.rank ?? "",
+            clan_id: membership.clan_id,
+          }
+        : { is_active: true, is_shadow: false, rank: "", clan_id: "" };
+      setMembershipEdits((c) => {
+        const existing = c[membershipId] ?? base;
+        const nextValue = field === "is_active" || field === "is_shadow" ? value === "true" : value;
+        return { ...c, [membershipId]: { ...existing, [field]: nextValue } };
+      });
+    },
+    [userMembershipsByAccountId],
+  );
+
+  const cancelMembershipEdit = useCallback((membershipId: string) => {
+    setMembershipEdits((c) => {
+      if (!c[membershipId]) return c;
+      const next = { ...c };
+      delete next[membershipId];
+      return next;
+    });
+  }, []);
+
+  const isMembershipFieldChanged = useCallback(
+    (membership: MembershipRow, field: keyof MembershipEditState): boolean => {
+      const edits = membershipEdits[membership.id];
+      if (!edits || edits[field] === undefined) return false;
+      const nextValue = edits[field];
+      if (field === "is_active") return Boolean(nextValue) !== membership.is_active;
+      if (field === "is_shadow") return Boolean(nextValue) !== membership.is_shadow;
+      if (field === "rank") return String(nextValue ?? "") !== String(membership.rank ?? "");
+      if (field === "clan_id") return String(nextValue ?? "") !== membership.clan_id;
+      return false;
+    },
+    [membershipEdits],
+  );
+
+  const handleSaveMembershipEdit = useCallback(
+    async (membership: MembershipRow, shouldReload = true): Promise<boolean> => {
+      const edits = membershipEdits[membership.id];
+      if (!edits) return true;
+      const next = getMembershipEditValue(membership);
+      const nextClanId = next.clan_id ?? membership.clan_id;
+      if (!nextClanId) {
+        setUserStatus("Clan is required.");
+        return false;
+      }
+      const payload = {
+        clan_id: nextClanId,
+        is_active: next.is_active ?? membership.is_active,
+        is_shadow: next.is_shadow ?? membership.is_shadow,
+        rank: next.rank ?? membership.rank,
+      };
+      const { error } = await supabase.from("game_account_clan_memberships").update(payload).eq("id", membership.id);
+      if (error) {
+        setUserStatus(`Failed to update membership: ${error.message}`);
+        return false;
+      }
+      setMembershipEdits((c) => {
+        const updated = { ...c };
+        delete updated[membership.id];
+        return updated;
+      });
+      setUserStatus("Membership updated.");
+      if (shouldReload) await loadUsers();
+      return true;
+    },
+    [membershipEdits, getMembershipEditValue, supabase, loadUsers],
+  );
 
   const updateGameAccountState = useCallback((accountId: string, nextUsername: string) => {
     setGameAccountsByUserId((c) => {
@@ -482,18 +573,20 @@ export default function UsersTab(): ReactElement {
   const handleSaveAllUserEdits = useCallback(() => {
     const editIds = Object.keys(userEdits);
     const accountIds = Object.keys(gameAccountEdits);
-    if (editIds.length === 0 && accountIds.length === 0) {
+    const memberIds = Object.keys(membershipEdits);
+    if (editIds.length === 0 && accountIds.length === 0 && memberIds.length === 0) {
       setUserStatus("No changes to save.");
       return;
     }
-    const total = editIds.length + accountIds.length;
+    const total = editIds.length + accountIds.length + memberIds.length;
     setPendingSaveAllCount(total);
-  }, [userEdits, gameAccountEdits]);
+  }, [userEdits, gameAccountEdits, membershipEdits]);
 
   const handleConfirmSaveAll = useCallback(async () => {
     if (pendingSaveAllCount === null) return;
     const editIds = Object.keys(userEdits);
     const accountIds = Object.keys(gameAccountEdits);
+    const memberIds = Object.keys(membershipEdits);
     setPendingSaveAllCount(null);
     setUserStatus("Saving changes...");
     let hasError = false;
@@ -506,6 +599,11 @@ export default function UsersTab(): ReactElement {
       const account = allAccounts.find((a) => a.id === accountId);
       if (account && !(await handleSaveGameAccountEdit(account, false))) hasError = true;
     }
+    const allMemberships = Object.values(userMembershipsByAccountId);
+    for (const membershipId of memberIds) {
+      const membership = allMemberships.find((m) => m.id === membershipId);
+      if (membership && !(await handleSaveMembershipEdit(membership, false))) hasError = true;
+    }
     if (hasError) {
       setUserStatus("Some updates need fixes before saving.");
       return;
@@ -516,10 +614,13 @@ export default function UsersTab(): ReactElement {
     pendingSaveAllCount,
     userEdits,
     gameAccountEdits,
+    membershipEdits,
     userRows,
     gameAccountsByUserId,
+    userMembershipsByAccountId,
     handleSaveUserEdit,
     handleSaveGameAccountEdit,
+    handleSaveMembershipEdit,
     loadUsers,
   ]);
 
@@ -770,7 +871,10 @@ export default function UsersTab(): ReactElement {
     await loadUsers();
   }, [gameAccountToDelete, gameAccountDeleteState, supabase, loadUsers]);
 
-  const hasEdits = Object.keys(userEdits).length > 0 || Object.keys(gameAccountEdits).length > 0;
+  const hasEdits =
+    Object.keys(userEdits).length > 0 ||
+    Object.keys(gameAccountEdits).length > 0 ||
+    Object.keys(membershipEdits).length > 0;
 
   return (
     <section className="card">
@@ -1246,9 +1350,22 @@ export default function UsersTab(): ReactElement {
                                     </div>
                                   );
                                 }
+                                const memberEdits = getMembershipEditValue(membership);
+                                const hasMemberEdits = !!membershipEdits[membership.id];
+                                const hasAnyRowEdit = isAccountEditing || hasMemberEdits;
                                 return (
-                                  <div className="row" key={membership.id}>
-                                    <span className="text-muted">{idx + 1}</span>
+                                  <div
+                                    className={`row${(memberEdits.is_shadow ?? membership.is_shadow) ? " is-shadow" : ""}`}
+                                    key={membership.id}
+                                  >
+                                    <span className="text-muted">
+                                      {idx + 1}
+                                      {(memberEdits.is_shadow ?? membership.is_shadow) ? (
+                                        <span className="badge shadow-badge" title={tAdmin("clans.shadowTooltip")}>
+                                          S
+                                        </span>
+                                      ) : null}
+                                    </span>
                                     <div>
                                       {isAccountEditing ? (
                                         <input
@@ -1279,22 +1396,44 @@ export default function UsersTab(): ReactElement {
                                       <div>{user.email}</div>
                                       <div className="text-muted">{user.display_name ?? user.username ?? "-"}</div>
                                     </div>
-                                    <div>{clanNameById.get(membership.clan_id) ?? membership.clan_id}</div>
-                                    <div>{membership.rank ? formatRank(membership.rank, locale) : "-"}</div>
-                                    <div>
-                                      {membership.is_active ? tAdmin("common.active") : tAdmin("common.inactive")}
-                                      {membership.is_shadow ? (
-                                        <span className="badge shadow-badge" title={tAdmin("clans.shadowTooltip")}>
-                                          Shadow
-                                        </span>
-                                      ) : null}
-                                    </div>
+                                    <RadixSelect
+                                      ariaLabel={tAdmin("common.clan")}
+                                      value={memberEdits.clan_id ?? membership.clan_id}
+                                      onValueChange={(v) => updateMembershipEdit(membership.id, "clan_id", v)}
+                                      options={clans.map((c) => ({ value: c.id, label: c.name }))}
+                                      triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "clan_id") ? " is-edited" : ""}`}
+                                    />
+                                    <RadixSelect
+                                      ariaLabel={tAdmin("common.rank")}
+                                      value={memberEdits.rank ?? ""}
+                                      onValueChange={(v) => updateMembershipEdit(membership.id, "rank", v)}
+                                      options={[
+                                        { value: "", label: tAdmin("common.none") },
+                                        ...rankOptions.map((r) => ({ value: r, label: formatRank(r, locale) })),
+                                      ]}
+                                      triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "rank") ? " is-edited" : ""}`}
+                                    />
+                                    <RadixSelect
+                                      ariaLabel={tAdmin("common.status")}
+                                      value={memberEdits.is_active ? "true" : "false"}
+                                      onValueChange={(v) => updateMembershipEdit(membership.id, "is_active", v)}
+                                      options={[
+                                        { value: "true", label: tAdmin("common.active") },
+                                        { value: "false", label: tAdmin("common.inactive") },
+                                      ]}
+                                      triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
+                                      triggerDataRole="status-select"
+                                    />
                                     <div className="list inline action-icons">
-                                      {isAccountEditing ? (
+                                      {hasAnyRowEdit ? (
                                         <>
                                           <IconButton
                                             ariaLabel={tAdmin("common.saveChanges")}
-                                            onClick={() => handleSaveGameAccountEdit(account)}
+                                            onClick={async () => {
+                                              if (isAccountEditing) await handleSaveGameAccountEdit(account, false);
+                                              if (hasMemberEdits) await handleSaveMembershipEdit(membership, false);
+                                              await loadUsers();
+                                            }}
                                           >
                                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                               <path
@@ -1308,7 +1447,10 @@ export default function UsersTab(): ReactElement {
                                           </IconButton>
                                           <IconButton
                                             ariaLabel={tAdmin("common.cancelChanges")}
-                                            onClick={() => cancelGameAccountEdit(account.id)}
+                                            onClick={() => {
+                                              cancelGameAccountEdit(account.id);
+                                              cancelMembershipEdit(membership.id);
+                                            }}
                                           >
                                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                               <path
@@ -1327,6 +1469,32 @@ export default function UsersTab(): ReactElement {
                                           </IconButton>
                                         </>
                                       ) : null}
+                                      <IconButton
+                                        ariaLabel={tAdmin("clans.toggleShadow")}
+                                        onClick={() => {
+                                          const current = memberEdits.is_shadow ?? membership.is_shadow;
+                                          updateMembershipEdit(membership.id, "is_shadow", current ? "false" : "true");
+                                        }}
+                                        variant={(memberEdits.is_shadow ?? membership.is_shadow) ? "active" : undefined}
+                                      >
+                                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                          <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.4" />
+                                          <path
+                                            d="M3 14C3 11.2 5.2 9 8 9C10.8 9 13 11.2 13 14"
+                                            stroke="currentColor"
+                                            strokeWidth="1.4"
+                                            strokeLinecap="round"
+                                          />
+                                          {(memberEdits.is_shadow ?? membership.is_shadow) ? (
+                                            <path
+                                              d="M2 2L14 14"
+                                              stroke="currentColor"
+                                              strokeWidth="1.6"
+                                              strokeLinecap="round"
+                                            />
+                                          ) : null}
+                                        </svg>
+                                      </IconButton>
                                       {account.approval_status === "pending" ? (
                                         <>
                                           <IconButton

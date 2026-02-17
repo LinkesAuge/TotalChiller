@@ -548,7 +548,11 @@
     max-height: calc(100vh - 200px);
   }
 
-  /* Tabs: size to content so long labels (e.g. "Posteingang") aren't clipped */
+  /* Tabs: wrap to a second row when space is tight (sidebar + padding eat width) */
+  .messages-view-tabs {
+    flex-wrap: wrap;
+  }
+
   .messages-view-tab {
     flex: 0 0 auto;
     padding: 12px 8px;

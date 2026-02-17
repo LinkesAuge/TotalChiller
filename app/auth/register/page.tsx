@@ -109,8 +109,8 @@ function RegisterPage(): JSX.Element {
               src="/assets/vip/back_tooltip_2.png"
               alt="Card header decorative background"
               className="tooltip-head-bg"
-              width={400}
-              height={44}
+              fill
+              sizes="(max-width: 900px) 90vw, 70vw"
             />
             <div className="tooltip-head-inner">
               <Image src="/assets/vip/batler_icons_star_4.png" alt="Success icon" width={18} height={18} sizes="18px" />
@@ -145,8 +145,8 @@ function RegisterPage(): JSX.Element {
             src="/assets/vip/back_tooltip_2.png"
             alt="Card header decorative background"
             className="tooltip-head-bg"
-            width={400}
-            height={44}
+            fill
+            sizes="(max-width: 900px) 90vw, 70vw"
           />
           <div className="tooltip-head-inner">
             <Image

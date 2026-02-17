@@ -74,7 +74,13 @@ function HomeClient(): JSX.Element {
       <section className="card home-about-card col-span-full">
         <div className="home-about-bg" />
         <div className="tooltip-head">
-          <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
+          <Image
+            src="/assets/vip/back_tooltip_2.png"
+            alt=""
+            className="tooltip-head-bg"
+            fill
+            sizes="(max-width: 900px) 90vw, 70vw"
+          />
           <div className="tooltip-head-inner">
             <Image src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} />
             <EditableText
@@ -186,7 +192,13 @@ function HomeClient(): JSX.Element {
       <section className="card home-whyjoin-card col-span-full">
         <div className="home-whyjoin-bg" />
         <div className="tooltip-head">
-          <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
+          <Image
+            src="/assets/vip/back_tooltip_2.png"
+            alt=""
+            className="tooltip-head-bg"
+            fill
+            sizes="(max-width: 900px) 90vw, 70vw"
+          />
           <div className="tooltip-head-inner">
             <Image src="/assets/vip/batler_icons_stat_damage.png" alt="" width={18} height={18} />
             <EditableText

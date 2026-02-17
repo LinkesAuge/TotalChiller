@@ -8,6 +8,14 @@
 
 ### Fixed
 
+- **Admin hydration mismatch (Radix Select)**: Eliminated recurring SSR/client hydration warnings on `/admin` by making `RadixSelect` trigger/content wiring deterministic (`aria-controls` + content id), so filter/select controls now hydrate cleanly in both dev and production builds
+- **Hero clipping on narrow screens**: Updated shared hero typography/layout to prevent title/subtitle clipping on 393px/360px/320px widths (balanced wrapping, constrained widths, mobile font/spacing tuning)
+- **Mobile touch targets in dense UIs**: Increased critical control sizes on small screens (sidebar toggle, notification bell, icon buttons, messages row actions/checkboxes, table sort controls) to improve tap reliability
+- **Next/Image runtime warnings**: Removed width/height mismatch warnings for decorative/header assets by normalizing image sizing (`height: auto` where width is CSS-driven, `fill` + realistic `sizes` for tooltip headers, `width/height: auto` in design-system previews)
+- **Production type-check blocker (media query listeners)**: Removed deprecated `MediaQueryList.addListener/removeListener` fallbacks in sidebar components; now uses `addEventListener('change', ...)` only, aligning with TS/DOM typings and restoring clean `next build`
+- **Transition performance cleanup**: Replaced all `transition: all` declarations across touched style modules with explicit property transitions (color/background/border/shadow/transform/opacity) for more predictable rendering
+- **Mobile sidebar branding**: Hid the large clan logo in the sidebar header on small/mobile screens (<=900px) to keep the collapsed navigation strip visually clean and reduce top padding noise
+- **Lint noise cleanup for tooling scripts**: Kept strict `no-console` for app/runtime code, but disabled it for script-only paths (`scripts/**`, `output/playwright/**`) where progress logging is intentional; removed an unused `UsersTab` context binding
 - **UI Inventory contrast + mobile responsiveness**: Improved visibility across the entire UI-Inventar tab — card backgrounds use opaque gradients instead of semi-transparent surfaces, preview area lightened from darkest bg to a readable level, text colors upgraded from muted to visible tones (descriptions, metadata, notes, subcategories), badge font sizes increased, action bar border and background brightened, CSS code snippets highlighted in gold, empty states use readable text color; added phone/tablet layout fixes (single-column add form and card grid, full-width filters, wrapped header/actions, disabled nested-scroll sticky behavior on small screens)
 - **Sidebar responsive code consolidation**: Moved all sidebar/layout mobile rules from `events.css` into `layout.css` — eliminates a CSS cascade conflict where `events.css` was overriding `layout.css` content-inner padding
 - **Content padding mobile**: Consolidated `.content-inner` padding to `16px 12px 32px` on mobile, with `overflow-x: hidden` to prevent horizontal scroll
@@ -32,6 +40,7 @@
 
 ### Added
 
+- **Playwright mobile thread-flow coverage**: Added a dedicated mobile inbox test in `tests/messages.spec.ts` that validates list→thread switch and back navigation; if inbox is empty, the test seeds a private message via authenticated admin API context before asserting behavior
 - **Inline membership editing in Users tab**: Game account subrows now have editable dropdowns for clan, rank, and active/inactive status (RadixSelect), matching the Clan-Verwaltung tab; includes shadow toggle button, combined save/cancel for game account name + membership fields, and integration with Save All / Cancel All bulk actions
 - **Email confirmation status in Users tab**: New "Confirmed" column shows whether each user has verified their email (green "Bestätigt"/"Confirmed" badge or yellow "Unbestätigt"/"Unconfirmed" badge); sortable, filterable (All/Confirmed/Unconfirmed); admin can manually confirm unconfirmed users via action button with confirmation modal
 - **Approvals tab split layout**: Approvals tab now shows two side-by-side sections — "Benutzerkonto-Genehmigungen" (user account confirmations, left) and "Spielkonto-Genehmigungen" (game account approvals, right); each with independent badge counts, "confirm/approve all" bulk actions, and empty states; responsive: stacks vertically on mobile (≤900px)

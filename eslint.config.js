@@ -48,4 +48,11 @@ module.exports = [
       "react/jsx-no-target-blank": "error",
     },
   },
+  {
+    /* Tooling scripts intentionally print progress/output to console. */
+    files: ["scripts/**/*.{js,mjs,ts}", "output/playwright/**/*.{js,mjs,ts}"],
+    rules: {
+      "no-console": "off",
+    },
+  },
 ];

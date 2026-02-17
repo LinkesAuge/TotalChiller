@@ -187,7 +187,13 @@
   font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .news-card-collapse-btn:hover {
@@ -229,7 +235,13 @@
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 .news-filter-toggle:hover {
   border-color: var(--color-gold-a45);
@@ -257,7 +269,13 @@
   color: var(--color-text-muted);
   font-size: 0.72rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 .news-filter-clear:hover {
   border-color: rgba(220, 60, 60, 0.4);
@@ -286,7 +304,13 @@
   background: var(--color-overlay-dark);
   color: var(--color-text-2);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
   flex-shrink: 0;
   text-decoration: none;
   padding: 0;

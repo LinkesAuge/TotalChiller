@@ -303,7 +303,7 @@ function AssetLibraryTab(): ReactElement {
                   alt={asset.filename}
                   width={thumbSize}
                   height={thumbSize}
-                  style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                  style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
                   unoptimized
                 />
               </div>
@@ -373,7 +373,7 @@ function AssetLibraryTab(): ReactElement {
               alt={selectedAsset.filename}
               width={selectedAsset.width ?? 200}
               height={selectedAsset.height ?? 200}
-              style={{ maxWidth: "100%", maxHeight: 200, objectFit: "contain" }}
+              style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: 200, objectFit: "contain" }}
               unoptimized
             />
           </div>

@@ -76,14 +76,8 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
     const mediaQuery = window.matchMedia("(max-width: 900px)");
     const syncCompactState = (): void => setIsCompactViewport(mediaQuery.matches);
     syncCompactState();
-
-    if ("addEventListener" in mediaQuery) {
-      mediaQuery.addEventListener("change", syncCompactState);
-      return () => mediaQuery.removeEventListener("change", syncCompactState);
-    }
-
-    mediaQuery.addListener(syncCompactState);
-    return () => mediaQuery.removeListener(syncCompactState);
+    mediaQuery.addEventListener("change", syncCompactState);
+    return () => mediaQuery.removeEventListener("change", syncCompactState);
   }, []);
 
   const loadUserData = useCallback(async (): Promise<void> => {
@@ -397,15 +391,7 @@ function SidebarUserRow({
         <div className={`sidebar-user-info${isOpen ? "" : " collapsed"}`}>
           <div className="sidebar-user-name">
             {displayLabel}
-            {isAdmin && (
-              <Image
-                src="/assets/vip/button_vip_crown_22x33.png"
-                alt="Admin"
-                width={12}
-                height={18}
-                style={{ width: 12, height: "auto" }}
-              />
-            )}
+            {isAdmin && <Image src="/assets/vip/button_vip_crown_22x33.png" alt="Admin" width={12} height={18} />}
           </div>
           <div className="sidebar-user-status">{statusLine}</div>
         </div>

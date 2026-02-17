@@ -181,12 +181,13 @@ npx vitest run lib/permissions.test.ts       # Run a specific test file
 
 ### Playwright E2E Tests
 
-**Current status (2026-02-15):** 346 tests across 29 spec files (Chromium). 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
+**Current status (2026-02-17):** 347 tests across 29 spec files (Chromium). 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
 
 ```
 npx playwright test                          # Run all tests (all browsers)
 npx playwright test --project=chromium       # Run in Chromium only (fastest)
 npx playwright test tests/admin.spec.ts      # Run a specific spec file
+npx playwright test tests/messages.spec.ts --project=mobile-chrome  # Mobile inbox/thread flow checks
 npx playwright test --ui                     # Open interactive test UI
 ```
 
@@ -248,6 +249,7 @@ tests/
 - API tests accept both expected status codes and 429 (rate-limited) as valid responses.
 - Tests use regex alternation for i18n-aware text matching (`/erstellen|create/i`).
 - Tests handle conditional UI gracefully (e.g. "no clan access" messages).
+- The mobile messages thread-flow spec auto-seeds a private message (admin API context) when inbox data is empty, then verifies list→thread and back-to-list behavior.
 
 ## 13) Navigation Icon Preview (Design Tool)
 

@@ -168,11 +168,15 @@
 }
 
 /* ── Checkboxes ── */
-.messages-checkbox {
+input.messages-checkbox[type="checkbox"] {
   -webkit-appearance: none;
   appearance: none;
   width: 16px;
   height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  max-width: 16px;
+  max-height: 16px;
   flex-shrink: 0;
   border: 1.5px solid var(--color-text-muted);
   border-radius: 3px;
@@ -182,12 +186,12 @@
   position: relative;
 }
 
-.messages-checkbox:checked {
+input.messages-checkbox[type="checkbox"]:checked {
   background: var(--color-gold);
   border-color: var(--color-gold);
 }
 
-.messages-checkbox:checked::after {
+input.messages-checkbox[type="checkbox"]:checked::after {
   content: "";
   position: absolute;
   left: 4px;
@@ -199,7 +203,7 @@
   transform: rotate(45deg);
 }
 
-.messages-checkbox:hover {
+input.messages-checkbox[type="checkbox"]:hover {
   border-color: var(--color-gold);
 }
 
@@ -613,8 +617,24 @@
 
   /* Ensure action buttons have adequate touch area on mobile */
   .messages-list-action-btn {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
+  }
+
+  input.messages-checkbox[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    max-width: 22px;
+    max-height: 22px;
+  }
+
+  input.messages-checkbox[type="checkbox"]:checked::after {
+    left: 7px;
+    top: 3px;
+    width: 6px;
+    height: 11px;
   }
 
   /* Reduce conversation item padding slightly on mobile */

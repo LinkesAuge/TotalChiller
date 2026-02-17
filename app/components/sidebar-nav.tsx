@@ -149,14 +149,8 @@ function SidebarNav(): JSX.Element {
     const mediaQuery = window.matchMedia("(max-width: 900px)");
     const syncCompactState = (): void => setIsCompactViewport(mediaQuery.matches);
     syncCompactState();
-
-    if ("addEventListener" in mediaQuery) {
-      mediaQuery.addEventListener("change", syncCompactState);
-      return () => mediaQuery.removeEventListener("change", syncCompactState);
-    }
-
-    mediaQuery.addListener(syncCompactState);
-    return () => mediaQuery.removeListener(syncCompactState);
+    mediaQuery.addEventListener("change", syncCompactState);
+    return () => mediaQuery.removeEventListener("change", syncCompactState);
   }, []);
 
   /* Load forum categories when on the forum page */

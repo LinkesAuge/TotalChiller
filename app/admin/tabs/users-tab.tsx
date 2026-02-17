@@ -45,7 +45,6 @@ export default function UsersTab(): ReactElement {
     supabase,
     clans,
     unassignedClanId,
-    clanNameById,
     currentUserId,
     currentUserRole,
     setStatus: _setStatus,

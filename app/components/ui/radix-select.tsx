@@ -41,6 +41,7 @@ export default function RadixSelect({
 }: RadixSelectProps): ReactNode {
   const emptyValue = "__empty__";
   const normalizedValue = value === "" ? emptyValue : value;
+  const contentId = id ? `${id}-content` : undefined;
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const filteredOptions = useMemo(() => {
@@ -77,6 +78,7 @@ export default function RadixSelect({
         id={id}
         className={triggerClassName ?? "select-trigger"}
         aria-label={ariaLabel ?? id}
+        aria-controls={contentId}
         data-role={triggerDataRole}
       >
         <Select.Value placeholder={placeholder} />
@@ -96,6 +98,7 @@ export default function RadixSelect({
       </Select.Trigger>
       <Select.Portal>
         <Select.Content
+          id={contentId}
           className={contentClassName ?? "select-content"}
           position="popper"
           sideOffset={6}

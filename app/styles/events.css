@@ -278,7 +278,13 @@
   background: linear-gradient(180deg, rgba(18, 36, 54, 0.8), rgba(12, 24, 38, 0.9));
   color: var(--color-gold-2);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .calendar-nav-arrow:hover {
@@ -316,7 +322,13 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .calendar-today-btn:hover {
@@ -1000,7 +1012,13 @@
   background: var(--color-overlay-dark);
   color: var(--color-text-2);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
   flex-shrink: 0;
 }
 .day-panel-action-btn:hover {
@@ -1083,7 +1101,13 @@
   color: var(--color-gold);
   background: var(--color-gold-a10);
   border: 1px solid rgba(201, 163, 74, 0.22);
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 .day-panel-discuss-btn:hover {
   background: rgba(201, 163, 74, 0.22);
@@ -1121,7 +1145,13 @@
   font-size: 0.68rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -1145,7 +1175,13 @@
   font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 .calendar-day-show-more:hover {
   border-color: var(--color-gold-a45);
@@ -1221,7 +1257,13 @@
   border: 1px solid var(--color-gold-a10);
   background: linear-gradient(135deg, rgba(14, 28, 42, 0.7), rgba(10, 20, 32, 0.8));
   overflow: hidden;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
   position: relative;
 }
 
@@ -1377,7 +1419,13 @@
   background: var(--color-overlay-dark);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .upcoming-event-thread:hover,
@@ -1404,7 +1452,13 @@
   background: var(--color-overlay-dark);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 .upcoming-event-pin:hover {
   border-color: var(--color-gold-a50);
@@ -1443,7 +1497,13 @@
   background: linear-gradient(180deg, rgba(18, 36, 54, 0.8), rgba(12, 24, 38, 0.9));
   color: var(--color-gold-2);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .upcoming-pagination-btn:hover:not(:disabled) {
@@ -1480,7 +1540,13 @@
   font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .upcoming-show-more:hover {
@@ -1528,7 +1594,13 @@
   cursor: pointer;
   background: rgba(0, 0, 0, 0.2);
   padding: 0;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;

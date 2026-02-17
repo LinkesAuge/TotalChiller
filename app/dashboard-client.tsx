@@ -93,7 +93,13 @@ function DashboardClient(): JSX.Element {
         {/* ── Announcements (real data with FK join) ── */}
         <section className="card col-span-2">
           <div className="tooltip-head">
-            <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
+            <Image
+              src="/assets/vip/back_tooltip_2.png"
+              alt=""
+              className="tooltip-head-bg"
+              fill
+              sizes="(max-width: 900px) 90vw, 70vw"
+            />
             <div className="tooltip-head-inner">
               <Image src="/assets/vip/batler_icons_stat_damage.png" alt="Announcements" width={18} height={18} />
               <h3 className="card-title">{t("announcementsTitle")}</h3>
@@ -175,7 +181,13 @@ function DashboardClient(): JSX.Element {
         {/* ── Quick Stats — placeholder ── */}
         <section className="card col-span-2">
           <div className="tooltip-head">
-            <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
+            <Image
+              src="/assets/vip/back_tooltip_2.png"
+              alt=""
+              className="tooltip-head-bg"
+              fill
+              sizes="(max-width: 900px) 90vw, 70vw"
+            />
             <div className="tooltip-head-inner">
               <Image src="/assets/vip/batler_icons_stat_armor.png" alt="Stats" width={18} height={18} />
               <h3 className="card-title">{t("quickStatsTitle")}</h3>

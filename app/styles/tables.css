@@ -552,4 +552,9 @@
   .table.members .list.inline {
     flex-wrap: wrap;
   }
+
+  .table-sort-button {
+    min-height: 40px;
+    padding: 8px 4px;
+  }
 }

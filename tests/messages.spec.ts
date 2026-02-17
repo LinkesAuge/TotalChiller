@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, request as playwrightRequest } from "@playwright/test";
 import { storageStatePath } from "./helpers/auth";
 
 /**
@@ -125,5 +125,72 @@ test.describe("Messages: Notifications tab", () => {
     /* The search/filter bar should not be visible on the notifications tab */
     const filterBar = page.locator(".messages-filters");
     await expect(filterBar).toHaveCount(0);
+  });
+});
+
+test.describe("Messages: Mobile thread panel flow", () => {
+  test.use({ storageState: storageStatePath("member") });
+
+  test("mobile opens thread panel and back button returns to list", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile-chrome", "Mobile-only behavior");
+
+    await page.goto("/messages");
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
+
+    const conversationItems = page.locator(".messages-conversation-item");
+    if ((await conversationItems.count()) === 0) {
+      const memberId = await page.evaluate(() => {
+        const tokenCookie = document.cookie
+          .split("; ")
+          .find((cookie) => cookie.startsWith("sb-") && cookie.includes("-auth-token="));
+        if (!tokenCookie) return null;
+
+        const cookieValue = tokenCookie.split("=")[1];
+        if (!cookieValue) return null;
+
+        const decoded = decodeURIComponent(cookieValue);
+        const payload = decoded.startsWith("base64-") ? decoded.slice(7) : decoded;
+
+        try {
+          const parsed = JSON.parse(atob(payload)) as { user?: { id?: string } };
+          return parsed.user?.id ?? null;
+        } catch {
+          return null;
+        }
+      });
+      expect(memberId).toBeTruthy();
+      if (!memberId) {
+        throw new Error("Failed to resolve member user ID from auth cookie.");
+      }
+
+      const adminRequest = await playwrightRequest.newContext({
+        baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+        storageState: storageStatePath("admin"),
+      });
+      const seeded = await adminRequest.post("/api/messages", {
+        data: {
+          recipient_ids: [memberId],
+          subject: "Mobile thread flow seed",
+          content: "Seed message for mobile thread panel flow test.",
+          message_type: "private",
+        },
+      });
+      await adminRequest.dispose();
+      expect(seeded.ok()).toBeTruthy();
+
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect
+        .poll(async () => await page.locator(".messages-conversation-item").count(), { timeout: 10000 })
+        .toBeGreaterThan(0);
+    }
+
+    await conversationItems.first().click();
+    await expect(page.locator(".messages-layout.thread-active")).toBeVisible({ timeout: 5000 });
+
+    const backButton = page.locator(".messages-back-btn");
+    await expect(backButton).toBeVisible({ timeout: 5000 });
+    await backButton.click();
+    await expect(page.locator(".messages-layout.thread-active")).toHaveCount(0);
   });
 });

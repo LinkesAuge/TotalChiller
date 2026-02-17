@@ -63,7 +63,13 @@ function UpdatePasswordPage(): JSX.Element {
     <div className="flex justify-center pt-10">
       <section className="card max-w-[440px] w-full">
         <div className="tooltip-head">
-          <Image src="/assets/vip/back_tooltip_2.png" alt="" className="tooltip-head-bg" width={400} height={44} />
+          <Image
+            src="/assets/vip/back_tooltip_2.png"
+            alt=""
+            className="tooltip-head-bg"
+            fill
+            sizes="(max-width: 900px) 90vw, 70vw"
+          />
           <div className="tooltip-head-inner">
             <Image
               src="/assets/vip/batler_icons_star_4.png"

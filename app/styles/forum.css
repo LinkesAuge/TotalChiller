@@ -56,7 +56,13 @@
   font-size: 0.72rem;
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 .forum-cat-pill:hover {
   border-color: var(--color-gold);
@@ -262,7 +268,13 @@
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 .forum-badge-source.event {
   background: rgba(74, 110, 160, 0.18);
@@ -289,7 +301,13 @@
   font-size: 0.78rem;
   font-weight: 500;
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 .forum-source-link.event {
   background: rgba(74, 110, 160, 0.15);
@@ -564,7 +582,13 @@
   cursor: pointer;
   padding: 3px 8px;
   border-radius: 4px;
-  transition: all var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 .forum-mod-btn:hover {
   background: var(--color-gold-a10);
@@ -592,7 +616,13 @@
   border-bottom: 2px solid transparent;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all 0.15s;
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s,
+    opacity 0.15s;
 }
 .forum-editor-tab:hover {
   color: var(--color-text);
@@ -638,7 +668,13 @@
   border: 1px solid var(--color-edge);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .forum-reply-indicator-cancel:hover {
@@ -671,7 +707,13 @@
   font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.12s;
+  transition:
+    color 0.12s,
+    background-color 0.12s,
+    border-color 0.12s,
+    box-shadow 0.12s,
+    transform 0.12s,
+    opacity 0.12s;
   font-family: var(--font-body);
 }
 .forum-md-toolbar-btn:hover {

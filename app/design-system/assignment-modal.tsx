@@ -436,7 +436,13 @@ function AssignmentModal({ element, onClose, onAssignmentsChange }: AssignmentMo
                           alt={asset.filename}
                           width={assetThumbSize}
                           height={assetThumbSize}
-                          style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                          style={{
+                            width: "auto",
+                            height: "auto",
+                            maxWidth: "100%",
+                            maxHeight: "100%",
+                            objectFit: "contain",
+                          }}
                           unoptimized
                         />
                       </div>

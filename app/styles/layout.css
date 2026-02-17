@@ -146,7 +146,12 @@
   background: transparent;
   color: var(--color-text-2);
   cursor: pointer;
-  transition: all 0.15s;
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
   position: relative;
   z-index: 1;
   flex-shrink: 0;
@@ -665,7 +670,12 @@
   position: relative;
   padding: 8px 10px;
   border-left: 3px solid transparent;
-  transition: all 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 .nav a.collapsed {
@@ -792,7 +802,12 @@
   color: var(--color-text-2);
   text-decoration: none;
   border-radius: 4px;
-  transition: all 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    transform 0.12s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -819,7 +834,9 @@
   border-radius: 50%;
   background: var(--color-text-2);
   flex-shrink: 0;
-  transition: all 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 .nav-sub-label {
@@ -892,8 +909,16 @@
   .sidebar .nav a::after {
     display: none !important;
   }
+  .sidebar-header picture {
+    display: none !important;
+  }
   .sidebar-toggle {
     justify-content: center !important;
+    min-width: 40px;
+    min-height: 40px;
+    width: 40px;
+    margin: 4px auto 0;
+    padding: 0;
   }
   .nav a {
     justify-content: center !important;
@@ -1099,6 +1124,7 @@
 
 .app-footer-divider {
   width: 140px;
+  height: auto;
   opacity: 0.2;
   margin: 0 auto 10px;
   display: block;

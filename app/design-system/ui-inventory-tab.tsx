@@ -314,7 +314,7 @@ function UiInventoryTab(): ReactElement {
             alt={`${el.name} preview`}
             width={previewSize * 2}
             height={previewSize}
-            style={{ maxWidth: "100%", maxHeight: previewSize, objectFit: "contain" }}
+            style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: previewSize, objectFit: "contain" }}
             unoptimized
           />
         </div>

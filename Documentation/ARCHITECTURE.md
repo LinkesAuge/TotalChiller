@@ -293,7 +293,7 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 | DatePicker           | `date-picker.tsx`            | Flatpickr wrapper (date or datetime)                                                                 |
 | BugReportWidget      | `bug-report-widget.tsx`      | Floating bug report button + modal (root layout)                                                     |
 | SearchInput          | `ui/search-input.tsx`        | Labeled search field                                                                                 |
-| RadixSelect          | `ui/radix-select.tsx`        | Styled dropdown select                                                                               |
+| RadixSelect          | `ui/radix-select.tsx`        | Styled dropdown select with deterministic trigger/content ids for hydration-safe SSR                 |
 | ComboboxInput        | `ui/combobox-input.tsx`      | Text input with suggestion dropdown                                                                  |
 | IconButton           | `ui/icon-button.tsx`         | Icon-only action button                                                                              |
 
@@ -448,21 +448,23 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 ### Testing
 
 - Unit: Vitest, 654 tests across 32 files colocated as `*.test.ts` in `lib/` and `app/`. Run: `npm run test:unit`.
-- E2E: Playwright, 346 tests across 29 specs in `tests/`. Pre-authenticated via `storageState`. Run: `npx playwright test`.
+- E2E: Playwright, 347 tests across 29 specs in `tests/`. Pre-authenticated via `storageState`. Run: `npx playwright test`.
 - 6 test roles: owner, admin, moderator, editor, member, guest.
 - All `.content-inner` locators use `.first()` (pages render 2+ instances via `PageShell` + client component).
+- `tests/messages.spec.ts` includes a mobile-only thread panel flow test (list → thread → back) and seeds a private message via admin API context when inbox data is empty.
 
 ### Styling
 
 - All CSS in `app/globals.css` using CSS custom properties (`--color-gold`, `--color-surface`, etc.).
 - No Tailwind utility classes in app code; CSS classes follow BEM-like naming (`.messages-email-card`, `.forum-post-item`).
 - Sidebar: 240px expanded, 60px collapsed (CSS variable `--sidebar-width`).
+- Decorative `next/image` assets that are CSS-resized must keep aspect ratio (`height: auto` when width is CSS-driven, or `fill` with realistic `sizes`).
 
 ### Responsive Breakpoints
 
 All sidebar/layout responsive rules live in `layout.css` (consolidated from previously split locations).
 
-- **900px** — Primary breakpoint: sidebar collapses to icon-only strip; `.content` adjusts margin; `.content-inner` padding reduces to `16px 12px 32px`; `.grid` and `.grid-12` switch to 1-column; messages tabs wrap (`flex-wrap`); top-bar wraps; footer padding tightens; action-icons and inline action lists allow wrapping; forum/news/bugs flex containers wrap; sidebar nav sub-items (forum categories) hidden when collapsed — in-page filter pills serve as the mobile alternative; sidebar bottom switches to compact account-trigger pattern (avatar opens a fixed-position flyout with profile/settings/messages/signout and DE/EN toggle)
+- **900px** — Primary breakpoint: sidebar collapses to icon-only strip; `.content` adjusts margin; `.content-inner` padding reduces to `16px 12px 32px`; `.grid` and `.grid-12` switch to 1-column; messages tabs wrap (`flex-wrap`); top-bar wraps; footer padding tightens; action-icons and inline action lists allow wrapping; forum/news/bugs flex containers wrap; sidebar nav sub-items (forum categories) hidden when collapsed — in-page filter pills serve as the mobile alternative; sidebar header logo is hidden; sidebar bottom switches to compact account-trigger pattern (avatar opens a fixed-position flyout with profile/settings/messages/signout and DE/EN toggle); hero headings/subtitles scale+wrap to avoid clipping; dense controls (icon actions, bell, sort toggles, message actions) target ~40px touch areas
 - **768px** — Tables: member directory switches layout; events calendar and bugs search go compact
 - **720px** — Settings grid switches to single column
 - **640px** — News card banner heights; home about section padding

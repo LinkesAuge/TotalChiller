@@ -1,29 +1,4 @@
 /* Events: calendar, event cards, upcoming events, day panel, banner picker, responsive */
-/* Responsive */
-@media (max-width: 1100px) {
-  .grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .card,
-  .panel {
-    grid-column: span 1;
-  }
-  .events-two-col {
-    grid-template-columns: 1fr;
-  }
-  .events-upcoming-sidebar {
-    position: static;
-    max-height: none;
-  }
-  .calendar-month-label {
-    min-width: 148px;
-  }
-  /* Slightly reduce calendar cell height when stacked */
-  .calendar-day-cell {
-    min-height: 78px;
-  }
-}
 
 /* ── Events-specific: medium screens ── */
 @media (max-width: 768px) {
@@ -1651,4 +1626,21 @@
   display: block;
   object-fit: cover;
   max-height: 72px;
+}
+
+/* ─── Events layout stacking: must come AFTER base styles to win cascade ─── */
+@media (max-width: 1100px) {
+  .events-two-col {
+    grid-template-columns: 1fr;
+  }
+  .events-upcoming-sidebar {
+    position: static;
+    max-height: none;
+  }
+  .calendar-month-label {
+    min-width: 148px;
+  }
+  .calendar-day-cell {
+    min-height: 78px;
+  }
 }

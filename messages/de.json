@@ -948,7 +948,17 @@
       "admin": "Administrator",
       "nonAdmin": "Kein Administrator",
       "withGameAccount": "Mit Spielkonto",
-      "withoutGameAccount": "Ohne Spielkonto"
+      "withoutGameAccount": "Ohne Spielkonto",
+      "confirmed": "Bestätigt",
+      "unconfirmed": "Unbestätigt",
+      "emailConfirmed": "E-Mail bestätigt",
+      "emailUnconfirmed": "E-Mail nicht bestätigt",
+      "confirmUser": "Registrierung bestätigen",
+      "confirmUserMessage": "Registrierung für {email} manuell bestätigen? Dies markiert die E-Mail als verifiziert.",
+      "confirmUserSuccess": "Benutzer bestätigt.",
+      "confirmUserFailed": "Bestätigung fehlgeschlagen.",
+      "confirmedFilter": "Bestätigt",
+      "unconfirmedFilter": "Unbestätigt"
     },
     "logs": {
       "title": "Prüfprotokolle",
@@ -962,10 +972,17 @@
       "makeAChange": "Änderung vornehmen"
     },
     "approvals": {
+      "pageTitle": "Genehmigungen",
+      "pageSubtitle": "Ausstehende Benutzer- und Spielkonto-Genehmigungen prüfen",
+      "userApprovals": "Benutzerkonto-Genehmigungen",
+      "userApprovalsSubtitle": "Benutzer mit ausstehender E-Mail-Bestätigung",
+      "gameApprovals": "Spielkonto-Genehmigungen",
+      "gameApprovalsSubtitle": "Ausstehende Spielkonto-Anfragen von Benutzern",
       "title": "Spielkonto-Genehmigungen",
       "subtitle": "Ausstehende Spielkonto-Anfragen von Benutzern prüfen",
       "pending": "ausstehend",
       "noPending": "Keine ausstehenden Anfragen",
+      "noUnconfirmedUsers": "Keine unbestätigten Benutzer",
       "allClear": "Alles erledigt",
       "loading": "Lade ausstehende Genehmigungen...",
       "gameUsername": "Spiel-Benutzername",
@@ -976,7 +993,11 @@
       "approveAll": "Alle genehmigen",
       "approveAllConfirm": "Alle ausstehenden Spielkonten genehmigen?",
       "approvingAll": "Alle werden genehmigt...",
-      "allApproved": "Alle Spielkonten genehmigt."
+      "allApproved": "Alle Spielkonten genehmigt.",
+      "confirmAll": "Alle bestätigen",
+      "confirmAllConfirm": "Alle unbestätigten Benutzerregistrierungen bestätigen?",
+      "confirmingAll": "Alle werden bestätigt...",
+      "allConfirmed": "Alle Benutzer bestätigt."
     },
     "danger": {
       "title": "Gefahrenzone",

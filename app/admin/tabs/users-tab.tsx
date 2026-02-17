@@ -64,6 +64,7 @@ export default function UsersTab(): ReactElement {
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
   const [userGameAccountFilter, setUserGameAccountFilter] = useState<"all" | "with" | "without">("all");
+  const [userConfirmedFilter, setUserConfirmedFilter] = useState<"all" | "confirmed" | "unconfirmed">("all");
   const [userEdits, setUserEdits] = useState<Record<string, UserEditState>>({});
   const [userErrors, setUserErrors] = useState<Record<string, string>>({});
   const [userStatus, setUserStatus] = useState("");
@@ -86,6 +87,8 @@ export default function UsersTab(): ReactElement {
   const [gameAccountToDelete, setGameAccountToDelete] = useState<GameAccountRow | null>(null);
   const [pendingSaveAllCount, setPendingSaveAllCount] = useState<number | null>(null);
   const [pendingResendInviteEmail, setPendingResendInviteEmail] = useState<string | null>(null);
+  const [emailConfirmations, setEmailConfirmations] = useState<Record<string, string | null>>({});
+  const [pendingConfirmUser, setPendingConfirmUser] = useState<UserRow | null>(null);
 
   const clanSelectOptions = useMemo(
     () => [{ value: "", label: tAdmin("clans.selectClan") }, ...clans.map((c) => ({ value: c.id, label: c.name }))],
@@ -166,9 +169,21 @@ export default function UsersTab(): ReactElement {
     setUserMembershipsByAccountId(membershipMap);
   }, [supabase, unassignedClanId, userSearch]);
 
+  const loadEmailConfirmations = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/email-confirmations");
+      if (!res.ok) return;
+      const payload = (await res.json()) as { data?: Record<string, string | null> };
+      if (payload.data) setEmailConfirmations(payload.data);
+    } catch {
+      /* silent — confirmation column degrades gracefully */
+    }
+  }, []);
+
   useEffect(() => {
     void loadUsers();
-  }, [loadUsers]);
+    void loadEmailConfirmations();
+  }, [loadUsers, loadEmailConfirmations]);
 
   useEffect(() => {
     if (userDeleteState.step === "closed") setUserToDelete(null);
@@ -180,15 +195,18 @@ export default function UsersTab(): ReactElement {
 
   const getUserRole = useCallback((userId: string) => userRolesById[userId] ?? "member", [userRolesById]);
 
+  const isUserConfirmed = useCallback((userId: string): boolean => !!emailConfirmations[userId], [emailConfirmations]);
+
   const getUserSortValue = useCallback(
     (user: UserRow): string | number => {
       if (userSortKey === "email") return user.email;
       if (userSortKey === "nickname") return user.display_name ?? user.username ?? "";
       if (userSortKey === "role") return getUserRole(user.id);
       if (userSortKey === "accounts") return gameAccountsByUserId[user.id]?.length ?? 0;
+      if (userSortKey === "confirmed") return isUserConfirmed(user.id) ? 1 : 0;
       return user.username ?? user.display_name ?? user.email;
     },
-    [userSortKey, getUserRole, gameAccountsByUserId],
+    [userSortKey, getUserRole, gameAccountsByUserId, isUserConfirmed],
   );
 
   const filteredUserRows = useMemo(() => {
@@ -199,9 +217,22 @@ export default function UsersTab(): ReactElement {
         if (userGameAccountFilter === "with" && !hasAccounts) return false;
         if (userGameAccountFilter === "without" && hasAccounts) return false;
       }
+      if (userConfirmedFilter !== "all") {
+        const confirmed = !!emailConfirmations[user.id];
+        if (userConfirmedFilter === "confirmed" && !confirmed) return false;
+        if (userConfirmedFilter === "unconfirmed" && confirmed) return false;
+      }
       return true;
     });
-  }, [userRows, userRoleFilter, userGameAccountFilter, userRolesById, gameAccountsByUserId]);
+  }, [
+    userRows,
+    userRoleFilter,
+    userGameAccountFilter,
+    userConfirmedFilter,
+    userRolesById,
+    gameAccountsByUserId,
+    emailConfirmations,
+  ]);
 
   const sortedUserRows = useMemo(() => {
     const sorted = [...filteredUserRows];
@@ -633,6 +664,32 @@ export default function UsersTab(): ReactElement {
     await loadUsers();
   }, [createGameAccountUser, createGameAccountForm, supabase, closeCreateGameAccountModal, loadUsers]);
 
+  const handleConfirmUser = useCallback(async () => {
+    if (!pendingConfirmUser) return;
+    setPendingConfirmUser(null);
+    setUserStatus(tAdmin("users.confirmUser") + "...");
+    try {
+      const res = await fetch("/api/admin/email-confirmations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: pendingConfirmUser.id }),
+      });
+      const payload = (await res.json()) as { data?: { email_confirmed_at?: string }; error?: string };
+      if (!res.ok) {
+        setUserStatus(payload.error ?? tAdmin("users.confirmUserFailed"));
+        return;
+      }
+      setEmailConfirmations((c) => ({
+        ...c,
+        [pendingConfirmUser.id]: payload.data?.email_confirmed_at ?? new Date().toISOString(),
+      }));
+      setUserStatus(tAdmin("users.confirmUserSuccess"));
+      pushToast(tAdmin("users.confirmUserSuccess"));
+    } catch {
+      setUserStatus(tAdmin("users.confirmUserFailed"));
+    }
+  }, [pendingConfirmUser, tAdmin, pushToast]);
+
   const handleResendInvite = useCallback((email: string) => {
     if (!email) {
       setCreateUserStatus("User email is required to resend invite.");
@@ -753,6 +810,17 @@ export default function UsersTab(): ReactElement {
             { value: "without", label: tAdmin("users.withoutGameAccount") },
           ]}
         />
+        <LabeledSelect
+          id="userConfirmedFilter"
+          label={tAdmin("users.confirmed")}
+          value={userConfirmedFilter}
+          onValueChange={(v) => setUserConfirmedFilter(v as "all" | "confirmed" | "unconfirmed")}
+          options={[
+            { value: "all", label: tAdmin("common.all") },
+            { value: "confirmed", label: tAdmin("users.confirmedFilter") },
+            { value: "unconfirmed", label: tAdmin("users.unconfirmedFilter") },
+          ]}
+        />
         <button
           className="button"
           type="button"
@@ -760,6 +828,7 @@ export default function UsersTab(): ReactElement {
             setUserSearch("");
             setUserRoleFilter("all");
             setUserGameAccountFilter("all");
+            setUserConfirmedFilter("all");
           }}
         >
           {tAdmin("common.clearFilters")}
@@ -824,6 +893,14 @@ export default function UsersTab(): ReactElement {
               <SortableColumnHeader
                 label={tAdmin("common.role")}
                 sortKey="role"
+                activeSortKey={userSortKey}
+                direction={userSortDirection}
+                onToggle={toggleUserSort}
+                variant="triangle"
+              />
+              <SortableColumnHeader
+                label={tAdmin("users.confirmed")}
+                sortKey="confirmed"
                 activeSortKey={userSortKey}
                 direction={userSortDirection}
                 onToggle={toggleUserSort}
@@ -935,6 +1012,17 @@ export default function UsersTab(): ReactElement {
                         );
                       })()}
                     </div>
+                    <div>
+                      {isUserConfirmed(user.id) ? (
+                        <span className="badge success" title={tAdmin("users.emailConfirmed")}>
+                          {tAdmin("users.confirmed")}
+                        </span>
+                      ) : (
+                        <span className="badge warning" title={tAdmin("users.emailUnconfirmed")}>
+                          {tAdmin("users.unconfirmed")}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-muted flex items-center gap-1.5">
                       <span className="badge" aria-label={`${accounts.length} game accounts`}>
                         {accounts.length}
@@ -946,6 +1034,24 @@ export default function UsersTab(): ReactElement {
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
+                      {!isUserConfirmed(user.id) ? (
+                        <IconButton ariaLabel={tAdmin("users.confirmUser")} onClick={() => setPendingConfirmUser(user)}>
+                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M8 2.5C4.96 2.5 2.5 4.96 2.5 8C2.5 11.04 4.96 13.5 8 13.5C11.04 13.5 13.5 11.04 13.5 8C13.5 4.96 11.04 2.5 8 2.5Z"
+                              stroke="currentColor"
+                              strokeWidth="1.3"
+                            />
+                            <path
+                              d="M5.5 8L7.2 9.7L10.5 6.3"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </IconButton>
+                      ) : null}
                       <IconButton
                         ariaLabel={tAdmin("users.resendInvite")}
                         onClick={() => handleResendInvite(user.email)}
@@ -1448,6 +1554,18 @@ export default function UsersTab(): ReactElement {
         cancelLabel={tAdmin("common.cancel")}
         onConfirm={() => void handleConfirmResendInvite()}
         onCancel={() => setPendingResendInviteEmail(null)}
+      />
+
+      {/* Confirm user registration ConfirmModal */}
+      <ConfirmModal
+        isOpen={pendingConfirmUser !== null}
+        title={tAdmin("users.confirmUser")}
+        message={tAdmin("users.confirmUserMessage", { email: pendingConfirmUser?.email ?? "" })}
+        variant="info"
+        confirmLabel={tAdmin("users.confirmUser")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={() => void handleConfirmUser()}
+        onCancel={() => setPendingConfirmUser(null)}
       />
     </section>
   );

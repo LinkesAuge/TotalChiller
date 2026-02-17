@@ -818,9 +818,97 @@
   padding: 20px 24px 48px;
 }
 
+/* ─── Mobile: collapse sidebar, compact content & top-bar ─── */
 @media (max-width: 900px) {
+  /* Sidebar → collapsed icon-only strip */
+  .sidebar {
+    width: var(--sidebar-collapsed) !important;
+  }
+  .sidebar-header {
+    justify-content: center;
+    padding: 14px 8px 10px !important;
+  }
+  .sidebar-title,
+  .sidebar-subtitle,
+  .sidebar-toggle span,
+  .sidebar .nav-group-title,
+  .sidebar .nav-label,
+  .sidebar-clan-select,
+  .sidebar-user .sidebar-user-name,
+  .sidebar-user .sidebar-user-status,
+  .sidebar .nav-badge.expanded,
+  .sidebar .nav a::after {
+    display: none !important;
+  }
+  .sidebar-toggle {
+    justify-content: center !important;
+  }
+  .nav a {
+    justify-content: center !important;
+    padding: 8px 0 !important;
+  }
+  .sidebar-user {
+    justify-content: center;
+  }
+
+  /* Content area adjusts to collapsed sidebar */
+  .content {
+    margin-left: var(--sidebar-collapsed) !important;
+  }
   .content-inner {
     padding: 16px 12px 32px;
+    overflow-x: hidden;
+  }
+
+  /* Top bar: wrap and compact on mobile */
+  .top-bar-inner {
+    padding: 10px 14px;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .top-bar-inner > :last-child {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px !important;
+  }
+  .top-bar-breadcrumb {
+    font-size: 0.62rem;
+  }
+  .top-bar-title {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  /* User menu: compact */
+  .user-menu__summary {
+    padding: 6px 8px;
+  }
+  .user-menu__summary .text-muted {
+    display: none;
+  }
+
+  /* Panels: fit within viewport */
+  .notification-bell__panel,
+  .user-menu__panel {
+    width: min(92vw, 360px);
+    min-width: min(92vw, 360px);
+  }
+
+  /* Tables: smaller text on mobile */
+  .table header,
+  .table .row {
+    font-size: 0.8rem;
+    padding: 12px 14px;
+  }
+
+  /* Footer: tighter padding, wrap links */
+  .app-footer {
+    padding: 16px 12px 24px;
+  }
+  .app-footer-links {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 }
 

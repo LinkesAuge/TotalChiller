@@ -19,6 +19,10 @@
 
 ### Added
 
+- **Email confirmation status in Users tab**: New "Confirmed" column shows whether each user has verified their email (green "Bestätigt"/"Confirmed" badge or yellow "Unbestätigt"/"Unconfirmed" badge); sortable, filterable (All/Confirmed/Unconfirmed); admin can manually confirm unconfirmed users via action button with confirmation modal
+- **Approvals tab split layout**: Approvals tab now shows two side-by-side sections — "Benutzerkonto-Genehmigungen" (user account confirmations, left) and "Spielkonto-Genehmigungen" (game account approvals, right); each with independent badge counts, "confirm/approve all" bulk actions, and empty states; responsive: stacks vertically on mobile (≤900px)
+- **Admin API `/api/admin/email-confirmations`**: `GET` returns a map of userId → email_confirmed_at for all auth users; `POST` with `{ userId }` manually confirms a user's email via Supabase Admin API
+- `pendingRegistrationCount` in `AdminProvider` context — drives the combined badge count on the Approvals tab button
 - `clearSelection` method on `useMessages` hook for programmatic back-navigation
 - `backToInbox` i18n key (EN: "Back to list", DE: "Zurück zur Liste")
 - `.messages-back-btn` CSS class (hidden on desktop, shown on mobile)

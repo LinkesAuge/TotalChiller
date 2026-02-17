@@ -58,7 +58,7 @@ export interface AssignableGameAccount {
 }
 
 export type MemberSortKey = "game" | "user" | "clan" | "rank" | "status";
-export type UserSortKey = "username" | "email" | "nickname" | "role" | "accounts";
+export type UserSortKey = "username" | "email" | "nickname" | "role" | "accounts" | "confirmed";
 
 export interface UserRow {
   readonly id: string;

@@ -55,7 +55,8 @@ const TAB_MAP: Record<AdminSection, React.ComponentType> = {
 /* ── Inner component (needs context) ── */
 
 function AdminInner(): ReactElement {
-  const { activeSection, updateActiveSection, navigateAdmin, pendingApprovals } = useAdminContext();
+  const { activeSection, updateActiveSection, navigateAdmin, pendingApprovals, pendingRegistrationCount } =
+    useAdminContext();
   const tAdmin = useTranslations("admin");
 
   const ActiveTab = TAB_MAP[activeSection] ?? ClansTab;
@@ -73,8 +74,8 @@ function AdminInner(): ReactElement {
         <div className="tabs">
           {ADMIN_SECTIONS.map((section) => {
             const isActive = section.tab ? activeSection === section.tab : false;
-            const badge =
-              section.tab === "approvals" && pendingApprovals.length > 0 ? ` (${pendingApprovals.length})` : "";
+            const totalPending = pendingApprovals.length + pendingRegistrationCount;
+            const badge = section.tab === "approvals" && totalPending > 0 ? ` (${totalPending})` : "";
             return (
               <button
                 key={section.labelKey}

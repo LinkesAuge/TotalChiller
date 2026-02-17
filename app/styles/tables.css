@@ -382,9 +382,41 @@
   white-space: nowrap;
 }
 
+/* Approvals split grid (user confirmations left, game approvals right) */
+.approvals-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .approvals-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* User account approvals table (simpler than game account approvals) */
+.table.user-approvals-list {
+  min-width: 480px;
+}
+
+.table.user-approvals-list header,
+.table.user-approvals-list .row {
+  grid-template-columns: 40px 1.2fr 1.4fr auto;
+  min-width: 0;
+  width: auto;
+  align-items: center;
+}
+
+.table.user-approvals-list .row .button {
+  font-size: 0.82rem;
+  padding: 5px 14px;
+  white-space: nowrap;
+}
+
 .table.users header,
 .table.users .row {
-  grid-template-columns: 60px minmax(180px, 1.4fr) minmax(200px, 1.6fr) minmax(160px, 1.2fr) 120px 90px minmax(
+  grid-template-columns: 60px minmax(180px, 1.4fr) minmax(200px, 1.6fr) minmax(160px, 1.2fr) 120px 120px 90px minmax(
       220px,
       260px
     );
@@ -393,7 +425,7 @@
 }
 
 .table.users {
-  min-width: 1100px;
+  min-width: 1200px;
   width: max-content;
 }
 

@@ -948,7 +948,17 @@
       "admin": "Admin",
       "nonAdmin": "Non-admin",
       "withGameAccount": "With game account",
-      "withoutGameAccount": "Without game account"
+      "withoutGameAccount": "Without game account",
+      "confirmed": "Confirmed",
+      "unconfirmed": "Unconfirmed",
+      "emailConfirmed": "Email confirmed",
+      "emailUnconfirmed": "Email not confirmed",
+      "confirmUser": "Confirm registration",
+      "confirmUserMessage": "Manually confirm registration for {email}? This marks the email as verified.",
+      "confirmUserSuccess": "User confirmed.",
+      "confirmUserFailed": "Failed to confirm user.",
+      "confirmedFilter": "Confirmed",
+      "unconfirmedFilter": "Unconfirmed"
     },
     "logs": {
       "title": "Audit Logs",
@@ -962,10 +972,17 @@
       "makeAChange": "Make a change"
     },
     "approvals": {
+      "pageTitle": "Approvals",
+      "pageSubtitle": "Review pending user and game account approvals",
+      "userApprovals": "User Account Approvals",
+      "userApprovalsSubtitle": "Users awaiting email confirmation",
+      "gameApprovals": "Game Account Approvals",
+      "gameApprovalsSubtitle": "Pending game account requests from users",
       "title": "Game Account Approvals",
       "subtitle": "Review pending game account requests from users",
       "pending": "pending",
       "noPending": "No pending requests",
+      "noUnconfirmedUsers": "No unconfirmed users",
       "allClear": "All clear",
       "loading": "Loading pending approvals...",
       "gameUsername": "Game Username",
@@ -976,7 +993,11 @@
       "approveAll": "Approve all",
       "approveAllConfirm": "Approve all pending game accounts?",
       "approvingAll": "Approving all...",
-      "allApproved": "All game accounts approved."
+      "allApproved": "All game accounts approved.",
+      "confirmAll": "Confirm all",
+      "confirmAllConfirm": "Confirm all unconfirmed user registrations?",
+      "confirmingAll": "Confirming all...",
+      "allConfirmed": "All users confirmed."
     },
     "danger": {
       "title": "Danger Zone",

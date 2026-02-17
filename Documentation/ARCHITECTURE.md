@@ -199,9 +199,9 @@ Modular tab-based admin. Slim orchestrator (`admin-client.tsx`, ~140 lines) with
 | `app/admin/admin-context.tsx`      | Shared state (supabase, clans, user, routing)                                                |
 | `app/admin/admin-types.ts`         | Types, constants, rank/role formatters (`LOCALIZED_ROLE_LABELS`, `formatRole`, `formatRank`) |
 | `app/admin/tabs/clans-tab.tsx`     | Clan management + game account memberships                                                   |
-| `app/admin/tabs/users-tab.tsx`     | User CRUD, game account management                                                           |
+| `app/admin/tabs/users-tab.tsx`     | User CRUD, game account management, email confirmation status + manual confirm               |
 | `app/admin/tabs/logs-tab.tsx`      | Audit log viewer                                                                             |
-| `app/admin/tabs/approvals-tab.tsx` | Game account approval queue                                                                  |
+| `app/admin/tabs/approvals-tab.tsx` | Split layout: user registration confirmations (left) + game account approval queue (right)   |
 | `app/admin/tabs/forum-tab.tsx`     | Forum category management                                                                    |
 | `app/design-system/`               | Design system (assets, inventory, assignments) — linked from admin                           |
 
@@ -344,6 +344,7 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 | `/api/admin/create-user`            | POST                     | admin        | strict           | Invite new user                                     |
 | `/api/admin/delete-user`            | POST                     | admin        | strict           | Delete user                                         |
 | `/api/admin/user-lookup`            | POST                     | admin        | strict           | Lookup user by email                                |
+| `/api/admin/email-confirmations`    | GET, POST                | admin        | strict           | Email confirmation status / Manual confirm          |
 | `/api/admin/game-account-approvals` | GET, PATCH               | admin        | strict           | Approval queue                                      |
 | `/api/admin/forum-categories`       | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                                 |
 | `/api/design-system/assets`         | GET, PATCH               | admin        | relaxed/standard | Design asset library                                |

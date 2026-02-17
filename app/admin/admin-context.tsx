@@ -50,6 +50,10 @@ export interface AdminContextValue {
   /* Approval badge count (shared for tab bar) */
   readonly pendingApprovals: readonly PendingApprovalRow[];
   readonly setPendingApprovals: React.Dispatch<React.SetStateAction<readonly PendingApprovalRow[]>>;
+
+  /* Unconfirmed registration count (shared for tab bar badge) */
+  readonly pendingRegistrationCount: number;
+  readonly setPendingRegistrationCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const AdminContext = createContext<AdminContextValue | null>(null);
@@ -85,6 +89,7 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
   const [activeSection, setActiveSection] = useState<AdminSection>("clans");
   const [status, setStatus] = useState("");
   const [pendingApprovals, setPendingApprovals] = useState<readonly PendingApprovalRow[]>([]);
+  const [pendingRegistrationCount, setPendingRegistrationCount] = useState(0);
 
   const clanNameById = useMemo(() => new Map(clans.map((c) => [c.id, c.name])), [clans]);
 
@@ -105,11 +110,12 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
   useEffect(() => {
     async function init(): Promise<void> {
       /* Parallelize independent init queries (reuses loadClans for clan data) */
-      const [, { data: defClan }, { data: authData }, approvalsRes] = await Promise.all([
+      const [, { data: defClan }, { data: authData }, approvalsRes, confirmRes] = await Promise.all([
         loadClans(),
         supabase.from("clans").select("id").eq("is_default", true).maybeSingle(),
         supabase.auth.getUser(),
         fetch("/api/admin/game-account-approvals").catch(() => null),
+        fetch("/api/admin/email-confirmations").catch(() => null),
       ]);
 
       // Default clan
@@ -130,6 +136,18 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
         try {
           const result = await approvalsRes.json();
           setPendingApprovals(result.data ?? []);
+        } catch {
+          /* ignore parse failure for badge count */
+        }
+      }
+
+      // Pending registration confirmations (for badge)
+      if (confirmRes?.ok) {
+        try {
+          const result = await confirmRes.json();
+          const confirmMap = (result.data ?? {}) as Record<string, string | null>;
+          const unconfirmed = Object.values(confirmMap).filter((v) => !v).length;
+          setPendingRegistrationCount(unconfirmed);
         } catch {
           /* ignore parse failure for badge count */
         }
@@ -202,6 +220,8 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       setStatus,
       pendingApprovals,
       setPendingApprovals,
+      pendingRegistrationCount,
+      setPendingRegistrationCount,
     }),
     [
       supabase,
@@ -218,6 +238,7 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       navigateAdmin,
       status,
       pendingApprovals,
+      pendingRegistrationCount,
     ],
   );
 

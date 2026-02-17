@@ -315,6 +315,12 @@
   margin-top: 20px;
 }
 
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Admin grid — single-column layout for the admin area */
 .admin-grid {
   display: grid;
@@ -1403,6 +1409,13 @@ select:disabled,
     0 0 0 1px var(--color-gold-a08);
   z-index: 200;
   overflow: hidden;
+}
+
+@media (max-width: 420px) {
+  .notification-bell__panel {
+    width: calc(100vw - 32px);
+    right: -8px;
+  }
 }
 
 .notification-bell__header {

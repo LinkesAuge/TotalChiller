@@ -657,6 +657,7 @@
     "system": "System",
     "searchPlaceholder": "Search...",
     "selectMessage": "Select a message to view",
+    "backToInbox": "Back to list",
     "conversation": "Conversation",
     "messagesCount": "{count} messages",
     "threadMessages": "{count} messages in thread",

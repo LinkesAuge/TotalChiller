@@ -223,3 +223,10 @@ Radix expects developers to use `Select.ScrollUpButton` / `Select.ScrollDownButt
 | `/messages?to=<userId>`              | Pre-fills compose recipient          |
 | `/messages?tab=notifications`        | Opens notifications tab              |
 | `/bugs?report=<id>`                  | Opens specific bug report            |
+
+## Responsive / Mobile
+
+- Primary breakpoint at **900px**: sidebar collapses, `.grid` switches to single column, messages page uses panel-toggle pattern
+- Messages page on mobile: inbox list and thread panel toggle via `.thread-active` class; "Back to list" button navigates back via `clearSelection()` from `useMessages` hook
+- Touch targets: action buttons and delete buttons enlarge on touch devices (`@media (hover: none)`)
+- Notification bell panel fluid-width on small screens (<420px)

@@ -132,6 +132,7 @@ export interface UseMessagesResult {
   readonly handleUnarchive: (type: "thread" | "sent", ids: readonly string[]) => Promise<void>;
 
   /* Handlers */
+  readonly clearSelection: () => void;
   readonly handleViewModeChange: (mode: ViewMode) => void;
   readonly handleSelectInboxThread: (threadId: string) => void;
   readonly handleSelectSentMessage: (msgId: string) => void;
@@ -593,6 +594,13 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     },
     [t],
   );
+
+  const clearSelection = useCallback((): void => {
+    setSelectedThreadId("");
+    setSelectedSentMsgId("");
+    setThreadMessages([]);
+    resetReply();
+  }, [resetReply]);
 
   const handleViewModeChange = useCallback(
     (mode: ViewMode): void => {
@@ -1108,6 +1116,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     selectedSentMessage,
     selectedInboxThread,
     canReply,
+    clearSelection,
     handleViewModeChange,
     handleSelectInboxThread,
     handleSelectSentMessage,

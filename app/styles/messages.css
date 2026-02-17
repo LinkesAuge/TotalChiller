@@ -3,7 +3,7 @@
 .messages-layout {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: minmax(280px, 420px) 1fr;
   gap: 16px;
   min-height: 500px;
   max-height: calc(100vh - 200px);
@@ -291,7 +291,14 @@
 /* Touch devices: always show action buttons since there is no hover state */
 @media (hover: none) {
   .messages-list-action-btn {
-    opacity: 0.5;
+    opacity: 0.7;
+    width: 36px;
+    height: 36px;
+  }
+
+  .messages-delete-button {
+    padding: 8px 12px;
+    font-size: 0.82rem;
   }
 }
 
@@ -509,14 +516,98 @@
   min-height: 80px;
 }
 
-/* ─── Mobile: stack panels vertically, each with own height constraint ─── */
+/* ─── Back button: hidden on desktop, shown on mobile ─── */
+.messages-back-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 1px solid var(--color-gold-a12);
+  background: var(--color-gold-a04);
+  color: var(--color-gold-2);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.messages-back-btn:hover {
+  background: var(--color-gold-a08);
+}
+
+/* ─── Mobile: toggle between list and thread panel ─── */
 @media (max-width: 900px) {
   .messages-layout {
     grid-template-columns: 1fr;
     max-height: none;
   }
-  .messages-list-panel,
+
+  .messages-list-panel {
+    max-height: calc(100vh - 200px);
+  }
+
   .messages-thread-panel {
     max-height: calc(100vh - 200px);
+  }
+
+  /* When a thread/message is selected: hide list, show thread */
+  .messages-layout.thread-active .messages-list-panel {
+    display: none;
+  }
+
+  /* When no thread is selected: hide thread panel */
+  .messages-layout:not(.thread-active) .messages-thread-panel {
+    display: none;
+  }
+
+  /* Show the back button on mobile */
+  .messages-back-btn {
+    display: flex;
+  }
+
+  /* Compact reply form on mobile so thread messages remain scrollable */
+  .messages-reply-form {
+    padding: 12px 14px;
+  }
+
+  .messages-reply-form textarea {
+    min-height: 60px !important;
+  }
+
+  .messages-reply-form .forum-editor-preview {
+    min-height: 60px;
+  }
+
+  /* Safe area padding for iOS notch devices */
+  .messages-thread-panel {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Conversation items: allow subject row to wrap so timestamp drops below */
+  .messages-conversation-subject-row {
+    flex-wrap: wrap;
+  }
+
+  /* Timestamp moves to its own line when space is tight */
+  .messages-conversation-actions {
+    gap: 4px;
+  }
+
+  /* Ensure action buttons have adequate touch area on mobile */
+  .messages-list-action-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Reduce conversation item padding slightly on mobile */
+  .messages-conversation-item {
+    padding: 10px 14px;
+  }
+
+  /* Ensure email card padding is comfortable on small screens */
+  .messages-email-card {
+    padding: 14px 14px;
   }
 }

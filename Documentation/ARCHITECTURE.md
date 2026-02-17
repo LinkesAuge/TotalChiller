@@ -453,7 +453,18 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 - All CSS in `app/globals.css` using CSS custom properties (`--color-gold`, `--color-surface`, etc.).
 - No Tailwind utility classes in app code; CSS classes follow BEM-like naming (`.messages-email-card`, `.forum-post-item`).
-- Sidebar: 280px expanded, 60px collapsed (CSS variable `--sidebar-width`).
+- Sidebar: 240px expanded, 60px collapsed (CSS variable `--sidebar-width`).
+
+### Responsive Breakpoints
+
+- **900px** — Primary breakpoint: sidebar collapses to icon-only; `.grid` switches from 2-column to 1-column; messages page toggles between inbox list and thread panel (`.thread-active` class controls visibility)
+- **768px** — Tables: member directory switches layout; events/bugs adjust grid
+- **720px** — Settings grid switches to single column
+- **640px** — News card banner heights; home about section
+- **480px** — Forum thumbnails; event calendar padding
+- **420px** — Notification bell panel becomes fluid width
+
+Messages mobile pattern: On screens <=900px, the `.messages-layout.thread-active` class hides the list panel and shows the thread panel. A `.messages-back-btn` (hidden on desktop) allows navigating back via `clearSelection()` from the `useMessages` hook.
 
 ## 10. Environment
 

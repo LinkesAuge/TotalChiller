@@ -48,6 +48,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     getProfileLabel,
     formatRecipientLabel,
     setIsReplyOpen,
+    clearSelection,
   } = api;
 
   const showThread = (viewMode === "inbox" || viewMode === "archive") && selectedThreadId;
@@ -66,6 +67,22 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
   if (showThread) {
     return (
       <section className="card messages-thread-panel">
+        <button type="button" className="messages-back-btn" onClick={clearSelection}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          {t("backToInbox")}
+        </button>
         <div className="card-header">
           <div>
             <div className="card-title">{threadMessages[0]?.subject || t("noSubject")}</div>
@@ -169,7 +186,8 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
                     supabase={supabase}
                     userId={userId}
                     placeholder={t("composeReply")}
-                    rows={6}
+                    rows={4}
+                    minHeight={100}
                     storageBucket={MESSAGE_IMAGES_BUCKET}
                   />
                 </div>
@@ -193,6 +211,22 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
   if (showSent && selectedSentMessage) {
     return (
       <section className="card messages-thread-panel">
+        <button type="button" className="messages-back-btn" onClick={clearSelection}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          {t("backToInbox")}
+        </button>
         <div className="card-header">
           <div>
             <div className="card-title">{selectedSentMessage.subject || t("noSubject")}</div>

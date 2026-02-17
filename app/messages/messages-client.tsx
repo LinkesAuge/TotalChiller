@@ -21,6 +21,8 @@ function MessagesClient({ userId, initialRecipientId, initialTab }: MessagesClie
   const t = useTranslations("messagesPage");
   const api = useMessages({ userId, initialRecipientId, initialTab });
 
+  const hasActiveThread = api.selectedThreadId !== "" || api.selectedSentMsgId !== "";
+
   return (
     <div className="grid">
       <div className="col-span-full flex gap-3 flex-wrap">
@@ -38,7 +40,7 @@ function MessagesClient({ userId, initialRecipientId, initialTab }: MessagesClie
 
       {api.isComposeOpen ? <MessagesCompose userId={userId} api={api} /> : null}
 
-      <div className="messages-layout">
+      <div className={`messages-layout${hasActiveThread ? " thread-active" : ""}`}>
         <MessagesInbox api={api} />
         <MessagesThread userId={userId} api={api} />
       </div>

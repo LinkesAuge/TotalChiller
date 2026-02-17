@@ -4,7 +4,25 @@
 
 ---
 
-## [Unreleased] – 2026-02-16
+## [Unreleased] – 2026-02-17
+
+### Fixed
+
+- **Messages mobile panel switching**: On mobile/tablet (<900px), the inbox list and thread panel now toggle instead of stacking — selecting a message shows the thread with a "Back to list" button; eliminates the need to scroll past the entire inbox to reach the thread/reply area
+- **Messages tablet overflow**: Changed fixed 420px list panel to `minmax(280px, 420px)` so it shrinks gracefully on tablets instead of causing horizontal scroll
+- **Messages reply form mobile**: Reduced reply textarea height and padding on mobile so thread messages remain scrollable; added iOS safe-area padding; MarkdownEditor in reply context uses smaller `minHeight` (100px vs 200px default)
+- **Messages touch targets**: Increased action button size from 26px to 36px on touch devices and mobile; increased delete button padding; improved touch-device action button discoverability (opacity 0.7)
+- **Messages mobile layout**: Conversation item subject rows wrap on mobile to prevent timestamp overlap; email card padding optimized for small screens
+- **Grid responsive**: Added `@media (max-width: 900px)` breakpoint to `.grid` class (single column) — all pages using the 2-column grid now properly stack on mobile
+- **Notification bell overflow**: Panel width constrained to `calc(100vw - 32px)` on screens under 420px to prevent clipping
+
+### Added
+
+- `clearSelection` method on `useMessages` hook for programmatic back-navigation
+- `backToInbox` i18n key (EN: "Back to list", DE: "Zurück zur Liste")
+- `.messages-back-btn` CSS class (hidden on desktop, shown on mobile)
+
+## 2026-02-16
 
 ### Fixed
 

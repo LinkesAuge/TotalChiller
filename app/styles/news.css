@@ -353,3 +353,22 @@
     height: 40px;
   }
 }
+
+/* ─── News mobile: wrap flex containers, tighter padding ─── */
+@media (max-width: 900px) {
+  .news-card-badges {
+    flex-wrap: wrap;
+  }
+  .news-card-actions {
+    flex-wrap: wrap;
+  }
+  .news-card-banner-content {
+    padding: 12px 14px;
+  }
+  .news-card-actions {
+    padding: 8px 14px;
+  }
+  .news-card-tags {
+    padding: 0 14px;
+  }
+}

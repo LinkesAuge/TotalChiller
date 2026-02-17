@@ -595,3 +595,28 @@
     align-items: stretch;
   }
 }
+
+/* ─── Bugs mobile: wrap flex containers, compact layout ─── */
+@media (max-width: 900px) {
+  .bugs-card-tags {
+    flex-wrap: wrap;
+  }
+  .bugs-content-actions {
+    flex-wrap: wrap;
+  }
+  .bugs-card-header {
+    flex-wrap: wrap;
+  }
+  .bugs-detail-actions {
+    flex-wrap: wrap;
+  }
+  .bugs-comment-actions {
+    flex-wrap: wrap;
+  }
+  .bugs-comment-delete-confirm {
+    flex-wrap: wrap;
+  }
+  .bugs-detail-title {
+    font-size: 1.15rem;
+  }
+}

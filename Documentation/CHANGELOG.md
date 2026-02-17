@@ -8,17 +8,28 @@
 
 ### Fixed
 
+- **Sidebar responsive code consolidation**: Moved all sidebar/layout mobile rules from `events.css` into `layout.css` — eliminates a CSS cascade conflict where `events.css` was overriding `layout.css` content-inner padding
+- **Content padding mobile**: Consolidated `.content-inner` padding to `16px 12px 32px` on mobile, with `overflow-x: hidden` to prevent horizontal scroll
+- **Footer mobile**: Added responsive rules for `.app-footer` — tighter padding and `flex-wrap` on links at 900px
+- **Message tabs clipping**: Tabs now use `flex-wrap: wrap` and `overflow: visible` on mobile; reduced font and padding so long German labels ("Posteingang", "Hinweise") are never truncated
+- **Message thread panel**: Removed `max-height` constraint on mobile; thread panel and reply form expand naturally, page scrolls instead
+- **Forum mobile**: Added 900px breakpoint with `flex-wrap: wrap` for post footer, detail actions, comment meta/actions, form rows, reply indicator, and detail header; reduced reply indent from 32px to 16px (8px at 480px); compact comment section padding
+- **News mobile**: Added `flex-wrap: wrap` for `.news-card-badges` and `.news-card-actions`; reduced banner and tag padding on mobile
+- **Bugs mobile**: Added `flex-wrap: wrap` for card tags, content actions, card header, detail actions, comment actions, and delete confirm; reduced detail title font-size
+- **Grid-12 responsive**: Added `@media (max-width: 900px)` breakpoint to collapse 12-column grid to single column
+- **Action icons mobile**: `.action-icons` and `.list.inline.action-icons` now allow `flex-wrap` at 900px
+- **Member table mobile**: `.table.members .list.inline` allows wrapping at 900px
 - **Messages mobile panel switching**: On mobile/tablet (<900px), the inbox list and thread panel now toggle instead of stacking — selecting a message shows the thread with a "Back to list" button; eliminates the need to scroll past the entire inbox to reach the thread/reply area
 - **Messages tablet overflow**: Changed fixed 420px list panel to `minmax(280px, 420px)` so it shrinks gracefully on tablets instead of causing horizontal scroll
 - **Messages reply form mobile**: Reduced reply textarea height and padding on mobile so thread messages remain scrollable; added iOS safe-area padding; MarkdownEditor in reply context uses smaller `minHeight` (100px vs 200px default)
 - **Messages touch targets**: Increased action button size from 26px to 36px on touch devices and mobile; increased delete button padding; improved touch-device action button discoverability (opacity 0.7)
-- **Messages thread panel height**: Thread panel on mobile now uses `calc(100vh - 120px)` instead of `calc(100vh - 200px)`, gaining 80px for message content; reply form capped at `40vh` with scrollable overflow so it can't dominate the viewport; textarea capped at `20vh`
 - **Messages mobile layout**: Conversation item subject rows wrap on mobile to prevent timestamp overlap; email card padding optimized for small screens
 - **Grid responsive**: Added `@media (max-width: 900px)` breakpoint to `.grid` class (single column) — all pages using the 2-column grid now properly stack on mobile
 - **Notification bell overflow**: Panel width constrained to `calc(100vw - 32px)` on screens under 420px to prevent clipping
 
 ### Added
 
+- **Inline membership editing in Users tab**: Game account subrows now have editable dropdowns for clan, rank, and active/inactive status (RadixSelect), matching the Clan-Verwaltung tab; includes shadow toggle button, combined save/cancel for game account name + membership fields, and integration with Save All / Cancel All bulk actions
 - **Email confirmation status in Users tab**: New "Confirmed" column shows whether each user has verified their email (green "Bestätigt"/"Confirmed" badge or yellow "Unbestätigt"/"Unconfirmed" badge); sortable, filterable (All/Confirmed/Unconfirmed); admin can manually confirm unconfirmed users via action button with confirmation modal
 - **Approvals tab split layout**: Approvals tab now shows two side-by-side sections — "Benutzerkonto-Genehmigungen" (user account confirmations, left) and "Spielkonto-Genehmigungen" (game account approvals, right); each with independent badge counts, "confirm/approve all" bulk actions, and empty states; responsive: stacks vertically on mobile (≤900px)
 - **Admin API `/api/admin/email-confirmations`**: `GET` returns a map of userId → email_confirmed_at for all auth users; `POST` with `{ userId }` manually confirms a user's email via Supabase Admin API

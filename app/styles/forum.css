@@ -909,3 +909,48 @@
   color: var(--color-gold);
   font-style: italic;
 }
+
+/* ─── Forum mobile: wrap flex containers, reduce indents ─── */
+@media (max-width: 900px) {
+  .forum-post-footer {
+    flex-wrap: wrap;
+  }
+  .forum-detail-actions {
+    flex-wrap: wrap;
+  }
+  .forum-comment-meta {
+    flex-wrap: wrap;
+  }
+  .forum-comment-actions {
+    flex-wrap: wrap;
+  }
+  .forum-form-row {
+    flex-wrap: wrap;
+  }
+  .forum-reply-indicator {
+    flex-wrap: wrap;
+  }
+  .forum-reply {
+    margin-left: 16px;
+    padding-left: 10px;
+  }
+  .forum-detail-header {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .forum-vote-col {
+    min-width: 36px;
+  }
+  .forum-post-card {
+    gap: 8px;
+  }
+  .forum-reply {
+    margin-left: 8px;
+    padding-left: 8px;
+  }
+  .forum-comments-section {
+    padding: 12px 10px;
+  }
+}

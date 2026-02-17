@@ -193,17 +193,17 @@ Bell icon in header with dropdown. DB-stored, polls every 60s. Fan-out on news/e
 
 Modular tab-based admin. Slim orchestrator (`admin-client.tsx`, ~140 lines) with `AdminProvider` context. Each tab lazy-loaded via `next/dynamic`.
 
-| File                               | Purpose                                                                                      |
-| ---------------------------------- | -------------------------------------------------------------------------------------------- |
-| `app/admin/admin-client.tsx`       | Tab orchestrator + dynamic imports                                                           |
-| `app/admin/admin-context.tsx`      | Shared state (supabase, clans, user, routing)                                                |
-| `app/admin/admin-types.ts`         | Types, constants, rank/role formatters (`LOCALIZED_ROLE_LABELS`, `formatRole`, `formatRank`) |
-| `app/admin/tabs/clans-tab.tsx`     | Clan management + game account memberships                                                   |
-| `app/admin/tabs/users-tab.tsx`     | User CRUD, game account management, email confirmation status + manual confirm               |
-| `app/admin/tabs/logs-tab.tsx`      | Audit log viewer                                                                             |
-| `app/admin/tabs/approvals-tab.tsx` | Split layout: user registration confirmations (left) + game account approval queue (right)   |
-| `app/admin/tabs/forum-tab.tsx`     | Forum category management                                                                    |
-| `app/design-system/`               | Design system (assets, inventory, assignments) — linked from admin                           |
+| File                               | Purpose                                                                                                                             |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `app/admin/admin-client.tsx`       | Tab orchestrator + dynamic imports                                                                                                  |
+| `app/admin/admin-context.tsx`      | Shared state (supabase, clans, user, routing)                                                                                       |
+| `app/admin/admin-types.ts`         | Types, constants, rank/role formatters (`LOCALIZED_ROLE_LABELS`, `formatRole`, `formatRank`)                                        |
+| `app/admin/tabs/clans-tab.tsx`     | Clan management + game account memberships                                                                                          |
+| `app/admin/tabs/users-tab.tsx`     | User CRUD, game account management, inline membership editing (clan/rank/status/shadow), email confirmation status + manual confirm |
+| `app/admin/tabs/logs-tab.tsx`      | Audit log viewer                                                                                                                    |
+| `app/admin/tabs/approvals-tab.tsx` | Split layout: user registration confirmations (left) + game account approval queue (right)                                          |
+| `app/admin/tabs/forum-tab.tsx`     | Forum category management                                                                                                           |
+| `app/design-system/`               | Design system (assets, inventory, assignments) — linked from admin                                                                  |
 
 **DB tables**: `profiles`, `user_roles`, `game_accounts`, `game_account_clan_memberships`, `clans`, `audit_logs`
 
@@ -458,14 +458,16 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 ### Responsive Breakpoints
 
-- **900px** — Primary breakpoint: sidebar collapses to icon-only; `.grid` switches from 2-column to 1-column; messages page toggles between inbox list and thread panel (`.thread-active` class controls visibility)
-- **768px** — Tables: member directory switches layout; events/bugs adjust grid
+All sidebar/layout responsive rules live in `layout.css` (consolidated from previously split locations).
+
+- **900px** — Primary breakpoint: sidebar collapses to icon-only strip; `.content` adjusts margin; `.content-inner` padding reduces to `16px 12px 32px`; `.grid` and `.grid-12` switch to 1-column; messages tabs wrap (`flex-wrap`); top-bar wraps; footer padding tightens; action-icons and inline action lists allow wrapping; forum/news/bugs flex containers wrap
+- **768px** — Tables: member directory switches layout; events calendar and bugs search go compact
 - **720px** — Settings grid switches to single column
-- **640px** — News card banner heights; home about section
-- **480px** — Forum thumbnails; event calendar padding
+- **640px** — News card banner heights; home about section padding
+- **480px** — Forum thumbnails shrink; event calendar extra-compact; forum reply indents reduce
 - **420px** — Notification bell panel becomes fluid width
 
-Messages mobile pattern: On screens <=900px, the `.messages-layout.thread-active` class hides the list panel and shows the thread panel. A `.messages-back-btn` (hidden on desktop) allows navigating back via `clearSelection()` from the `useMessages` hook.
+Messages mobile pattern: On screens <=900px, the `.messages-layout.thread-active` class hides the list panel and shows the thread panel. A `.messages-back-btn` (hidden on desktop) allows navigating back via `clearSelection()` from the `useMessages` hook. Message tabs use `flex-wrap` to handle narrow viewports. Thread panel has no `max-height` constraint, allowing the page to scroll naturally.
 
 ## 10. Environment
 

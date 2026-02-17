@@ -548,6 +548,13 @@
     max-height: calc(100vh - 200px);
   }
 
+  /* Tabs: size to content so long labels (e.g. "Posteingang") aren't clipped */
+  .messages-view-tab {
+    flex: 0 0 auto;
+    padding: 12px 8px;
+    font-size: 0.78rem;
+  }
+
   /* Thread panel: remove height constraint, let page scroll naturally */
   .messages-thread-panel {
     max-height: none;

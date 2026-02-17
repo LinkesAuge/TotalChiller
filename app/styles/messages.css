@@ -553,6 +553,8 @@
     flex: 0 0 auto;
     padding: 12px 8px;
     font-size: 0.78rem;
+    overflow: visible;
+    text-overflow: unset;
   }
 
   /* Thread panel: remove height constraint, let page scroll naturally */

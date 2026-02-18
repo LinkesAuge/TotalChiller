@@ -47,7 +47,6 @@ export function MessagesCompose({ userId, api }: MessagesComposeProps): JSX.Elem
     isSearchDropdownOpen,
     setIsSearchDropdownOpen,
     searchWrapperRef,
-    isContentMgr,
     clans,
     addRecipient,
     removeRecipient,
@@ -72,7 +71,7 @@ export function MessagesCompose({ userId, api }: MessagesComposeProps): JSX.Elem
         </div>
       </div>
       <form onSubmit={handleCompose}>
-        {isContentMgr ? (
+        {composeModeOptions.length > 1 ? (
           <div className="form-group">
             <label id="recipientTypeLabel">{t("recipientType")}</label>
             <div className="tabs text-sm" role="group" aria-labelledby="recipientTypeLabel">

@@ -263,6 +263,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
 
   /* ── Clans ── */
   const [clans, setClans] = useState<readonly ClanOption[]>([]);
+  const [leadershipClanIds, setLeadershipClanIds] = useState<ReadonlySet<string>>(new Set());
 
   const allProfiles = useMemo<ProfileMap>(
     () => ({ ...inboxProfiles, ...sentProfiles, ...threadProfiles, ...archiveProfiles }),
@@ -461,20 +462,41 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
   useEffect(() => {
     let cancelled = false;
     async function loadClans(): Promise<void> {
-      if (!isContentMgr) return;
-      const { data: clanData } = await supabase
-        .from("clans")
-        .select("id,name")
-        .eq("is_unassigned", false)
-        .order("name");
-      if (cancelled) return;
-      setClans((clanData ?? []) as readonly ClanOption[]);
+      if (isContentMgr) {
+        const { data: clanData } = await supabase
+          .from("clans")
+          .select("id,name")
+          .eq("is_unassigned", false)
+          .order("name");
+        if (cancelled) return;
+        setClans((clanData ?? []) as readonly ClanOption[]);
+      } else {
+        const { data: memberships } = await supabase
+          .from("game_account_clan_memberships")
+          .select("clan_id, rank, clans(id,name), game_accounts!inner(user_id)")
+          .eq("is_active", true)
+          .eq("is_shadow", false)
+          .in("rank", ["leader", "superior"])
+          .eq("game_accounts.user_id", userId);
+        if (cancelled) return;
+        const leaderClans: ClanOption[] = [];
+        const ids = new Set<string>();
+        for (const m of memberships ?? []) {
+          const clan = m.clans as unknown as { id: string; name: string } | null;
+          if (clan && !ids.has(clan.id)) {
+            ids.add(clan.id);
+            leaderClans.push(clan);
+          }
+        }
+        setClans(leaderClans.sort((a, b) => a.name.localeCompare(b.name)));
+        setLeadershipClanIds(ids);
+      }
     }
     void loadClans();
     return () => {
       cancelled = true;
     };
-  }, [supabase, isContentMgr]);
+  }, [supabase, isContentMgr, userId]);
 
   useEffect(() => {
     if (!initialRecipientId || initialRecipientId === userId) return;
@@ -1088,13 +1110,18 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     [inboxThreads],
   );
 
+  const canClanBroadcast = isContentMgr || leadershipClanIds.size > 0;
+
   const composeModeOptions = useMemo(() => {
     const options = [{ value: "direct", label: t("directMessage") }];
+    if (canClanBroadcast) {
+      options.push({ value: "clan", label: t("clanBroadcast") });
+    }
     if (isContentMgr) {
-      options.push({ value: "clan", label: t("clanBroadcast") }, { value: "global", label: t("globalBroadcast") });
+      options.push({ value: "global", label: t("globalBroadcast") });
     }
     return options;
-  }, [isContentMgr, t]);
+  }, [isContentMgr, canClanBroadcast, t]);
 
   const selectedSentMessage = useMemo((): SentMessage | undefined => {
     if (!selectedSentMsgId) return undefined;

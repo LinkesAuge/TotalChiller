@@ -266,23 +266,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     /* ── Authorization for broadcasts ── */
     if (isBroadcast) {
-      const isReply = !!body.parent_id;
+      if (body.message_type === "clan" && !body.clan_id) {
+        return NextResponse.json({ error: "clan_id is required for clan messages." }, { status: 400 });
+      }
+
       const isCM = await getIsContentManager({ supabase: auth.supabase });
 
       if (!isCM) {
-        if (isReply) {
-          const targetClanId = body.clan_id ?? null;
-          const canReply = await canUserReplyToBroadcast(svc, senderId, targetClanId);
-          if (!canReply) {
-            return NextResponse.json({ error: "Forbidden: you cannot reply to this broadcast." }, { status: 403 });
-          }
-        } else {
-          return NextResponse.json({ error: "Forbidden: content manager access required." }, { status: 403 });
+        if (body.message_type === "broadcast") {
+          return NextResponse.json(
+            { error: "Forbidden: only content managers can send global broadcasts." },
+            { status: 403 },
+          );
         }
-      }
-
-      if (body.message_type === "clan" && !body.clan_id) {
-        return NextResponse.json({ error: "clan_id is required for clan messages." }, { status: 400 });
+        const canBroadcast = await canUserReplyToBroadcast(svc, senderId, body.clan_id!);
+        if (!canBroadcast) {
+          return NextResponse.json(
+            { error: "Forbidden: leader or superior rank required for clan broadcasts." },
+            { status: 403 },
+          );
+        }
       }
     }
 

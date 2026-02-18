@@ -28,8 +28,8 @@ import type { ProfileMap, ViewMode, ClanOption, SelectedRecipient, ComposeMode }
 export const ALL_RANKS = ["leader", "superior", "officer", "veteran", "soldier", "guest"] as const;
 export const RANK_PRESET_FUEHRUNG = { ranks: ["leader", "superior"] as string[], includeWebmaster: true };
 export const RANK_PRESET_MITGLIEDER = {
-  ranks: ["officer", "veteran", "soldier", "guest"] as string[],
-  includeWebmaster: false,
+  ranks: ["leader", "superior", "officer", "veteran", "soldier"] as string[],
+  includeWebmaster: true,
 };
 
 export interface UseMessagesParams {

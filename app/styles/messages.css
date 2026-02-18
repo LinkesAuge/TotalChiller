@@ -3,7 +3,7 @@
 .messages-layout {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(280px, 420px) 1fr;
+  grid-template-columns: minmax(300px, 500px) 1fr;
   gap: 16px;
   min-height: 500px;
   max-height: calc(100vh - 200px);
@@ -389,6 +389,7 @@ input.messages-checkbox[type="checkbox"]:hover {
 
 .messages-meta {
   display: flex;
+  align-items: center;
   gap: 6px;
   flex-shrink: 0;
 }
@@ -623,15 +624,13 @@ input.messages-checkbox[type="checkbox"]:hover {
     flex-wrap: wrap;
   }
 
-  /* Timestamp moves to its own line when space is tight */
   .messages-conversation-actions {
     gap: 4px;
   }
 
-  /* Ensure action buttons have adequate touch area on mobile */
   .messages-list-action-btn {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   input.messages-checkbox[type="checkbox"] {

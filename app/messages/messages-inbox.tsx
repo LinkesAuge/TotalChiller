@@ -265,32 +265,8 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
                       />
                       <strong className="messages-conversation-subject">{msg.subject || t("noSubject")}</strong>
                     </span>
-                    <span className="messages-conversation-actions">
-                      <button
-                        type="button"
-                        className="messages-list-action-btn archive"
-                        aria-label={t("archiveThread")}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleArchive("thread", [thread.thread_id]);
-                        }}
-                      >
-                        <ArchiveIcon />
-                      </button>
-                      <button
-                        type="button"
-                        className="messages-list-action-btn delete"
-                        aria-label={t("deleteThread")}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirm({ type: "thread", ids: [thread.thread_id] });
-                        }}
-                      >
-                        <TrashIcon />
-                      </button>
-                      <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
-                        {formatLocalDateTime(msg.created_at, locale)}
-                      </span>
+                    <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
+                      {formatLocalDateTime(msg.created_at, locale)}
                     </span>
                   </div>
                   <div className="messages-conversation-sender-row">
@@ -298,6 +274,30 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
                       {t("from")}: {senderLabel}
                     </span>
                     <span className="messages-meta">
+                      <span className="messages-conversation-actions">
+                        <button
+                          type="button"
+                          className="messages-list-action-btn archive"
+                          aria-label={t("archiveThread")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleArchive("thread", [thread.thread_id]);
+                          }}
+                        >
+                          <ArchiveIcon />
+                        </button>
+                        <button
+                          type="button"
+                          className="messages-list-action-btn delete"
+                          aria-label={t("deleteThread")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirm({ type: "thread", ids: [thread.thread_id] });
+                          }}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </span>
                       {thread.unread_count > 0 ? (
                         <span className="badge">{t("newInThread", { count: thread.unread_count })}</span>
                       ) : null}
@@ -366,32 +366,8 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
                       />
                       <strong className="messages-conversation-subject">{msg.subject || t("noSubject")}</strong>
                     </span>
-                    <span className="messages-conversation-actions">
-                      <button
-                        type="button"
-                        className="messages-list-action-btn archive"
-                        aria-label={t("archiveSentMessage")}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleArchive("sent", [msg.id]);
-                        }}
-                      >
-                        <ArchiveIcon />
-                      </button>
-                      <button
-                        type="button"
-                        className="messages-list-action-btn delete"
-                        aria-label={t("deleteSentMessage")}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirm({ type: "sent", ids: [msg.id] });
-                        }}
-                      >
-                        <TrashIcon />
-                      </button>
-                      <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
-                        {formatLocalDateTime(msg.created_at, locale)}
-                      </span>
+                    <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
+                      {formatLocalDateTime(msg.created_at, locale)}
                     </span>
                   </div>
                   <div className="messages-conversation-sender-row">
@@ -399,6 +375,30 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
                       {formatRecipientLabel(msg)}
                     </span>
                     <span className="messages-meta">
+                      <span className="messages-conversation-actions">
+                        <button
+                          type="button"
+                          className="messages-list-action-btn archive"
+                          aria-label={t("archiveSentMessage")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleArchive("sent", [msg.id]);
+                          }}
+                        >
+                          <ArchiveIcon />
+                        </button>
+                        <button
+                          type="button"
+                          className="messages-list-action-btn delete"
+                          aria-label={t("deleteSentMessage")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirm({ type: "sent", ids: [msg.id] });
+                          }}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </span>
                       {getMessageTypeLabel(msg.message_type) ? (
                         <span className="badge" style={{ fontSize: "0.7rem" }}>
                           {getMessageTypeLabel(msg.message_type)}
@@ -473,32 +473,8 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
                       </span>
                       <strong className="messages-conversation-subject">{item.subject || t("noSubject")}</strong>
                     </span>
-                    <span className="messages-conversation-actions">
-                      <button
-                        type="button"
-                        className="messages-list-action-btn unarchive"
-                        aria-label={t("unarchive")}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleUnarchive(item.source === "inbox" ? "thread" : "sent", [item.id]);
-                        }}
-                      >
-                        <UnarchiveIcon />
-                      </button>
-                      <button
-                        type="button"
-                        className="messages-list-action-btn delete"
-                        aria-label={t("deleteMessage")}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirm({ type: item.source === "inbox" ? "thread" : "sent", ids: [item.id] });
-                        }}
-                      >
-                        <TrashIcon />
-                      </button>
-                      <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
-                        {formatLocalDateTime(item.created_at, locale)}
-                      </span>
+                    <span className="text-muted" style={{ fontSize: "0.72rem", flexShrink: 0 }}>
+                      {formatLocalDateTime(item.created_at, locale)}
                     </span>
                   </div>
                   <div className="messages-conversation-sender-row">
@@ -506,6 +482,33 @@ export function MessagesInbox({ api }: MessagesInboxProps): JSX.Element {
                       {label}
                     </span>
                     <span className="messages-meta">
+                      <span className="messages-conversation-actions">
+                        <button
+                          type="button"
+                          className="messages-list-action-btn unarchive"
+                          aria-label={t("unarchive")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleUnarchive(item.source === "inbox" ? "thread" : "sent", [item.id]);
+                          }}
+                        >
+                          <UnarchiveIcon />
+                        </button>
+                        <button
+                          type="button"
+                          className="messages-list-action-btn delete"
+                          aria-label={t("deleteMessage")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirm({
+                              type: item.source === "inbox" ? "thread" : "sent",
+                              ids: [item.id],
+                            });
+                          }}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </span>
                       {item.message_count > 1 ? (
                         <span className="badge" style={{ fontSize: "0.7rem" }}>
                           {item.message_count}

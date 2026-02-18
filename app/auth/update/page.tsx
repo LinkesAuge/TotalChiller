@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
+import { getAuthErrorKey } from "../../../lib/supabase/error-utils";
 
 const REDIRECT_DELAY_MS = 2000;
 
@@ -29,6 +30,7 @@ function UpdatePasswordPage(): JSX.Element {
   const supabase = useSupabase();
   const router = useRouter();
   const t = useTranslations("auth.update");
+  const tErrors = useTranslations("auth.errors");
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
@@ -51,7 +53,7 @@ function UpdatePasswordPage(): JSX.Element {
     updateFormState({ status: t("updating") });
     const { error } = await supabase.auth.updateUser({ password: formState.password });
     if (error) {
-      updateFormState({ status: error.message });
+      updateFormState({ status: tErrors(getAuthErrorKey(error)) });
       setIsSubmitting(false);
       return;
     }

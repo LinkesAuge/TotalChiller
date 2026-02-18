@@ -4,6 +4,14 @@
 
 ---
 
+## [Unreleased] – 2026-02-19
+
+### Fixed
+
+- **Auth error messages untranslated and generic**: Login, registration, forgot-password, and update-password pages displayed raw Supabase error messages (e.g. "Invalid login credentials") instead of user-friendly, locale-aware text. Added `getAuthErrorKey()` utility in `lib/supabase/error-utils.ts` that maps known Supabase GoTrue error fragments to i18n keys. Added `auth.errors` namespace in both `en.json` and `de.json` with translated messages for invalid credentials, unconfirmed email, duplicate registration, weak password, rate limiting, CAPTCHA failure, and generic fallback. Updated all four auth pages (`login`, `register`, `forgot`, `update`) to use translated errors. Forgot-password API route now returns `errorKey` instead of hardcoded English strings.
+
+---
+
 ## [Unreleased] – 2026-02-18
 
 ### Added

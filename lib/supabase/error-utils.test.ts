@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { PostgrestError } from "@supabase/supabase-js";
-import { classifySupabaseError, getErrorMessageKey, type SupabaseErrorKind } from "./error-utils";
+import type { AuthError, PostgrestError } from "@supabase/supabase-js";
+import { classifySupabaseError, getAuthErrorKey, getErrorMessageKey, type SupabaseErrorKind } from "./error-utils";
 
 /** Helper to build a minimal PostgrestError. */
 function makeError(overrides: Partial<PostgrestError>): PostgrestError {
@@ -71,4 +71,57 @@ describe("getErrorMessageKey", () => {
       expect(getErrorMessageKey(kind as SupabaseErrorKind)).toBe(expectedKey);
     });
   }
+});
+
+/** Helper to build a minimal AuthError. */
+function makeAuthError(message: string): AuthError {
+  return { name: "AuthApiError", message, status: 400 } as AuthError;
+}
+
+describe("getAuthErrorKey", () => {
+  it("maps 'Invalid login credentials' to 'invalidCredentials'", () => {
+    expect(getAuthErrorKey(makeAuthError("Invalid login credentials"))).toBe("invalidCredentials");
+  });
+
+  it("maps 'invalid credentials' (alternate wording) to 'invalidCredentials'", () => {
+    expect(getAuthErrorKey(makeAuthError("invalid credentials"))).toBe("invalidCredentials");
+  });
+
+  it("maps 'Email not confirmed' to 'emailNotConfirmed'", () => {
+    expect(getAuthErrorKey(makeAuthError("Email not confirmed"))).toBe("emailNotConfirmed");
+  });
+
+  it("maps 'User already registered' to 'userAlreadyRegistered'", () => {
+    expect(getAuthErrorKey(makeAuthError("User already registered"))).toBe("userAlreadyRegistered");
+  });
+
+  it("maps 'Password should be at least 6 characters' to 'passwordTooShort'", () => {
+    expect(getAuthErrorKey(makeAuthError("Password should be at least 6 characters"))).toBe("passwordTooShort");
+  });
+
+  it("maps 'Unable to validate email address: invalid format' to 'invalidEmail'", () => {
+    expect(getAuthErrorKey(makeAuthError("Unable to validate email address: invalid format"))).toBe("invalidEmail");
+  });
+
+  it("maps 'Signup is disabled' to 'signupDisabled'", () => {
+    expect(getAuthErrorKey(makeAuthError("Signup is disabled"))).toBe("signupDisabled");
+  });
+
+  it("maps rate-limit message to 'tooManyRequests'", () => {
+    expect(getAuthErrorKey(makeAuthError("For security purposes, you can only request this after 52 seconds"))).toBe(
+      "tooManyRequests",
+    );
+  });
+
+  it("maps 'Too many requests' to 'tooManyRequests'", () => {
+    expect(getAuthErrorKey(makeAuthError("Too many requests"))).toBe("tooManyRequests");
+  });
+
+  it("returns 'unknownError' for unrecognized messages", () => {
+    expect(getAuthErrorKey(makeAuthError("Something completely unexpected"))).toBe("unknownError");
+  });
+
+  it("matching is case-insensitive", () => {
+    expect(getAuthErrorKey(makeAuthError("INVALID LOGIN CREDENTIALS"))).toBe("invalidCredentials");
+  });
 });

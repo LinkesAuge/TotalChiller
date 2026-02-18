@@ -240,8 +240,7 @@
       "toLearnMore": "to learn more about [THC] Chiller & Killer community, or read the",
       "aboutPage": "About page",
       "forDetails": "for details on our mission and values.",
-      "completeCaptcha": "Please complete the CAPTCHA.",
-      "genericError": "Something went wrong."
+      "completeCaptcha": "Please complete the CAPTCHA."
     },
     "update": {
       "title": "Update Password",
@@ -252,6 +251,19 @@
       "updating": "Updating password...",
       "updated": "Password updated. Redirecting...",
       "mismatch": "Passwords do not match."
+    },
+    "errors": {
+      "invalidCredentials": "Wrong email/username or password. Please try again.",
+      "emailNotConfirmed": "Your email address has not been confirmed yet. Please check your inbox.",
+      "userAlreadyRegistered": "An account with this email already exists.",
+      "passwordTooShort": "Password must be at least 6 characters.",
+      "invalidEmail": "Please enter a valid email address.",
+      "signupDisabled": "Registration is currently disabled. Please try again later.",
+      "tooManyRequests": "Too many attempts. Please wait a moment and try again.",
+      "captchaFailed": "CAPTCHA verification failed. Please try again.",
+      "resetFailed": "Password reset failed. Please try again.",
+      "invalidRequest": "Invalid request. Please check your input.",
+      "unknownError": "Something went wrong. Please try again."
     }
   },
   "home": {

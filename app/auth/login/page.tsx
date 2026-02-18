@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
+import { getAuthErrorKey } from "../../../lib/supabase/error-utils";
 import AuthInfoCard from "../components/auth-info-card";
 
 /**
@@ -16,6 +17,7 @@ function LoginPage(): JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = useSupabase();
   const t = useTranslations("auth.login");
+  const tErrors = useTranslations("auth.errors");
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setIsSubmitting(true);
@@ -38,7 +40,7 @@ function LoginPage(): JSX.Element {
       password,
     });
     if (error) {
-      setStatus(error.message);
+      setStatus(tErrors(getAuthErrorKey(error)));
       setIsSubmitting(false);
       return;
     }

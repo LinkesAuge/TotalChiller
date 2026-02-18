@@ -50,7 +50,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body: unknown = await request.json().catch(() => null);
     const parsed = ForgotPasswordSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request." }, { status: 400 });
+      return NextResponse.json({ errorKey: "invalidRequest" }, { status: 400 });
     }
 
     const { email, turnstileToken, redirectTo } = parsed.data;
@@ -60,16 +60,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
       const redirectUrl = new URL(redirectTo);
       if (redirectUrl.origin !== origin) {
-        return NextResponse.json({ error: "Invalid redirect URL." }, { status: 400 });
+        return NextResponse.json({ errorKey: "invalidRequest" }, { status: 400 });
       }
     } catch {
-      return NextResponse.json({ error: "Invalid redirect URL." }, { status: 400 });
+      return NextResponse.json({ errorKey: "invalidRequest" }, { status: 400 });
     }
 
     /* Verify Turnstile CAPTCHA */
     const isValid = await verifyTurnstileToken(turnstileToken);
     if (!isValid) {
-      return NextResponse.json({ error: "CAPTCHA verification failed. Please try again." }, { status: 403 });
+      return NextResponse.json({ errorKey: "captchaFailed" }, { status: 403 });
     }
 
     /* Send password-reset email */
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) {
       captureApiError("POST /api/auth/forgot-password", error);
-      return NextResponse.json({ error: "Password reset failed. Please try again." }, { status: 400 });
+      return NextResponse.json({ errorKey: "resetFailed" }, { status: 400 });
     }
 
     /*
@@ -99,6 +99,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return response;
   } catch (err) {
     captureApiError("POST /api/auth/forgot-password", err);
-    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+    return NextResponse.json({ errorKey: "unknownError" }, { status: 500 });
   }
 }

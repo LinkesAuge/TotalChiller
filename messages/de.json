@@ -240,8 +240,7 @@
       "toLearnMore": "um mehr über die Chillers-Community zu erfahren, oder lies die",
       "aboutPage": "Über-Seite",
       "forDetails": "für Details zu unserer Mission und unseren Werten.",
-      "completeCaptcha": "Bitte das CAPTCHA ausfüllen.",
-      "genericError": "Etwas ist schiefgelaufen."
+      "completeCaptcha": "Bitte das CAPTCHA ausfüllen."
     },
     "update": {
       "title": "Passwort aktualisieren",
@@ -252,6 +251,19 @@
       "updating": "Passwort wird aktualisiert...",
       "updated": "Passwort aktualisiert. Weiterleitung...",
       "mismatch": "Passwörter stimmen nicht überein."
+    },
+    "errors": {
+      "invalidCredentials": "Falsche E-Mail/Benutzername oder Passwort. Bitte versuche es erneut.",
+      "emailNotConfirmed": "Deine E-Mail-Adresse wurde noch nicht bestätigt. Bitte prüfe dein Postfach.",
+      "userAlreadyRegistered": "Ein Konto mit dieser E-Mail-Adresse existiert bereits.",
+      "passwordTooShort": "Das Passwort muss mindestens 6 Zeichen lang sein.",
+      "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein.",
+      "signupDisabled": "Die Registrierung ist derzeit deaktiviert. Bitte versuche es später erneut.",
+      "tooManyRequests": "Zu viele Versuche. Bitte warte einen Moment und versuche es erneut.",
+      "captchaFailed": "CAPTCHA-Überprüfung fehlgeschlagen. Bitte versuche es erneut.",
+      "resetFailed": "Passwort-Zurücksetzung fehlgeschlagen. Bitte versuche es erneut.",
+      "invalidRequest": "Ungültige Anfrage. Bitte überprüfe deine Eingaben.",
+      "unknownError": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     }
   },
   "home": {

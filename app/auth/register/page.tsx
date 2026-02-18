@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
+import { getAuthErrorKey } from "../../../lib/supabase/error-utils";
 import AuthInfoCard from "../components/auth-info-card";
 
 interface RegisterFormState {
@@ -58,6 +59,7 @@ function RegisterPage(): JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = useSupabase();
   const t = useTranslations("auth.register");
+  const tErrors = useTranslations("auth.errors");
 
   function updateFormState(nextState: Partial<RegisterFormState>): void {
     setFormState((currentState) => ({ ...currentState, ...nextState }));
@@ -94,7 +96,7 @@ function RegisterPage(): JSX.Element {
       },
     });
     if (error) {
-      updateFormState({ status: error.message });
+      updateFormState({ status: tErrors(getAuthErrorKey(error)) });
       setIsSubmitting(false);
       return;
     }

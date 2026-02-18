@@ -18,6 +18,7 @@ function ForgotPasswordPage(): JSX.Element {
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const turnstileRef = useRef<TurnstileInstance>(null);
   const t = useTranslations("auth.forgot");
+  const tErrors = useTranslations("auth.errors");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -36,16 +37,16 @@ function ForgotPasswordPage(): JSX.Element {
         body: JSON.stringify({ email, turnstileToken, redirectTo }),
       });
 
-      const result = (await response.json()) as { ok?: boolean; error?: string };
-      if (!response.ok || result.error) {
-        setStatus(result.error ?? t("genericError"));
+      const result = (await response.json()) as { ok?: boolean; errorKey?: string };
+      if (!response.ok || result.errorKey) {
+        setStatus(tErrors(result.errorKey ?? "unknownError"));
         turnstileRef.current?.reset();
         setTurnstileToken("");
         return;
       }
       setStatus(t("sent"));
     } catch {
-      setStatus(t("genericError"));
+      setStatus(tErrors("unknownError"));
       turnstileRef.current?.reset();
       setTurnstileToken("");
     } finally {

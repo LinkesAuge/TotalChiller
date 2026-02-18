@@ -31,7 +31,7 @@ Run SQL migrations in the order listed in `Documentation/runbook.md` section 1. 
 
 ## Test Suite
 
-### Unit Tests (Vitest) — 581 tests, 30 files
+### Unit Tests (Vitest) — 592 tests, 30 files
 
 Run: `npm run test:unit`
 
@@ -46,7 +46,7 @@ Run: `npm run test:unit`
 | `lib/forum-categories-schemas.test.ts` | 23    | UUID, category schema validation                                                                                                                                                                                                                                   |
 | `lib/fan-out-schema.test.ts`           | 18    | Fan-out notification schema                                                                                                                                                                                                                                        |
 | `lib/create-user-schema.test.ts`       | 14    | Admin create-user schema                                                                                                                                                                                                                                           |
-| `lib/supabase/error-utils.test.ts`     | 12    | Error classification + i18n keys                                                                                                                                                                                                                                   |
+| `lib/supabase/error-utils.test.ts`     | 23    | Error classification + i18n keys (Postgrest + Auth)                                                                                                                                                                                                                |
 | `lib/rate-limit.test.ts`               | 12    | Rate limiting, IP tracking                                                                                                                                                                                                                                         |
 | `lib/markdown/strip-markdown.test.ts`  | 16    | Markdown-to-plain-text stripping (headings, bold, code, links, images, lists, blockquotes)                                                                                                                                                                         |
 | Others (19 files)                      | ~334  | check-role, forum-sync, role-access, admin-access, config, date-format, sanitize-markdown, renderers, forum-utils, forum-thumbnail, admin-types, use-sortable, design-system-types, public-paths, validation-helpers, banner-presets, use-pagination, is-test-user |

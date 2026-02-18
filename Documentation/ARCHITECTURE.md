@@ -85,7 +85,7 @@ Login, register, forgot password, password update. Supabase Auth with PKCE flow.
 
 ### 4.2 Messaging (`app/messages/`)
 
-Email-style messaging with Gmail threading. One `messages` row per sent message + N `message_recipients` rows. Broadcasts create one message + N recipients (sender sees one sent entry). Soft delete per-recipient. Inbox groups by `thread_id`. Archive support (hide from inbox/sent, view in archive tab, reversible). Multi-select batch delete/archive with checkboxes.
+Chat-style messaging with flat threading. One `messages` row per sent message + N `message_recipients` rows. Broadcasts create one message + N recipients (sender sees one sent entry). Soft delete per-recipient. Inbox groups by `thread_id`. Thread detail renders as a chat timeline (own messages right-aligned, received left-aligned). Subject shown once in thread header, not per message. Archive support (hide from inbox/sent, view in archive tab, reversible). Multi-select batch delete/archive with checkboxes.
 
 | File                                          | Purpose                                                         |
 | --------------------------------------------- | --------------------------------------------------------------- |
@@ -106,7 +106,7 @@ Email-style messaging with Gmail threading. One `messages` row per sent message 
 | `app/api/messages/search-recipients/route.ts` | `GET` recipient search (profiles + game accounts)               |
 
 **DB tables**: `messages`, `message_recipients`, `profiles`
-**Key patterns**: Nil UUID `00000000-...` as placeholder for broadcast `recipient_ids`; `thread_id`/`parent_id` for threading; `deleted_at` for per-recipient soft delete; `archived_at` on `message_recipients` for inbox archive; `sender_deleted_at`/`sender_archived_at` on `messages` for sender-side operations; `MarkdownEditor` with `storageBucket="message-images"`.
+**Key patterns**: Nil UUID `00000000-...` as placeholder for broadcast `recipient_ids`; `thread_id` for flat threading (replies set `parent_id` to thread root for backward compat; `parent_id` nesting is not used in UI); `deleted_at` for per-recipient soft delete; `archived_at` on `message_recipients` for inbox archive; `sender_deleted_at`/`sender_archived_at` on `messages` for sender-side operations; `MarkdownEditor` with `storageBucket="message-images"`.
 
 ### 4.3 Forum (`app/forum/`)
 
@@ -448,7 +448,7 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 ### Messaging
 
 - Broadcasts send a nil UUID (`00000000-0000-0000-0000-000000000000`) as `recipient_ids` placeholder; server resolves actual recipients.
-- Threading: `thread_id` = root message ID, `parent_id` = direct parent. All replies share `thread_id`.
+- Threading: `thread_id` = root message ID. All replies share `thread_id`. `parent_id` is set to thread root for DB compat but not used for nesting in the UI (flat chat timeline).
 - No reply on broadcast/clan messages (one-way notifications).
 - Profile label + recipient/profile map logic is centralized in `lib/messages/profile-utils.ts` to keep payload shaping and fallback behavior consistent.
 - Soft delete: `deleted_at` on `message_recipients` (per-recipient, message stays for sender/others). `sender_deleted_at` on `messages` (sender outbox only).

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
@@ -22,13 +23,15 @@ export interface MessagesThreadProps {
 }
 
 /**
- * Thread / message detail panel: inbox thread view with reply, or sent message detail.
- * Renders message cards, reply form, and delete actions.
+ * Thread / message detail panel: chat-style timeline for inbox threads,
+ * or single-message detail for sent view.
  */
 export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Element {
   const supabase = useSupabase();
   const locale = useLocale();
   const t = useTranslations("messagesPage");
+  const threadEndRef = useRef<HTMLDivElement>(null);
+  const prevMsgCountRef = useRef(0);
   const {
     viewMode,
     selectedThreadId,
@@ -38,8 +41,6 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     selectedSentMessage,
     canReply,
     isReplyOpen,
-    replySubject,
-    setReplySubject,
     replyContent,
     setReplyContent,
     replyStatus,
@@ -49,9 +50,16 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     handleDeleteMessage,
     getProfileLabel,
     formatRecipientLabel,
-    setIsReplyOpen,
     clearSelection,
   } = api;
+
+  useEffect(() => {
+    const count = threadMessages.length;
+    if (count > 0 && !isThreadLoading && count >= prevMsgCountRef.current) {
+      threadEndRef.current?.scrollIntoView({ behavior: prevMsgCountRef.current === 0 ? "instant" : "smooth" });
+    }
+    prevMsgCountRef.current = count;
+  }, [threadMessages, isThreadLoading]);
 
   const showThread = (viewMode === "inbox" || viewMode === "archive") && selectedThreadId;
   const showSent = (viewMode === "sent" || viewMode === "archive") && selectedSentMsgId && !selectedThreadId;
@@ -81,7 +89,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
             </div>
           </div>
         </div>
-        <div className="messages-thread-list">
+        <div className="messages-chat-timeline">
           <DataState
             isLoading={isThreadLoading}
             isEmpty={threadMessages.length === 0}
@@ -99,32 +107,20 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
               return (
                 <div
                   key={message.id}
-                  className={`messages-email-card ${isSelf ? "sent" : ""} ${isSystem ? "system" : ""}`}
+                  className={`messages-chat-row ${isSelf ? "sent" : "received"} ${isSystem ? "system" : ""}`}
                 >
-                  <div className="messages-email-header">
-                    <span className="messages-email-from">
-                      {t("from")}: <strong>{senderLabel}</strong>
-                    </span>
-                    <span className="messages-email-date">{formatLocalDateTime(message.created_at, locale)}</span>
-                  </div>
-                  {message.subject ? <div className="messages-email-subject">{message.subject}</div> : null}
-                  <div className="messages-email-body">
-                    <AppMarkdown content={message.content} />
-                  </div>
-                  <div className="messages-email-footer">
-                    {canReply && !isSelf && !isSystem ? (
-                      <button
-                        type="button"
-                        className="button text-[0.78rem]"
-                        onClick={() => openReplyToMessage(message)}
-                      >
-                        {t("reply")}
-                      </button>
-                    ) : null}
+                  <div className="messages-chat-bubble">
+                    <div className="messages-chat-meta">
+                      <span className="messages-chat-sender">{senderLabel}</span>
+                      <span className="messages-chat-time">{formatLocalDateTime(message.created_at, locale)}</span>
+                    </div>
+                    <div className="messages-chat-content">
+                      <AppMarkdown content={message.content} />
+                    </div>
                     {!isSelf && message.recipient_entry_id ? (
                       <button
                         type="button"
-                        className="messages-delete-button"
+                        className="messages-chat-delete"
                         onClick={() => handleDeleteMessage(message.id)}
                         aria-label={t("deleteMessage")}
                       >
@@ -135,40 +131,18 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
                 </div>
               );
             })}
+            <div ref={threadEndRef} />
           </DataState>
         </div>
 
         {canReply ? (
           <div className="messages-reply-form">
             {!isReplyOpen ? (
-              <GameButton
-                variant="ornate1"
-                fontSize="0.6rem"
-                type="button"
-                onClick={() => {
-                  const lastReceived = [...threadMessages].reverse().find((m) => m.sender_id !== userId);
-                  if (lastReceived) {
-                    openReplyToMessage(lastReceived);
-                  } else {
-                    setIsReplyOpen(true);
-                  }
-                }}
-              >
+              <GameButton variant="ornate1" fontSize="0.6rem" type="button" onClick={openReplyToMessage}>
                 {t("reply")}
               </GameButton>
             ) : (
               <form onSubmit={handleSendReply}>
-                <div className="form-group mb-2">
-                  <label htmlFor="replySubject" className="text-[0.8rem]">
-                    {t("subject")}
-                  </label>
-                  <input
-                    id="replySubject"
-                    value={replySubject}
-                    onChange={(event) => setReplySubject(event.target.value)}
-                    placeholder={t("subjectPlaceholder")}
-                  />
-                </div>
                 <div className="form-group mb-2">
                   <MarkdownEditor
                     id="replyContent"
@@ -177,8 +151,8 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
                     supabase={supabase}
                     userId={userId}
                     placeholder={t("composeReply")}
-                    rows={4}
-                    minHeight={100}
+                    rows={3}
+                    minHeight={80}
                     storageBucket={MESSAGE_IMAGES_BUCKET}
                   />
                 </div>
@@ -220,19 +194,18 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
             </div>
           </div>
         ) : null}
-        <div className="messages-thread-list">
-          <div className="messages-email-card sent">
-            <div className="messages-email-header">
-              <span className="messages-email-from">
-                {t("from")}: <strong>{t("you")}</strong>
-              </span>
-              <span className="messages-email-date">{formatLocalDateTime(selectedSentMessage.created_at, locale)}</span>
-            </div>
-            {selectedSentMessage.subject ? (
-              <div className="messages-email-subject">{selectedSentMessage.subject}</div>
-            ) : null}
-            <div className="messages-email-body">
-              <AppMarkdown content={selectedSentMessage.content} />
+        <div className="messages-chat-timeline">
+          <div className="messages-chat-row sent">
+            <div className="messages-chat-bubble">
+              <div className="messages-chat-meta">
+                <span className="messages-chat-sender">{t("you")}</span>
+                <span className="messages-chat-time">
+                  {formatLocalDateTime(selectedSentMessage.created_at, locale)}
+                </span>
+              </div>
+              <div className="messages-chat-content">
+                <AppMarkdown content={selectedSentMessage.content} />
+              </div>
             </div>
           </div>
         </div>

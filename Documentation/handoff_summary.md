@@ -63,6 +63,19 @@ Run: `npx playwright test`
 
 ## Recently Completed
 
+### Messages: Chat-Style Thread View (2026-02-18)
+
+Replaced the email-style stacked cards in message thread detail with a flat chat-style timeline.
+
+- **Chat bubbles:** Own messages align right (gold accent), received messages align left. System messages left-aligned with blue accent.
+- **Flat threading:** Subject shown once in the thread header only; per-message subjects and "Re:" prefixes removed. No more `parent_id` nesting in the UI — replies always target the thread root.
+- **Simplified reply:** Reply form no longer has a subject field or quoted content prefill. Single thread-level reply button at the bottom (no per-message reply buttons).
+- **Auto-scroll:** Thread auto-scrolls to latest message on load and after sending a reply. Uses `instant` scroll on first load, `smooth` on updates. Does not scroll on delete (tracked via `prevMsgCountRef`).
+- **Hook cleanup:** Removed `replySubject`, `setReplySubject`, `replyParentId` from `useMessages`. `openReplyToMessage()` takes no arguments. `handleSendReply` finds the last non-self sender as the reply recipient and sends `parent_id: selectedThreadId`.
+- **CSS:** Replaced `.messages-email-*` classes with `.messages-chat-*` classes (timeline, row, bubble, meta, sender, time, content, delete). Bubbles capped at 82% width (92% on mobile).
+
+**Key files:** `app/messages/messages-thread.tsx`, `app/messages/use-messages.ts`, `app/styles/messages.css`.
+
 ### Next.js Image Migration (2026-02-18)
 
 Migrated all native `<img>` tags to Next.js `<Image>` for automatic optimization (WebP/AVIF conversion, lazy loading, responsive sizing).

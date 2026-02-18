@@ -399,7 +399,7 @@
 .table.approvals-list .row {
   /* Use fixed + fr instead of minmax so all rows resolve identical column widths.
      Override base min-width:max-content which causes each row to size independently. */
-  grid-template-columns: 40px 1.2fr 1fr 1.4fr 1fr auto;
+  grid-template-columns: 40px 1.2fr 1fr 1.4fr 1fr 240px;
   min-width: 0;
   width: auto;
   align-items: center;

@@ -24,8 +24,6 @@ import type {
 } from "@/lib/types/messages-api";
 import type { ProfileMap, ViewMode, ClanOption, SelectedRecipient, ComposeMode } from "./messages-types";
 
-const REPLY_SUBJECT_PREFIX = "Re: ";
-
 export interface UseMessagesParams {
   readonly userId: string;
   readonly initialRecipientId?: string;
@@ -83,12 +81,9 @@ export interface UseMessagesResult {
   /* Reply */
   readonly isReplyOpen: boolean;
   readonly setIsReplyOpen: (v: boolean) => void;
-  readonly replySubject: string;
-  readonly setReplySubject: (v: string) => void;
   readonly replyContent: string;
   readonly setReplyContent: (v: string) => void;
   readonly replyStatus: string;
-  readonly replyParentId: string;
 
   /* Recipient search */
   readonly recipientSearch: string;
@@ -146,7 +141,7 @@ export interface UseMessagesResult {
   readonly handleSelectInboxThread: (threadId: string) => void;
   readonly handleSelectSentMessage: (msgId: string) => void;
   readonly handleSelectArchivedItem: (item: ArchivedItem) => void;
-  readonly openReplyToMessage: (message: ThreadMessage) => void;
+  readonly openReplyToMessage: () => void;
   readonly handleSendReply: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   readonly handleCompose: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   readonly handleDeleteMessage: (messageId: string) => Promise<void>;
@@ -226,10 +221,8 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
 
   /* ── Reply state ── */
   const [isReplyOpen, setIsReplyOpen] = useState<boolean>(false);
-  const [replySubject, setReplySubject] = useState<string>("");
   const [replyContent, setReplyContent] = useState<string>("");
   const [replyStatus, setReplyStatus] = useState<string>("");
-  const [replyParentId, setReplyParentId] = useState<string>("");
 
   /* ── Recipient search state ── */
   const [recipientSearch, setRecipientSearch] = useState<string>("");
@@ -570,9 +563,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
   const resetReply = useCallback((): void => {
     setIsReplyOpen(false);
     setReplyContent("");
-    setReplySubject("");
     setReplyStatus("");
-    setReplyParentId("");
   }, []);
 
   const formatRecipientLabel = useCallback(
@@ -656,40 +647,30 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     [loadThread, resetReply],
   );
 
-  const openReplyToMessage = useCallback((message: ThreadMessage): void => {
-    const originalSubject = message.subject ?? "";
-    const prefilled = originalSubject.startsWith(REPLY_SUBJECT_PREFIX)
-      ? originalSubject
-      : originalSubject
-        ? `${REPLY_SUBJECT_PREFIX}${originalSubject}`
-        : "";
-    setReplySubject(prefilled);
-    setReplyParentId(message.id);
-    const quoted = message.content
-      .split("\n")
-      .map((line) => `> ${line}`)
-      .join("\n");
-    setReplyContent(`\n\n${quoted}\n`);
+  const openReplyToMessage = useCallback((): void => {
     setIsReplyOpen(true);
   }, []);
 
   const handleSendReply = useCallback(
     async (event: FormEvent<HTMLFormElement>): Promise<void> => {
       event.preventDefault();
-      if (!replyContent.trim() || !replyParentId) return;
-      const parentMsg = threadMessages.find((m) => m.id === replyParentId);
-      if (!parentMsg?.sender_id) return;
+      if (!replyContent.trim() || !selectedThreadId) return;
+      const lastReceived = [...threadMessages].reverse().find((m) => m.sender_id !== userId);
+      if (!lastReceived?.sender_id) {
+        setReplyStatus(t("failedToSend"));
+        return;
+      }
       setReplyStatus(t("sending"));
       try {
         const response = await fetch("/api/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            recipient_ids: [parentMsg.sender_id],
-            subject: replySubject.trim() || null,
+            recipient_ids: [lastReceived.sender_id],
+            subject: null,
             content: replyContent.trim(),
             message_type: "private",
-            parent_id: replyParentId,
+            parent_id: selectedThreadId,
           }),
         });
         if (!response.ok) {
@@ -703,7 +684,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         setReplyStatus(t("failedToSend"));
       }
     },
-    [replyContent, replyParentId, replySubject, threadMessages, selectedThreadId, loadThread, resetReply, t],
+    [replyContent, userId, threadMessages, selectedThreadId, loadThread, resetReply, t],
   );
 
   const handleCompose = useCallback(
@@ -1105,12 +1086,9 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     setComposeContent,
     composeStatus,
     isReplyOpen,
-    replySubject,
-    setReplySubject,
     replyContent,
     setReplyContent,
     replyStatus,
-    replyParentId,
     setIsReplyOpen,
     recipientSearch,
     setRecipientSearch,

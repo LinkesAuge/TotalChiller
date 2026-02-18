@@ -8,7 +8,7 @@ import { test, expect } from "@playwright/test";
 test.describe("CMS Components", () => {
   test("EditableText displays content (not raw markdown)", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // Wait for CMS content to fully render (skeletons disappear, cards appear)
     await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
@@ -32,7 +32,7 @@ test.describe("CMS Components", () => {
 
   test("EditableList items are rendered on homepage", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // After migration, list items should be rendered
     const listItems = page.locator(".editable-list-item");
@@ -49,7 +49,7 @@ test.describe("CMS Components", () => {
 
   test("badges are displayed when present", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // Check for list badges
     const badges = page.locator(".editable-list-badge");
@@ -87,14 +87,14 @@ test.describe("CMS Components", () => {
     }
 
     // After API responds, skeleton should disappear and content should load
-    await page.waitForLoadState("networkidle");
-    const cards = page.locator(".card");
-    expect(await cards.count()).toBeGreaterThanOrEqual(1);
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page.locator(".cms-loading-skeleton")).toHaveCount(0, { timeout: 20000 });
+    await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
   });
 
   test("AppMarkdown renders inside editable-text-wrap", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // Wait for CMS content to fully render
     await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
@@ -116,7 +116,7 @@ test.describe("CMS Components", () => {
   test("contact page shows all content without login", async ({ page, context }) => {
     await context.clearCookies();
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // Wait for CMS content to fully render
     await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
@@ -125,13 +125,8 @@ test.describe("CMS Components", () => {
     const contactSection = page.locator("section.card, .card").last();
     await expect(contactSection).toBeVisible({ timeout: 10000 });
 
-    // The contact section should have text content
-    const cardBody = contactSection.locator(".card-body");
-    if ((await cardBody.count()) > 0) {
-      await expect(cardBody).toBeVisible();
-      const text = await cardBody.textContent();
-      expect(text).toBeTruthy();
-      expect(text!.length).toBeGreaterThan(10);
-    }
+    // The contact section should have meaningful text content
+    const text = (await contactSection.textContent()) ?? "";
+    expect(text.trim().length).toBeGreaterThan(10);
   });
 });

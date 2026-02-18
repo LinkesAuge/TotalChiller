@@ -9,7 +9,7 @@ test.describe("Notifications: Bell icon", () => {
   test.use({ storageState: storageStatePath("member") });
   test("notification bell is visible for authenticated user", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     /* The test user may not have clan access, in which case a "no clan" page
        is shown without the top bar (and hence no bell). Only assert if the
@@ -26,7 +26,7 @@ test.describe("Notifications: Bell icon", () => {
 
   test("clicking bell opens notification dropdown", async ({ page }) => {
     await page.goto("/news");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const bell = page
@@ -47,7 +47,7 @@ test.describe("Notifications: Bell icon", () => {
 
   test("notification panel has mark-all-read button", async ({ page }) => {
     await page.goto("/news");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const bell = page
@@ -146,7 +146,7 @@ test.describe("Notifications: Bell delete UI", () => {
 
   test("notification panel has delete-all button", async ({ page }) => {
     await page.goto("/news");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const bell = page
@@ -172,7 +172,7 @@ test.describe("Notifications: Bell delete UI", () => {
 
   test("notification items show delete button on hover", async ({ page }) => {
     await page.goto("/news");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const bell = page

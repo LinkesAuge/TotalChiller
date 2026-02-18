@@ -8,28 +8,28 @@ import { test, expect } from "@playwright/test";
 test.describe("Auth: Login page", () => {
   test("renders login form with all fields", async ({ page }) => {
     await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     /* Identifier field (email or username) */
-    const identifierInput = page.locator("#identifier");
+    const identifierInput = page.locator("#identifier").first();
     await expect(identifierInput).toBeVisible();
 
     /* Password field */
-    const passwordInput = page.locator("#password");
+    const passwordInput = page.locator("#password").first();
     await expect(passwordInput).toBeVisible();
 
     /* Submit button */
-    const submitBtn = page.locator('button[type="submit"]');
+    const submitBtn = page.locator('button[type="submit"]').first();
     await expect(submitBtn).toBeVisible();
   });
 
   test("shows error for invalid credentials", async ({ page }) => {
     await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
-    await page.locator("#identifier").fill("invalid@nonexistent.com");
-    await page.locator("#password").fill("wrongpassword");
-    await page.locator('button[type="submit"]').click();
+    await page.locator("#identifier").first().fill("invalid@nonexistent.com");
+    await page.locator("#password").first().fill("wrongpassword");
+    await page.locator('button[type="submit"]').first().click();
 
     /* Wait for error/status message to appear */
     await expect(page.locator(".text-muted")).toBeVisible({ timeout: 10000 });
@@ -37,7 +37,7 @@ test.describe("Auth: Login page", () => {
 
   test("has link to forgot password page", async ({ page }) => {
     await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const forgotLink = page.locator('a[href="/auth/forgot"]').first();
     await expect(forgotLink).toBeVisible();
@@ -45,7 +45,7 @@ test.describe("Auth: Login page", () => {
 
   test("has link to register page", async ({ page }) => {
     await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const registerLink = page.locator('a[href="/auth/register"]').first();
     await expect(registerLink).toBeVisible();
@@ -55,10 +55,10 @@ test.describe("Auth: Login page", () => {
 test.describe("Auth: Register page", () => {
   test("renders registration form", async ({ page }) => {
     await page.goto("/auth/register");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     /* Email field */
-    const emailInput = page.locator('input[type="email"]');
+    const emailInput = page.locator('input[type="email"]').first();
     await expect(emailInput).toBeVisible();
 
     /* Password field(s) */
@@ -66,15 +66,15 @@ test.describe("Auth: Register page", () => {
     expect(await passwordInputs.count()).toBeGreaterThanOrEqual(1);
 
     /* Submit button */
-    const submitBtn = page.locator('button[type="submit"]');
+    const submitBtn = page.locator('button[type="submit"]').first();
     await expect(submitBtn).toBeVisible();
   });
 
   test("validates empty form submission", async ({ page }) => {
     await page.goto("/auth/register");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
-    await page.locator('button[type="submit"]').click();
+    await page.locator('button[type="submit"]').first().click();
 
     /* Browser validation should prevent submission or show error */
     /* Still on register page */
@@ -83,9 +83,9 @@ test.describe("Auth: Register page", () => {
 
   test("has link to login page", async ({ page }) => {
     await page.goto("/auth/register");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
-    const loginLink = page.locator('a[href*="/auth/login"]');
+    const loginLink = page.locator('a[href*="/auth/login"]').first();
     await expect(loginLink).toBeVisible();
   });
 });
@@ -93,21 +93,21 @@ test.describe("Auth: Register page", () => {
 test.describe("Auth: Forgot password page", () => {
   test("renders forgot password form", async ({ page }) => {
     await page.goto("/auth/forgot");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
-    const emailInput = page.locator('input[type="email"]');
+    const emailInput = page.locator('input[type="email"]').first();
     await expect(emailInput).toBeVisible();
 
-    const submitBtn = page.locator('button[type="submit"]');
+    const submitBtn = page.locator('button[type="submit"]').first();
     await expect(submitBtn).toBeVisible();
   });
 
   test("submitting with valid email shows status message", async ({ page }) => {
     await page.goto("/auth/forgot");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
-    await page.locator('input[type="email"]').fill("test@example.com");
-    await page.locator('button[type="submit"]').click();
+    await page.locator('input[type="email"]').first().fill("test@example.com");
+    await page.locator('button[type="submit"]').first().click();
 
     /* Should show a confirmation message (password reset email sent or similar).
        Use .first() because the page may contain multiple elements matching the pattern. */
@@ -116,7 +116,7 @@ test.describe("Auth: Forgot password page", () => {
 
   test("has link back to login", async ({ page }) => {
     await page.goto("/auth/forgot");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const loginLink = page.locator('a[href="/auth/login"]').first();
     await expect(loginLink).toBeVisible();
@@ -126,7 +126,7 @@ test.describe("Auth: Forgot password page", () => {
 test.describe("Auth: Update password page", () => {
   test("renders password update form", async ({ page }) => {
     await page.goto("/auth/update");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     /* Should have password input(s) */
     const passwordInputs = page.locator('input[type="password"]');

@@ -24,7 +24,7 @@ for (const role of ROLES_TO_SETUP) {
     await page.context().addCookies([{ name: "NEXT_LOCALE", value: "de", domain: "localhost", path: "/" }]);
 
     await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const identifierInput = page.locator("#identifier");
     if ((await identifierInput.count()) === 0) {
@@ -33,14 +33,14 @@ for (const role of ROLES_TO_SETUP) {
       return;
     }
 
-    await identifierInput.fill(user.email);
-    await page.locator("#password").fill(TEST_PASSWORD);
-    await page.locator('button[type="submit"]').click();
+    await identifierInput.first().fill(user.email);
+    await page.locator("#password").first().fill(TEST_PASSWORD);
+    await page.locator('button[type="submit"]').first().click();
     await page.waitForURL((url) => !url.pathname.includes("/auth/login"), {
       timeout: 20000,
       waitUntil: "domcontentloaded",
     });
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     /* Persist the authenticated storage state */
     await page.context().storageState({ path: path.join(AUTH_DIR, `${role}.json`) });

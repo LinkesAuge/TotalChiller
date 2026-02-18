@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useAuthStateContext } from "@/lib/hooks/auth-state-context";
 import { useSupabase } from "./use-supabase";
 
 interface UseAuthResult {
@@ -19,11 +20,13 @@ interface UseAuthResult {
  * and cleans up on unmount. Uses the singleton browser client.
  */
 export function useAuth(): UseAuthResult {
+  const authState = useAuthStateContext();
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = useSupabase();
 
   useEffect(() => {
+    if (authState) return;
     let isActive = true;
 
     async function loadAuth(): Promise<void> {
@@ -44,7 +47,17 @@ export function useAuth(): UseAuthResult {
       isActive = false;
       authListener.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, authState]);
 
-  return useMemo(() => ({ userId, isAuthenticated: userId !== null, isLoading }), [userId, isLoading]);
+  const effectiveUserId = authState?.userId ?? userId;
+  const effectiveIsLoading = authState?.isLoading ?? isLoading;
+
+  return useMemo(
+    () => ({
+      userId: effectiveUserId,
+      isAuthenticated: effectiveUserId !== null,
+      isLoading: effectiveIsLoading,
+    }),
+    [effectiveUserId, effectiveIsLoading],
+  );
 }

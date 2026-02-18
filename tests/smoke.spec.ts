@@ -37,7 +37,7 @@ test.describe("Smoke: Public pages load", () => {
       });
 
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       /* Page should not be blank */
       const body = page.locator("body");
@@ -57,8 +57,8 @@ test.describe("Smoke: Protected pages redirect unauthenticated users", () => {
   for (const path of PROTECTED_PAGES) {
     test(`${path} redirects to /home`, async ({ page }) => {
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
-      expect(page.url()).toContain("/home");
+      await page.waitForLoadState("domcontentloaded");
+      await expect.poll(async () => page.url(), { timeout: 15000 }).toContain("/home");
     });
   }
 });
@@ -71,9 +71,8 @@ test.describe("Smoke: Admin pages redirect unauthenticated users", () => {
   for (const path of ADMIN_PAGES) {
     test(`${path} redirects away`, async ({ page }) => {
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
-      const url = page.url();
-      expect(url).not.toContain("/admin");
+      await page.waitForLoadState("domcontentloaded");
+      await expect.poll(async () => page.url(), { timeout: 15000 }).not.toContain("/admin");
     });
   }
 });

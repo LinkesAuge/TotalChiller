@@ -1,7 +1,9 @@
 "use client";
 
-import { EventForm } from "./event-form";
+import dynamic from "next/dynamic";
 import type { UseEventsResult } from "./use-events";
+
+const EventForm = dynamic(() => import("./event-form").then((mod) => mod.EventForm));
 
 export interface EventsFormProps {
   readonly eventsState: UseEventsResult;
@@ -79,58 +81,60 @@ export function EventsForm({ eventsState }: EventsFormProps): JSX.Element {
         </div>
       )}
 
-      <EventForm
-        isFormOpen={isFormOpen}
-        formRef={eventFormRef}
-        editingId={editingId}
-        title={title}
-        description={description}
-        location={location}
-        startsAt={startsAt}
-        durationH={durationH}
-        durationM={durationM}
-        isOpenEnded={isOpenEnded}
-        endsAt={endsAt}
-        organizer={organizer}
-        recurrenceType={recurrenceType}
-        recurrenceEndDate={recurrenceEndDate}
-        recurrenceOngoing={recurrenceOngoing}
-        selectedTemplate={selectedTemplate}
-        bannerUrl={bannerUrl}
-        isBannerUploading={isBannerUploading}
-        bannerFileRef={bannerFileRef}
-        onBannerUrlChange={setBannerUrl}
-        onBannerUpload={handleBannerUpload}
-        onTitleChange={setTitle}
-        onDescriptionChange={setDescription}
-        onLocationChange={setLocation}
-        onStartsAtChange={setStartsAt}
-        onDurationHChange={setDurationH}
-        onDurationMChange={setDurationM}
-        onOpenEndedChange={setIsOpenEnded}
-        onEndsAtChange={setEndsAt}
-        onOrganizerChange={setOrganizer}
-        onRecurrenceTypeChange={setRecurrenceType}
-        onRecurrenceEndDateChange={setRecurrenceEndDate}
-        onRecurrenceOngoingChange={setRecurrenceOngoing}
-        onTemplateSelect={applyTemplate}
-        onSubmit={handleSubmit}
-        onCancel={resetForm}
-        onSaveAsTemplate={handleSaveFormAsTemplate}
-        onDelete={() => {
-          requestDeleteEvent(editingId);
-          resetForm();
-        }}
-        isSaving={isSaving}
-        isSavingTemplate={isSavingTemplate}
-        canManage={canManage}
-        gameAccounts={gameAccounts}
-        templateOptions={templateOptions}
-        locale={eventsState.locale}
-        t={eventsState.t}
-        supabase={eventsState.supabase}
-        userId={currentUserId}
-      />
+      {isFormOpen && canManage ? (
+        <EventForm
+          isFormOpen={isFormOpen}
+          formRef={eventFormRef}
+          editingId={editingId}
+          title={title}
+          description={description}
+          location={location}
+          startsAt={startsAt}
+          durationH={durationH}
+          durationM={durationM}
+          isOpenEnded={isOpenEnded}
+          endsAt={endsAt}
+          organizer={organizer}
+          recurrenceType={recurrenceType}
+          recurrenceEndDate={recurrenceEndDate}
+          recurrenceOngoing={recurrenceOngoing}
+          selectedTemplate={selectedTemplate}
+          bannerUrl={bannerUrl}
+          isBannerUploading={isBannerUploading}
+          bannerFileRef={bannerFileRef}
+          onBannerUrlChange={setBannerUrl}
+          onBannerUpload={handleBannerUpload}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
+          onLocationChange={setLocation}
+          onStartsAtChange={setStartsAt}
+          onDurationHChange={setDurationH}
+          onDurationMChange={setDurationM}
+          onOpenEndedChange={setIsOpenEnded}
+          onEndsAtChange={setEndsAt}
+          onOrganizerChange={setOrganizer}
+          onRecurrenceTypeChange={setRecurrenceType}
+          onRecurrenceEndDateChange={setRecurrenceEndDate}
+          onRecurrenceOngoingChange={setRecurrenceOngoing}
+          onTemplateSelect={applyTemplate}
+          onSubmit={handleSubmit}
+          onCancel={resetForm}
+          onSaveAsTemplate={handleSaveFormAsTemplate}
+          onDelete={() => {
+            requestDeleteEvent(editingId);
+            resetForm();
+          }}
+          isSaving={isSaving}
+          isSavingTemplate={isSavingTemplate}
+          canManage={canManage}
+          gameAccounts={gameAccounts}
+          templateOptions={templateOptions}
+          locale={eventsState.locale}
+          t={eventsState.t}
+          supabase={eventsState.supabase}
+          userId={currentUserId}
+        />
+      ) : null}
     </>
   );
 }

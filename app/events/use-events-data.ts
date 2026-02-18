@@ -12,9 +12,26 @@ interface ProfileJoin {
   readonly username: string | null;
 }
 
+const PAST_EVENTS_WINDOW_DAYS = 365;
+const FUTURE_EVENTS_WINDOW_DAYS = 540;
+const EVENTS_FETCH_LIMIT = 1000;
+const TEMPLATE_FETCH_LIMIT = 300;
+
 /** Select columns for events, including author profile join. */
 const EVENTS_SELECT =
   "id,title,description,location,starts_at,ends_at,created_at,updated_at,created_by,organizer,recurrence_type,recurrence_end_date,banner_url,is_pinned,forum_post_id,author:profiles!events_created_by_profiles_fkey(display_name,username)";
+
+function getEventWindowBounds(): { readonly fromIso: string; readonly toIso: string } {
+  const now = new Date();
+  const from = new Date(now);
+  from.setDate(from.getDate() - PAST_EVENTS_WINDOW_DAYS);
+  const to = new Date(now);
+  to.setDate(to.getDate() + FUTURE_EVENTS_WINDOW_DAYS);
+  return {
+    fromIso: from.toISOString(),
+    toIso: to.toISOString(),
+  };
+}
 
 /** Map a raw Supabase row to an EventRow. */
 function mapRowToEventRow(row: Record<string, unknown>): EventRow {
@@ -89,11 +106,15 @@ export function useEventsData(
         return;
       }
       setIsLoading(true);
+      const { fromIso, toIso } = getEventWindowBounds();
       const { data, error } = await supabase
         .from("events")
         .select(EVENTS_SELECT)
         .eq("clan_id", clanId)
-        .order("starts_at", { ascending: true });
+        .gte("starts_at", fromIso)
+        .lte("starts_at", toIso)
+        .order("starts_at", { ascending: true })
+        .limit(EVENTS_FETCH_LIMIT);
       if (cancelled) return;
       setIsLoading(false);
       if (error) {
@@ -120,7 +141,8 @@ export function useEventsData(
         .from("event_templates")
         .select("*")
         .eq("clan_id", clanId)
-        .order("title", { ascending: true });
+        .order("title", { ascending: true })
+        .limit(TEMPLATE_FETCH_LIMIT);
       if (cancelled || error) return;
       setTemplates((data ?? []).map((row: Record<string, unknown>) => mapRowToTemplateRow(row)));
     }
@@ -162,11 +184,15 @@ export function useEventsData(
 
   async function reloadEvents(): Promise<void> {
     if (!clanId) return;
+    const { fromIso, toIso } = getEventWindowBounds();
     const { data, error } = await supabase
       .from("events")
       .select(EVENTS_SELECT)
       .eq("clan_id", clanId)
-      .order("starts_at", { ascending: true });
+      .gte("starts_at", fromIso)
+      .lte("starts_at", toIso)
+      .order("starts_at", { ascending: true })
+      .limit(EVENTS_FETCH_LIMIT);
     if (error) {
       showError(error, "saveFailed");
       return;
@@ -181,7 +207,8 @@ export function useEventsData(
       .from("event_templates")
       .select("*")
       .eq("clan_id", clanId)
-      .order("title", { ascending: true });
+      .order("title", { ascending: true })
+      .limit(TEMPLATE_FETCH_LIMIT);
     if (error) {
       showError(error, "saveFailed");
       return;

@@ -200,6 +200,12 @@ npx playwright test tests/messages.spec.ts --project=mobile-chrome  # Mobile inb
 npx playwright test --ui                     # Open interactive test UI
 ```
 
+Testing guidance:
+
+- Prefer `domcontentloaded` + explicit locator waits over `waitForLoadState("networkidle")` (persistent Supabase traffic can keep pages busy).
+- Keep this suite-wide convention: all current Playwright tests/helpers are already migrated away from `networkidle`; new tests should follow the same `domcontentloaded` + polling/wait pattern.
+- For assertions that depend on clan-access resolution, use `waitForClanAccessResolution()` from `tests/helpers/wait-for-clan-access.ts`.
+
 ### Authentication: storageState
 
 Tests use **pre-authenticated browser state** for fast, login-free test execution:
@@ -221,6 +227,7 @@ Before running tests for the first time, create test users by running `Documenta
 tests/
 ├── auth.setup.ts              # Global setup: pre-authenticate all 6 roles
 ├── helpers/auth.ts            # storageStatePath(), loginAs(), TEST_USERS
+├── helpers/wait-for-clan-access.ts  # Wait helper for ClanAccessGate loading transitions
 ├── smoke.spec.ts              # Page load & redirect checks
 ├── auth.spec.ts               # Login, register, forgot password forms
 ├── navigation.spec.ts         # Sidebar links, access control
@@ -354,6 +361,11 @@ Admin email notifications require a [Resend](https://resend.com) account (free t
 - If admin tab shows loading skeleton indefinitely: check browser devtools network tab for chunk load errors (dynamic imports via `next/dynamic`)
 - If admin tests fail with timeouts: increase the `timeout` value in `toContainText()` / `toBeVisible()` assertions, or check that the dev server is running
 - If `.next` cache causes stale behavior after refactoring: delete `.next/` and restart `npm run dev`
+- If `npm run lint` reports hook/unused-var errors in `playwright-report/trace/assets/*`: remove generated Playwright report artifacts (`playwright-report/`, `.playwright-cli/`) before running lint; those minified trace bundles are not source files
+- If Playwright console sweeps show CSP blocks for `https://va.vercel-scripts.com/v1/script.debug.js`: verify `next.config.js` still allows `https://va.vercel-scripts.com` in `script-src` and Vercel vitals endpoints in `connect-src`
+- If Playwright console sweeps show `[NotificationBell] AbortError: signal is aborted without reason`: verify `app/components/notification-bell.tsx` still ignores `AbortError` in polling fetch catch paths
+- If Next.js logs an LCP advisory for `/assets/vip/back_tooltip_2.png` on auth flows: verify auth tooltip header images still use `loading="eager"` (`app/auth/login|register|forgot|update`)
+- If console shows `429` on `/api/admin/email-confirmations` during automated admin route sweeps: this is rate-limit pressure under rapid tab churn; slow navigation or reduce parallel load for clean console captures
 - If API routes return HTML instead of JSON: verify that `proxy.ts` skips the auth redirect for `/api/` paths (the proxy should not redirect API requests — they handle their own auth)
 - If bug report screenshot upload fails: verify the `bug-screenshots` storage bucket exists in Supabase Dashboard (Storage section) and that it is public
 - If bug report categories are empty: re-run the `bug_reports.sql` migration — it seeds 5 default categories

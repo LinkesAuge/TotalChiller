@@ -1,15 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import AuthActions from "../components/auth-actions";
 import PageTopBar from "../components/page-top-bar";
 import SectionHero from "../components/section-hero";
 import useClanContext from "../hooks/use-clan-context";
-import ForumPostForm from "./forum-post-form";
-import ForumPostDetail from "./forum-post-detail";
 import ForumPostList from "./forum-post-list";
 import { useForum } from "./use-forum";
+
+const ForumPostForm = dynamic(() => import("./forum-post-form"));
+const ForumPostDetail = dynamic(() => import("./forum-post-detail"));
 
 /**
  * Forum client orchestrator. Composes useForum hook, ForumPostList, ForumPostForm,

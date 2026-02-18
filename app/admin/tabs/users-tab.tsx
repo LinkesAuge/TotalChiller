@@ -884,7 +884,7 @@ export default function UsersTab(): ReactElement {
         </div>
         <span className="badge">{filteredUserRows.length}</span>
       </div>
-      <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
+      <div className="list inline admin-members-filters filter-bar admin-filter-row">
         <SearchInput
           id="userSearch"
           label={tAdmin("common.search")}
@@ -942,10 +942,14 @@ export default function UsersTab(): ReactElement {
         <button className="button" type="button" onClick={cancelAllUserEdits} disabled={!hasEdits}>
           {tAdmin("common.cancelAll")}
         </button>
-        <span className="text-muted">
+        <span className="text-muted admin-filter-summary">
           {filteredUserRows.length} / {userRows.length}
         </span>
-        <button className="button primary" type="button" onClick={() => setIsCreateUserModalOpen(true)}>
+        <button
+          className="button primary admin-filter-cta"
+          type="button"
+          onClick={() => setIsCreateUserModalOpen(true)}
+        >
           {tAdmin("users.createUser")}
         </button>
       </div>
@@ -1133,12 +1137,17 @@ export default function UsersTab(): ReactElement {
                     </div>
                     <div
                       role="toolbar"
-                      className="list inline user-actions action-icons"
+                      className="list inline user-actions action-icons admin-row-actions"
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
                       {!isUserConfirmed(user.id) ? (
-                        <IconButton ariaLabel={tAdmin("users.confirmUser")} onClick={() => setPendingConfirmUser(user)}>
+                        <IconButton
+                          ariaLabel={tAdmin("users.confirmUser")}
+                          onClick={() => setPendingConfirmUser(user)}
+                          variant="primary"
+                          className="admin-action-primary"
+                        >
                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <path
                               d="M8 2.5C4.96 2.5 2.5 4.96 2.5 8C2.5 11.04 4.96 13.5 8 13.5C11.04 13.5 13.5 11.04 13.5 8C13.5 4.96 11.04 2.5 8 2.5Z"
@@ -1158,6 +1167,7 @@ export default function UsersTab(): ReactElement {
                       <IconButton
                         ariaLabel={tAdmin("users.resendInvite")}
                         onClick={() => handleResendInvite(user.email)}
+                        className="admin-action-secondary"
                       >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
@@ -1178,6 +1188,7 @@ export default function UsersTab(): ReactElement {
                       <IconButton
                         ariaLabel={tAdmin("users.addGameAccount")}
                         onClick={() => openCreateGameAccountModal(user)}
+                        className="admin-action-secondary"
                       >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M4.2 6.5H11.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -1195,7 +1206,12 @@ export default function UsersTab(): ReactElement {
                           />
                         </svg>
                       </IconButton>
-                      <IconButton ariaLabel={tAdmin("common.saveChanges")} onClick={() => handleSaveUserEdit(user)}>
+                      <IconButton
+                        ariaLabel={tAdmin("common.saveChanges")}
+                        onClick={() => handleSaveUserEdit(user)}
+                        variant="primary"
+                        className="admin-action-primary"
+                      >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path
                             d="M4 8.5L7 11.5L12 5"
@@ -1206,7 +1222,11 @@ export default function UsersTab(): ReactElement {
                           />
                         </svg>
                       </IconButton>
-                      <IconButton ariaLabel={tAdmin("common.cancelChanges")} onClick={() => cancelUserEdit(user.id)}>
+                      <IconButton
+                        ariaLabel={tAdmin("common.cancelChanges")}
+                        onClick={() => cancelUserEdit(user.id)}
+                        className="admin-action-secondary"
+                      >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                           <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -1216,6 +1236,7 @@ export default function UsersTab(): ReactElement {
                         ariaLabel={tAdmin("users.deleteUser")}
                         onClick={() => openUserDeleteConfirm(user)}
                         variant="danger"
+                        className="admin-action-danger"
                       >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -1280,12 +1301,14 @@ export default function UsersTab(): ReactElement {
                                       <div className="text-muted">-</div>
                                       <div className="text-muted">-</div>
                                       <div className="text-muted">{tAdmin("members.missingMembership")}</div>
-                                      <div className="list inline action-icons">
+                                      <div className="list inline action-icons admin-row-actions">
                                         {account.approval_status === "pending" ? (
                                           <>
                                             <IconButton
                                               ariaLabel={tAdmin("common.approve")}
                                               onClick={() => handleApprovalAction(account.id, "approve")}
+                                              variant="primary"
+                                              className="admin-action-primary"
                                             >
                                               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                                 <path
@@ -1301,6 +1324,7 @@ export default function UsersTab(): ReactElement {
                                               ariaLabel={tAdmin("common.reject")}
                                               onClick={() => handleApprovalAction(account.id, "reject")}
                                               variant="danger"
+                                              className="admin-action-danger"
                                             >
                                               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                                 <path
@@ -1323,6 +1347,7 @@ export default function UsersTab(): ReactElement {
                                           ariaLabel={tAdmin("members.deleteGameAccount")}
                                           onClick={() => openGameAccountDeleteConfirm(account)}
                                           variant="danger"
+                                          className="admin-action-danger"
                                         >
                                           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                             <path
@@ -1423,7 +1448,7 @@ export default function UsersTab(): ReactElement {
                                       triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
                                       triggerDataRole="status-select"
                                     />
-                                    <div className="list inline action-icons">
+                                    <div className="list inline action-icons admin-row-actions">
                                       {hasAnyRowEdit ? (
                                         <>
                                           <IconButton
@@ -1433,6 +1458,8 @@ export default function UsersTab(): ReactElement {
                                               if (hasMemberEdits) await handleSaveMembershipEdit(membership, false);
                                               await loadUsers();
                                             }}
+                                            variant="primary"
+                                            className="admin-action-primary"
                                           >
                                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                               <path
@@ -1450,6 +1477,7 @@ export default function UsersTab(): ReactElement {
                                               cancelGameAccountEdit(account.id);
                                               cancelMembershipEdit(membership.id);
                                             }}
+                                            className="admin-action-secondary"
                                           >
                                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                               <path
@@ -1475,6 +1503,7 @@ export default function UsersTab(): ReactElement {
                                           updateMembershipEdit(membership.id, "is_shadow", current ? "false" : "true");
                                         }}
                                         variant={(memberEdits.is_shadow ?? membership.is_shadow) ? "active" : undefined}
+                                        className="admin-action-secondary"
                                       >
                                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                                           <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.4" />
@@ -1499,6 +1528,8 @@ export default function UsersTab(): ReactElement {
                                           <IconButton
                                             ariaLabel={tAdmin("common.approve")}
                                             onClick={() => handleApprovalAction(account.id, "approve")}
+                                            variant="primary"
+                                            className="admin-action-primary"
                                           >
                                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                               <path
@@ -1514,6 +1545,7 @@ export default function UsersTab(): ReactElement {
                                             ariaLabel={tAdmin("common.reject")}
                                             onClick={() => handleApprovalAction(account.id, "reject")}
                                             variant="danger"
+                                            className="admin-action-danger"
                                           >
                                             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                               <path
@@ -1536,6 +1568,7 @@ export default function UsersTab(): ReactElement {
                                         ariaLabel={tAdmin("members.deleteGameAccount")}
                                         onClick={() => openGameAccountDeleteConfirm(account)}
                                         variant="danger"
+                                        className="admin-action-danger"
                                       >
                                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
                                           <path

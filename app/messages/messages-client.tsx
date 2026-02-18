@@ -1,10 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useMessages } from "./use-messages";
-import { MessagesCompose } from "./messages-compose";
 import { MessagesInbox } from "./messages-inbox";
-import { MessagesThread } from "./messages-thread";
+
+const MessagesCompose = dynamic(() => import("./messages-compose").then((mod) => mod.MessagesCompose));
+const MessagesThread = dynamic(() => import("./messages-thread").then((mod) => mod.MessagesThread));
 
 interface MessagesClientProps {
   readonly userId: string;
@@ -42,7 +44,15 @@ function MessagesClient({ userId, initialRecipientId, initialTab }: MessagesClie
 
       <div className={`messages-layout${hasActiveThread ? " thread-active" : ""}`}>
         <MessagesInbox api={api} />
-        <MessagesThread userId={userId} api={api} />
+        {hasActiveThread ? (
+          <MessagesThread userId={userId} api={api} />
+        ) : (
+          <div className="messages-thread-panel">
+            <div className="messages-empty">
+              <div className="text-muted">{t("selectMessage")}</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -68,6 +68,7 @@ function UpdatePasswordPage(): JSX.Element {
             alt=""
             className="tooltip-head-bg"
             fill
+            loading="eager"
             sizes="(max-width: 900px) 90vw, 70vw"
           />
           <div className="tooltip-head-inner">

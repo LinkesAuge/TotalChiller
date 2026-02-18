@@ -54,7 +54,7 @@ async function MessagesPage({ searchParams }: MessagesPageProps): Promise<JSX.El
   const toParam = typeof params.to === "string" ? params.to : undefined;
   const tabParam = typeof params.tab === "string" ? params.tab : undefined;
   return (
-    <Suspense fallback={<PageSkeleton />}>
+    <Suspense fallback={<PageSkeleton variant="messages" />}>
       <MessagesContent initialRecipientId={toParam} initialTab={tabParam} />
     </Suspense>
   );

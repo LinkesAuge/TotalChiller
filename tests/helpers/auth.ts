@@ -37,7 +37,7 @@ export type TestRole = keyof typeof TEST_USERS;
 export async function loginAs(page: Page, role: TestRole): Promise<void> {
   const user = TEST_USERS[role];
   await page.goto("/auth/login");
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("domcontentloaded");
 
   const identifierInput = page.locator("#identifier");
   const passwordInput = page.locator("#password");
@@ -45,11 +45,11 @@ export async function loginAs(page: Page, role: TestRole): Promise<void> {
   /* If already on a non-login page, we may be logged in */
   if ((await identifierInput.count()) === 0) return;
 
-  await identifierInput.fill(user.email);
-  await passwordInput.fill(TEST_PASSWORD);
-  await page.locator('button[type="submit"]').click();
+  await identifierInput.first().fill(user.email);
+  await passwordInput.first().fill(TEST_PASSWORD);
+  await page.locator('button[type="submit"]').first().click();
   await page.waitForURL((url) => !url.pathname.includes("/auth/login"), { timeout: 15000 });
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("domcontentloaded");
 }
 
 /**
@@ -57,7 +57,7 @@ export async function loginAs(page: Page, role: TestRole): Promise<void> {
  */
 export async function logout(page: Page): Promise<void> {
   await page.goto("/auth/login");
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("domcontentloaded");
 }
 
 /**

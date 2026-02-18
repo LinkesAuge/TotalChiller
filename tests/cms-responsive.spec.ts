@@ -17,7 +17,7 @@ for (const viewport of viewports) {
 
     test("homepage renders without horizontal overflow", async ({ page }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
       expect(bodyWidth).toBeLessThanOrEqual(viewport.width + 1);
@@ -25,7 +25,7 @@ for (const viewport of viewports) {
 
     test("all cards are visible", async ({ page }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       /* Wait for content to fully render */
       await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
@@ -41,14 +41,14 @@ for (const viewport of viewports) {
 
     test("hero banner is visible", async ({ page }) => {
       await page.goto("/home");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       await expect(page.locator(".hero-banner")).toBeVisible();
     });
 
     test("about page renders correctly", async ({ page }) => {
       await page.goto("/about");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       /* Wait for content to fully render */
       await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
+import AuthInfoCard from "../components/auth-info-card";
 
 /**
  * Renders the Supabase email/password login form.
@@ -67,6 +68,7 @@ function LoginPage(): JSX.Element {
             alt="Card header decorative background"
             className="tooltip-head-bg"
             fill
+            loading="eager"
             sizes="(max-width: 900px) 90vw, 70vw"
           />
           <div className="tooltip-head-inner">
@@ -120,50 +122,47 @@ function LoginPage(): JSX.Element {
           </form>
         </div>
       </section>
-      <section className="card max-w-[440px] w-full">
-        <div className="card-body leading-relaxed text-sm">
-          <h2 className="mb-2 text-[0.95rem]">{t("welcomeBack")}</h2>
-          <p className="m-0">{t("welcomeText")}</p>
-          <p className="mt-2.5">{t("aboutPlatform")}</p>
-          <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("afterSignIn")}</h3>
-          <ul className="pl-[18px] m-0 text-[0.82rem]">
-            <li>{t("feature1")}</li>
-            <li>{t("feature2")}</li>
-            <li>{t("feature3")}</li>
-            <li>{t("feature4")}</li>
-            <li>{t("feature5")}</li>
-            <li>{t("feature6")}</li>
-            <li>{t("feature7")}</li>
-          </ul>
-          <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("secureAuth")}</h3>
-          <p className="m-0">
-            {t("secureAuthText")}{" "}
-            <a href="/auth/forgot" className="text-gold">
-              {t("passwordRecoveryPage")}
-            </a>{" "}
-            {t("toRegainEntry")}
-          </p>
-          <p className="mt-2.5">
-            {t("newToChillers")}{" "}
-            <a href="/auth/register" className="text-gold">
-              {t("createAnAccount")}
-            </a>{" "}
-            {t("toApply")}{" "}
-            <a href="/about" className="text-gold">
-              {t("aboutPage")}
-            </a>{" "}
-            {t("toLearnMore")}{" "}
-            <a href="/home" className="text-gold">
-              {t("homePage")}
-            </a>{" "}
-            {t("forOverview")}{" "}
-            <a href="/contact" className="text-gold">
-              {t("contactPage")}
-            </a>
-            .
-          </p>
-        </div>
-      </section>
+      <AuthInfoCard title={t("welcomeBack")} className="max-w-[440px] w-full" bodyClassName="leading-relaxed text-sm">
+        <p className="m-0">{t("welcomeText")}</p>
+        <p className="mt-2.5">{t("aboutPlatform")}</p>
+        <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("afterSignIn")}</h3>
+        <ul className="pl-[18px] m-0 text-[0.82rem]">
+          <li>{t("feature1")}</li>
+          <li>{t("feature2")}</li>
+          <li>{t("feature3")}</li>
+          <li>{t("feature4")}</li>
+          <li>{t("feature5")}</li>
+          <li>{t("feature6")}</li>
+          <li>{t("feature7")}</li>
+        </ul>
+        <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("secureAuth")}</h3>
+        <p className="m-0">
+          {t("secureAuthText")}{" "}
+          <a href="/auth/forgot" className="text-gold">
+            {t("passwordRecoveryPage")}
+          </a>{" "}
+          {t("toRegainEntry")}
+        </p>
+        <p className="mt-2.5">
+          {t("newToChillers")}{" "}
+          <a href="/auth/register" className="text-gold">
+            {t("createAnAccount")}
+          </a>{" "}
+          {t("toApply")}{" "}
+          <a href="/about" className="text-gold">
+            {t("aboutPage")}
+          </a>{" "}
+          {t("toLearnMore")}{" "}
+          <a href="/home" className="text-gold">
+            {t("homePage")}
+          </a>{" "}
+          {t("forOverview")}{" "}
+          <a href="/contact" className="text-gold">
+            {t("contactPage")}
+          </a>
+          .
+        </p>
+      </AuthInfoCard>
     </div>
   );
 }

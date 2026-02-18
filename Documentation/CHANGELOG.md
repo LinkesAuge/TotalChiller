@@ -10,6 +10,19 @@
 
 - **Messages recipient privacy**: Removed `email` fields from message-related profile payloads returned to clients (`/api/messages`, `/api/messages/sent`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, `/api/messages/search-recipients`) to prevent exposing user email addresses in messaging API responses
 - **Message profile fallback consistency**: Unified sender/recipient label fallback behavior through shared resolver logic so message routes and `useMessages` use the same display-name/username fallback order
+- **Initial page payload pressure**: Deferred bug-report widget/form code paths with `next/dynamic` (`BugReportWidgetLoader`, lazy `BugsForm`) so heavyweight report UI code is no longer part of the eager baseline
+- **Image preload contention**: Reduced non-critical `next/image` `priority` usage on decorative assets (sidebar textures, hero lights, top-bar background) to avoid competing with true LCP assets
+- **Auth/role fetch duplication**: Added a shared auth-state provider so `useAuth()` and `useUserRole()` consume centralized session/role state instead of each triggering independent Supabase lookups
+- **Events overfetch growth**: Added bounded event/template fetch windows and limits in `use-events-data.ts` to keep payload size stable as historical data grows
+- **Playwright Chromium flake cleanup**: Stabilized admin/news/events/notifications/roles CRUD and access specs by replacing fragile `networkidle` waits with `domcontentloaded` + explicit/polled UI state checks, removing intermittent full-suite failures
+- **Playwright wait strategy completion**: Removed the remaining `waitForLoadState("networkidle")` calls from the rest of the test suite (including auth setup/helpers) and replaced them with deterministic `domcontentloaded` + explicit URL/locator polling in smoke/CMS/dashboard/events/forum/profile specs
+- **Clan-access gate race in E2E checks**: Added explicit wait for gate-loading resolution before permission assertions in affected specs to avoid false negatives while `"Zugang wird geladen"` is still rendered
+- **Admin API contract assertions**: Updated unauthenticated admin endpoint expectations in `api-endpoints.spec.ts` to include auth-first `401` responses (in addition to validation/rate-limit outcomes)
+- **Authenticated API test rate-limit tolerance**: Updated `tests/crud-flows.spec.ts` (`GET /api/messages`) to accept `429` under parallel suite load, matching existing rate-limit-tolerant endpoint assertions
+- **Admin logs tab test flakiness**: Replaced brittle text-only logs-tab checks with deterministic logs-filter control assertions (`#auditSearch`, `#audit*Filter`) in `tests/admin.spec.ts` and `tests/admin-actions.spec.ts`
+- **Auth form strict-mode collisions in Playwright**: Hardened auth setup/helpers/spec flows by targeting `.first()` for login/register inputs and submit buttons where duplicate hidden/transitioning auth fields could momentarily exist, removing intermittent setup/auth flakes
+- **Auth selector consistency in CRUD error-path checks**: Applied the same `.first()` hardening to login-form interactions in `tests/crud-flows.spec.ts` (`#identifier`, `#password`, submit selectors) and stabilized form-submit clicks that could resolve to multiple matching buttons
+- **Forum guest no-clan assertion drift**: Expanded fallback detection in `tests/forum.spec.ts` to include "Bitte wähle einen Clan..." / "select a clan" states, preventing false negatives when forum access is blocked by missing clan selection rather than generic no-access text
 - **Admin auth guard order**: `POST /api/admin/delete-user` now executes `requireAdmin()` before request body parsing for consistent auth-first protection across admin mutation routes
 - **Bugs deep-link routing consistency**: Replaced `window.history.pushState` with App Router navigation in `useBugs()` so `/bugs?report=<id>` URL state stays synchronized with `useSearchParams()`
 - **Bugs list/detail reload churn**: Optimized `useBugs()` deep-link effect to avoid redundant detail reloads and to skip unnecessary list reloads outside list mode
@@ -44,11 +57,17 @@
 - **Notification bell overflow**: Panel width constrained to `calc(100vw - 32px)` on screens under 420px to prevent clipping
 - **Sidebar forum sub-items on collapsed/mobile**: Forum category sub-items are now properly hidden when sidebar is collapsed (mobile); added a viewport-aware guard in `sidebar-nav.tsx` plus CSS fallback so sub-items stay hidden even if the sidebar `isOpen` state remains true after resizing to small widths
 - **Sidebar bottom controls on mobile/small screens**: Reworked cramped bottom area into a compact account flyout pattern — standalone language toggle and profile/settings icon buttons are hidden in compact viewport, user avatar becomes the single trigger, and the flyout now contains user identity, quick links, sign out, and full DE/EN language toggle; compact flyout now uses fixed positioning (not clipped by sidebar overflow), avatar touch target is enlarged, and empty clan-slot/divider artifacts are removed in icon-only mode
+- **Auth page layout focus**: Long explanatory sections on login/register/forgot are now collapsible helper cards so primary auth actions remain visible sooner (especially on mobile)
+- **Top chrome compaction**: Reduced top-bar and hero vertical footprint in shared styles to bring primary page content above the fold faster on smaller screens
+- **Sidebar texture image warning**: Replaced fixed-dimension `next/image` usage for `/assets/vip/back_left.png` with `fill` sizing to eliminate repeated width/height mismatch warnings
 
 ### Added
 
 - **Vercel Web Analytics integration**: Added `@vercel/analytics` dependency and mounted `<Analytics />` in `app/layout.tsx` to enable route-aware traffic tracking on Vercel deployments
+- **Shared auth state context/provider**: Added `lib/hooks/auth-state-context.ts` + `app/hooks/auth-state-provider.tsx` for app-wide auth + role session state
+- **Auth helper card component**: Added reusable `app/auth/components/auth-info-card.tsx` for collapsible explanatory content blocks across auth screens
 - **Shared messaging contract + helper modules**: Added `lib/types/messages-api.ts` (message endpoint DTO contracts) and `lib/messages/profile-utils.ts` (profile map loading, recipient mapping, label fallback resolution)
+- **Playwright clan-access helper**: Added `tests/helpers/wait-for-clan-access.ts` for stable waiting on ClanAccessGate loading transitions in E2E specs
 - **Messages API contract suite**: Added `tests/messages-api-contract.spec.ts` covering all `/api/messages*` endpoints for response envelope shape and privacy guarantees (no `email` field leakage)
 - **Messages privacy regression coverage**: Added Playwright test coverage in `tests/messages.spec.ts` to assert recipient search responses do not expose an `email` field
 - **Playwright mobile thread-flow coverage**: Added a dedicated mobile inbox test in `tests/messages.spec.ts` that validates list→thread switch and back navigation; if inbox is empty, the test seeds a private message via authenticated admin API context before asserting behavior
@@ -63,11 +82,22 @@
 
 ### Changed
 
+- **UI density/hierarchy pass (P2.2 phase 1)**: Improved scanability and vertical rhythm on `news`, `forum`, and `bugs` list/detail surfaces with tuned spacing, line-height, badge/meta sizing, and mobile-specific density adjustments in `app/styles/news.css`, `app/styles/forum.css`, and `app/styles/bugs.css`
+- **Admin/member table readability**: Increased row/header spacing and text rhythm in `app/styles/tables.css` (base table rows, member rows, member directory rows, and users rows) to reduce crowding in high-density admin tables on desktop and mobile
+- **Admin IA clarity (P2.3 phases 1-2)**: Added explicit active-tab context in the admin section panel, standardized responsive toolbar/filter action layout patterns (`admin-filter-row`, `admin-toolbar-inline`, `admin-table-actions`, `admin-clan-actions`), and introduced action-priority styling (`admin-action-primary`, `admin-action-secondary`, `admin-action-danger`, `admin-row-actions`) to reduce control overload and make critical actions clearer in dense users/clans rows
+- **Unified loading skeletons (P3.1 phase 1)**: Expanded `PageSkeleton` into surface-specific variants (`dashboard`, `list`, `table`, `detail`, `article`, `auth`, `messages`, `admin`) and wired route-level loaders plus key Suspense fallbacks (`/`, `/home`, `/news`, `/events`, `/forum`, `/bugs`, `/members`, `/profile`, `/settings`, `/messages`, `/auth`, `/about`, `/contact`, `/privacy-policy`, `/admin`) to matching loading patterns instead of one generic shape
+- **Mobile navigation refinement (P3.2 phase 1)**: Optimized compact sidebar behavior by collapsing mobile admin links to a single `/admin` entry, improving tap-target sizing for compact nav controls and flyout actions (44px-oriented minimums + touch-action tuning), and switching compact user-flyout profile/messages/settings links to `Link` navigation for smoother in-app transitions
+- **Interaction + focus polish (P3.3 phase 1)**: Added consistent focus-visible styling across shared interactive controls (buttons/tabs/form fields/user-menu/notification controls/sidebar-nav actions) and refined CTA hierarchy in dense admin toolbars/filter rows by strengthening primary-action emphasis while keeping secondary controls quieter
+- **P3 review gate + final verification pass**: Completed the required accessibility/reduced-motion/console validation sweep for the UI/UX polish phase (public + owner route audits, owner admin-tab walkthrough, and full lint/type-check), refreshed review artifacts in `output/playwright`, and documented remaining known console noise for follow-up
+- **Post-review warning cleanup pass (P3 follow-up)**: Removed previously tracked console/perf noise by ignoring expected `AbortError` cancellations in `NotificationBell` polling, allowing Vercel Analytics domains in CSP (`script-src` + `connect-src`), and marking auth tooltip header images (`/assets/vip/back_tooltip_2.png`) as eager on auth flows where they are the likely LCP element
 - **Messaging route internals**: Refactored `/api/messages`, `/api/messages/sent`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, and `/api/messages/search-recipients` to use shared profile map + recipient label helpers instead of duplicated local mapping blocks
 - **Messages client typing**: Updated `useMessages` and `messages-types.ts` to consume centralized message API DTOs for inbox/sent/thread/archive/search payloads
+- **Heavy feature panel loading**: Converted conditional panels in `messages`, `bugs`, `forum`, and `events` to route-level dynamic loading so non-active views no longer inflate initial client bundles
 - **Brand copy refresh**: Replaced legacy brand wording with `[THC] Chiller & Killer` across EN/DE locale bundles, auth/privacy metadata, root app metadata, bug report email copy, and Supabase email template docs
 - **Runbook migration order**: Updated `Documentation/runbook.md` to use `messages_v2.sql` for fresh setups (legacy `messages.sql` is now explicitly marked as legacy-only) and added missing migrations to the primary setup sequence
+- **Runbook lint troubleshooting**: Added guidance for lint failures caused by generated `playwright-report/trace/assets/*` bundles (clean report artifacts before repo-wide lint)
 - **Doc test counts**: Updated current Vitest/Playwright totals in `Documentation/runbook.md` and `Documentation/handoff_summary.md`
+- **UI/UX review implementation backlog**: Added prioritized execution plan at `Documentation/ui-ux-review-backlog.md` with P1/P2/P3 scope, review gates, and final test checklist
 
 ## 2026-02-16
 

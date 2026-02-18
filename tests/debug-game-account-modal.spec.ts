@@ -13,7 +13,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Modal positioning regressions", () => {
   test("card:hover has no transform property", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const card = page.locator(".card").first();
     await expect(card).toBeVisible({ timeout: 15000 });
@@ -27,7 +27,7 @@ test.describe("Modal positioning regressions", () => {
 
   test("position:fixed inside a hovered card covers full viewport", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const card = page.locator(".card").first();
     await expect(card).toBeVisible({ timeout: 15000 });
@@ -60,7 +60,7 @@ test.describe("Modal positioning regressions", () => {
 
   test("select-content z-index exceeds modal-backdrop z-index", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const zIndexes = await page.evaluate(() => {
       const rules: Record<string, string> = {};

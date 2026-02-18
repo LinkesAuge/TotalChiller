@@ -23,6 +23,13 @@ const TYPE_ROUTES: Record<string, string> = {
   approval: "/profile",
 };
 
+function isAbortError(error: unknown): boolean {
+  if (error instanceof DOMException) {
+    return error.name === "AbortError";
+  }
+  return error instanceof Error && error.name === "AbortError";
+}
+
 /**
  * Returns an SVG icon for the notification type.
  */
@@ -87,6 +94,7 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
         setNotifications(result.data ?? []);
       }
     } catch (err) {
+      if (isAbortError(err)) return;
       if (process.env.NODE_ENV === "development") console.warn("[NotificationBell]", err);
     }
   }, []);

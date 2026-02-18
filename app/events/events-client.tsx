@@ -1,13 +1,15 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import PageShell from "../components/page-shell";
 import { EventDeleteModal, TemplateDeleteModal } from "./event-modals";
-import { ManageTemplates } from "./manage-templates";
-import { PastEventsList } from "./past-events-list";
 import { EventsList } from "./events-list";
 import { EventsForm } from "./events-form";
 import { useEvents } from "./use-events";
+
+const ManageTemplates = dynamic(() => import("./manage-templates").then((mod) => mod.ManageTemplates));
+const PastEventsList = dynamic(() => import("./past-events-list").then((mod) => mod.PastEventsList));
 
 /**
  * Full events client component with CRUD, templates, role-gating, calendar, and past/upcoming.
@@ -85,40 +87,42 @@ function EventsClient(): JSX.Element {
 
           <EventsForm eventsState={eventsState} />
 
-          <ManageTemplates
-            isTemplatesOpen={eventsState.isTemplatesOpen}
-            templates={templates}
-            editingTemplateId={editingTemplateId}
-            editTplTitle={editTplTitle}
-            editTplDescription={editTplDesc}
-            editTplLocation={editTplLocation}
-            editTplDurationH={editTplDurationH}
-            editTplDurationM={editTplDurationM}
-            editTplOpenEnded={editTplOpenEnded}
-            editTplOrganizer={editTplOrganizer}
-            editTplRecurrence={editTplRecurrence}
-            editTplRecurrenceEnd={editTplRecurrenceEnd}
-            editTplRecurrenceOngoing={editTplRecurrenceOngoing}
-            onStartEdit={handleStartEditTemplate}
-            onEditTplTitleChange={setEditTplTitle}
-            onEditTplDescChange={setEditTplDesc}
-            onEditTplLocationChange={setEditTplLocation}
-            onEditTplDurationHChange={setEditTplDurationH}
-            onEditTplDurationMChange={setEditTplDurationM}
-            onEditTplOpenEndedChange={setEditTplOpenEnded}
-            onEditTplOrganizerChange={setEditTplOrganizer}
-            onEditTplRecurrenceChange={setEditTplRecurrence}
-            onEditTplRecurrenceEndChange={setEditTplRecurrenceEnd}
-            onEditTplRecurrenceOngoingChange={setEditTplRecurrenceOngoing}
-            onCancelEdit={handleCancelEditTemplate}
-            onSaveEdit={handleSaveEditedTemplate}
-            onRequestDelete={requestDeleteTemplate}
-            isSavingTemplate={isSavingTemplate}
-            canManage={canManage}
-            t={tFn}
-            supabase={supabase}
-            userId={currentUserId}
-          />
+          {eventsState.isTemplatesOpen ? (
+            <ManageTemplates
+              isTemplatesOpen={eventsState.isTemplatesOpen}
+              templates={templates}
+              editingTemplateId={editingTemplateId}
+              editTplTitle={editTplTitle}
+              editTplDescription={editTplDesc}
+              editTplLocation={editTplLocation}
+              editTplDurationH={editTplDurationH}
+              editTplDurationM={editTplDurationM}
+              editTplOpenEnded={editTplOpenEnded}
+              editTplOrganizer={editTplOrganizer}
+              editTplRecurrence={editTplRecurrence}
+              editTplRecurrenceEnd={editTplRecurrenceEnd}
+              editTplRecurrenceOngoing={editTplRecurrenceOngoing}
+              onStartEdit={handleStartEditTemplate}
+              onEditTplTitleChange={setEditTplTitle}
+              onEditTplDescChange={setEditTplDesc}
+              onEditTplLocationChange={setEditTplLocation}
+              onEditTplDurationHChange={setEditTplDurationH}
+              onEditTplDurationMChange={setEditTplDurationM}
+              onEditTplOpenEndedChange={setEditTplOpenEnded}
+              onEditTplOrganizerChange={setEditTplOrganizer}
+              onEditTplRecurrenceChange={setEditTplRecurrence}
+              onEditTplRecurrenceEndChange={setEditTplRecurrenceEnd}
+              onEditTplRecurrenceOngoingChange={setEditTplRecurrenceOngoing}
+              onCancelEdit={handleCancelEditTemplate}
+              onSaveEdit={handleSaveEditedTemplate}
+              onRequestDelete={requestDeleteTemplate}
+              isSavingTemplate={isSavingTemplate}
+              canManage={canManage}
+              t={tFn}
+              supabase={supabase}
+              userId={currentUserId}
+            />
+          ) : null}
 
           {!isLoading && pastEvents.length > 0 && (
             <PastEventsList

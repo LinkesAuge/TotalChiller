@@ -42,7 +42,7 @@ async function SettingsContent(): Promise<JSX.Element> {
  */
 function SettingsPage(): JSX.Element {
   return (
-    <Suspense fallback={<PageSkeleton />}>
+    <Suspense fallback={<PageSkeleton variant="detail" />}>
       <SettingsContent />
     </Suspense>
   );

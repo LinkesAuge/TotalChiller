@@ -41,7 +41,7 @@ async function MembersContent(): Promise<JSX.Element> {
  */
 function MembersPage(): JSX.Element {
   return (
-    <Suspense fallback={<PageSkeleton />}>
+    <Suspense fallback={<PageSkeleton variant="table" />}>
       <MembersContent />
     </Suspense>
   );

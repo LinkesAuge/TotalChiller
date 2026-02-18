@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
+import AuthInfoCard from "../components/auth-info-card";
 
 interface RegisterFormState {
   readonly email: string;
@@ -110,6 +111,7 @@ function RegisterPage(): JSX.Element {
               alt="Card header decorative background"
               className="tooltip-head-bg"
               fill
+              loading="eager"
               sizes="(max-width: 900px) 90vw, 70vw"
             />
             <div className="tooltip-head-inner">
@@ -146,6 +148,7 @@ function RegisterPage(): JSX.Element {
             alt="Card header decorative background"
             className="tooltip-head-bg"
             fill
+            loading="eager"
             sizes="(max-width: 900px) 90vw, 70vw"
           />
           <div className="tooltip-head-inner">
@@ -226,51 +229,48 @@ function RegisterPage(): JSX.Element {
           </form>
         </div>
       </section>
-      <section className="card max-w-[480px] w-full">
-        <div className="card-body leading-relaxed text-sm">
-          <h2 className="mb-2 text-[0.95rem]">{t("joinCommunity")}</h2>
-          <p className="m-0">{t("joinText")}</p>
-          <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("afterRegistration")}</h3>
-          <p className="m-0">{t("afterRegText")}</p>
-          <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("benefits")}</h3>
-          <ul className="pl-[18px] m-0 text-[0.82rem]">
-            <li>{t("benefit1")}</li>
-            <li>{t("benefit2")}</li>
-            <li>{t("benefit3")}</li>
-            <li>{t("benefit4")}</li>
-            <li>{t("benefit5")}</li>
-            <li>{t("benefit6")}</li>
-            <li>{t("benefit7")}</li>
-          </ul>
-          <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("requirements")}</h3>
-          <p className="m-0">
-            {t("requirementsText")}{" "}
-            <a href="/auth/forgot" className="text-gold">
-              {t("passwordRecoveryPage")}
-            </a>
-            {t("resetPasswords")}
-          </p>
-          <p className="mt-2.5">
-            {t("learnMore")}{" "}
-            <a href="/home" className="text-gold">
-              {t("homePage")}
-            </a>{" "}
-            {t("forOverview")}{" "}
-            <a href="/about" className="text-gold">
-              {t("aboutPage")}
-            </a>{" "}
-            {t("toUnderstand")}{" "}
-            <a href="/contact" className="text-gold">
-              {t("contactUs")}
-            </a>{" "}
-            {t("withQuestions")}{" "}
-            <a href="/privacy-policy" className="text-gold">
-              {t("privacyPolicy")}
-            </a>{" "}
-            {t("toUnderstandData")}
-          </p>
-        </div>
-      </section>
+      <AuthInfoCard title={t("joinCommunity")} className="max-w-[480px] w-full" bodyClassName="leading-relaxed text-sm">
+        <p className="m-0">{t("joinText")}</p>
+        <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("afterRegistration")}</h3>
+        <p className="m-0">{t("afterRegText")}</p>
+        <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("benefits")}</h3>
+        <ul className="pl-[18px] m-0 text-[0.82rem]">
+          <li>{t("benefit1")}</li>
+          <li>{t("benefit2")}</li>
+          <li>{t("benefit3")}</li>
+          <li>{t("benefit4")}</li>
+          <li>{t("benefit5")}</li>
+          <li>{t("benefit6")}</li>
+          <li>{t("benefit7")}</li>
+        </ul>
+        <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("requirements")}</h3>
+        <p className="m-0">
+          {t("requirementsText")}{" "}
+          <a href="/auth/forgot" className="text-gold">
+            {t("passwordRecoveryPage")}
+          </a>
+          {t("resetPasswords")}
+        </p>
+        <p className="mt-2.5">
+          {t("learnMore")}{" "}
+          <a href="/home" className="text-gold">
+            {t("homePage")}
+          </a>{" "}
+          {t("forOverview")}{" "}
+          <a href="/about" className="text-gold">
+            {t("aboutPage")}
+          </a>{" "}
+          {t("toUnderstand")}{" "}
+          <a href="/contact" className="text-gold">
+            {t("contactUs")}
+          </a>{" "}
+          {t("withQuestions")}{" "}
+          <a href="/privacy-policy" className="text-gold">
+            {t("privacyPolicy")}
+          </a>{" "}
+          {t("toUnderstandData")}
+        </p>
+      </AuthInfoCard>
     </div>
   );
 }

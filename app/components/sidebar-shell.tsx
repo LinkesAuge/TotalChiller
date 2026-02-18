@@ -201,9 +201,8 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           src="/assets/vip/back_left.png"
           alt="Sidebar steel panel texture"
           className="sidebar-texture"
-          width={280}
-          height={900}
-          sizes="280px"
+          fill
+          sizes="(max-width: 900px) 56px, 280px"
           loading="eager"
         />
 
@@ -356,6 +355,11 @@ function SidebarUserRow({
   const containerRef = useRef<HTMLDivElement>(null);
   const isSettingsActive = pathname === "/settings";
 
+  /* Keep compact flyout behavior predictable after route transitions. */
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   /* Close on click outside */
   useEffect(() => {
     if (!menuOpen) return;
@@ -450,7 +454,7 @@ function SidebarUserRow({
           {email ? <span className="sidebar-user-menu__label">{email}</span> : null}
           {statusLine ? <span className="sidebar-user-menu__label">{statusLine}</span> : null}
           <div className="sidebar-user-menu__divider" />
-          <a className="sidebar-user-menu__link" href="/profile" onClick={() => setMenuOpen(false)}>
+          <Link className="sidebar-user-menu__link" href="/profile" onClick={() => setMenuOpen(false)}>
             <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
               <circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.5" />
               <path
@@ -461,15 +465,15 @@ function SidebarUserRow({
               />
             </svg>
             {tMenu("profile")}
-          </a>
-          <a className="sidebar-user-menu__link" href="/messages" onClick={() => setMenuOpen(false)}>
+          </Link>
+          <Link className="sidebar-user-menu__link" href="/messages" onClick={() => setMenuOpen(false)}>
             <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
               <rect x="1.5" y="3" width="13" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
               <path d="M1.5 5.5L8 9L14.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             {tMenu("messages")}
-          </a>
-          <a className="sidebar-user-menu__link" href="/settings" onClick={() => setMenuOpen(false)}>
+          </Link>
+          <Link className="sidebar-user-menu__link" href="/settings" onClick={() => setMenuOpen(false)}>
             <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
               <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5" />
               <path
@@ -480,7 +484,7 @@ function SidebarUserRow({
               />
             </svg>
             {tMenu("settings")}
-          </a>
+          </Link>
           {isCompactViewport ? (
             <>
               <div className="sidebar-user-menu__divider" />

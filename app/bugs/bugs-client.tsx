@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useState, type ReactElement } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "@/app/hooks/use-supabase";
@@ -10,8 +11,9 @@ import DataState from "@/app/components/data-state";
 import ConfirmModal from "@/app/components/confirm-modal";
 import { useBugs } from "./use-bugs";
 import BugsList from "./bugs-list";
-import BugsDetail from "./bugs-detail";
-import BugsForm from "./bugs-form";
+
+const BugsDetail = dynamic(() => import("./bugs-detail"));
+const BugsForm = dynamic(() => import("./bugs-form"));
 
 function BugsClient(): ReactElement {
   const t = useTranslations("bugs");

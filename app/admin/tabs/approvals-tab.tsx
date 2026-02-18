@@ -234,7 +234,7 @@ export default function ApprovalsTab(): ReactElement {
             <div className="card-title">{tAdmin("approvals.userApprovals")}</div>
             <div className="card-subtitle">{tAdmin("approvals.userApprovalsSubtitle")}</div>
           </div>
-          <div className="list inline" style={{ alignItems: "center", gap: "10px" }}>
+          <div className="list inline admin-toolbar-inline">
             <span className="badge">
               {unconfirmedUsers.length} {tAdmin("approvals.pending")}
             </span>
@@ -297,7 +297,7 @@ export default function ApprovalsTab(): ReactElement {
             <div className="card-title">{tAdmin("approvals.gameApprovals")}</div>
             <div className="card-subtitle">{tAdmin("approvals.gameApprovalsSubtitle")}</div>
           </div>
-          <div className="list inline" style={{ alignItems: "center", gap: "10px" }}>
+          <div className="list inline admin-toolbar-inline">
             <span className="badge">
               {pendingApprovals.length} {tAdmin("approvals.pending")}
             </span>
@@ -353,7 +353,7 @@ export default function ApprovalsTab(): ReactElement {
                   <div>
                     <span className="text-muted">{formatLocalDateTime(approval.created_at, locale)}</span>
                   </div>
-                  <div className="list inline" style={{ gap: "8px", flexWrap: "nowrap" }}>
+                  <div className="list inline admin-table-actions">
                     <button
                       className="button primary"
                       type="button"

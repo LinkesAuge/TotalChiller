@@ -10,7 +10,7 @@ test.describe("Admin: Access control", () => {
     test.use({ storageState: storageStatePath("owner") });
     test("owner can access /admin", async ({ page }) => {
       await page.goto("/admin");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       expect(page.url()).toContain("/admin");
     });
   });
@@ -19,7 +19,7 @@ test.describe("Admin: Access control", () => {
     test.use({ storageState: storageStatePath("admin") });
     test("admin can access /admin", async ({ page }) => {
       await page.goto("/admin");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       expect(page.url()).toContain("/admin");
     });
   });
@@ -28,7 +28,7 @@ test.describe("Admin: Access control", () => {
     test.use({ storageState: storageStatePath("moderator") });
     test("moderator is redirected from /admin", async ({ page }) => {
       await page.goto("/admin");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       expect(page.url()).not.toContain("/admin");
     });
   });
@@ -37,7 +37,7 @@ test.describe("Admin: Access control", () => {
     test.use({ storageState: storageStatePath("member") });
     test("member is redirected from /admin", async ({ page }) => {
       await page.goto("/admin");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       expect(page.url()).not.toContain("/admin");
     });
   });
@@ -50,6 +50,15 @@ test.describe("Admin: Tab navigation", () => {
   async function waitForAdminShell(page: import("@playwright/test").Page): Promise<void> {
     /* Wait for the admin-grid wrapper that AdminInner renders */
     await expect(page.locator(".admin-grid")).toBeVisible({ timeout: 30000 });
+  }
+
+  /** Wait until the logs tab controls are mounted. */
+  async function waitForLogsTab(page: import("@playwright/test").Page): Promise<void> {
+    const logsControls = page.locator(
+      "#auditSearch, #auditClanFilter, #auditActionFilter, #auditEntityFilter, #auditActorFilter",
+    );
+    await expect.poll(async () => await logsControls.count(), { timeout: 25000 }).toBeGreaterThan(0);
+    await expect(page.locator("#auditSearch")).toBeVisible({ timeout: 10000 });
   }
 
   test("admin panel shows tab navigation", async ({ page }) => {
@@ -81,8 +90,7 @@ test.describe("Admin: Tab navigation", () => {
   test("can switch to logs tab", async ({ page }) => {
     await page.goto("/admin?tab=logs");
     await waitForAdminShell(page);
-
-    await expect(page.locator(".content-inner").first()).toContainText(/log|protokoll|audit/i, { timeout: 20000 });
+    await waitForLogsTab(page);
   });
 
   test("can switch to forum tab", async ({ page }) => {

@@ -19,7 +19,7 @@ test.describe("CMS Pages: Public rendering", () => {
   for (const { path, name } of CMS_PAGES) {
     test(`${name} page renders CMS content`, async ({ page }) => {
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       /* Wait for CMS content to load — skeleton disappears and cards appear */
       await expect(page.locator(".cms-loading-skeleton")).not.toBeVisible({ timeout: 15000 });
@@ -32,7 +32,7 @@ test.describe("CMS Pages: Public rendering", () => {
 
     test(`${name} page shows no edit buttons when unauthenticated`, async ({ page }) => {
       await page.goto(path);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await expect(page.locator(".card").first()).toBeVisible({ timeout: 15000 });
 
       /* No editable pencil buttons */

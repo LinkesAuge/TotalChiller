@@ -745,6 +745,7 @@ export default function ClansTab(): ReactElement {
           }}
           disabled={!selectedClanId || selectedClanId === unassignedClanId}
           variant="danger"
+          className="admin-action-danger"
         >
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 2.5L13.5 12.5H2.5L8 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -774,13 +775,14 @@ export default function ClansTab(): ReactElement {
             );
           }}
         />
-        <div className="list inline" style={{ alignItems: "center", flexWrap: "wrap" }}>
+        <div className="list inline admin-clan-actions">
           <span className="text-muted">{tAdmin("clans.clanActions")}</span>
-          <div className="list inline">
+          <div className="list inline admin-row-actions">
             <IconButton
               ariaLabel={tAdmin("clans.createClan")}
               onClick={() => setClanModal({ open: true, mode: "create", name: "", description: "" })}
               variant="primary"
+              className="admin-action-primary"
             >
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -802,6 +804,7 @@ export default function ClansTab(): ReactElement {
                 });
               }}
               disabled={!selectedClanId}
+              className="admin-action-secondary"
             >
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path
@@ -817,6 +820,7 @@ export default function ClansTab(): ReactElement {
               ariaLabel={tAdmin("clans.assignAccounts")}
               onClick={openAssignAccountsModal}
               disabled={!selectedClanId}
+              className="admin-action-secondary"
             >
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path
@@ -854,6 +858,7 @@ export default function ClansTab(): ReactElement {
                   });
               }}
               disabled={!selectedClanId}
+              className="admin-action-secondary"
             >
               <svg
                 aria-hidden="true"
@@ -886,6 +891,7 @@ export default function ClansTab(): ReactElement {
                       }
                     });
                 }}
+                className="admin-action-secondary"
               >
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path
@@ -903,7 +909,7 @@ export default function ClansTab(): ReactElement {
       </div>
 
       <div className="card-section" />
-      <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
+      <div className="list inline admin-members-filters filter-bar admin-filter-row">
         <SearchInput
           id="memberSearch"
           label={tAdmin("common.search")}
@@ -960,7 +966,7 @@ export default function ClansTab(): ReactElement {
         >
           {tAdmin("common.cancelAll")}
         </button>
-        <span className="text-muted">
+        <span className="text-muted admin-filter-summary">
           {filteredMemberships.length} / {memberships.length}
         </span>
       </div>
@@ -1106,10 +1112,12 @@ export default function ClansTab(): ReactElement {
                   triggerClassName={`select-trigger${isMembershipFieldChanged(membership, "is_active") ? " is-edited" : ""}`}
                   triggerDataRole="status-select"
                 />
-                <div className="list inline">
+                <div className="list inline admin-row-actions">
                   <IconButton
                     ariaLabel={tAdmin("common.saveChanges")}
                     onClick={() => void handleSaveMembershipEdit(membership)}
+                    variant="primary"
+                    className="admin-action-primary"
                   >
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path
@@ -1124,6 +1132,7 @@ export default function ClansTab(): ReactElement {
                   <IconButton
                     ariaLabel={tAdmin("common.cancelChanges")}
                     onClick={() => cancelMembershipEdits(membership.id)}
+                    className="admin-action-secondary"
                   >
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -1139,6 +1148,7 @@ export default function ClansTab(): ReactElement {
                     variant={
                       (getMembershipEditValue(membership).is_shadow ?? membership.is_shadow) ? "active" : undefined
                     }
+                    className="admin-action-secondary"
                   >
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.4" />
@@ -1164,6 +1174,7 @@ export default function ClansTab(): ReactElement {
                         })
                       }
                       variant="danger"
+                      className="admin-action-danger"
                     >
                       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -1272,7 +1283,7 @@ export default function ClansTab(): ReactElement {
                 </div>
               </div>
             </div>
-            <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center" }}>
+            <div className="list inline admin-members-filters filter-bar admin-filter-row">
               <div className="form-group min-w-60">
                 <SearchInput
                   id="assignSearch"
@@ -1302,9 +1313,7 @@ export default function ClansTab(): ReactElement {
               <span className="text-muted">
                 {assignAccounts.selectedIds.length} {tAdmin("common.selected")}
               </span>
-              <label
-                style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", marginLeft: "auto" }}
-              >
+              <label className="admin-shadow-toggle">
                 <input
                   type="checkbox"
                   checked={assignAccounts.assignAsShadow}

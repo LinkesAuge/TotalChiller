@@ -9,13 +9,13 @@ test.describe("Messages: Page loading", () => {
   test.use({ storageState: storageStatePath("member") });
   test("messages page loads for authenticated member", async ({ page }) => {
     await page.goto("/messages");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     expect(page.url()).toContain("/messages");
   });
 
   test("messages page shows content area", async ({ page }) => {
     await page.goto("/messages");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
   });
@@ -25,7 +25,7 @@ test.describe("Messages: Compose", () => {
   test.use({ storageState: storageStatePath("member") });
   test("has compose button or area", async ({ page }) => {
     await page.goto("/messages");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     /* Look for compose/new message button */
     const composeBtn = page.locator("button", { hasText: /compose|verfassen|new|neu|nachricht/i });
@@ -37,7 +37,7 @@ test.describe("Messages: Broadcast (moderator)", () => {
   test.use({ storageState: storageStatePath("moderator") });
   test("moderator sees broadcast UI elements", async ({ page }) => {
     await page.goto("/messages");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     /* Content managers should see clan/global broadcast options */
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
@@ -48,7 +48,7 @@ test.describe("Messages: Broadcast (member)", () => {
   test.use({ storageState: storageStatePath("member") });
   test("member does NOT see broadcast compose options", async ({ page }) => {
     await page.goto("/messages");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* Member shouldn't see the broadcast compose clan selector (#composeClan)
@@ -65,7 +65,7 @@ test.describe("Messages: Type filters", () => {
   test.use({ storageState: storageStatePath("member") });
   test("has message type filter options", async ({ page }) => {
     await page.goto("/messages");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     /* Should have filter tabs or select for message types */
     const filterElements = page.locator("[role=tab], select, .filter, .tab");
@@ -94,7 +94,7 @@ test.describe("Messages: Notifications tab", () => {
 
   test("messages page shows notifications tab button", async ({ page }) => {
     await page.goto("/messages");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* Should have 4 tabs: Inbox, Sent, Archive, Notifications */
@@ -106,7 +106,7 @@ test.describe("Messages: Notifications tab", () => {
 
   test("clicking notifications tab shows notification list", async ({ page }) => {
     await page.goto("/messages");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     const notifTab = page.locator(".messages-view-tab", {
@@ -123,7 +123,7 @@ test.describe("Messages: Notifications tab", () => {
 
   test("?tab=notifications query param opens notifications tab", async ({ page }) => {
     await page.goto("/messages?tab=notifications");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* The notifications tab should be active */
@@ -135,7 +135,7 @@ test.describe("Messages: Notifications tab", () => {
 
   test("notifications tab hides search/filter bar", async ({ page }) => {
     await page.goto("/messages?tab=notifications");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* The search/filter bar should not be visible on the notifications tab */

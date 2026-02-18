@@ -9,7 +9,7 @@ import { test, expect } from "@playwright/test";
 test.describe("CMS Public View (no login)", () => {
   test("homepage loads all sections", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // Top bar title should be visible
     await expect(page.locator(".top-bar-title")).toBeVisible();
@@ -24,7 +24,7 @@ test.describe("CMS Public View (no login)", () => {
 
   test("no edit buttons visible for unauthenticated users", async ({ page }) => {
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // No pencil edit buttons should be visible
     const editButtons = page.locator(".editable-text-pencil");
@@ -41,7 +41,7 @@ test.describe("CMS Public View (no login)", () => {
 
   test("about page loads CMS content", async ({ page }) => {
     await page.goto("/about");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // Should not show loading skeleton (allow time for API calls to complete)
     await expect(page.locator(".cms-loading-skeleton")).not.toBeVisible({ timeout: 15000 });
@@ -54,7 +54,7 @@ test.describe("CMS Public View (no login)", () => {
 
   test("contact page loads CMS content", async ({ page }) => {
     await page.goto("/contact");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     await expect(page.locator(".cms-loading-skeleton")).not.toBeVisible();
 
@@ -64,7 +64,7 @@ test.describe("CMS Public View (no login)", () => {
 
   test("privacy page loads CMS content", async ({ page }) => {
     await page.goto("/privacy-policy");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     await expect(page.locator(".cms-loading-skeleton")).not.toBeVisible();
 
@@ -75,7 +75,7 @@ test.describe("CMS Public View (no login)", () => {
   test("no error banners on any page", async ({ page }) => {
     for (const pagePath of ["/home", "/about", "/contact", "/privacy-policy"]) {
       await page.goto(pagePath);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       /* Wait a moment for any async error banners to appear */
       await page.waitForTimeout(500);
@@ -96,7 +96,7 @@ test.describe("CMS Public View (no login)", () => {
     await context.clearCookies();
 
     await page.goto("/home");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // The API should return JSON (not HTML redirect)
     const response = await page.request.get("/api/site-content?page=home");

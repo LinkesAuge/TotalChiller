@@ -11,6 +11,7 @@ import {
   isAdmin as isAdminCheck,
   isContentManager as isContentManagerCheck,
 } from "@/lib/permissions";
+import { useAuthStateContext } from "@/lib/hooks/auth-state-context";
 
 interface UseUserRoleResult {
   /** The resolved role (defaults to "guest" while loading or on error). */
@@ -38,10 +39,12 @@ interface UseUserRoleResult {
  *   if (canDo("article:create")) { ... }
  */
 export function useUserRole(supabase: SupabaseClient): UseUserRoleResult {
+  const authState = useAuthStateContext();
   const [role, setRole] = useState<Role>("guest");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authState) return;
     let cancelled = false;
 
     async function fetchRole(): Promise<void> {
@@ -66,19 +69,25 @@ export function useUserRole(supabase: SupabaseClient): UseUserRoleResult {
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, [supabase, authState]);
 
-  const boundHasPermission = useCallback((permission: string) => hasPermission(role, permission), [role]);
+  const effectiveRole = authState?.role ?? role;
+  const effectiveLoading = authState ? authState.isLoading || authState.isRoleLoading : loading;
 
-  const boundCanDo = useCallback((...permissions: string[]) => canDo(role, ...permissions), [role]);
+  const boundHasPermission = useCallback(
+    (permission: string) => hasPermission(effectiveRole, permission),
+    [effectiveRole],
+  );
+
+  const boundCanDo = useCallback((...permissions: string[]) => canDo(effectiveRole, ...permissions), [effectiveRole]);
 
   return {
-    role,
-    loading,
+    role: effectiveRole,
+    loading: effectiveLoading,
     hasPermission: boundHasPermission,
     canDo: boundCanDo,
-    isOwner: isOwnerCheck(role),
-    isAdmin: isAdminCheck(role),
-    isContentManager: isContentManagerCheck(role),
+    isOwner: isOwnerCheck(effectiveRole),
+    isAdmin: isAdminCheck(effectiveRole),
+    isContentManager: isContentManagerCheck(effectiveRole),
   };
 }

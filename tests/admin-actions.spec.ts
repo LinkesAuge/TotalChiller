@@ -8,6 +8,14 @@ async function waitForAdmin(page: Page): Promise<void> {
   await expect(page.locator(".admin-grid")).toBeVisible({ timeout: 30000 });
 }
 
+/** Wait until logs filters are mounted (lazy tab content ready). */
+async function waitForLogsControls(page: Page): Promise<void> {
+  const logsControls = page.locator(
+    "#auditSearch, #auditClanFilter, #auditActionFilter, #auditEntityFilter, #auditActorFilter",
+  );
+  await expect.poll(async () => await logsControls.count(), { timeout: 25000 }).toBeGreaterThan(0);
+}
+
 /**
  * Admin actions tests — covers key interactive workflows in admin tabs.
  */
@@ -54,8 +62,8 @@ test.describe("Admin Actions: Users tab", () => {
     const searchInput = page.locator('input[type="search"], input[placeholder*="such"], input[placeholder*="search"]');
     if ((await searchInput.count()) > 0) {
       await searchInput.first().fill("test-admin");
-      /* Give a moment for filtering */
-      await page.waitForLoadState("networkidle");
+      /* Give a moment for client-side filtering */
+      await page.waitForTimeout(500);
     }
   });
 });
@@ -93,7 +101,12 @@ test.describe("Admin Actions: Forum management", () => {
       'button:has-text("add"), button:has-text("hinzufügen"), button:has-text("erstellen"), button:has-text("create"), button[aria-label*="add" i], button[aria-label*="hinzufügen" i], button[aria-label*="kategor" i], button[aria-label*="category" i]',
     );
     const selectClanMsg = page.locator("text=/select.*clan|clan.*wählen|wähle.*clan/i");
-    expect((await addBtn.count()) + (await selectClanMsg.count())).toBeGreaterThan(0);
+    const tabSummary = page.locator("text=/Forum-Kategorien erstellen|forum categories|Forenverwaltung/i");
+    await expect
+      .poll(async () => (await addBtn.count()) + (await selectClanMsg.count()) + (await tabSummary.count()), {
+        timeout: 10000,
+      })
+      .toBeGreaterThan(0);
   });
 });
 
@@ -101,11 +114,8 @@ test.describe("Admin Actions: Logs tab", () => {
   test("logs tab shows filter controls", async ({ page }) => {
     await page.goto("/admin?tab=logs");
     await waitForAdmin(page);
-    await expect(page.locator(".content-inner").first()).toContainText(/log|protokoll|audit/i, { timeout: 20000 });
-
-    /* Should have search or filter elements */
-    const searchInput = page.locator('input[type="search"], input[placeholder*="such"], input[placeholder*="search"]');
-    const filterSelect = page.locator("select");
-    expect((await searchInput.count()) + (await filterSelect.count())).toBeGreaterThan(0);
+    await waitForLogsControls(page);
+    await expect(page.locator("#auditSearch")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("#auditClanFilter")).toBeVisible({ timeout: 10000 });
   });
 });

@@ -60,6 +60,18 @@ function AdminInner(): ReactElement {
   const tAdmin = useTranslations("admin");
 
   const ActiveTab = TAB_MAP[activeSection] ?? ClansTab;
+  const totalPending = pendingApprovals.length + pendingRegistrationCount;
+  const activeTabLabel = tAdmin(`tabs.${activeSection}`);
+  const activeTabSubtitle =
+    activeSection === "users"
+      ? tAdmin("users.subtitle")
+      : activeSection === "approvals"
+        ? tAdmin("approvals.subtitle")
+        : activeSection === "logs"
+          ? tAdmin("logs.subtitle")
+          : activeSection === "forum"
+            ? tAdmin("forum.subtitle")
+            : tAdmin("common.selectAClan");
 
   return (
     <div className="admin-grid">
@@ -71,23 +83,33 @@ function AdminInner(): ReactElement {
             <div className="card-subtitle">{tAdmin("sections.subtitle")}</div>
           </div>
         </div>
-        <div className="tabs">
+        <div className="tabs admin-tabs">
           {ADMIN_SECTIONS.map((section) => {
             const isActive = section.tab ? activeSection === section.tab : false;
-            const totalPending = pendingApprovals.length + pendingRegistrationCount;
-            const badge = section.tab === "approvals" && totalPending > 0 ? ` (${totalPending})` : "";
             return (
               <button
                 key={section.labelKey}
                 className={`tab ${isActive ? "active" : ""}`}
                 type="button"
+                aria-current={isActive ? "page" : undefined}
                 onClick={() => (section.tab ? updateActiveSection(section.tab) : navigateAdmin(section.href))}
               >
-                {tAdmin(`tabs.${section.labelKey}`)}
-                {badge}
+                <span>{tAdmin(`tabs.${section.labelKey}`)}</span>
+                {section.tab === "approvals" && totalPending > 0 ? (
+                  <span className="tab-count" aria-label={`${totalPending} ${tAdmin("approvals.pending")}`}>
+                    {totalPending}
+                  </span>
+                ) : null}
               </button>
             );
           })}
+        </div>
+        <div className="admin-active-context" role="status" aria-live="polite">
+          <span className="admin-active-label">{tAdmin("common.active")}</span>
+          <div className="admin-active-copy">
+            <span className="admin-active-title">{activeTabLabel}</span>
+            <span className="admin-active-subtitle">{activeTabSubtitle}</span>
+          </div>
         </div>
       </section>
 

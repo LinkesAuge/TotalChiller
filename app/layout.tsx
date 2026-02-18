@@ -12,6 +12,7 @@ import SidebarShell from "./components/sidebar-shell";
 import { ToastProvider } from "./components/toast-provider";
 import ClanAccessGate from "./components/clan-access-gate";
 import BugReportWidgetLoader from "./components/bug-report-widget-loader";
+import { AuthStateProvider } from "./hooks/auth-state-provider";
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -110,40 +111,42 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
       </head>
       <body suppressHydrationWarning>
         <NextIntlClientProvider messages={messages} locale={locale}>
-          <ToastProvider>
-            <SidebarProvider>
-              <div className="layout">
-                <SidebarShell>
-                  <ClanAccessGate>{children}</ClanAccessGate>
-                  <BugReportWidgetLoader />
-                  <footer className="app-footer">
-                    <Image
-                      src="/assets/vip/components_decor_5.png"
-                      alt="Ornamental footer divider"
-                      className="app-footer-divider"
-                      width={800}
-                      height={16}
-                      sizes="(max-width: 800px) 100vw, 800px"
-                      loading="lazy"
-                    />
-                    <span className="app-footer-text">{t("footer", "tagline")}</span>
-                    <div className="app-footer-links">
-                      <Link href="/home">{t("footer", "home")}</Link>
-                      <span>&bull;</span>
-                      <Link href="/about">{t("footer", "about")}</Link>
-                      <span>&bull;</span>
-                      <Link href="/contact">{t("footer", "contact")}</Link>
-                      <span>&bull;</span>
-                      <Link href="/privacy-policy">{t("footer", "privacy")}</Link>
-                    </div>
-                    <div className="app-footer-sub">
-                      © {new Date().getFullYear()} [THC] Chiller &amp; Killer &bull; {t("footer", "builtWith")}
-                    </div>
-                  </footer>
-                </SidebarShell>
-              </div>
-            </SidebarProvider>
-          </ToastProvider>
+          <AuthStateProvider>
+            <ToastProvider>
+              <SidebarProvider>
+                <div className="layout">
+                  <SidebarShell>
+                    <ClanAccessGate>{children}</ClanAccessGate>
+                    <BugReportWidgetLoader />
+                    <footer className="app-footer">
+                      <Image
+                        src="/assets/vip/components_decor_5.png"
+                        alt="Ornamental footer divider"
+                        className="app-footer-divider"
+                        width={800}
+                        height={16}
+                        sizes="(max-width: 800px) 100vw, 800px"
+                        loading="lazy"
+                      />
+                      <span className="app-footer-text">{t("footer", "tagline")}</span>
+                      <div className="app-footer-links">
+                        <Link href="/home">{t("footer", "home")}</Link>
+                        <span>&bull;</span>
+                        <Link href="/about">{t("footer", "about")}</Link>
+                        <span>&bull;</span>
+                        <Link href="/contact">{t("footer", "contact")}</Link>
+                        <span>&bull;</span>
+                        <Link href="/privacy-policy">{t("footer", "privacy")}</Link>
+                      </div>
+                      <div className="app-footer-sub">
+                        © {new Date().getFullYear()} [THC] Chiller &amp; Killer &bull; {t("footer", "builtWith")}
+                      </div>
+                    </footer>
+                  </SidebarShell>
+                </div>
+              </SidebarProvider>
+            </ToastProvider>
+          </AuthStateProvider>
         </NextIntlClientProvider>
         <Analytics />
       </body>

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import AuthInfoCard from "../components/auth-info-card";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
@@ -61,6 +62,7 @@ function ForgotPasswordPage(): JSX.Element {
             alt="Card header decorative background"
             className="tooltip-head-bg"
             fill
+            loading="eager"
             sizes="(max-width: 900px) 90vw, 70vw"
           />
           <div className="tooltip-head-inner">
@@ -120,49 +122,46 @@ function ForgotPasswordPage(): JSX.Element {
           </form>
         </div>
       </section>
-      <section className="card max-w-[440px] w-full">
-        <div className="card-body leading-relaxed text-sm">
-          <h2 className="mb-2 text-[0.95rem]">{t("recoveryTitle")}</h2>
-          <p className="m-0">{t("recoveryText")}</p>
-          <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("howItWorks")}</h3>
-          <ol className="pl-[18px] m-0 text-[0.82rem]">
-            <li>{t("step1")}</li>
-            <li>{t("step2")}</li>
-            <li>{t("step3")}</li>
-            <li>{t("step4")}</li>
-            <li>{t("step5")}</li>
-          </ol>
-          <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("troubleshooting")}</h3>
-          <p className="m-0">
-            {t("troubleshootingText")}{" "}
-            <a href="/contact" className="text-gold">
-              {t("contactPage")}
-            </a>{" "}
-            {t("orDiscord")}
-          </p>
-          <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("securityTitle")}</h3>
-          <p className="m-0">{t("securityText")}</p>
-          <p className="mt-2.5">
-            {t("rememberPassword")}{" "}
-            <a href="/auth/login" className="text-gold">
-              {t("goToLogin")}
-            </a>{" "}
-            {t("toSignIn")}{" "}
-            <a href="/auth/register" className="text-gold">
-              {t("registerHere")}
-            </a>
-            . {t("visitHome")}{" "}
-            <a href="/home" className="text-gold">
-              {t("homePage")}
-            </a>{" "}
-            {t("toLearnMore")}{" "}
-            <a href="/about" className="text-gold">
-              {t("aboutPage")}
-            </a>{" "}
-            {t("forDetails")}
-          </p>
-        </div>
-      </section>
+      <AuthInfoCard title={t("recoveryTitle")} className="max-w-[440px] w-full" bodyClassName="leading-relaxed text-sm">
+        <p className="m-0">{t("recoveryText")}</p>
+        <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("howItWorks")}</h3>
+        <ol className="pl-[18px] m-0 text-[0.82rem]">
+          <li>{t("step1")}</li>
+          <li>{t("step2")}</li>
+          <li>{t("step3")}</li>
+          <li>{t("step4")}</li>
+          <li>{t("step5")}</li>
+        </ol>
+        <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("troubleshooting")}</h3>
+        <p className="m-0">
+          {t("troubleshootingText")}{" "}
+          <a href="/contact" className="text-gold">
+            {t("contactPage")}
+          </a>{" "}
+          {t("orDiscord")}
+        </p>
+        <h3 className="mt-3 mb-1.5 text-[0.88rem]">{t("securityTitle")}</h3>
+        <p className="m-0">{t("securityText")}</p>
+        <p className="mt-2.5">
+          {t("rememberPassword")}{" "}
+          <a href="/auth/login" className="text-gold">
+            {t("goToLogin")}
+          </a>{" "}
+          {t("toSignIn")}{" "}
+          <a href="/auth/register" className="text-gold">
+            {t("registerHere")}
+          </a>
+          . {t("visitHome")}{" "}
+          <a href="/home" className="text-gold">
+            {t("homePage")}
+          </a>{" "}
+          {t("toLearnMore")}{" "}
+          <a href="/about" className="text-gold">
+            {t("aboutPage")}
+          </a>{" "}
+          {t("forDetails")}
+        </p>
+      </AuthInfoCard>
     </div>
   );
 }

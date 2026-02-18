@@ -151,7 +151,7 @@ export default function LogsTab(): ReactElement {
       </div>
 
       {/* ── Filters ── */}
-      <div className="list inline admin-members-filters filter-bar" style={{ alignItems: "center", flexWrap: "wrap" }}>
+      <div className="list inline admin-members-filters filter-bar admin-filter-row">
         <SearchInput
           id="auditSearch"
           label={tAdmin("common.search")}
@@ -202,7 +202,7 @@ export default function LogsTab(): ReactElement {
         <button className="button" type="button" onClick={handleReset}>
           {tAdmin("common.reset")}
         </button>
-        <span className="text-muted">
+        <span className="text-muted admin-filter-summary">
           {auditLogs.length} {tAdmin("common.shown")}
         </span>
       </div>

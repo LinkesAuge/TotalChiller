@@ -41,7 +41,7 @@ async function DashboardContent(): Promise<JSX.Element> {
  */
 function DashboardPage(): JSX.Element {
   return (
-    <Suspense fallback={<PageSkeleton />}>
+    <Suspense fallback={<PageSkeleton variant="dashboard" />}>
       <DashboardContent />
     </Suspense>
   );

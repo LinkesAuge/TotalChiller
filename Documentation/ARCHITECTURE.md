@@ -33,7 +33,7 @@ d:\Chiller\
 │   ├── api/                # Server-side API routes (see §7)
 │   ├── admin/              # Admin panel (modular tabs, see §4.9)
 │   ├── components/         # Shared UI components (see §5)
-│   ├── hooks/              # App-level React hooks (use-auth, use-supabase, use-clan-context, use-modal-reset, use-dashboard-data)
+│   ├── hooks/              # App-level React hooks/providers (use-auth, use-supabase, use-clan-context, use-modal-reset, use-dashboard-data, auth-state-provider)
 │   ├── [feature]/          # Feature pages (page.tsx + feature-client.tsx + loading.tsx + error.tsx)
 │   ├── globals.css         # All CSS (Fortress Sanctum design system)
 │   ├── layout.tsx          # Root layout (sidebar, providers, fonts)
@@ -255,50 +255,52 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 
 Bug reporting/ticket system. Users submit reports with screenshots; admins manage status, priority, and categories. Floating widget on every page for quick reporting. All tickets visible to all authenticated users.
 
-| File                                        | Purpose                                          |
-| ------------------------------------------- | ------------------------------------------------ |
-| `app/bugs/bugs-client.tsx`                  | Orchestrator (list ↔ detail ↔ create views)      |
-| `app/bugs/bugs-list.tsx`                    | Report list with filters, sort, search, badges   |
-| `app/bugs/bugs-detail.tsx`                  | Single report view (info, screenshots, comments) |
-| `app/bugs/bugs-form.tsx`                    | Create report form (reused by widget)            |
-| `app/bugs/bugs-comments.tsx`                | Comment thread with add-comment form             |
-| `app/bugs/bugs-admin-controls.tsx`          | Admin-only status/priority/category controls     |
-| `app/bugs/bugs-screenshot-upload.tsx`       | Multi-file upload with previews (max 5)          |
-| `app/bugs/bugs-types.ts`                    | Local TypeScript types                           |
-| `app/bugs/use-bugs.ts`                      | Report list + CRUD state hook (sort, filter)     |
-| `app/bugs/use-bug-comments.ts`              | Comment state hook                               |
-| `app/components/bug-report-widget.tsx`      | Floating button + modal (root layout)            |
-| `app/api/bugs/route.ts`                     | `GET` list, `POST` create                        |
-| `app/api/bugs/[id]/route.ts`                | `GET` detail, `PATCH` update                     |
-| `app/api/bugs/[id]/comments/route.ts`       | `GET` comments, `POST` add comment               |
-| `app/api/bugs/[id]/comments/[cId]/route.ts` | `PATCH` edit, `DELETE` comment                   |
-| `app/api/bugs/categories/route.ts`          | `GET`, `POST`, `PATCH`, `DELETE` (admin CRUD)    |
-| `app/api/bugs/screenshots/route.ts`         | `POST` upload screenshot                         |
+| File                                          | Purpose                                          |
+| --------------------------------------------- | ------------------------------------------------ |
+| `app/bugs/bugs-client.tsx`                    | Orchestrator (list ↔ detail ↔ create views)      |
+| `app/bugs/bugs-list.tsx`                      | Report list with filters, sort, search, badges   |
+| `app/bugs/bugs-detail.tsx`                    | Single report view (info, screenshots, comments) |
+| `app/bugs/bugs-form.tsx`                      | Create report form (reused by widget)            |
+| `app/bugs/bugs-comments.tsx`                  | Comment thread with add-comment form             |
+| `app/bugs/bugs-admin-controls.tsx`            | Admin-only status/priority/category controls     |
+| `app/bugs/bugs-screenshot-upload.tsx`         | Multi-file upload with previews (max 5)          |
+| `app/bugs/bugs-types.ts`                      | Local TypeScript types                           |
+| `app/bugs/use-bugs.ts`                        | Report list + CRUD state hook (sort, filter)     |
+| `app/bugs/use-bug-comments.ts`                | Comment state hook                               |
+| `app/components/bug-report-widget.tsx`        | Floating button + modal (root layout)            |
+| `app/components/bug-report-widget-loader.tsx` | Client-only dynamic loader for bug widget        |
+| `app/api/bugs/route.ts`                       | `GET` list, `POST` create                        |
+| `app/api/bugs/[id]/route.ts`                  | `GET` detail, `PATCH` update                     |
+| `app/api/bugs/[id]/comments/route.ts`         | `GET` comments, `POST` add comment               |
+| `app/api/bugs/[id]/comments/[cId]/route.ts`   | `PATCH` edit, `DELETE` comment                   |
+| `app/api/bugs/categories/route.ts`            | `GET`, `POST`, `PATCH`, `DELETE` (admin CRUD)    |
+| `app/api/bugs/screenshots/route.ts`           | `POST` upload screenshot                         |
 
 **DB tables**: `bug_reports`, `bug_report_categories`, `bug_report_comments`, `bug_report_screenshots`
 **Key patterns**: Simple workflow (open → resolved → closed); admin-only priority; auto-captured page URL; up to 5 screenshots via Supabase Storage (`bug-screenshots` bucket); threaded comments with notifications; inline comment edit/delete (forum pattern); report edit/delete (author + admin); client-side sorting and priority filter via `useMemo`; hero banner + standard `PageShell` template; markdown editing for descriptions and comments (`MarkdownEditor` + `AppMarkdown`); list card previews strip markdown via `stripMarkdown()` from `lib/markdown/strip-markdown.ts`; opt-in admin email notifications (owner/admin only) via Resend API — toggle hidden for non-admins, API silently ignores unauthorized toggles.
 
 ## 5. Shared Components (`app/components/`)
 
-| Component            | File                         | Purpose                                                                                              |
-| -------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
-| SidebarShell         | `sidebar-shell.tsx`          | App chrome wrapper (fixed sidebar + content), user card/menu, compact mobile account flyout          |
-| SidebarNav           | `sidebar-nav.tsx`            | Main/admin nav groups, active route logic, forum category sub-items (desktop-expanded only)          |
-| ClanAccessGate       | `clan-access-gate.tsx`       | Clan membership gate for scoped pages. Bypasses `/admin` routes. Syncs locale via `router.refresh()` |
-| MarkdownEditor       | `markdown-editor.tsx`        | Write/preview tabs, toolbar, image upload. Props: `storageBucket`                                    |
-| BannerPicker         | `banner-picker.tsx`          | 51 game-asset presets + custom upload                                                                |
-| ConfirmModal         | `confirm-modal.tsx`          | Danger/warning/info variants, optional phrase confirmation                                           |
-| FormModal            | `form-modal.tsx`             | Shared modal wrapper (backdrop, form, status)                                                        |
-| DataState            | `data-state.tsx`             | Loading/empty/error state wrapper                                                                    |
-| PaginationBar        | `pagination-bar.tsx`         | Page controls (compact mode available)                                                               |
-| SortableColumnHeader | `sortable-column-header.tsx` | Clickable sort header with direction arrow                                                           |
-| NotificationBell     | `notification-bell.tsx`      | Header bell icon + dropdown panel                                                                    |
-| DatePicker           | `date-picker.tsx`            | Flatpickr wrapper (date or datetime)                                                                 |
-| BugReportWidget      | `bug-report-widget.tsx`      | Floating bug report button + modal (root layout)                                                     |
-| SearchInput          | `ui/search-input.tsx`        | Labeled search field                                                                                 |
-| RadixSelect          | `ui/radix-select.tsx`        | Styled dropdown select with deterministic trigger/content ids for hydration-safe SSR                 |
-| ComboboxInput        | `ui/combobox-input.tsx`      | Text input with suggestion dropdown                                                                  |
-| IconButton           | `ui/icon-button.tsx`         | Icon-only action button                                                                              |
+| Component             | File                           | Purpose                                                                                              |
+| --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| SidebarShell          | `sidebar-shell.tsx`            | App chrome wrapper (fixed sidebar + content), user card/menu, compact mobile account flyout          |
+| SidebarNav            | `sidebar-nav.tsx`              | Main/admin nav groups, active route logic, forum category sub-items (desktop-expanded only)          |
+| ClanAccessGate        | `clan-access-gate.tsx`         | Clan membership gate for scoped pages. Bypasses `/admin` routes. Syncs locale via `router.refresh()` |
+| MarkdownEditor        | `markdown-editor.tsx`          | Write/preview tabs, toolbar, image upload. Props: `storageBucket`                                    |
+| BannerPicker          | `banner-picker.tsx`            | 51 game-asset presets + custom upload                                                                |
+| ConfirmModal          | `confirm-modal.tsx`            | Danger/warning/info variants, optional phrase confirmation                                           |
+| FormModal             | `form-modal.tsx`               | Shared modal wrapper (backdrop, form, status)                                                        |
+| DataState             | `data-state.tsx`               | Loading/empty/error state wrapper                                                                    |
+| PaginationBar         | `pagination-bar.tsx`           | Page controls (compact mode available)                                                               |
+| SortableColumnHeader  | `sortable-column-header.tsx`   | Clickable sort header with direction arrow                                                           |
+| NotificationBell      | `notification-bell.tsx`        | Header bell icon + dropdown panel                                                                    |
+| DatePicker            | `date-picker.tsx`              | Flatpickr wrapper (date or datetime)                                                                 |
+| BugReportWidget       | `bug-report-widget.tsx`        | Floating bug report button + modal (root layout)                                                     |
+| BugReportWidgetLoader | `bug-report-widget-loader.tsx` | Client-only dynamic wrapper that defers widget bundle loading                                        |
+| SearchInput           | `ui/search-input.tsx`          | Labeled search field                                                                                 |
+| RadixSelect           | `ui/radix-select.tsx`          | Styled dropdown select with deterministic trigger/content ids for hydration-safe SSR                 |
+| ComboboxInput         | `ui/combobox-input.tsx`        | Text input with suggestion dropdown                                                                  |
+| IconButton            | `ui/icon-button.tsx`           | Icon-only action button                                                                              |
 
 ## 6. Shared Libraries (`lib/`)
 
@@ -322,7 +324,8 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 | Banner upload      | `hooks/use-banner-upload.ts`        | `useBannerUpload()` — shared hook for uploading banner images with type/size validation                                                                                                       |
 | Dashboard utils    | `dashboard-utils.ts`                | `toDateString()`, `extractAuthorName()`, `calculateTrend()`, `formatCompactNumber()`                                                                                                          |
 | Error utils        | `supabase/error-utils.ts`           | Classifies Supabase errors → i18n keys                                                                                                                                                        |
-| User role hook     | `hooks/use-user-role.ts`            | React hook: fetches role, exposes permission helpers                                                                                                                                          |
+| Auth state context | `hooks/auth-state-context.ts`       | Shared app-wide auth/role context contract (`userId`, auth loading, role, role loading)                                                                                                       |
+| User role hook     | `hooks/use-user-role.ts`            | React hook: resolves role/permission helpers, preferring shared auth context when available                                                                                                   |
 | Pagination hook    | `hooks/use-pagination.ts`           | Page state, page count, slice helpers                                                                                                                                                         |
 | Sortable hook      | `hooks/use-sortable.ts`             | Sort key + direction + generic comparator                                                                                                                                                     |
 | Email (send)       | `email/send-email.ts`               | Lightweight Resend API wrapper (raw `fetch`, no npm dep). Returns silently if env vars missing.                                                                                               |
@@ -415,6 +418,7 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 - Page pattern: `page.tsx` (server) → `feature-client.tsx` ("use client" with all logic).
 - Data fetching: `useCallback` + `useEffect` with `try/finally` for loading states.
 - Profile maps merged via `useMemo` to avoid recomputation on every render.
+- Global auth/role state is centralized in `AuthStateProvider` (root layout) so feature hooks consume one shared session/role source instead of duplicating Supabase auth lookups.
 - All user-facing strings use `useTranslations("namespace")` from `next-intl`.
 
 ### Permissions
@@ -458,6 +462,9 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 - E2E: Playwright, 435 tests across 29 files in Chromium listing (`npx playwright test --list --project=chromium`). Pre-authenticated via `storageState`. Run: `npx playwright test`.
 - 6 test roles: owner, admin, moderator, editor, member, guest.
 - All `.content-inner` locators use `.first()` (pages render 2+ instances via `PageShell` + client component).
+- Avoid `page.waitForLoadState("networkidle")` in new tests; persistent Supabase traffic can keep pages "busy" indefinitely. Prefer `domcontentloaded` + explicit element waits.
+- Current suite convention (2026-02-17): Playwright specs + auth helpers are fully standardized on `domcontentloaded` and explicit URL/locator polling (no remaining `waitForLoadState("networkidle")` calls in `tests/` runtime code).
+- Use `tests/helpers/wait-for-clan-access.ts` in role/content assertions that depend on `ClanAccessGate` to avoid reading intermediate "access loading" states as final outcomes.
 - `tests/messages.spec.ts` includes a mobile-only thread panel flow test (list → thread → back) and seeds a private message via admin API context when inbox data is empty.
 - `tests/messages-api-contract.spec.ts` validates all messaging endpoints for response envelope shape and privacy constraints (no `email` leakage in recipient/profile payloads).
 

@@ -203,9 +203,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const threads = Array.from(threadMap.entries()).map(([tid, { messages: threadMsgs, unreadCount }]) => {
       const sorted = threadMsgs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       const latest = sorted[0]!;
+      const rootSubject = latest.subject ?? sorted[sorted.length - 1]!.subject;
       return {
         thread_id: tid,
-        latest_message: latest,
+        latest_message: { ...latest, subject: rootSubject },
         message_count: sorted.length,
         unread_count: unreadCount,
         message_type: latest.message_type,

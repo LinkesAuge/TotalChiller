@@ -5,6 +5,7 @@ import { userMatchesBroadcastTargeting, canUserReplyToBroadcast } from "@/lib/me
 import { requireAuth } from "../../../../../lib/api/require-auth";
 import { uuidSchema } from "../../../../../lib/api/validation";
 import createSupabaseServiceRoleClient from "../../../../../lib/supabase/service-role-client";
+import getIsContentManager from "../../../../../lib/supabase/role-access";
 import { standardLimiter } from "../../../../../lib/rate-limit";
 import type { MessageThreadDeleteResponseDto, MessagesThreadResponseDto } from "@/lib/types/messages-api";
 
@@ -278,7 +279,11 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     } | null = null;
 
     if (isBroadcastThread) {
-      canReply = isSender || (await canUserReplyToBroadcast(svc, userId, rootMsg.target_clan_id));
+      const [isCM, leaderCanReply] = await Promise.all([
+        getIsContentManager({ supabase: auth.supabase }),
+        canUserReplyToBroadcast(svc, userId, rootMsg.target_clan_id),
+      ]);
+      canReply = isSender || isCM || leaderCanReply;
       threadTargeting = {
         target_ranks: rootMsg.target_ranks,
         target_roles: rootMsg.target_roles,

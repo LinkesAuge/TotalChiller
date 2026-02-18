@@ -192,8 +192,9 @@ export async function userMatchesBroadcastTargeting(
 
 /**
  * Determine if a user can reply-all on a broadcast thread.
- * Returns true for owner role, or leader/superior rank in the target clan
- * (or any clan for global broadcasts).
+ * - Owner role: can reply to any broadcast (global or clan).
+ * - Leader/superior rank: can reply to clan broadcasts for their clan only.
+ *   A specific targetClanId is required; null (global) does not grant access.
  */
 export async function canUserReplyToBroadcast(
   svc: SupabaseClient,
@@ -204,18 +205,17 @@ export async function canUserReplyToBroadcast(
 
   if (roleData?.role === "owner") return true;
 
-  let query = svc
+  if (!targetClanId) return false;
+
+  const { data: leaderMatch } = await svc
     .from("game_account_clan_memberships")
     .select("game_accounts!inner(user_id)")
     .eq("is_active", true)
     .eq("is_shadow", false)
     .in("rank", ["leader", "superior"])
-    .eq("game_accounts.user_id", userId);
+    .eq("game_accounts.user_id", userId)
+    .eq("clan_id", targetClanId)
+    .limit(1);
 
-  if (targetClanId) {
-    query = query.eq("clan_id", targetClanId);
-  }
-
-  const { data: leaderMatch } = await query.limit(1);
   return (leaderMatch?.length ?? 0) > 0;
 }

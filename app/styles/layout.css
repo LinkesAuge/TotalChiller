@@ -1015,7 +1015,7 @@
   .sidebar .nav a::after {
     display: none !important;
   }
-  .sidebar-header picture {
+  .sidebar-header-logo {
     display: none !important;
   }
   .sidebar-toggle {
@@ -1038,15 +1038,12 @@
     border-radius: 10px;
   }
   .nav-group-divider {
-    margin: 4px 6px;
+    margin: 4px 10px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-gold-a20), transparent);
   }
-  .nav-group.compact-secondary {
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: 1px solid var(--color-gold-a12);
-  }
-  .nav-group.compact-secondary a {
-    opacity: 0.92;
+  .nav-group-divider__ornament {
+    display: none !important;
   }
   .sidebar .nav-sub-items,
   .sidebar .nav-sub-item {

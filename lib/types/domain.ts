@@ -35,7 +35,7 @@ export interface ForumCategory {
   readonly sort_order: number;
 }
 
-/* ── Messages (v2 — email model) ── */
+/* ── Messages (v2 — chat model with pull-based broadcast targeting) ── */
 
 export interface MessageRow {
   readonly id: string;
@@ -46,6 +46,9 @@ export interface MessageRow {
   readonly thread_id: string | null;
   readonly parent_id: string | null;
   readonly created_at: string;
+  readonly target_ranks?: readonly string[] | null;
+  readonly target_roles?: readonly string[] | null;
+  readonly target_clan_id?: string | null;
 }
 
 /** Inbox thread summary — returned by GET /api/messages/inbox */
@@ -62,6 +65,9 @@ export interface InboxThread {
 export interface SentMessage extends MessageRow {
   readonly recipient_count: number;
   readonly recipients: readonly RecipientSummary[];
+  readonly target_ranks?: readonly string[] | null;
+  readonly target_roles?: readonly string[] | null;
+  readonly target_clan_id?: string | null;
 }
 
 export interface RecipientSummary {
@@ -81,6 +87,16 @@ export interface RecipientResult {
   readonly label: string;
   readonly username: string | null;
   readonly gameAccounts: readonly string[];
+}
+
+/** Metadata returned alongside a thread for broadcast reply capability. */
+export interface ThreadMetadata {
+  readonly can_reply: boolean;
+  readonly thread_targeting: {
+    readonly target_ranks: readonly string[] | null;
+    readonly target_roles: readonly string[] | null;
+    readonly target_clan_id: string | null;
+  } | null;
 }
 
 /** Archived item — unified view for both archived inbox threads and sent messages. */

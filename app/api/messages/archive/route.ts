@@ -2,11 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
 import { loadMessageProfilesByIds, mapRecipientsWithProfiles } from "@/lib/messages/profile-utils";
+import { userMatchesBroadcastTargeting } from "@/lib/messages/broadcast-targeting";
 import { apiError, parseJsonBody } from "@/lib/api/validation";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
 import { standardLimiter } from "../../../../lib/rate-limit";
 import type { MessagesArchiveMutationResponseDto, MessagesArchiveResponseDto } from "@/lib/types/messages-api";
+
+const BROADCAST_TYPES = ["broadcast", "clan"];
 
 /* ── Schemas ── */
 
@@ -33,7 +36,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const userId = auth.userId;
     const svc = createSupabaseServiceRoleClient();
 
-    /* ── Fetch archived inbox recipients AND archived sent messages in parallel ── */
     type MsgRow = {
       id: string;
       sender_id: string | null;
@@ -45,13 +47,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       created_at: string;
     };
 
-    const [recipientsResult, sentResult] = await Promise.all([
+    /* ── Fetch archived inbox recipients, broadcast dismissals, and sent in parallel ── */
+    const [recipientsResult, dismissalsResult, sentResult] = await Promise.all([
       svc
         .from("message_recipients")
         .select("message_id, archived_at")
         .eq("recipient_id", userId)
         .not("archived_at", "is", null)
         .is("deleted_at", null)
+        .order("archived_at", { ascending: false })
+        .limit(ARCHIVE_LIMIT),
+      svc
+        .from("message_dismissals")
+        .select("message_id, archived_at")
+        .eq("user_id", userId)
+        .not("archived_at", "is", null)
+        .is("dismissed_at", null)
         .order("archived_at", { ascending: false })
         .limit(ARCHIVE_LIMIT),
       svc
@@ -68,17 +79,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       captureApiError("GET /api/messages/archive", recipientsResult.error);
       return apiError("Failed to load archive.", 500);
     }
+    if (dismissalsResult.error) {
+      captureApiError("GET /api/messages/archive (dismissals)", dismissalsResult.error);
+      return apiError("Failed to load archive.", 500);
+    }
     if (sentResult.error) {
       captureApiError("GET /api/messages/archive", sentResult.error);
       return apiError("Failed to load archive.", 500);
     }
 
-    const archivedEntries = recipientsResult.data ?? [];
-    const archivedMsgIds = archivedEntries.map((e) => e.message_id as string);
+    /* Combine private archived entries + broadcast archived dismissals */
     const archivedAtByMsgId = new Map<string, string>();
-    for (const e of archivedEntries) {
+    for (const e of recipientsResult.data ?? []) {
       archivedAtByMsgId.set(e.message_id as string, e.archived_at as string);
     }
+    for (const d of dismissalsResult.data ?? []) {
+      archivedAtByMsgId.set(d.message_id as string, d.archived_at as string);
+    }
+    const archivedMsgIds = Array.from(archivedAtByMsgId.keys());
 
     /* Fetch messages for archived inbox entries */
     let inboxMsgs: MsgRow[] = [];
@@ -218,30 +236,62 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const timestamp = action === "archive" ? new Date().toISOString() : null;
 
     if (type === "thread") {
-      /* Find all message IDs for the given threads */
+      /* Find all messages for the given threads */
       const threadConditions = ids.map((tid) => `thread_id.eq.${tid},id.eq.${tid}`).join(",");
-      const { data: threadMsgs, error: msgErr } = await svc.from("messages").select("id").or(threadConditions);
+      const { data: threadMsgs, error: msgErr } = await svc
+        .from("messages")
+        .select("id,message_type")
+        .or(threadConditions);
 
       if (msgErr) {
         captureApiError("POST /api/messages/archive", msgErr);
         return apiError("Failed to process archive.", 500);
       }
 
-      const messageIds = (threadMsgs ?? []).map((m) => m.id as string);
-      if (messageIds.length === 0) {
+      const allMsgs = (threadMsgs ?? []) as { id: string; message_type: string }[];
+      if (allMsgs.length === 0) {
         return apiError("No messages found.", 404);
       }
 
-      /* Update archived_at on all recipient entries */
-      const { error: updateErr } = await svc
-        .from("message_recipients")
-        .update({ archived_at: timestamp })
-        .eq("recipient_id", userId)
-        .in("message_id", messageIds)
-        .is("deleted_at", null);
+      const privateMsgIds = allMsgs.filter((m) => !BROADCAST_TYPES.includes(m.message_type)).map((m) => m.id);
+      const broadcastMsgIds = allMsgs.filter((m) => BROADCAST_TYPES.includes(m.message_type)).map((m) => m.id);
 
-      if (updateErr) {
-        captureApiError("POST /api/messages/archive", updateErr);
+      const ops: PromiseLike<unknown>[] = [];
+
+      if (privateMsgIds.length > 0) {
+        ops.push(
+          svc
+            .from("message_recipients")
+            .update({ archived_at: timestamp })
+            .eq("recipient_id", userId)
+            .in("message_id", privateMsgIds)
+            .is("deleted_at", null),
+        );
+      }
+
+      if (broadcastMsgIds.length > 0) {
+        if (action === "archive") {
+          const dismissRows = broadcastMsgIds.map((mid) => ({
+            message_id: mid,
+            user_id: userId,
+            archived_at: timestamp,
+          }));
+          ops.push(svc.from("message_dismissals").upsert(dismissRows, { onConflict: "message_id,user_id" }));
+        } else {
+          ops.push(
+            svc
+              .from("message_dismissals")
+              .update({ archived_at: null })
+              .eq("user_id", userId)
+              .in("message_id", broadcastMsgIds),
+          );
+        }
+      }
+
+      const results = await Promise.all(ops);
+      const hasError = results.some((r) => (r as { error?: unknown })?.error);
+      if (hasError) {
+        captureApiError("POST /api/messages/archive", "batch archive error");
         return apiError("Failed to archive messages.", 500);
       }
     } else {

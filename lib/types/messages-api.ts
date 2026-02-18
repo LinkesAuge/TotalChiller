@@ -4,7 +4,15 @@
  * Keep these response contracts centralized so route handlers, hooks, and tests
  * stay aligned when payload shapes evolve.
  */
-import type { ArchivedItem, InboxThread, MessageRow, RecipientResult, SentMessage, ThreadMessage } from "./domain";
+import type {
+  ArchivedItem,
+  InboxThread,
+  MessageRow,
+  RecipientResult,
+  SentMessage,
+  ThreadMessage,
+  ThreadMetadata,
+} from "./domain";
 
 export interface MessageProfileEntryDto {
   readonly username: string | null;
@@ -26,6 +34,7 @@ export interface MessagesSentResponseDto {
 export interface MessagesThreadResponseDto {
   readonly data: readonly ThreadMessage[];
   readonly profiles: MessageProfileMapDto;
+  readonly meta?: ThreadMetadata;
 }
 
 export interface MessagesArchiveResponseDto {

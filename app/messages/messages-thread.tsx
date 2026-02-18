@@ -51,7 +51,10 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     getProfileLabel,
     formatRecipientLabel,
     clearSelection,
+    threadMeta,
   } = api;
+
+  const isBroadcastReply = threadMeta?.thread_targeting != null;
 
   useEffect(() => {
     const count = threadMessages.length;
@@ -117,7 +120,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
                     <div className="messages-chat-content">
                       <AppMarkdown content={message.content} />
                     </div>
-                    {!isSelf && message.recipient_entry_id ? (
+                    {!isSelf ? (
                       <button
                         type="button"
                         className="messages-chat-delete"
@@ -139,7 +142,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
           <div className="messages-reply-form">
             {!isReplyOpen ? (
               <GameButton variant="ornate1" fontSize="0.6rem" type="button" onClick={openReplyToMessage}>
-                {t("reply")}
+                {isBroadcastReply ? t("replyAll") : t("reply")}
               </GameButton>
             ) : (
               <form onSubmit={handleSendReply}>

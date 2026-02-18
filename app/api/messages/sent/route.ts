@@ -34,7 +34,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     /* Fetch sent messages */
     let msgQuery = svc
       .from("messages")
-      .select("id,sender_id,subject,content,message_type,thread_id,parent_id,created_at")
+      .select(
+        "id,sender_id,subject,content,message_type,thread_id,parent_id,created_at,target_ranks,target_roles,target_clan_id",
+      )
       .eq("sender_id", userId)
       .is("sender_deleted_at", null)
       .is("sender_archived_at", null)
@@ -62,6 +64,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       thread_id: string | null;
       parent_id: string | null;
       created_at: string;
+      target_ranks: string[] | null;
+      target_roles: string[] | null;
+      target_clan_id: string | null;
     }>;
 
     /* Apply search filter */

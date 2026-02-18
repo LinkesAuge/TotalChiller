@@ -5,6 +5,7 @@ import { useSupabase } from "../hooks/use-supabase";
 import RadixSelect from "../components/ui/radix-select";
 import MarkdownEditor from "../components/markdown-editor";
 import GameButton from "../components/ui/game-button";
+import { RankFilter } from "./rank-filter";
 import { MESSAGE_IMAGES_BUCKET } from "@/lib/constants";
 import type { RecipientResult } from "@/lib/types/domain";
 import type { SelectedRecipient } from "./messages-types";
@@ -35,6 +36,10 @@ export function MessagesCompose({ userId, api }: MessagesComposeProps): JSX.Elem
     setComposeContent,
     composeStatus,
     composeModeOptions,
+    composeTargetRanks,
+    setComposeTargetRanks,
+    composeIncludeWebmaster,
+    setComposeIncludeWebmaster,
     recipientSearch,
     setRecipientSearch,
     recipientResults,
@@ -186,6 +191,15 @@ export function MessagesCompose({ userId, api }: MessagesComposeProps): JSX.Elem
               ]}
             />
           </div>
+        ) : null}
+
+        {composeMode === "clan" || composeMode === "global" ? (
+          <RankFilter
+            selectedRanks={composeTargetRanks}
+            onRanksChange={setComposeTargetRanks}
+            includeWebmaster={composeIncludeWebmaster}
+            onIncludeWebmasterChange={setComposeIncludeWebmaster}
+          />
         ) : null}
 
         <div className="form-group">

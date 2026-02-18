@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -168,15 +168,6 @@ const NAV_SECTIONS: readonly NavSection[] = [
   },
 ];
 
-const COMPACT_ADMIN_ITEMS: readonly NavItem[] = [{ href: "/admin", labelKey: "administration", iconKey: "admin" }];
-
-function getNavSectionsForViewport(isCompactViewport: boolean): readonly NavSection[] {
-  if (!isCompactViewport) return NAV_SECTIONS;
-  return NAV_SECTIONS.map((section) =>
-    section.groupLabel === "administration" ? { ...section, items: COMPACT_ADMIN_ITEMS } : section,
-  );
-}
-
 function isNavItemActive(pathname: string, activeTab: string | null, item: NavItem): boolean {
   if (item.tab) {
     return pathname === "/admin" && activeTab === item.tab;
@@ -225,7 +216,6 @@ function SidebarNav(): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth();
   const [forumCategories, setForumCategories] = useState<ForumCategorySub[]>([]);
   const [isCompactViewport, setIsCompactViewport] = useState(false);
-  const visibleSections = useMemo(() => getNavSectionsForViewport(isCompactViewport), [isCompactViewport]);
 
   /* Keep behavior in sync with mobile collapsed-sidebar breakpoint. */
   useEffect(() => {
@@ -288,12 +278,9 @@ function SidebarNav(): JSX.Element {
       ) : (
         <>
           {/* Nav sections (no clan selector) */}
-          {visibleSections.map((section, sectionIndex) => {
+          {NAV_SECTIONS.map((section, sectionIndex) => {
             return (
-              <div
-                className={`nav-group${isCompactViewport && section.groupLabel === "administration" ? " compact-secondary" : ""}`}
-                key={section.title}
-              >
+              <div className="nav-group" key={section.title}>
                 {sectionIndex > 0 && (
                   <div className="nav-group-divider">
                     {isOpen && (

@@ -707,7 +707,20 @@
     "composeReply": "Write your reply…",
     "you": "You",
     "loadingThread": "Loading thread…",
-    "backToList": "Back"
+    "backToList": "Back",
+    "rankFilter": "Ranks",
+    "allRanks": "All Ranks",
+    "presetFuehrung": "Leadership",
+    "presetMitglieder": "Members",
+    "webmaster": "Webmaster",
+    "rankLeader": "Leader",
+    "rankSuperior": "Superior",
+    "rankOfficer": "Officer",
+    "rankVeteran": "Veteran",
+    "rankSoldier": "Soldier",
+    "rankGuest": "Guest",
+    "sentToRanks": "To: {ranks}",
+    "replyAll": "Reply All"
   },
   "profile": {
     "breadcrumb": "[THC] Chiller & Killer \u2022 Account",

@@ -63,6 +63,22 @@ Run: `npx playwright test`
 
 ## Recently Completed
 
+### Pull-Based Broadcast Visibility with Rank Filtering (2026-02-18)
+
+Major architectural shift for broadcast messaging. Broadcasts no longer create per-user `message_recipients` rows. Instead, targeting criteria are stored on the message itself and visibility is resolved at read time.
+
+- **Pull-based visibility:** Broadcast messages store `target_ranks`, `target_roles`, `target_clan_id` on the `messages` row. Inbox and thread views check the user's current rank, clan membership, and role against these criteria. New clan members and promoted members automatically see relevant historical broadcasts.
+- **Rank filtering in compose:** Content managers can filter broadcasts by rank via a dropdown with preset chips ("Führung" = leader + superior + Webmaster, "Mitglieder" = officer + veteran + soldier + guest). All ranks selected = `target_ranks: NULL` (backwards compatible).
+- **Leadership reply-all:** Users with leader/superior rank in the target clan, or the Webmaster (owner) role, can reply to broadcast threads. Replies copy the thread root's targeting criteria and are delivered as broadcasts to all matching recipients.
+- **New DB tables:** `message_reads` (broadcast read tracking), `message_dismissals` (broadcast delete/archive per user).
+- **New shared module:** `lib/messages/broadcast-targeting.ts` centralizes recipient resolution, visibility checking, and reply-all authorization.
+- **New component:** `app/messages/rank-filter.tsx` — rank filter dropdown with presets.
+- **Dual-path inbox:** `GET /api/messages` now queries private messages via `message_recipients` and broadcasts via rank matching, merging results.
+- **Thread metadata:** `GET /api/messages/thread/[threadId]` returns `meta.can_reply` and `meta.thread_targeting` for client-side reply logic.
+- **Migration:** `Documentation/migrations/messages_broadcast_targeting.sql`
+
+**Key files:** `lib/messages/broadcast-targeting.ts`, `app/api/messages/route.ts`, `app/api/messages/thread/[threadId]/route.ts`, `app/api/messages/[id]/route.ts`, `app/api/messages/archive/route.ts`, `app/api/messages/sent/route.ts`, `app/messages/use-messages.ts`, `app/messages/messages-compose.tsx`, `app/messages/rank-filter.tsx`, `app/messages/messages-thread.tsx`, `lib/types/domain.ts`, `lib/types/messages-api.ts`.
+
 ### Messages: Chat-Style Thread View (2026-02-18)
 
 Replaced the email-style stacked cards in message thread detail with a flat chat-style timeline.

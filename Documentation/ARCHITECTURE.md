@@ -85,28 +85,30 @@ Login, register, forgot password, password update. Supabase Auth with PKCE flow.
 
 ### 4.2 Messaging (`app/messages/`)
 
-Chat-style messaging with flat threading. One `messages` row per sent message + N `message_recipients` rows. Broadcasts create one message + N recipients (sender sees one sent entry). Soft delete per-recipient. Inbox groups by `thread_id`. Thread detail renders as a chat timeline (own messages right-aligned, received left-aligned). Subject shown once in thread header, not per message. Archive support (hide from inbox/sent, view in archive tab, reversible). Multi-select batch delete/archive with checkboxes.
+Chat-style messaging with flat threading. Private messages use `message_recipients` rows (one per recipient). Broadcasts use **pull-based visibility**: targeting criteria (`target_ranks`, `target_roles`, `target_clan_id`) are stored on the message itself, and visibility is resolved at read time based on the user's current rank, clan membership, and role. This means new clan members and promoted members automatically see relevant historical broadcasts. Soft delete per-recipient for private messages; `message_dismissals` for broadcasts. Inbox groups by `thread_id`. Thread detail renders as a chat timeline (own messages right-aligned, received left-aligned). Subject shown once in thread header, not per message. Leadership (leader/superior/Webmaster) can reply-all to broadcast threads. Archive support (hide from inbox/sent, view in archive tab, reversible). Multi-select batch delete/archive with checkboxes. Rank filtering available when composing broadcasts (presets: "Führung" = leader + superior + Webmaster, "Mitglieder" = rest).
 
-| File                                          | Purpose                                                         |
-| --------------------------------------------- | --------------------------------------------------------------- |
-| `app/messages/messages-client.tsx`            | Orchestrator (compose, inbox, thread)                           |
-| `app/messages/messages-inbox.tsx`             | Inbox/sent/archive list with multi-select, delete, archive      |
-| `app/messages/messages-thread.tsx`            | Thread detail / sent message detail (works in all view modes)   |
-| `app/messages/messages-compose.tsx`           | Compose form (direct/clan/global)                               |
-| `app/messages/use-messages.ts`                | State hook (data, CRUD, delete, archive, multi-select)          |
-| `app/messages/messages-types.ts`              | Local types (ViewMode: inbox/sent/archive, ProfileMap, etc.)    |
-| `lib/messages/profile-utils.ts`               | Shared profile map + label helpers used by routes and client    |
-| `lib/types/messages-api.ts`                   | Shared DTO contracts for messaging API response envelopes       |
-| `app/api/messages/route.ts`                   | `GET` inbox (threaded, filters archived), `POST` send           |
-| `app/api/messages/sent/route.ts`              | `GET` sent messages (filters archived/deleted)                  |
-| `app/api/messages/sent/[id]/route.ts`         | `DELETE` sender soft-delete (`sender_deleted_at`)               |
-| `app/api/messages/thread/[threadId]/route.ts` | `GET` full thread + auto mark-read, `DELETE` thread soft-delete |
-| `app/api/messages/[id]/route.ts`              | `PATCH` mark read, `DELETE` per-message soft-delete             |
-| `app/api/messages/archive/route.ts`           | `GET` archived items (combined), `POST` archive/unarchive batch |
-| `app/api/messages/search-recipients/route.ts` | `GET` recipient search (profiles + game accounts)               |
+| File                                          | Purpose                                                                            |
+| --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `app/messages/messages-client.tsx`            | Orchestrator (compose, inbox, thread)                                              |
+| `app/messages/messages-inbox.tsx`             | Inbox/sent/archive list with multi-select, delete, archive                         |
+| `app/messages/messages-thread.tsx`            | Thread detail / sent message detail (works in all view modes)                      |
+| `app/messages/messages-compose.tsx`           | Compose form (direct/clan/global) with rank filter for broadcasts                  |
+| `app/messages/rank-filter.tsx`                | Rank filter dropdown with presets for broadcast targeting                          |
+| `app/messages/use-messages.ts`                | State hook (data, CRUD, delete, archive, multi-select, rank filter)                |
+| `app/messages/messages-types.ts`              | Local types (ViewMode: inbox/sent/archive, ProfileMap, etc.)                       |
+| `lib/messages/profile-utils.ts`               | Shared profile map + label helpers used by routes and client                       |
+| `lib/messages/broadcast-targeting.ts`         | Shared broadcast targeting: resolve recipients, check visibility, reply-all auth   |
+| `lib/types/messages-api.ts`                   | Shared DTO contracts for messaging API response envelopes                          |
+| `app/api/messages/route.ts`                   | `GET` inbox (dual-path: private + broadcast), `POST` send                          |
+| `app/api/messages/sent/route.ts`              | `GET` sent messages (includes targeting info for broadcasts)                       |
+| `app/api/messages/sent/[id]/route.ts`         | `DELETE` sender soft-delete (`sender_deleted_at`)                                  |
+| `app/api/messages/thread/[threadId]/route.ts` | `GET` full thread + auto mark-read + `can_reply` meta, `DELETE` thread soft-delete |
+| `app/api/messages/[id]/route.ts`              | `PATCH` mark read (private or broadcast), `DELETE` per-message soft-delete/dismiss |
+| `app/api/messages/archive/route.ts`           | `GET` archived items (combined private+broadcast), `POST` archive/unarchive batch  |
+| `app/api/messages/search-recipients/route.ts` | `GET` recipient search (profiles + game accounts)                                  |
 
-**DB tables**: `messages`, `message_recipients`, `profiles`
-**Key patterns**: Nil UUID `00000000-...` as placeholder for broadcast `recipient_ids`; `thread_id` for flat threading (replies set `parent_id` to thread root for backward compat; `parent_id` nesting is not used in UI); `deleted_at` for per-recipient soft delete; `archived_at` on `message_recipients` for inbox archive; `sender_deleted_at`/`sender_archived_at` on `messages` for sender-side operations; `MarkdownEditor` with `storageBucket="message-images"`.
+**DB tables**: `messages` (with `target_ranks`, `target_roles`, `target_clan_id`), `message_recipients` (private only), `message_reads` (broadcast read tracking), `message_dismissals` (broadcast delete/archive), `profiles`
+**Key patterns**: Nil UUID `00000000-...` as placeholder for broadcast `recipient_ids`; `thread_id` for flat threading; pull-based broadcast visibility via `userMatchesBroadcastTargeting()`; `deleted_at` on `message_recipients` for private soft delete; `message_dismissals.dismissed_at`/`archived_at` for broadcast soft delete/archive; `sender_deleted_at`/`sender_archived_at` on `messages` for sender-side operations; `MarkdownEditor` with `storageBucket="message-images"`.
 
 ### 4.3 Forum (`app/forum/`)
 
@@ -375,35 +377,37 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 ## 8. Database Table Index
 
-| Table                           | Purpose                                                                                                         |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `profiles`                      | User profiles (username, display_name, email, default_game_account_id)                                          |
-| `user_roles`                    | One global role per user (owner/admin/moderator/editor/member/guest)                                            |
-| `game_accounts`                 | Per-user game accounts with approval_status                                                                     |
-| `game_account_clan_memberships` | Links game accounts to clans (rank, is_active)                                                                  |
-| `clans`                         | Clan metadata (name, is_default, is_unassigned)                                                                 |
-| `audit_logs`                    | Action audit trail (entity, action, actor, details)                                                             |
-| `messages`                      | One row per authored message (sender, subject, content, type, threading, sender_deleted_at, sender_archived_at) |
-| `message_recipients`            | One row per recipient (is_read, deleted_at for soft delete, archived_at for archive)                            |
-| `notifications`                 | Notification feed (type, title, body, reference_id, is_read)                                                    |
-| `user_notification_settings`    | Per-user per-type notification toggles                                                                          |
-| `articles`                      | Announcements (title, content, banner_url, created_by, updated_by)                                              |
-| `events`                        | Events (date, time, duration, recurrence, banner_url, is_pinned)                                                |
-| `event_templates`               | Reusable event templates (same fields as events)                                                                |
-| `forum_categories`              | Forum categories (name, slug, sort_order)                                                                       |
-| `forum_posts`                   | Forum posts (title, content, category, is_pinned, vote/view counts)                                             |
-| `forum_comments`                | Threaded comments on posts (parent_id for nesting)                                                              |
-| `forum_votes`                   | Post upvotes/downvotes                                                                                          |
-| `forum_comment_votes`           | Comment upvotes/downvotes                                                                                       |
-| `site_content`                  | CMS text content (page, section_key, bilingual)                                                                 |
-| `site_list_items`               | CMS structured list items (page, section_key, sort_order)                                                       |
-| `design_assets`                 | Game asset catalog (~2,359 PNGs)                                                                                |
-| `ui_elements`                   | UI element inventory (render_type, preview)                                                                     |
-| `asset_assignments`             | Maps game assets to UI elements                                                                                 |
-| `bug_reports`                   | Bug reports (title, description, status, priority, category, page_url, reporter_id)                             |
-| `bug_report_categories`         | Admin-managed bug report categories (name, sort_order)                                                          |
-| `bug_report_comments`           | Threaded comments on bug reports (report_id, author_id, content)                                                |
-| `bug_report_screenshots`        | Screenshot metadata for bug reports (report_id, storage_path, file_name)                                        |
+| Table                           | Purpose                                                                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `profiles`                      | User profiles (username, display_name, email, default_game_account_id)                                                     |
+| `user_roles`                    | One global role per user (owner/admin/moderator/editor/member/guest)                                                       |
+| `game_accounts`                 | Per-user game accounts with approval_status                                                                                |
+| `game_account_clan_memberships` | Links game accounts to clans (rank, is_active)                                                                             |
+| `clans`                         | Clan metadata (name, is_default, is_unassigned)                                                                            |
+| `audit_logs`                    | Action audit trail (entity, action, actor, details)                                                                        |
+| `messages`                      | One row per authored message (sender, subject, content, type, threading, targeting, sender_deleted_at, sender_archived_at) |
+| `message_recipients`            | One row per recipient for private messages (is_read, deleted_at for soft delete, archived_at for archive)                  |
+| `message_reads`                 | Per-user read tracking for broadcast messages (message_id, user_id, read_at)                                               |
+| `message_dismissals`            | Per-user delete/archive for broadcast messages (message_id, user_id, dismissed_at, archived_at)                            |
+| `notifications`                 | Notification feed (type, title, body, reference_id, is_read)                                                               |
+| `user_notification_settings`    | Per-user per-type notification toggles                                                                                     |
+| `articles`                      | Announcements (title, content, banner_url, created_by, updated_by)                                                         |
+| `events`                        | Events (date, time, duration, recurrence, banner_url, is_pinned)                                                           |
+| `event_templates`               | Reusable event templates (same fields as events)                                                                           |
+| `forum_categories`              | Forum categories (name, slug, sort_order)                                                                                  |
+| `forum_posts`                   | Forum posts (title, content, category, is_pinned, vote/view counts)                                                        |
+| `forum_comments`                | Threaded comments on posts (parent_id for nesting)                                                                         |
+| `forum_votes`                   | Post upvotes/downvotes                                                                                                     |
+| `forum_comment_votes`           | Comment upvotes/downvotes                                                                                                  |
+| `site_content`                  | CMS text content (page, section_key, bilingual)                                                                            |
+| `site_list_items`               | CMS structured list items (page, section_key, sort_order)                                                                  |
+| `design_assets`                 | Game asset catalog (~2,359 PNGs)                                                                                           |
+| `ui_elements`                   | UI element inventory (render_type, preview)                                                                                |
+| `asset_assignments`             | Maps game assets to UI elements                                                                                            |
+| `bug_reports`                   | Bug reports (title, description, status, priority, category, page_url, reporter_id)                                        |
+| `bug_report_categories`         | Admin-managed bug report categories (name, sort_order)                                                                     |
+| `bug_report_comments`           | Threaded comments on bug reports (report_id, author_id, content)                                                           |
+| `bug_report_screenshots`        | Screenshot metadata for bug reports (report_id, storage_path, file_name)                                                   |
 
 ## 9. Conventions & Patterns
 
@@ -447,12 +451,15 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 ### Messaging
 
-- Broadcasts send a nil UUID (`00000000-0000-0000-0000-000000000000`) as `recipient_ids` placeholder; server resolves actual recipients.
+- **Pull-based broadcast visibility**: Broadcasts store targeting criteria on the message row (`target_ranks`, `target_roles`, `target_clan_id`). Visibility is resolved at read time by checking the user's current rank/clan/role against the targeting criteria. No `message_recipients` rows are created for broadcasts.
+- Broadcasts send a nil UUID (`00000000-0000-0000-0000-000000000000`) as `recipient_ids` placeholder; server resolves actual recipients for notification purposes only.
 - Threading: `thread_id` = root message ID. All replies share `thread_id`. `parent_id` is set to thread root for DB compat but not used for nesting in the UI (flat chat timeline).
-- No reply on broadcast/clan messages (one-way notifications).
+- **Leadership reply-all**: Users with leader/superior rank in the target clan, or the Webmaster (owner) role, can reply to broadcast threads. Replies copy the thread root's targeting criteria.
+- **Rank filter in compose**: Content managers can filter broadcasts by rank via a dropdown with presets ("Führung", "Mitglieder"). All ranks selected = `target_ranks: NULL` (backwards compatible).
 - Profile label + recipient/profile map logic is centralized in `lib/messages/profile-utils.ts` to keep payload shaping and fallback behavior consistent.
-- Soft delete: `deleted_at` on `message_recipients` (per-recipient, message stays for sender/others). `sender_deleted_at` on `messages` (sender outbox only).
-- Archive: `archived_at` on `message_recipients` (hides from inbox), `sender_archived_at` on `messages` (hides from outbox). Reversible via unarchive. Archive tab shows combined inbox+sent archived items with source badges.
+- Broadcast targeting logic is centralized in `lib/messages/broadcast-targeting.ts` (resolve recipients, check visibility, reply-all authorization).
+- Soft delete: `deleted_at` on `message_recipients` for private (per-recipient, message stays for sender/others); `message_dismissals.dismissed_at` for broadcasts. `sender_deleted_at` on `messages` (sender outbox only).
+- Archive: `archived_at` on `message_recipients` for private (hides from inbox); `message_dismissals.archived_at` for broadcasts; `sender_archived_at` on `messages` (hides from outbox). Reversible via unarchive. Archive tab shows combined inbox+sent archived items with source badges.
 - Multi-select: Checkboxes on each list item, batch action bar for delete/archive/unarchive. Uses `Promise.allSettled` for parallel API calls.
 
 ### i18n

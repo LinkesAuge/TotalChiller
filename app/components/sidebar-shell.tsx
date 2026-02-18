@@ -218,6 +218,7 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           <Image
             src="/assets/ui/chillerkiller_logo.png"
             alt="Chillers & Killers logo"
+            className="sidebar-header-logo"
             width={480}
             height={484}
             style={{ objectFit: "contain", width: isOpen ? 160 : 36, height: isOpen ? 160 : 36, flexShrink: 0 }}

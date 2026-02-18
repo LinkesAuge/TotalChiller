@@ -22,7 +22,15 @@ import type {
   MessagesSentResponseDto,
   MessagesThreadResponseDto,
 } from "@/lib/types/messages-api";
+import type { ThreadMetadata } from "@/lib/types/domain";
 import type { ProfileMap, ViewMode, ClanOption, SelectedRecipient, ComposeMode } from "./messages-types";
+
+export const ALL_RANKS = ["leader", "superior", "officer", "veteran", "soldier", "guest"] as const;
+export const RANK_PRESET_FUEHRUNG = { ranks: ["leader", "superior"] as string[], includeWebmaster: true };
+export const RANK_PRESET_MITGLIEDER = {
+  ranks: ["officer", "veteran", "soldier", "guest"] as string[],
+  includeWebmaster: false,
+};
 
 export interface UseMessagesParams {
   readonly userId: string;
@@ -84,6 +92,15 @@ export interface UseMessagesResult {
   readonly replyContent: string;
   readonly setReplyContent: (v: string) => void;
   readonly replyStatus: string;
+
+  /* Rank targeting (compose) */
+  readonly composeTargetRanks: readonly string[];
+  readonly setComposeTargetRanks: (v: readonly string[]) => void;
+  readonly composeIncludeWebmaster: boolean;
+  readonly setComposeIncludeWebmaster: (v: boolean) => void;
+
+  /* Thread metadata (from API) */
+  readonly threadMeta: ThreadMetadata | null;
 
   /* Recipient search */
   readonly recipientSearch: string;
@@ -223,6 +240,11 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
   const [isReplyOpen, setIsReplyOpen] = useState<boolean>(false);
   const [replyContent, setReplyContent] = useState<string>("");
   const [replyStatus, setReplyStatus] = useState<string>("");
+
+  /* ── Rank targeting state ── */
+  const [composeTargetRanks, setComposeTargetRanks] = useState<readonly string[]>([...ALL_RANKS]);
+  const [composeIncludeWebmaster, setComposeIncludeWebmaster] = useState<boolean>(true);
+  const [threadMeta, setThreadMeta] = useState<ThreadMetadata | null>(null);
 
   /* ── Recipient search state ── */
   const [recipientSearch, setRecipientSearch] = useState<string>("");
@@ -390,6 +412,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
       threadAbortRef.current = controller;
       setIsThreadLoading(true);
       setThreadMessages([]);
+      setThreadMeta(null);
       try {
         const response = await fetch(`/api/messages/thread/${threadId}`, { signal: controller.signal });
         if (!response.ok) {
@@ -400,6 +423,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         if (!controller.signal.aborted) {
           setThreadMessages(result.data ?? []);
           setThreadProfiles(result.profiles ?? {});
+          setThreadMeta(result.meta ?? null);
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
@@ -558,6 +582,8 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     setRecipientSearch("");
     setRecipientResults([]);
     setIsSearchDropdownOpen(false);
+    setComposeTargetRanks([...ALL_RANKS]);
+    setComposeIncludeWebmaster(true);
   }, []);
 
   const resetReply = useCallback((): void => {
@@ -568,8 +594,24 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
 
   const formatRecipientLabel = useCallback(
     (msg: SentMessage): string => {
-      if (msg.message_type === "broadcast") return t("sentToAll");
-      if (msg.message_type === "clan") return t("sentToClan", { clan: t("clan") });
+      if (msg.message_type === "broadcast" || msg.message_type === "clan") {
+        if (msg.target_ranks && msg.target_ranks.length > 0 && msg.target_ranks.length < ALL_RANKS.length) {
+          const rankLabels = msg.target_ranks.map((r) => {
+            const key = `rank${r.charAt(0).toUpperCase()}${r.slice(1)}` as
+              | "rankLeader"
+              | "rankSuperior"
+              | "rankOfficer"
+              | "rankVeteran"
+              | "rankSoldier"
+              | "rankGuest";
+            return t(key);
+          });
+          if (msg.target_roles?.includes("owner")) rankLabels.push(t("webmaster"));
+          return t("sentToRanks", { ranks: rankLabels.join(", ") });
+        }
+        if (msg.message_type === "broadcast") return t("sentToAll");
+        return t("sentToClan", { clan: t("clan") });
+      }
       if (msg.recipients.length === 0) return t("unknownPartner");
       if (msg.recipients.length === 1) {
         return `${t("to")}: ${msg.recipients[0]!.label}`;
@@ -655,22 +697,43 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     async (event: FormEvent<HTMLFormElement>): Promise<void> => {
       event.preventDefault();
       if (!replyContent.trim() || !selectedThreadId) return;
-      const lastReceived = [...threadMessages].reverse().find((m) => m.sender_id !== userId);
-      if (!lastReceived?.sender_id) {
-        setReplyStatus(t("failedToSend"));
-        return;
-      }
+
+      const isBroadcastReply = threadMeta?.thread_targeting != null;
+
       setReplyStatus(t("sending"));
       try {
-        const response = await fetch("/api/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        let payload: Record<string, unknown>;
+
+        if (isBroadcastReply) {
+          const tgt = threadMeta!.thread_targeting!;
+          const rootMsg = threadMessages[0];
+          payload = {
+            recipient_ids: ["00000000-0000-0000-0000-000000000000"],
+            content: replyContent.trim(),
+            message_type: rootMsg?.message_type === "clan" ? "clan" : "broadcast",
+            parent_id: selectedThreadId,
+            target_ranks: tgt.target_ranks ?? undefined,
+            target_roles: tgt.target_roles ?? undefined,
+            clan_id: tgt.target_clan_id ?? undefined,
+          };
+        } else {
+          const lastReceived = [...threadMessages].reverse().find((m) => m.sender_id !== userId);
+          if (!lastReceived?.sender_id) {
+            setReplyStatus(t("failedToSend"));
+            return;
+          }
+          payload = {
             recipient_ids: [lastReceived.sender_id],
             content: replyContent.trim(),
             message_type: "private",
             parent_id: selectedThreadId,
-          }),
+          };
+        }
+
+        const response = await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         });
         if (!response.ok) {
           const result = (await response.json()) as { readonly error?: string };
@@ -683,7 +746,7 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         setReplyStatus(t("failedToSend"));
       }
     },
-    [replyContent, userId, threadMessages, selectedThreadId, loadThread, resetReply, t],
+    [replyContent, userId, threadMessages, selectedThreadId, threadMeta, loadThread, resetReply, t],
   );
 
   const handleCompose = useCallback(
@@ -723,16 +786,26 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
             return;
           }
           setComposeStatus(t("sendingBroadcast"));
+
+          const isAllRanks = composeTargetRanks.length === ALL_RANKS.length;
+          const payload: Record<string, unknown> = {
+            recipient_ids: ["00000000-0000-0000-0000-000000000000"],
+            subject: composeSubject.trim() || null,
+            content: composeContent.trim(),
+            message_type: msgType,
+            clan_id: composeMode === "clan" ? composeClanId : undefined,
+          };
+          if (!isAllRanks && composeTargetRanks.length > 0) {
+            payload.target_ranks = composeTargetRanks;
+          }
+          if (composeIncludeWebmaster) {
+            payload.target_roles = ["owner"];
+          }
+
           const response = await fetch("/api/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              recipient_ids: ["00000000-0000-0000-0000-000000000000"],
-              subject: composeSubject.trim() || null,
-              content: composeContent.trim(),
-              message_type: msgType,
-              clan_id: composeMode === "clan" ? composeClanId : undefined,
-            }),
+            body: JSON.stringify(payload),
           });
           const result = (await response.json()) as Partial<MessageSendResponseDto> & {
             readonly error?: string;
@@ -752,7 +825,18 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
         setComposeStatus(t("failedToSend"));
       }
     },
-    [composeContent, composeMode, composeRecipients, composeSubject, composeClanId, resetCompose, loadSent, t],
+    [
+      composeContent,
+      composeMode,
+      composeRecipients,
+      composeSubject,
+      composeClanId,
+      composeTargetRanks,
+      composeIncludeWebmaster,
+      resetCompose,
+      loadSent,
+      t,
+    ],
   );
 
   const handleDeleteMessage = useCallback(
@@ -1046,9 +1130,10 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
   const canReply =
     (viewMode === "inbox" || (viewMode === "archive" && selectedThreadId !== "")) &&
     selectedThreadId !== "" &&
-    (selectedInboxThread?.message_type === "private" ||
-      (viewMode === "archive" && threadMessages.some((m) => m.message_type === "private"))) &&
-    threadMessages.length > 0;
+    threadMessages.length > 0 &&
+    (threadMeta?.can_reply ??
+      (selectedInboxThread?.message_type === "private" ||
+        (viewMode === "archive" && threadMessages.some((m) => m.message_type === "private"))));
 
   return {
     viewMode,
@@ -1089,6 +1174,11 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
     setReplyContent,
     replyStatus,
     setIsReplyOpen,
+    composeTargetRanks,
+    setComposeTargetRanks,
+    composeIncludeWebmaster,
+    setComposeIncludeWebmaster,
+    threadMeta,
     recipientSearch,
     setRecipientSearch,
     recipientResults,

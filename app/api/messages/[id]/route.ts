@@ -6,6 +6,8 @@ import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-ro
 import { standardLimiter } from "../../../../lib/rate-limit";
 import type { MessageDeleteMutationResponseDto, MessageReadMutationResponseDto } from "@/lib/types/messages-api";
 
+const BROADCAST_TYPES = ["broadcast", "clan"];
+
 interface RouteContext {
   readonly params: Promise<{ readonly id: string }>;
 }
@@ -13,7 +15,8 @@ interface RouteContext {
 /**
  * PATCH /api/messages/[id]
  * Marks a message as read for the authenticated user.
- * Updates the `is_read` flag on the corresponding `message_recipients` row.
+ * Private: updates `message_recipients.is_read`.
+ * Broadcast: upserts into `message_reads`.
  */
 export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
@@ -27,17 +30,32 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       return NextResponse.json({ error: "Invalid message ID format." }, { status: 400 });
     }
     const svc = createSupabaseServiceRoleClient();
-    const { error: updateError } = await svc
-      .from("message_recipients")
-      .update({ is_read: true })
-      .eq("message_id", parsed.data)
-      .eq("recipient_id", auth.userId)
-      .is("deleted_at", null);
-    if (updateError) {
-      captureApiError("PATCH /api/messages/[id]", updateError);
-      return NextResponse.json({ error: "Failed to update message." }, { status: 500 });
+    const msgId = parsed.data;
+
+    const { data: msg } = await svc.from("messages").select("message_type").eq("id", msgId).maybeSingle();
+
+    if (msg && BROADCAST_TYPES.includes(msg.message_type as string)) {
+      const { error } = await svc
+        .from("message_reads")
+        .upsert({ message_id: msgId, user_id: auth.userId }, { onConflict: "message_id,user_id" });
+      if (error) {
+        captureApiError("PATCH /api/messages/[id]", error);
+        return NextResponse.json({ error: "Failed to update message." }, { status: 500 });
+      }
+    } else {
+      const { error } = await svc
+        .from("message_recipients")
+        .update({ is_read: true })
+        .eq("message_id", msgId)
+        .eq("recipient_id", auth.userId)
+        .is("deleted_at", null);
+      if (error) {
+        captureApiError("PATCH /api/messages/[id]", error);
+        return NextResponse.json({ error: "Failed to update message." }, { status: 500 });
+      }
     }
-    return NextResponse.json<MessageReadMutationResponseDto>({ data: { id: parsed.data, is_read: true } });
+
+    return NextResponse.json<MessageReadMutationResponseDto>({ data: { id: msgId, is_read: true } });
   } catch (err) {
     captureApiError("PATCH /api/messages/[id]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
@@ -47,8 +65,8 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
 /**
  * DELETE /api/messages/[id]
  * Soft-deletes a message for the authenticated user.
- * Sets `deleted_at` on the corresponding `message_recipients` row.
- * The message remains visible to the sender and other recipients.
+ * Private: sets `deleted_at` on `message_recipients`.
+ * Broadcast: upserts into `message_dismissals` with `dismissed_at`.
  */
 export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
@@ -62,20 +80,38 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
       return NextResponse.json({ error: "Invalid message ID format." }, { status: 400 });
     }
     const svc = createSupabaseServiceRoleClient();
-    const { data: affected, error: deleteError } = await svc
-      .from("message_recipients")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("message_id", parsed.data)
-      .eq("recipient_id", auth.userId)
-      .select("id");
-    if (deleteError) {
-      captureApiError("DELETE /api/messages/[id]", deleteError);
-      return NextResponse.json({ error: "Failed to delete message." }, { status: 500 });
+    const msgId = parsed.data;
+
+    const { data: msg } = await svc.from("messages").select("message_type").eq("id", msgId).maybeSingle();
+
+    if (msg && BROADCAST_TYPES.includes(msg.message_type as string)) {
+      const { error } = await svc
+        .from("message_dismissals")
+        .upsert(
+          { message_id: msgId, user_id: auth.userId, dismissed_at: new Date().toISOString() },
+          { onConflict: "message_id,user_id" },
+        );
+      if (error) {
+        captureApiError("DELETE /api/messages/[id]", error);
+        return NextResponse.json({ error: "Failed to delete message." }, { status: 500 });
+      }
+    } else {
+      const { data: affected, error } = await svc
+        .from("message_recipients")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("message_id", msgId)
+        .eq("recipient_id", auth.userId)
+        .select("id");
+      if (error) {
+        captureApiError("DELETE /api/messages/[id]", error);
+        return NextResponse.json({ error: "Failed to delete message." }, { status: 500 });
+      }
+      if (!affected || affected.length === 0) {
+        return NextResponse.json({ error: "Message not found." }, { status: 404 });
+      }
     }
-    if (!affected || affected.length === 0) {
-      return NextResponse.json({ error: "Message not found." }, { status: 404 });
-    }
-    return NextResponse.json<MessageDeleteMutationResponseDto>({ data: { id: parsed.data, deleted: true } });
+
+    return NextResponse.json<MessageDeleteMutationResponseDto>({ data: { id: msgId, deleted: true } });
   } catch (err) {
     captureApiError("DELETE /api/messages/[id]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });

@@ -10,6 +10,7 @@ node_modules
 .cursor/
 .vscode/
 Resources/
+Design/TotalBattleTemplate/
 Documentation/auth.txt
 
 # Tool artifacts

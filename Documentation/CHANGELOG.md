@@ -8,6 +8,13 @@
 
 ### Fixed
 
+- **Stale Playwright helper workflows**: Replaced removed data-import dashboard checks in `scripts/playwright/dashboard-workflow.mjs` with current dashboard/news/events/forum deep-link checks, and updated `scripts/playwright/ui-audit.mjs` default routes to active pages only
+- **Obsolete migration step**: Removed legacy `public.chest_entries` FK mutations from `Documentation/migrations/clans_delete_policy_fix.sql` so fresh setups no longer hit missing-table errors
+- **API documentation drift**: Synced `Documentation/ARCHITECTURE.md` route index with current code (`/api/admin/resend-invite`, `/api/notifications/delete-all`, `/api/notifications/[id]` DELETE support, and `[commentId]` path naming)
+- **Runbook stale sections**: Removed the non-existent `public/icon-preview.html` guidance and corrected admin shared-hook/component path references in `Documentation/runbook.md`
+- **Template screenshot archive cleanup**: Removed unreferenced tracked files under `Design/TotalBattleTemplate/` and added an ignore guard in `.gitignore` to avoid accidental re-commits
+- **Dependency manifest hygiene**: Added explicit `dotenv` + `typescript-eslint` dev dependencies used by tooling (`scan-design-assets.ts`, `eslint.config.js`) and removed unused direct `@eslint/eslintrc`
+
 - **Messages recipient privacy**: Removed `email` fields from message-related profile payloads returned to clients (`/api/messages`, `/api/messages/sent`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, `/api/messages/search-recipients`) to prevent exposing user email addresses in messaging API responses
 - **Message profile fallback consistency**: Unified sender/recipient label fallback behavior through shared resolver logic so message routes and `useMessages` use the same display-name/username fallback order
 - **Initial page payload pressure**: Deferred bug-report widget/form code paths with `next/dynamic` (`BugReportWidgetLoader`, lazy `BugsForm`) so heavyweight report UI code is no longer part of the eager baseline

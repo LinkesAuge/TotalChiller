@@ -62,9 +62,9 @@ INSERT INTO public.site_list_items (page, section_key, sort_order, text_de, text
   'Weekly war coordination and strategy sessions',
   'Aktiv', 'Active'),
 ('home', 'whyJoin', 1,
-  'Automatisiertes Truhen-Score-Tracking mit Leistungseinblicken',
-  'Automated chest score tracking with performance insights',
-  'Einblicke', 'Insights'),
+  'Strukturierte Freigabe- und Moderationsabläufe für stabile Clan-Prozesse',
+  'Structured approvals and moderation workflows for reliable clan operations',
+  'Admin', 'Admin'),
 ('home', 'whyJoin', 2,
   'Interaktiver Veranstaltungskalender mit Countdown-Timern',
   'Interactive event calendar with countdown timers',
@@ -74,9 +74,9 @@ INSERT INTO public.site_list_items (page, section_key, sort_order, text_de, text
   'Real-time clan news and pinned announcements',
   'Nachrichten', 'News'),
 ('home', 'whyJoin', 4,
-  'Diagramme und Analysen für individuelle und Clanleistung',
-  'Charts and analytics for individual and clan performance',
-  'Analysen', 'Analytics')
+  'Mitgliederverzeichnis mit Rang-, Rollen- und Clan-Transparenz',
+  'Member directory with rank, role, and clan visibility',
+  'Mitglieder', 'Members')
 ON CONFLICT DO NOTHING;
 
 -- Clan News items (from home page)
@@ -90,8 +90,8 @@ INSERT INTO public.site_list_items (page, section_key, sort_order, text_de, text
   'Alliance tournament update and results posted',
   'Info', 'Info'),
 ('home', 'publicNews', 2,
-  'Plattform-Update mit neuen Diagramm-Funktionen und verbesserten Datenimporten',
-  'Platform update with new chart features and improved data imports',
+  'Plattform-Update mit verbesserten Deep-Links und Nachrichtenabläufen',
+  'Platform update with improved deep links and messaging workflows',
   'Update', 'Update')
 ON CONFLICT DO NOTHING;
 

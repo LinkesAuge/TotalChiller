@@ -64,13 +64,15 @@ const defaultRoutes = [
   "/auth/forgot",
   "/news",
   "/events",
+  "/forum",
   "/messages",
+  "/bugs",
   "/analytics",
+  "/members",
   "/settings",
   "/profile",
   "/admin",
-  "/admin/data-import",
-  "/admin/data-table",
+  "/design-system",
 ];
 
 const routes = routesArg
@@ -146,7 +148,7 @@ if (loginIdentifier && loginPassword) {
   runPwcli([
     "run-code",
     oneLine(`async function (page) {
-      await page.goto('${safeBaseUrl}/auth/login', { waitUntil: 'networkidle' });
+      await page.goto('${safeBaseUrl}/auth/login', { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('#identifier', { timeout: 15000 });
       await page.fill('#identifier', '${safeLoginIdentifier}');
       await page.fill('#password', '${safeLoginPassword}');

@@ -3,10 +3,7 @@
  * Domain types (InboxThread, SentMessage, ThreadMessage, etc.) come from @/lib/types/domain.
  */
 import type { RecipientSummary } from "@/lib/types/domain";
-import type { MessageProfileEntryDto, MessageProfileMapDto } from "@/lib/types/messages-api";
-
-/** Profile fields needed for message display in the messaging UI. */
-export type ProfileEntry = MessageProfileEntryDto;
+import type { MessageProfileMapDto } from "@/lib/types/messages-api";
 
 export type ProfileMap = MessageProfileMapDto;
 

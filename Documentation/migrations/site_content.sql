@@ -65,14 +65,14 @@ INSERT INTO public.site_content (page, section_key, field_key, content_de, conte
 ('home', 'whyJoin', 'text', 'Wir bieten eine strukturierte, unterstützende Umgebung für Total Battle Spieler, die auf einem höheren Niveau konkurrieren und gleichzeitig den sozialen Aspekt des Allianz-Gameplays genießen möchten.', 'We offer a structured, supportive environment for Total Battle players who want to compete at a higher level while enjoying the social aspect of alliance gameplay.'),
 ('home', 'whyJoin', 'feature1', 'Wöchentliche Kriegskoordination und Strategiesitzungen', 'Weekly war coordination and strategy sessions'),
 ('home', 'whyJoin', 'feature1Badge', 'Aktiv', 'Active'),
-('home', 'whyJoin', 'feature2', 'Automatisiertes Truhen-Score-Tracking mit Leistungseinblicken', 'Automated chest score tracking with performance insights'),
-('home', 'whyJoin', 'feature2Badge', 'Einblicke', 'Insights'),
+('home', 'whyJoin', 'feature2', 'Strukturierte Freigabe- und Moderationsabläufe für stabile Clan-Prozesse', 'Structured approvals and moderation workflows for reliable clan operations'),
+('home', 'whyJoin', 'feature2Badge', 'Admin', 'Admin'),
 ('home', 'whyJoin', 'feature3', 'Interaktiver Veranstaltungskalender mit Countdown-Timern', 'Interactive event calendar with countdown timers'),
 ('home', 'whyJoin', 'feature3Badge', 'Kalender', 'Calendar'),
 ('home', 'whyJoin', 'feature4', 'Echtzeit-Clan-Nachrichten und angeheftete Ankündigungen', 'Real-time clan news and pinned announcements'),
 ('home', 'whyJoin', 'feature4Badge', 'Nachrichten', 'News'),
-('home', 'whyJoin', 'feature5', 'Diagramme und Analysen für individuelle und Clanleistung', 'Charts and analytics for individual and clan performance'),
-('home', 'whyJoin', 'feature5Badge', 'Analysen', 'Analytics'),
+('home', 'whyJoin', 'feature5', 'Mitgliederverzeichnis mit Rang-, Rollen- und Clan-Transparenz', 'Member directory with rank, role, and clan visibility'),
+('home', 'whyJoin', 'feature5Badge', 'Mitglieder', 'Members'),
 
 -- Clan News (formerly Public News)
 ('home', 'publicNews', 'title', 'Clan-Neuigkeiten', 'Clan News'),
@@ -81,12 +81,12 @@ INSERT INTO public.site_content (page, section_key, field_key, content_de, conte
 ('home', 'publicNews', 'news1Badge', 'News', 'News'),
 ('home', 'publicNews', 'news2', 'Allianz-Turnier-Update und Ergebnisse veröffentlicht', 'Alliance tournament update and results posted'),
 ('home', 'publicNews', 'news2Badge', 'Info', 'Info'),
-('home', 'publicNews', 'news3', 'Plattform-Update mit neuen Diagramm-Funktionen und verbesserten Datenimporten', 'Platform update with new chart features and improved data imports'),
+('home', 'publicNews', 'news3', 'Plattform-Update mit verbesserten Deep-Links und Nachrichtenabläufen', 'Platform update with improved deep links and messaging workflows'),
 ('home', 'publicNews', 'news3Badge', 'Update', 'Update'),
 
 -- How It Works
 ('home', 'howItWorks', 'title', 'Wie [THC] Chiller & Killer funktioniert', 'How [THC] Chiller & Killer Works'),
-('home', 'howItWorks', 'text1', '[THC] Chiller & Killer ist ein speziell entwickelter Community-Hub, der alles zusammenbringt, was unsere Mitglieder an einem Ort benötigen. Spieler können Truhenberichtsdaten hochladen, die automatisch validiert und zur Analyse gespeichert werden. Die Plattform erstellt Leistungsdiagramme mit individuellen Scores, Allianz-Trends und Top-Spieler-Bestenlisten.', '[THC] Chiller & Killer is a purpose-built community hub that brings together everything our members need in one place. Players can upload chest report data that is automatically validated and stored for analysis. The platform generates performance charts showing individual scores, alliance trends, and top player leaderboards.'),
+('home', 'howItWorks', 'text1', '[THC] Chiller & Killer ist ein speziell entwickelter Community-Hub, der alles zusammenbringt, was unsere Mitglieder an einem Ort benötigen. Ankündigungen, Event-Planung, Forendiskussionen, Direktnachrichten und Mitgliederverwaltung laufen in einem durchgängigen Workflow zusammen. Unser Veranstaltungskalender hält alle bei Kriegsplänen, Trainingseinheiten und Gildentreffen auf dem Laufenden, während die Führung das Admin-Panel für Benutzerverwaltung, Moderation und Genehmigungsabläufe nutzt.', '[THC] Chiller & Killer is a purpose-built community hub that brings together everything our members need in one place. Announcements, event planning, forum discussions, direct messaging, and member management all live in a single workflow. Our event calendar keeps everyone aligned on war schedules, training sessions, and guild meetings, while leaders use the admin panel for user management, moderation, and approval workflows.'),
 ('home', 'howItWorks', 'text2', 'Alle Datensätze sind mit Row-Level-Security-Richtlinien gesichert. Die Plattform ist mit Next.js, TypeScript und Supabase gebaut und bietet ein schnelles, zuverlässiges Erlebnis auf jedem Gerät.', 'All records are secured with row-level security policies. The platform is built with Next.js, TypeScript, and Supabase, delivering a fast, reliable experience on any device.'),
 
 -- Contact

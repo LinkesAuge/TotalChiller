@@ -107,94 +107,109 @@ if (loginIdentifier && loginPassword) {
 runPwcli([
   "run-code",
   oneLine(`async function (page) {
-    await page.waitForLoadState('domcontentloaded');
-    if (await page.getByRole('link', { name: 'Upload CSV' }).count()) {
-      return;
-    }
-    await page.goto('${safeBaseUrl}/');
-    await page.waitForLoadState('networkidle');
-  }`),
-]);
-
-runPwcli([
-  "run-code",
-  oneLine(`async function (page) {
-    const action = page.locator('a.action-btn', { hasText: 'Upload CSV' }).first();
-    const previousUrl = page.url();
-    await action.click();
+    await page.goto('${safeBaseUrl}/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(900);
-    if (page.url() === previousUrl) {
-      const href = await action.getAttribute('href');
-      if (href) {
-        await page.goto(new URL(href, previousUrl).toString());
-      }
-    }
-    await page.waitForLoadState('domcontentloaded');
-    if (!/\\/data-import(\\/|$)|\\/admin\\/data-import(\\/|$)|\\/home(\\?|\\/|$)/.test(page.url())) {
-      throw new Error('Upload CSV quick action did not navigate to expected route. Current URL: ' + page.url());
-    }
-    await page.screenshot({ path: '${safeOutputDir}/quick-action-upload.png', fullPage: true });
-    await page.goto('${safeBaseUrl}/');
-  }`),
-]);
-
-runPwcli([
-  "run-code",
-  oneLine(`async function (page) {
-    const action = page.locator('a.action-btn', { hasText: 'Review Rules' }).first();
-    const previousUrl = page.url();
-    await action.click();
-    await page.waitForTimeout(900);
-    if (page.url() === previousUrl) {
-      const href = await action.getAttribute('href');
-      if (href) {
-        await page.goto(new URL(href, previousUrl).toString());
-      }
-    }
-    await page.waitForLoadState('domcontentloaded');
-    if (!/\\/admin(\\?|\\/|$)|\\/not-authorized(\\/|$)|\\/home(\\?|\\/|$)/.test(page.url())) {
-      throw new Error('Review Rules quick action did not navigate to expected route. Current URL: ' + page.url());
-    }
-    await page.screenshot({ path: '${safeOutputDir}/quick-action-review-rules.png', fullPage: true });
-    await page.goto('${safeBaseUrl}/');
-  }`),
-]);
-
-runPwcli([
-  "run-code",
-  oneLine(`async function (page) {
-    const action = page.locator('a.action-btn', { hasText: 'Events Calendar' }).first();
-    const previousUrl = page.url();
-    await action.click();
-    await page.waitForTimeout(900);
-    if (page.url() === previousUrl) {
-      const href = await action.getAttribute('href');
-      if (href) {
-        await page.goto(new URL(href, previousUrl).toString());
-      }
-    }
-    await page.waitForLoadState('domcontentloaded');
-
-    if (/\\/events(\\/|$)/.test(page.url())) {
-      await page.waitForSelector('.event-calendar-grid', { timeout: 10000 });
-      const calendarCellCount = await page.locator('.calendar-day-cell').count();
-      if (calendarCellCount < 35) {
-        throw new Error('Expected month grid with at least 35 cells, got ' + calendarCellCount);
-      }
-      const dayWithEvents = page.locator('.calendar-day-cell:has(.calendar-day-count)').first();
-      if (await dayWithEvents.count()) {
-        await dayWithEvents.click();
-      }
-      await page.screenshot({ path: '${safeOutputDir}/events-calendar-overview.png', fullPage: true });
-      return;
-    }
-
     if (/\\/home(\\?|\\/|$)/.test(page.url())) {
-      await page.screenshot({ path: '${safeOutputDir}/events-calendar-auth-required.png', fullPage: true });
+      await page.screenshot({ path: '${safeOutputDir}/dashboard-auth-required.png', fullPage: true });
       return;
     }
+    const currentPath = new URL(page.url()).pathname;
+    if (currentPath !== '/') {
+      throw new Error('Expected dashboard route "/". Current URL: ' + page.url());
+    }
+    await page.screenshot({ path: '${safeOutputDir}/dashboard-overview.png', fullPage: true });
+  }`),
+]);
 
-    throw new Error('Events Calendar quick action did not navigate to /events or /home. Current URL: ' + page.url());
+runPwcli([
+  "run-code",
+  oneLine(`async function (page) {
+    if (/\\/home(\\?|\\/|$)/.test(page.url())) {
+      return;
+    }
+    const newsLink = page.locator('a[href="/news"]').first();
+    if (!(await newsLink.count())) {
+      throw new Error('Dashboard news link was not found.');
+    }
+    await newsLink.click();
+    await page.waitForTimeout(900);
+    const path = new URL(page.url()).pathname;
+    if (path !== '/news' && path !== '/home') {
+      throw new Error('News link did not navigate to /news. Current URL: ' + page.url());
+    }
+    await page.screenshot({ path: '${safeOutputDir}/dashboard-news-link.png', fullPage: true });
+    if (path === '/news') {
+      await page.goto('${safeBaseUrl}/', { waitUntil: 'domcontentloaded' });
+    }
+  }`),
+]);
+
+runPwcli([
+  "run-code",
+  oneLine(`async function (page) {
+    if (/\\/home(\\?|\\/|$)/.test(page.url())) {
+      return;
+    }
+    const eventsLink = page.locator('a[href="/events"]').first();
+    if (!(await eventsLink.count())) {
+      throw new Error('Dashboard events link was not found.');
+    }
+    await eventsLink.click();
+    await page.waitForTimeout(900);
+    const path = new URL(page.url()).pathname;
+    if (path !== '/events' && path !== '/home') {
+      throw new Error('Events link did not navigate to /events. Current URL: ' + page.url());
+    }
+    await page.screenshot({ path: '${safeOutputDir}/dashboard-events-link.png', fullPage: true });
+    if (path === '/events') {
+      await page.goto('${safeBaseUrl}/', { waitUntil: 'domcontentloaded' });
+    }
+  }`),
+]);
+
+runPwcli([
+  "run-code",
+  oneLine(`async function (page) {
+    if (/\\/home(\\?|\\/|$)/.test(page.url())) {
+      return;
+    }
+    const articleLink = page.locator('a[href*="/news?article="]').first();
+    if (!(await articleLink.count())) {
+      return;
+    }
+    await articleLink.click();
+    await page.waitForTimeout(900);
+    const path = new URL(page.url()).pathname;
+    if (path !== '/news' && path !== '/home') {
+      throw new Error('Announcement deep link did not navigate to /news. Current URL: ' + page.url());
+    }
+    await page.screenshot({ path: '${safeOutputDir}/dashboard-announcement-deeplink.png', fullPage: true });
+    if (path === '/news') {
+      await page.goto('${safeBaseUrl}/', { waitUntil: 'domcontentloaded' });
+    }
+  }`),
+]);
+
+runPwcli([
+  "run-code",
+  oneLine(`async function (page) {
+    if (/\\/home(\\?|\\/|$)/.test(page.url())) {
+      return;
+    }
+    const threadLink = page.locator('a[href*="/forum?post="]').first();
+    if (!(await threadLink.count())) {
+      return;
+    }
+    await threadLink.click();
+    await page.waitForTimeout(900);
+    const path = new URL(page.url()).pathname;
+    if (path !== '/forum' && path !== '/home') {
+      throw new Error('Forum deep link did not navigate to /forum. Current URL: ' + page.url());
+    }
+    await page.screenshot({ path: '${safeOutputDir}/dashboard-thread-deeplink.png', fullPage: true });
+    if (path === '/forum') {
+      await page.goto('${safeBaseUrl}/', { waitUntil: 'domcontentloaded' });
+    }
   }`),
 ]);
 

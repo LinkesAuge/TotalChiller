@@ -138,8 +138,8 @@ The admin panel uses a modular, code-split architecture:
 - **`admin-client.tsx`**: Slim orchestrator (~140 lines) — renders the tab bar and dynamically imports the active tab.
 - **`admin-context.tsx`**: `AdminProvider` context — shared Supabase client, clan data, section routing, status. All tabs call `useAdminContext()`.
 - **Tabs** (`app/admin/tabs/`): Each tab is a self-contained component lazy-loaded via `next/dynamic`. Tab names: `clans-tab`, `users-tab`, `logs-tab`, `approvals-tab`, `forum-tab`.
-- **Shared hooks** (`app/admin/hooks/`): `usePagination`, `useSortable`, `useConfirmDelete`.
-- **Shared components** (`app/admin/components/`): `DangerConfirmModal`, `SortableColumnHeader`, `PaginationBar`.
+- **Shared hooks**: `lib/hooks/use-pagination.ts`, `lib/hooks/use-sortable.ts`, and admin-specific `app/admin/hooks/use-confirm-delete.ts`.
+- **Shared components**: `app/admin/components/danger-confirm-modal.tsx`, plus global table helpers `app/components/sortable-column-header.tsx` and `app/components/pagination-bar.tsx`.
 
 When modifying the admin panel:
 
@@ -268,20 +268,7 @@ tests/
 - Tests handle conditional UI gracefully (e.g. "no clan access" messages).
 - The mobile messages thread-flow spec auto-seeds a private message (admin API context) when inbox data is empty, then verifies list→thread and back-to-list behavior.
 
-## 13) Navigation Icon Preview (Design Tool)
-
-A standalone icon preview page is available at `public/icon-preview.html` for browsing game assets and choosing medieval-themed replacements for sidebar navigation icons.
-
-```
-npm run dev
-# Open: http://localhost:3000/icon-preview.html
-```
-
-See **handoff_summary.md → "Navigation Icons — Medieval Theme Overhaul"** for the full task list and suggested icon mapping.
-
-**Note**: Remove `icon-preview.html` before production deployment.
-
-## 14) Design System Asset Manager
+## 13) Design System Asset Manager
 
 Admin-only tool at `/design-system` for managing game assets, UI inventory, and assignments.
 
@@ -315,7 +302,7 @@ Flags:
 - `--skip-copy` — skip the file copy step (DB upsert only)
 - `--skip-db` — skip DB upsert (copy files only)
 
-## 15) Bug Reports
+## 14) Bug Reports
 
 In `/bugs`:
 
@@ -350,7 +337,7 @@ Admin email notifications require a [Resend](https://resend.com) account (free t
 3. Admins (owner/admin only) opt in via Settings → Notifications → "Bug report email" toggle (off by default). The toggle is hidden for non-admin users; the API silently ignores `bugs_email_enabled` from non-admins.
 4. If env vars are missing, email notifications are silently skipped — no errors.
 
-## 16) Troubleshooting
+## 15) Troubleshooting
 
 - If data insert fails: check RLS policies and membership
 - If user lookup fails: verify `profiles` trigger ran on signup

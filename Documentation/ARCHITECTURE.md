@@ -33,7 +33,7 @@ d:\Chiller\
 │   ├── api/                # Server-side API routes (see §7)
 │   ├── admin/              # Admin panel (modular tabs, see §4.9)
 │   ├── components/         # Shared UI components (see §5)
-│   ├── hooks/              # App-level React hooks/providers (use-auth, use-supabase, use-clan-context, use-modal-reset, use-dashboard-data, auth-state-provider)
+│   ├── hooks/              # App-level React hooks/providers (use-auth, use-supabase, use-clan-context, use-dashboard-data, auth-state-provider)
 │   ├── [feature]/          # Feature pages (page.tsx + feature-client.tsx + loading.tsx + error.tsx)
 │   ├── globals.css         # All CSS (Fortress Sanctum design system)
 │   ├── layout.tsx          # Root layout (sidebar, providers, fonts)
@@ -255,26 +255,26 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 
 Bug reporting/ticket system. Users submit reports with screenshots; admins manage status, priority, and categories. Floating widget on every page for quick reporting. All tickets visible to all authenticated users.
 
-| File                                          | Purpose                                          |
-| --------------------------------------------- | ------------------------------------------------ |
-| `app/bugs/bugs-client.tsx`                    | Orchestrator (list ↔ detail ↔ create views)      |
-| `app/bugs/bugs-list.tsx`                      | Report list with filters, sort, search, badges   |
-| `app/bugs/bugs-detail.tsx`                    | Single report view (info, screenshots, comments) |
-| `app/bugs/bugs-form.tsx`                      | Create report form (reused by widget)            |
-| `app/bugs/bugs-comments.tsx`                  | Comment thread with add-comment form             |
-| `app/bugs/bugs-admin-controls.tsx`            | Admin-only status/priority/category controls     |
-| `app/bugs/bugs-screenshot-upload.tsx`         | Multi-file upload with previews (max 5)          |
-| `app/bugs/bugs-types.ts`                      | Local TypeScript types                           |
-| `app/bugs/use-bugs.ts`                        | Report list + CRUD state hook (sort, filter)     |
-| `app/bugs/use-bug-comments.ts`                | Comment state hook                               |
-| `app/components/bug-report-widget.tsx`        | Floating button + modal (root layout)            |
-| `app/components/bug-report-widget-loader.tsx` | Client-only dynamic loader for bug widget        |
-| `app/api/bugs/route.ts`                       | `GET` list, `POST` create                        |
-| `app/api/bugs/[id]/route.ts`                  | `GET` detail, `PATCH` update                     |
-| `app/api/bugs/[id]/comments/route.ts`         | `GET` comments, `POST` add comment               |
-| `app/api/bugs/[id]/comments/[cId]/route.ts`   | `PATCH` edit, `DELETE` comment                   |
-| `app/api/bugs/categories/route.ts`            | `GET`, `POST`, `PATCH`, `DELETE` (admin CRUD)    |
-| `app/api/bugs/screenshots/route.ts`           | `POST` upload screenshot                         |
+| File                                              | Purpose                                          |
+| ------------------------------------------------- | ------------------------------------------------ |
+| `app/bugs/bugs-client.tsx`                        | Orchestrator (list ↔ detail ↔ create views)      |
+| `app/bugs/bugs-list.tsx`                          | Report list with filters, sort, search, badges   |
+| `app/bugs/bugs-detail.tsx`                        | Single report view (info, screenshots, comments) |
+| `app/bugs/bugs-form.tsx`                          | Create report form (reused by widget)            |
+| `app/bugs/bugs-comments.tsx`                      | Comment thread with add-comment form             |
+| `app/bugs/bugs-admin-controls.tsx`                | Admin-only status/priority/category controls     |
+| `app/bugs/bugs-screenshot-upload.tsx`             | Multi-file upload with previews (max 5)          |
+| `app/bugs/bugs-types.ts`                          | Local TypeScript types                           |
+| `app/bugs/use-bugs.ts`                            | Report list + CRUD state hook (sort, filter)     |
+| `app/bugs/use-bug-comments.ts`                    | Comment state hook                               |
+| `app/components/bug-report-widget.tsx`            | Floating button + modal (root layout)            |
+| `app/components/bug-report-widget-loader.tsx`     | Client-only dynamic loader for bug widget        |
+| `app/api/bugs/route.ts`                           | `GET` list, `POST` create                        |
+| `app/api/bugs/[id]/route.ts`                      | `GET` detail, `PATCH` update                     |
+| `app/api/bugs/[id]/comments/route.ts`             | `GET` comments, `POST` add comment               |
+| `app/api/bugs/[id]/comments/[commentId]/route.ts` | `PATCH` edit, `DELETE` comment                   |
+| `app/api/bugs/categories/route.ts`                | `GET`, `POST`, `PATCH`, `DELETE` (admin CRUD)    |
+| `app/api/bugs/screenshots/route.ts`               | `POST` upload screenshot                         |
 
 **DB tables**: `bug_reports`, `bug_report_categories`, `bug_report_comments`, `bug_report_screenshots`
 **Key patterns**: Simple workflow (open → resolved → closed); admin-only priority; auto-captured page URL; up to 5 screenshots via Supabase Storage (`bug-screenshots` bucket); threaded comments with notifications; inline comment edit/delete (forum pattern); report edit/delete (author + admin); client-side sorting and priority filter via `useMemo`; hero banner + standard `PageShell` template; markdown editing for descriptions and comments (`MarkdownEditor` + `AppMarkdown`); list card previews strip markdown via `stripMarkdown()` from `lib/markdown/strip-markdown.ts`; opt-in admin email notifications (owner/admin only) via Resend API — toggle hidden for non-admins, API silently ignores unauthorized toggles.
@@ -333,40 +333,42 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 ## 7. API Route Index
 
-| Route                               | Methods                  | Auth         | Rate Limit       | Purpose                                             |
-| ----------------------------------- | ------------------------ | ------------ | ---------------- | --------------------------------------------------- |
-| `/api/messages`                     | GET, POST                | user         | standard         | Inbox (threaded, filters archived) / Send message   |
-| `/api/messages/[id]`                | PATCH, DELETE            | user         | standard         | Mark read / Soft-delete                             |
-| `/api/messages/sent`                | GET                      | user         | standard         | Sent messages (filters archived/deleted)            |
-| `/api/messages/sent/[id]`           | DELETE                   | user         | standard         | Sender soft-delete (`sender_deleted_at`)            |
-| `/api/messages/thread/[threadId]`   | GET, DELETE              | user         | standard         | Full thread + mark-read / Thread soft-delete        |
-| `/api/messages/archive`             | GET, POST                | user         | standard         | Archived items (combined) / Archive/unarchive batch |
-| `/api/messages/search-recipients`   | GET                      | user         | standard         | Recipient search                                    |
-| `/api/notifications`                | GET                      | user         | relaxed          | User notifications                                  |
-| `/api/notifications/[id]`           | PATCH                    | user         | standard         | Mark notification read                              |
-| `/api/notifications/mark-all-read`  | POST                     | user         | standard         | Mark all read                                       |
-| `/api/notifications/fan-out`        | POST                     | user         | strict           | Fan-out to clan members                             |
-| `/api/notification-settings`        | GET, PATCH               | user         | standard         | Notification preferences                            |
-| `/api/game-accounts`                | GET, POST, PATCH         | user         | standard         | Game account CRUD                                   |
-| `/api/site-content`                 | GET, PATCH               | public/admin | relaxed/standard | CMS text content                                    |
-| `/api/site-list-items`              | GET, PATCH               | public/admin | relaxed/standard | CMS list items                                      |
-| `/api/auth/forgot-password`         | POST                     | public       | standard         | Password reset email                                |
-| `/api/admin/create-user`            | POST                     | admin        | strict           | Invite new user                                     |
-| `/api/admin/delete-user`            | POST                     | admin        | strict           | Delete user                                         |
-| `/api/admin/user-lookup`            | POST                     | admin        | strict           | Lookup user by email                                |
-| `/api/admin/email-confirmations`    | GET, POST                | admin        | standard/strict  | Email confirmation status / Manual confirm          |
-| `/api/admin/game-account-approvals` | GET, PATCH               | admin        | strict           | Approval queue                                      |
-| `/api/admin/forum-categories`       | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                                 |
-| `/api/design-system/assets`         | GET, PATCH               | admin        | relaxed/standard | Design asset library                                |
-| `/api/design-system/ui-elements`    | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory                                |
-| `/api/design-system/assignments`    | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments                                   |
-| `/api/design-system/preview-upload` | POST                     | admin        | standard         | Screenshot upload                                   |
-| `/api/bugs`                         | GET, POST                | user         | standard         | Bug report list / Create report                     |
-| `/api/bugs/[id]`                    | GET, PATCH, DELETE       | user/admin   | standard/strict  | Report detail / Update / Delete                     |
-| `/api/bugs/[id]/comments`           | GET, POST                | user         | standard         | Report comments / Add comment                       |
-| `/api/bugs/[id]/comments/[cId]`     | PATCH, DELETE            | user/admin   | standard/strict  | Edit / Delete comment                               |
-| `/api/bugs/categories`              | GET, POST, PATCH, DELETE | user/admin   | standard/strict  | Bug report category CRUD                            |
-| `/api/bugs/screenshots`             | POST                     | user         | standard         | Upload bug screenshot                               |
+| Route                                 | Methods                  | Auth         | Rate Limit       | Purpose                                             |
+| ------------------------------------- | ------------------------ | ------------ | ---------------- | --------------------------------------------------- |
+| `/api/messages`                       | GET, POST                | user         | standard         | Inbox (threaded, filters archived) / Send message   |
+| `/api/messages/[id]`                  | PATCH, DELETE            | user         | standard         | Mark read / Soft-delete                             |
+| `/api/messages/sent`                  | GET                      | user         | standard         | Sent messages (filters archived/deleted)            |
+| `/api/messages/sent/[id]`             | DELETE                   | user         | standard         | Sender soft-delete (`sender_deleted_at`)            |
+| `/api/messages/thread/[threadId]`     | GET, DELETE              | user         | standard         | Full thread + mark-read / Thread soft-delete        |
+| `/api/messages/archive`               | GET, POST                | user         | standard         | Archived items (combined) / Archive/unarchive batch |
+| `/api/messages/search-recipients`     | GET                      | user         | standard         | Recipient search                                    |
+| `/api/notifications`                  | GET                      | user         | relaxed          | User notifications                                  |
+| `/api/notifications/[id]`             | PATCH, DELETE            | user         | standard         | Mark read / Delete notification                     |
+| `/api/notifications/mark-all-read`    | POST                     | user         | standard         | Mark all read                                       |
+| `/api/notifications/fan-out`          | POST                     | user         | strict           | Fan-out to clan members                             |
+| `/api/notifications/delete-all`       | POST                     | user         | standard         | Delete all notifications                            |
+| `/api/notification-settings`          | GET, PATCH               | user         | standard         | Notification preferences                            |
+| `/api/game-accounts`                  | GET, POST, PATCH         | user         | standard         | Game account CRUD                                   |
+| `/api/site-content`                   | GET, PATCH               | public/admin | relaxed/standard | CMS text content                                    |
+| `/api/site-list-items`                | GET, PATCH               | public/admin | relaxed/standard | CMS list items                                      |
+| `/api/auth/forgot-password`           | POST                     | public       | standard         | Password reset email                                |
+| `/api/admin/create-user`              | POST                     | admin        | strict           | Invite new user                                     |
+| `/api/admin/resend-invite`            | POST                     | admin        | strict           | Resend invite email                                 |
+| `/api/admin/delete-user`              | POST                     | admin        | strict           | Delete user                                         |
+| `/api/admin/user-lookup`              | POST                     | admin        | strict           | Lookup user by email                                |
+| `/api/admin/email-confirmations`      | GET, POST                | admin        | standard/strict  | Email confirmation status / Manual confirm          |
+| `/api/admin/game-account-approvals`   | GET, PATCH               | admin        | strict           | Approval queue                                      |
+| `/api/admin/forum-categories`         | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                                 |
+| `/api/design-system/assets`           | GET, PATCH               | admin        | relaxed/standard | Design asset library                                |
+| `/api/design-system/ui-elements`      | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory                                |
+| `/api/design-system/assignments`      | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments                                   |
+| `/api/design-system/preview-upload`   | POST                     | admin        | standard         | Screenshot upload                                   |
+| `/api/bugs`                           | GET, POST                | user         | standard         | Bug report list / Create report                     |
+| `/api/bugs/[id]`                      | GET, PATCH, DELETE       | user/admin   | standard/strict  | Report detail / Update / Delete                     |
+| `/api/bugs/[id]/comments`             | GET, POST                | user         | standard         | Report comments / Add comment                       |
+| `/api/bugs/[id]/comments/[commentId]` | PATCH, DELETE            | user/admin   | standard/strict  | Edit / Delete comment                               |
+| `/api/bugs/categories`                | GET, POST, PATCH, DELETE | user/admin   | standard/strict  | Bug report category CRUD                            |
+| `/api/bugs/screenshots`               | POST                     | user         | standard         | Upload bug screenshot                               |
 
 ## 8. Database Table Index
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import IconButton from "../components/ui/icon-button";
+import GameButton from "../components/ui/game-button";
 import type { GameAccountView } from "@/lib/types/domain";
 
 interface GameAccountManagerProps {
@@ -163,9 +164,9 @@ function GameAccountManager({ initialAccounts, initialDefaultId }: GameAccountMa
             <span className="text-muted text-[0.85em]">{t("gameUsernameHint")}</span>
           </div>
           <div className="list inline">
-            <button className="button primary" type="submit" disabled={isSubmitting}>
+            <GameButton variant="green" fontSize="0.6rem" type="submit" disabled={isSubmitting}>
               {isSubmitting ? t("submitting") : t("requestAccount")}
-            </button>
+            </GameButton>
           </div>
           {requestStatus ? <p className="text-muted">{requestStatus}</p> : null}
         </form>

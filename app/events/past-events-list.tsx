@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { formatLocalDateTime } from "../../lib/date-format";
+import GameButton from "../components/ui/game-button";
 import type { DisplayEvent, EventRow } from "./events-types";
 import { formatDuration, getRecurrenceLabel } from "./events-utils";
 
@@ -90,9 +91,9 @@ function EventCard({
           <button className="button" type="button" onClick={() => onEditEvent(entry.id)}>
             {t("editEvent")}
           </button>
-          <button className="button danger" type="button" onClick={() => onDeleteEvent(entry.id)}>
+          <GameButton variant="orange" fontSize="0.6rem" type="button" onClick={() => onDeleteEvent(entry.id)}>
             {t("deleteEvent")}
-          </button>
+          </GameButton>
           {sourceEvent && (
             <button
               className="button ml-auto"

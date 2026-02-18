@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import * as Sentry from "@sentry/nextjs";
 import PageTopBar from "./components/page-top-bar";
+import GameButton from "./components/ui/game-button";
 
 /**
  * Global error boundary — catches unhandled client errors and reports to Sentry.
@@ -33,9 +34,9 @@ export default function GlobalError({
               ) : null}
             </div>
             <div className="list mt-4">
-              <button className="button primary" type="button" onClick={reset}>
+              <GameButton variant="ornate1" fontSize="0.6rem" type="button" onClick={reset}>
                 {t("retry")}
-              </button>
+              </GameButton>
               <a className="button" href="/home">
                 {t("goHome")}
               </a>

@@ -15,6 +15,7 @@ import ConfirmModal from "@/app/components/confirm-modal";
 import FormModal from "@/app/components/form-modal";
 import { useConfirmDelete } from "../hooks/use-confirm-delete";
 import { normalizeString } from "@/lib/string-utils";
+import GameButton from "../../components/ui/game-button";
 import { useSortable, compareValues } from "@/lib/hooks/use-sortable";
 import { usePagination } from "@/lib/hooks/use-pagination";
 import type {
@@ -747,11 +748,7 @@ export default function ClansTab(): ReactElement {
           variant="danger"
           className="admin-action-danger"
         >
-          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 2.5L13.5 12.5H2.5L8 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M8 6V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M8 11.2H8.01" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
+          <img src="/assets/game/icons/icons_paper_info_2.png" alt="" width={16} height={16} />
         </IconButton>
       </div>
 
@@ -784,10 +781,7 @@ export default function ClansTab(): ReactElement {
               variant="primary"
               className="admin-action-primary"
             >
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 3.5V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M3.5 8H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+              <img src="/assets/game/icons/shield_22.png" alt="" width={16} height={16} />
             </IconButton>
             <IconButton
               ariaLabel={tAdmin("clans.editClan")}
@@ -806,15 +800,7 @@ export default function ClansTab(): ReactElement {
               disabled={!selectedClanId}
               className="admin-action-secondary"
             >
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M3 11.5L4 8.5L10.5 2L14 5.5L7.5 12L3 11.5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-                <path d="M9.5 3L13 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+              <img src="/assets/game/icons/icons_pen_2.png" alt="" width={16} height={16} />
             </IconButton>
             <IconButton
               ariaLabel={tAdmin("clans.assignAccounts")}
@@ -822,21 +808,7 @@ export default function ClansTab(): ReactElement {
               disabled={!selectedClanId}
               className="admin-action-secondary"
             >
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M5 6.5C6.1 6.5 7 5.6 7 4.5C7 3.4 6.1 2.5 5 2.5C3.9 2.5 3 3.4 3 4.5C3 5.6 3.9 6.5 5 6.5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
-                <path
-                  d="M1.5 12.5C1.5 10.6 3.1 9 5 9C6.9 9 8.5 10.6 8.5 12.5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-                <path d="M11 5V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M8.5 8H13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+              <img src="/assets/game/icons/icons_plus_3.png" alt="" width={16} height={16} />
             </IconButton>
             <IconButton
               ariaLabel={tAdmin("clans.setDefault")}
@@ -860,20 +832,7 @@ export default function ClansTab(): ReactElement {
               disabled={!selectedClanId}
               className="admin-action-secondary"
             >
-              <svg
-                aria-hidden="true"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill={selectedClanId && selectedClanId === defaultClanId ? "currentColor" : "none"}
-              >
-                <path
-                  d="M8 2.5L9.7 6.1L13.5 6.6L10.7 9.2L11.4 13L8 11.1L4.6 13L5.3 9.2L2.5 6.6L6.3 6.1L8 2.5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <img src="/assets/game/icons/icons_star_up_2.png" alt="" width={16} height={16} />
             </IconButton>
             {selectedClanId && selectedClanId === defaultClanId ? (
               <IconButton
@@ -891,17 +850,19 @@ export default function ClansTab(): ReactElement {
                       }
                     });
                 }}
-                className="admin-action-secondary"
+                variant="danger"
+                className="admin-action-danger"
               >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M8 2.5L9.7 6.1L13.5 6.6L10.7 9.2L11.4 13L8 11.1L4.6 13L5.3 9.2L2.5 6.6L6.3 6.1L8 2.5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
+                <span className="icon-stack">
+                  <img src="/assets/game/icons/icons_star_down_2.png" alt="" width={16} height={16} />
+                  <img
+                    src="/assets/game/icons/icons_close.png"
+                    alt=""
+                    width={9}
+                    height={9}
+                    className="icon-stack-badge"
                   />
-                  <path d="M3 13L13 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
+                </span>
               </IconButton>
             ) : null}
           </div>
@@ -910,13 +871,15 @@ export default function ClansTab(): ReactElement {
 
       <div className="card-section" />
       <div className="list inline admin-members-filters filter-bar admin-filter-row">
-        <SearchInput
-          id="memberSearch"
-          label={tAdmin("common.search")}
-          value={memberSearch}
-          onChange={setMemberSearch}
-          placeholder={tAdmin("clans.searchPlaceholder")}
-        />
+        <div style={{ maxWidth: 220 }}>
+          <SearchInput
+            id="memberSearch"
+            label={tAdmin("common.search")}
+            value={memberSearch}
+            onChange={setMemberSearch}
+            placeholder={tAdmin("clans.searchPlaceholder")}
+          />
+        </div>
         <LabeledSelect
           id="memberRankFilter"
           label={tAdmin("common.rank")}
@@ -1119,25 +1082,14 @@ export default function ClansTab(): ReactElement {
                     variant="primary"
                     className="admin-action-primary"
                   >
-                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path
-                        d="M4 8.5L7 11.5L12 5"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <img src="/assets/game/icons/components_check_box_mark.png" alt="" width={16} height={16} />
                   </IconButton>
                   <IconButton
                     ariaLabel={tAdmin("common.cancelChanges")}
                     onClick={() => cancelMembershipEdits(membership.id)}
                     className="admin-action-secondary"
                   >
-                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
+                    <img src="/assets/game/icons/icons_close.png" alt="" width={16} height={16} />
                   </IconButton>
                   <IconButton
                     ariaLabel={tAdmin("clans.toggleShadow")}
@@ -1150,18 +1102,7 @@ export default function ClansTab(): ReactElement {
                     }
                     className="admin-action-secondary"
                   >
-                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.4" />
-                      <path
-                        d="M3 14C3 11.2 5.2 9 8 9C10.8 9 13 11.2 13 14"
-                        stroke="currentColor"
-                        strokeWidth="1.4"
-                        strokeLinecap="round"
-                      />
-                      {(getMembershipEditValue(membership).is_shadow ?? membership.is_shadow) ? (
-                        <path d="M2 2L14 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                      ) : null}
-                    </svg>
+                    <img src="/assets/game/icons/icons_player_4.png" alt="" width={16} height={16} />
                   </IconButton>
                   {membership.game_accounts?.id ? (
                     <IconButton
@@ -1176,21 +1117,7 @@ export default function ClansTab(): ReactElement {
                       variant="danger"
                       className="admin-action-danger"
                     >
-                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                        <path
-                          d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
-                          stroke="currentColor"
-                          strokeWidth="1.4"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
-                          stroke="currentColor"
-                          strokeWidth="1.4"
-                          strokeLinecap="round"
-                        />
-                      </svg>
+                      <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={16} height={16} />
                     </IconButton>
                   ) : null}
                   {membershipErrors[membership.id] ? (
@@ -1372,9 +1299,9 @@ export default function ClansTab(): ReactElement {
               </div>
             )}
             <div className="list inline">
-              <button className="button primary" type="button" onClick={() => void handleAssignAccounts()}>
+              <GameButton variant="green" fontSize="0.58rem" onClick={() => void handleAssignAccounts()}>
                 {tAdmin("gameAccounts.assignSelected")}
-              </button>
+              </GameButton>
               <button className="button" type="button" onClick={closeAssignAccountsModal}>
                 {tAdmin("common.cancel")}
               </button>

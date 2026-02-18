@@ -2,6 +2,7 @@
 
 import type { ReactElement } from "react";
 import { useTranslations } from "next-intl";
+import GameButton from "../../components/ui/game-button";
 import type { ConfirmDeleteState } from "../hooks/use-confirm-delete";
 
 interface DangerConfirmModalProps {
@@ -60,9 +61,9 @@ export default function DangerConfirmModal({
             <div className="alert danger">{warningText}</div>
           </div>
           <div className="list inline">
-            <button className="button danger" type="button" onClick={state.proceedToInput}>
+            <GameButton variant="orange" fontSize="0.6rem" type="button" onClick={state.proceedToInput}>
               {tAdmin("common.continue")}
-            </button>
+            </GameButton>
             <button className="button" type="button" onClick={state.close}>
               {tAdmin("common.cancel")}
             </button>
@@ -94,9 +95,9 @@ export default function DangerConfirmModal({
           />
         </div>
         <div className="list inline">
-          <button className="button danger" type="button" onClick={onConfirm}>
+          <GameButton variant="orange" fontSize="0.6rem" type="button" onClick={onConfirm}>
             {deleteLabel ?? title}
-          </button>
+          </GameButton>
           <button className="button" type="button" onClick={state.close}>
             {tAdmin("common.cancel")}
           </button>

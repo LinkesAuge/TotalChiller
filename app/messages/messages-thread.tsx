@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import MarkdownEditor from "../components/markdown-editor";
 import DataState from "../components/data-state";
+import GameButton from "../components/ui/game-button";
 import { formatLocalDateTime } from "@/lib/date-format";
 import { MESSAGE_IMAGES_BUCKET } from "@/lib/constants";
 import type { ThreadMessage } from "@/lib/types/domain";
@@ -68,19 +69,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     return (
       <section className="card messages-thread-panel">
         <button type="button" className="messages-back-btn" onClick={clearSelection}>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <img src="/assets/game/icons/icons_arrow_back.png" alt="" width={16} height={16} />
           {t("backToInbox")}
         </button>
         <div className="card-header">
@@ -151,9 +140,10 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
         {canReply ? (
           <div className="messages-reply-form">
             {!isReplyOpen ? (
-              <button
+              <GameButton
+                variant="ornate1"
+                fontSize="0.6rem"
                 type="button"
-                className="button primary"
                 onClick={() => {
                   const lastReceived = [...threadMessages].reverse().find((m) => m.sender_id !== userId);
                   if (lastReceived) {
@@ -164,7 +154,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
                 }}
               >
                 {t("reply")}
-              </button>
+              </GameButton>
             ) : (
               <form onSubmit={handleSendReply}>
                 <div className="form-group mb-2">
@@ -192,9 +182,9 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
                   />
                 </div>
                 <div className="flex gap-2 items-center">
-                  <button className="button primary" type="submit">
+                  <GameButton variant="green" fontSize="0.6rem" type="submit">
                     {t("send")}
-                  </button>
+                  </GameButton>
                   <button className="button" type="button" onClick={resetReply}>
                     {t("cancel")}
                   </button>
@@ -212,19 +202,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     return (
       <section className="card messages-thread-panel">
         <button type="button" className="messages-back-btn" onClick={clearSelection}>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <img src="/assets/game/icons/icons_arrow_back.png" alt="" width={16} height={16} />
           {t("backToInbox")}
         </button>
         <div className="card-header">

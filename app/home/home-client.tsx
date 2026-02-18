@@ -16,6 +16,7 @@ import EditableText from "../components/editable-text";
 import EditableList from "../components/editable-list";
 import CmsPageShell from "../components/cms-page-shell";
 import PublicAuthActions from "../components/public-auth-actions";
+import GameButton from "../components/ui/game-button";
 
 /* ─── Main Component ─── */
 
@@ -182,8 +183,8 @@ function HomeClient(): JSX.Element {
             />
           </div>
           <div className="flex justify-center mt-4">
-            <Link className="button primary" href="/about">
-              {t("learnMoreAbout")}
+            <Link href="/about">
+              <GameButton variant="ornate3">{t("learnMoreAbout")}</GameButton>
             </Link>
           </div>
         </div>
@@ -241,8 +242,8 @@ function HomeClient(): JSX.Element {
             userId={userId}
           />
           <div className="flex justify-center mt-4">
-            <Link className="button primary" href="/auth/register">
-              {t("applyNow")}
+            <Link href="/auth/register">
+              <GameButton variant="hero">{t("applyNow")}</GameButton>
             </Link>
           </div>
         </div>

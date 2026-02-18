@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import GameAlert from "./ui/game-alert";
 
 /* ─── Types ─── */
 
@@ -34,8 +35,8 @@ interface DataStateProps {
  * Handles the standard loading → error → empty → content rendering flow.
  *
  * Renders exactly ONE of:
- *   1. Loading indicator (`alert info loading`)
- *   2. Error banner (`alert error`)
+ *   1. Loading indicator (info GameAlert)
+ *   2. Error banner (error GameAlert)
  *   3. Empty state (card or custom node)
  *   4. Children (as a fragment — no extra wrapper)
  */
@@ -55,19 +56,10 @@ export default function DataState({
   const t = useTranslations("common");
   if (isLoading) {
     if (loadingNode) return <>{loadingNode}</>;
-    return <div className={`alert info loading ${className}`.trim()}>{loadingMessage}</div>;
+    return <GameAlert variant="info" title={loadingMessage ?? t("loading")} className={className} />;
   }
   if (error) {
-    return (
-      <div className={`alert error ${className}`.trim()} role="alert">
-        {error}
-        {onRetry && (
-          <button type="button" className="ml-2 underline" onClick={onRetry}>
-            ↻
-          </button>
-        )}
-      </div>
-    );
+    return <GameAlert variant="error" title={error} onRetry={onRetry} className={className} />;
   }
   if (isEmpty) {
     if (emptyNode) return <>{emptyNode}</>;

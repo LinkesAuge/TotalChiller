@@ -269,7 +269,7 @@
 }
 
 .editable-text-tab.active {
-  background: var(--color-edge);
+  background: var(--color-gold-a12);
   border-color: var(--color-gold);
   color: var(--color-gold);
 }
@@ -374,7 +374,7 @@
   align-items: center;
   padding: 2px 10px;
   border-radius: 999px;
-  background: rgba(201, 163, 74, 0.13);
+  background: rgba(240, 200, 60, 0.13);
   color: var(--color-gold-2);
   font-size: 0.72rem;
   font-weight: 600;

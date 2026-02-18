@@ -12,63 +12,15 @@ import type { UseMessagesResult } from "./use-messages";
 /* ── Inline icons (matches project convention) ── */
 
 function TrashIcon(): ReactElement {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  );
+  return <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={14} height={14} />;
 }
 
 function ArchiveIcon(): ReactElement {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="21 8 21 21 3 21 3 8" />
-      <rect x="1" y="3" width="22" height="5" />
-      <line x1="10" y1="12" x2="14" y2="12" />
-    </svg>
-  );
+  return <img src="/assets/game/icons/icons_bag_1.png" alt="" width={14} height={14} />;
 }
 
 function UnarchiveIcon(): ReactElement {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="21 8 21 21 3 21 3 8" />
-      <rect x="1" y="3" width="22" height="5" />
-      <polyline points="12 15 12 9" />
-      <polyline points="9 12 12 9 15 12" />
-    </svg>
-  );
+  return <img src="/assets/game/icons/icons_envelope_1.png" alt="" width={14} height={14} />;
 }
 
 /** i18n key lookup for notification type badges. */

@@ -7,6 +7,7 @@ import { useAuth } from "@/app/hooks/use-auth";
 import { BUG_SCREENSHOTS_BUCKET } from "@/lib/constants";
 import RadixSelect from "@/app/components/ui/radix-select";
 import MarkdownEditor from "@/app/components/markdown-editor";
+import GameButton from "@/app/components/ui/game-button";
 import BugsScreenshotUpload, { type UploadedScreenshot } from "./bugs-screenshot-upload";
 import type { BugReportCategory, BugsFormSubmitData } from "./bugs-types";
 
@@ -232,13 +233,14 @@ function BugsForm({
 
         {/* Actions */}
         <div className="list inline" style={{ marginTop: 16 }}>
-          <button
-            className="button primary"
+          <GameButton
+            variant="green"
+            fontSize="0.6rem"
             type="submit"
             disabled={isSubmitting || !title.trim() || !description.trim()}
           >
             {isSubmitting ? t("submitting") : isEdit ? t("saveChanges") : t("submit")}
-          </button>
+          </GameButton>
           <button className="button" type="button" onClick={onCancel}>
             {tCommon("cancel")}
           </button>

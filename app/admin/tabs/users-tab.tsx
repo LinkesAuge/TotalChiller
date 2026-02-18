@@ -7,6 +7,7 @@ import SearchInput from "../../components/ui/search-input";
 import LabeledSelect from "../../components/ui/labeled-select";
 import RadixSelect from "../../components/ui/radix-select";
 import IconButton from "../../components/ui/icon-button";
+import GameButton from "../../components/ui/game-button";
 import TableScroll from "../../components/table-scroll";
 import { useAdminContext } from "../admin-context";
 import SortableColumnHeader from "@/app/components/sortable-column-header";
@@ -886,13 +887,23 @@ export default function UsersTab(): ReactElement {
         <span className="badge">{filteredUserRows.length}</span>
       </div>
       <div className="list inline admin-members-filters filter-bar admin-filter-row">
-        <SearchInput
-          id="userSearch"
-          label={tAdmin("common.search")}
-          value={userSearch}
-          onChange={setUserSearch}
-          placeholder={tAdmin("users.searchPlaceholder")}
-        />
+        <div style={{ marginRight: 12 }}>
+          <span className="filter-bar-spacer" aria-hidden="true">
+            &nbsp;
+          </span>
+          <GameButton variant="ornate2" fontSize="0.62rem" onClick={() => setIsCreateUserModalOpen(true)}>
+            {tAdmin("users.createUser")}
+          </GameButton>
+        </div>
+        <div style={{ maxWidth: 220 }}>
+          <SearchInput
+            id="userSearch"
+            label={tAdmin("common.search")}
+            value={userSearch}
+            onChange={setUserSearch}
+            placeholder={tAdmin("users.searchPlaceholder")}
+          />
+        </div>
         <LabeledSelect
           id="userRoleFilter"
           label={tAdmin("common.role")}
@@ -946,13 +957,6 @@ export default function UsersTab(): ReactElement {
         <span className="text-muted admin-filter-summary">
           {filteredUserRows.length} / {userRows.length}
         </span>
-        <button
-          className="button primary admin-filter-cta"
-          type="button"
-          onClick={() => setIsCreateUserModalOpen(true)}
-        >
-          {tAdmin("users.createUser")}
-        </button>
       </div>
       {userStatus ? <div className="alert info">{userStatus}</div> : null}
       {userRows.length === 0 ? (
@@ -1149,20 +1153,7 @@ export default function UsersTab(): ReactElement {
                           variant="primary"
                           className="admin-action-primary"
                         >
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path
-                              d="M8 2.5C4.96 2.5 2.5 4.96 2.5 8C2.5 11.04 4.96 13.5 8 13.5C11.04 13.5 13.5 11.04 13.5 8C13.5 4.96 11.04 2.5 8 2.5Z"
-                              stroke="currentColor"
-                              strokeWidth="1.3"
-                            />
-                            <path
-                              d="M5.5 8L7.2 9.7L10.5 6.3"
-                              stroke="currentColor"
-                              strokeWidth="1.4"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                          <img src="/assets/game/icons/icons_moderator_add.png" alt="" width={16} height={16} />
                         </IconButton>
                       ) : null}
                       <IconButton
@@ -1170,42 +1161,14 @@ export default function UsersTab(): ReactElement {
                         onClick={() => handleResendInvite(user.email)}
                         className="admin-action-secondary"
                       >
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M2.5 3.5H13.5V12.5H2.5V3.5Z"
-                            stroke="currentColor"
-                            strokeWidth="1.3"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M2.8 4.2L8 8.2L13.2 4.2"
-                            stroke="currentColor"
-                            strokeWidth="1.3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
+                        <img src="/assets/game/icons/icons_envelope_1.png" alt="" width={16} height={16} />
                       </IconButton>
                       <IconButton
                         ariaLabel={tAdmin("users.addGameAccount")}
                         onClick={() => openCreateGameAccountModal(user)}
                         className="admin-action-secondary"
                       >
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M4.2 6.5H11.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          <path d="M6 9.5H10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          <path
-                            d="M3 8C3 5.8 4.8 4 7 4H9C11.2 4 13 5.8 13 8C13 10.2 11.2 12 9 12H7C4.8 12 3 10.2 3 8Z"
-                            stroke="currentColor"
-                            strokeWidth="1.2"
-                          />
-                          <path
-                            d="M12.5 3.5V5.5M11.5 4.5H13.5"
-                            stroke="currentColor"
-                            strokeWidth="1.2"
-                            strokeLinecap="round"
-                          />
-                        </svg>
+                        <img src="/assets/game/icons/icons_plus_3.png" alt="" width={16} height={16} />
                       </IconButton>
                       <IconButton
                         ariaLabel={tAdmin("common.saveChanges")}
@@ -1213,25 +1176,14 @@ export default function UsersTab(): ReactElement {
                         variant="primary"
                         className="admin-action-primary"
                       >
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M4 8.5L7 11.5L12 5"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
+                        <img src="/assets/game/icons/components_check_box_mark.png" alt="" width={16} height={16} />
                       </IconButton>
                       <IconButton
                         ariaLabel={tAdmin("common.cancelChanges")}
                         onClick={() => cancelUserEdit(user.id)}
                         className="admin-action-secondary"
                       >
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M4.5 4.5L11.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          <path d="M11.5 4.5L4.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
+                        <img src="/assets/game/icons/icons_close.png" alt="" width={16} height={16} />
                       </IconButton>
                       <IconButton
                         ariaLabel={tAdmin("users.deleteUser")}
@@ -1239,21 +1191,7 @@ export default function UsersTab(): ReactElement {
                         variant="danger"
                         className="admin-action-danger"
                       >
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M3.5 5.5H12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                          <path
-                            d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinecap="round"
-                          />
-                          <path
-                            d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinecap="round"
-                          />
-                        </svg>
+                        <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={16} height={16} />
                       </IconButton>
                     </div>
                   </div>
@@ -1311,15 +1249,12 @@ export default function UsersTab(): ReactElement {
                                               variant="primary"
                                               className="admin-action-primary"
                                             >
-                                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
-                                                <path
-                                                  d="M4 8.5L7 11.5L12 5"
-                                                  stroke="currentColor"
-                                                  strokeWidth="1.5"
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                />
-                                              </svg>
+                                              <img
+                                                src="/assets/game/icons/components_check_box_mark.png"
+                                                alt=""
+                                                width={16}
+                                                height={16}
+                                              />
                                             </IconButton>
                                             <IconButton
                                               ariaLabel={tAdmin("common.reject")}
@@ -1327,20 +1262,12 @@ export default function UsersTab(): ReactElement {
                                               variant="danger"
                                               className="admin-action-danger"
                                             >
-                                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
-                                                <path
-                                                  d="M4.5 4.5L11.5 11.5"
-                                                  stroke="currentColor"
-                                                  strokeWidth="1.5"
-                                                  strokeLinecap="round"
-                                                />
-                                                <path
-                                                  d="M11.5 4.5L4.5 11.5"
-                                                  stroke="currentColor"
-                                                  strokeWidth="1.5"
-                                                  strokeLinecap="round"
-                                                />
-                                              </svg>
+                                              <img
+                                                src="/assets/game/icons/icons_close.png"
+                                                alt=""
+                                                width={16}
+                                                height={16}
+                                              />
                                             </IconButton>
                                           </>
                                         ) : null}
@@ -1350,26 +1277,12 @@ export default function UsersTab(): ReactElement {
                                           variant="danger"
                                           className="admin-action-danger"
                                         >
-                                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
-                                            <path
-                                              d="M3.5 5.5H12.5"
-                                              stroke="currentColor"
-                                              strokeWidth="1.4"
-                                              strokeLinecap="round"
-                                            />
-                                            <path
-                                              d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
-                                              stroke="currentColor"
-                                              strokeWidth="1.4"
-                                              strokeLinecap="round"
-                                            />
-                                            <path
-                                              d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
-                                              stroke="currentColor"
-                                              strokeWidth="1.4"
-                                              strokeLinecap="round"
-                                            />
-                                          </svg>
+                                          <img
+                                            src="/assets/game/icons/icons_paper_cross_1.png"
+                                            alt=""
+                                            width={16}
+                                            height={16}
+                                          />
                                         </IconButton>
                                       </div>
                                     </div>
@@ -1462,15 +1375,12 @@ export default function UsersTab(): ReactElement {
                                             variant="primary"
                                             className="admin-action-primary"
                                           >
-                                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
-                                              <path
-                                                d="M4 8.5L7 11.5L12 5"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                              />
-                                            </svg>
+                                            <img
+                                              src="/assets/game/icons/components_check_box_mark.png"
+                                              alt=""
+                                              width={16}
+                                              height={16}
+                                            />
                                           </IconButton>
                                           <IconButton
                                             ariaLabel={tAdmin("common.cancelChanges")}
@@ -1480,20 +1390,12 @@ export default function UsersTab(): ReactElement {
                                             }}
                                             className="admin-action-secondary"
                                           >
-                                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
-                                              <path
-                                                d="M4.5 4.5L11.5 11.5"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                                strokeLinecap="round"
-                                              />
-                                              <path
-                                                d="M11.5 4.5L4.5 11.5"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                                strokeLinecap="round"
-                                              />
-                                            </svg>
+                                            <img
+                                              src="/assets/game/icons/icons_close.png"
+                                              alt=""
+                                              width={16}
+                                              height={16}
+                                            />
                                           </IconButton>
                                         </>
                                       ) : null}
@@ -1506,23 +1408,12 @@ export default function UsersTab(): ReactElement {
                                         variant={(memberEdits.is_shadow ?? membership.is_shadow) ? "active" : undefined}
                                         className="admin-action-secondary"
                                       >
-                                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                          <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.4" />
-                                          <path
-                                            d="M3 14C3 11.2 5.2 9 8 9C10.8 9 13 11.2 13 14"
-                                            stroke="currentColor"
-                                            strokeWidth="1.4"
-                                            strokeLinecap="round"
-                                          />
-                                          {(memberEdits.is_shadow ?? membership.is_shadow) ? (
-                                            <path
-                                              d="M2 2L14 14"
-                                              stroke="currentColor"
-                                              strokeWidth="1.6"
-                                              strokeLinecap="round"
-                                            />
-                                          ) : null}
-                                        </svg>
+                                        <img
+                                          src="/assets/game/icons/icons_player_4.png"
+                                          alt=""
+                                          width={16}
+                                          height={16}
+                                        />
                                       </IconButton>
                                       {account.approval_status === "pending" ? (
                                         <>
@@ -1532,15 +1423,12 @@ export default function UsersTab(): ReactElement {
                                             variant="primary"
                                             className="admin-action-primary"
                                           >
-                                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
-                                              <path
-                                                d="M4 8.5L7 11.5L12 5"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                              />
-                                            </svg>
+                                            <img
+                                              src="/assets/game/icons/components_check_box_mark.png"
+                                              alt=""
+                                              width={16}
+                                              height={16}
+                                            />
                                           </IconButton>
                                           <IconButton
                                             ariaLabel={tAdmin("common.reject")}
@@ -1548,20 +1436,12 @@ export default function UsersTab(): ReactElement {
                                             variant="danger"
                                             className="admin-action-danger"
                                           >
-                                            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
-                                              <path
-                                                d="M4.5 4.5L11.5 11.5"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                                strokeLinecap="round"
-                                              />
-                                              <path
-                                                d="M11.5 4.5L4.5 11.5"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                                strokeLinecap="round"
-                                              />
-                                            </svg>
+                                            <img
+                                              src="/assets/game/icons/icons_close.png"
+                                              alt=""
+                                              width={16}
+                                              height={16}
+                                            />
                                           </IconButton>
                                         </>
                                       ) : null}
@@ -1571,26 +1451,12 @@ export default function UsersTab(): ReactElement {
                                         variant="danger"
                                         className="admin-action-danger"
                                       >
-                                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
-                                          <path
-                                            d="M3.5 5.5H12.5"
-                                            stroke="currentColor"
-                                            strokeWidth="1.4"
-                                            strokeLinecap="round"
-                                          />
-                                          <path
-                                            d="M6 5.5V4C6 3.4 6.4 3 7 3H9C9.6 3 10 3.4 10 4V5.5"
-                                            stroke="currentColor"
-                                            strokeWidth="1.4"
-                                            strokeLinecap="round"
-                                          />
-                                          <path
-                                            d="M5.2 5.5L5.6 12C5.6 12.6 6.1 13 6.7 13H9.3C9.9 13 10.4 12.6 10.4 12L10.8 5.5"
-                                            stroke="currentColor"
-                                            strokeWidth="1.4"
-                                            strokeLinecap="round"
-                                          />
-                                        </svg>
+                                        <img
+                                          src="/assets/game/icons/icons_paper_cross_1.png"
+                                          alt=""
+                                          width={16}
+                                          height={16}
+                                        />
                                       </IconButton>
                                     </div>
                                   </div>
@@ -1751,6 +1617,7 @@ export default function UsersTab(): ReactElement {
         title={tAdmin("users.resendInvite")}
         message={tAdmin("users.resendInviteConfirm", { email: pendingResendInviteEmail ?? "" })}
         variant="info"
+        confirmButtonVariant="turquoise"
         confirmLabel={tAdmin("users.resendInvite")}
         cancelLabel={tAdmin("common.cancel")}
         onConfirm={() => void handleConfirmResendInvite()}
@@ -1763,6 +1630,7 @@ export default function UsersTab(): ReactElement {
         title={tAdmin("users.confirmUser")}
         message={tAdmin("users.confirmUserMessage", { email: pendingConfirmUser?.email ?? "" })}
         variant="info"
+        confirmButtonVariant="turquoise"
         confirmLabel={tAdmin("users.confirmUser")}
         cancelLabel={tAdmin("common.cancel")}
         onConfirm={() => void handleConfirmUser()}

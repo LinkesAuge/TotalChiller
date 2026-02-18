@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import GameButton from "../components/ui/game-button";
 import type { UseEventsResult } from "./use-events";
 
 const EventForm = dynamic(() => import("./event-form").then((mod) => mod.EventForm));
@@ -67,9 +68,9 @@ export function EventsForm({ eventsState }: EventsFormProps): JSX.Element {
       {canManage && (
         <div className="col-span-full flex items-center gap-2.5 flex-wrap">
           {!isFormOpen && (
-            <button className="button primary" type="button" onClick={eventsState.handleOpenCreate}>
+            <GameButton variant="ornate2" fontSize="0.62rem" onClick={eventsState.handleOpenCreate}>
               {eventsState.t("createEvent")}
-            </button>
+            </GameButton>
           )}
           <button
             className="button text-[0.82rem]"

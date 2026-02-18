@@ -63,6 +63,15 @@ Run: `npx playwright test`
 
 ## Recently Completed
 
+### Sidebar Icon Reassignment (2026-02-18)
+
+Reshuffled sidebar navigation icons for better visual fit across main and admin sections.
+
+- **Main nav icon rotation:** Ankündigungen now uses `icons_main_menu_daily_1.png` (from Events), Events uses `icons_main_menu_clan_1.png` (from Mitglieder), Mitglieder uses `icons_main_menu_army_1.png` (from Clan-Verwaltung), Forum uses `icons_main_menu_technology_1.png` (from Design System).
+- **New icons from design-assets:** Fehlerberichte switched from skull to `icons_spyglass_2.png`, Logs to `icons_scroll_1.png`, Clan-Verwaltung to `circle_mercenaries_01.png`, Benutzer to `gold_72.png`, Design System to `clan_emblem_11.png`, Forenverwaltung to `icons_main_menu_storage_1.png`.
+- **Asset consolidation:** All 5 newly referenced design-asset icons copied into `public/assets/game/icons/` so all sidebar icons live in the canonical game icons folder.
+- **Icon sizing:** Bumped Ankündigungen, Fehlerberichte, and Benutzer to `lgIcon: true` for consistency with other detailed icons.
+
 ### Warning Cleanup Follow-up (2026-02-18)
 
 Closed the remaining warning/perf follow-up items from the P3 review step.
@@ -402,27 +411,37 @@ Comprehensive audit covering security, bugs, performance, code quality, and acce
 
 **Remaining follow-ups**: Migrate ~130 API error responses from `NextResponse.json({ error })` to shared `apiError()` helper. Split large admin tab components (users-tab ~1270 lines, clans-tab ~1370 lines). Centralize inline Zod schemas into `validation.ts`. Full DE/EN translation key parity audit.
 
+## UI Overhaul — Button & Icon Conventions
+
+All action buttons use `GameButton` (asset-textured, `app/components/ui/game-button.tsx`). Variant conventions:
+
+| Action Type          | GameButton Variant  | Examples                                    |
+| -------------------- | ------------------- | ------------------------------------------- |
+| Save / Submit / Send | `green`             | Save changes, submit form, send message     |
+| Approve / Confirm    | `turquoise`         | Registrierung bestätigen, Genehmigen        |
+| Delete / Danger      | `orange`            | Delete event, remove report, danger confirm |
+| Primary CTA          | `ornate1`–`ornate3` | New post, reply, retry                      |
+| Hero CTA             | `hero`              | Register, join                              |
+| Cancel / Secondary   | CSS `.button`       | Cancel buttons (not GameButton)             |
+
+`ConfirmModal` maps variant to GameButton automatically (info→green, danger/warning→orange). Override per-instance with `confirmButtonVariant` prop.
+
+### Icon Conventions (Admin)
+
+| Action               | Icon                            | Notes                                |
+| -------------------- | ------------------------------- | ------------------------------------ |
+| Add game account     | `icons_plus_3.png`              | Same in Benutzer and Clan-Verwaltung |
+| Create clan          | `shield_22.png`                 | Shield = clan/guild                  |
+| Edit                 | `icons_pen_2.png`               | Universal edit icon                  |
+| Delete               | `icons_paper_cross_1.png`       | Universal delete icon                |
+| Confirm registration | `icons_moderator_add.png`       | Distinct from generic checkmark      |
+| Save                 | `components_check_box_mark.png` | Checkmark for save actions           |
+| Close                | `icons_close.png`               | Close/dismiss                        |
+| Remove default       | Star + cross badge              | `.icon-stack` CSS composite          |
+
+All sidebar nav items use game-asset PNG icons via the `vipIcon` prop on `NavItem`. Icons sized 22px (standard) or 34px (`lgIcon: true`). Most nav items use large icons; only Home, Approvals, and Logs use standard size. User menu dropdown icons are 20px. Bottom sidebar action icons (profile, settings) are 28px.
+
 ## Pending Tasks
-
-### Navigation Icons (Medieval Theme)
-
-Dashboard and Home share the same SVG icon — dashboard needs a distinct one.
-
-~260 game-style PNG icons available in `/assets/game/icons/`. The `NavItemIcon` component already supports both SVG (`ICONS[key]`) and PNG (`vipIcon` prop).
-
-**Steps**: Browse icons, pick one per nav item, update `sidebar-nav.tsx`, test at both sidebar widths (280px/60px).
-
-| Nav Item  | Suggested Icon   | Path                                                            |
-| --------- | ---------------- | --------------------------------------------------------------- |
-| Home      | Medieval house   | `/assets/game/icons/icons_card_house_1.png`                     |
-| Dashboard | Rating/stats     | `/assets/game/icons/icons_main_menu_rating_1.png`               |
-| News      | Scroll           | `/assets/game/icons/icons_scroll_1.png`                         |
-| Analytics | Points clipboard | `/assets/game/icons/icons_clip_points_1.png` (placeholder page) |
-| Events    | Events banner    | `/assets/game/icons/icons_events_1.png`                         |
-| Forum     | Message bubble   | `/assets/game/icons/icons_message_1.png`                        |
-| Messages  | Envelope         | `/assets/game/icons/icons_envelope_1.png`                       |
-| Members   | Clan menu        | `/assets/game/icons/icons_main_menu_clan_1.png`                 |
-| Bugs      | Bug/warning      | _(SVG inline — already implemented)_                            |
 
 ### Other
 

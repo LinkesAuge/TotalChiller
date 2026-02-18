@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fortress Sanctum — Design System Asset Suggestions</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-bg: #080d14;
+    --color-surface: rgba(18, 39, 58, 0.7);
+    --color-surface-solid: #12273a;
+    --color-surface-2: rgba(15, 34, 51, 0.8);
+    --color-edge: rgba(240, 200, 60, 0.38);
+    --color-edge-glow: rgba(240, 200, 60, 0.65);
+    --color-gold: #c9a34a;
+    --color-gold-2: #e4c778;
+    --color-gold-3: #f5dda3;
+    --color-gold-dark: #a0862e;
+    --color-gold-glow: rgba(240, 200, 60, 0.25);
+    --color-gold-a04: rgba(240, 200, 60, 0.04);
+    --color-gold-a08: rgba(240, 200, 60, 0.08);
+    --color-gold-a10: rgba(240, 200, 60, 0.10);
+    --color-gold-a12: rgba(240, 200, 60, 0.12);
+    --color-gold-a15: rgba(240, 200, 60, 0.15);
+    --color-gold-a20: rgba(240, 200, 60, 0.20);
+    --color-gold-a25: rgba(240, 200, 60, 0.34);
+    --color-gold-a35: rgba(240, 200, 60, 0.48);
+    --color-gold-a50: rgba(240, 200, 60, 0.66);
+    --color-text: #f2e6c9;
+    --color-text-2: #b8a888;
+    --color-text-muted: #9d8d76;
+    --color-accent-red: #c94a3a;
+    --color-accent-green: #4a9960;
+    --color-accent-blue: #4a6ea0;
+    --color-overlay-dark: rgba(10, 20, 32, 0.85);
+    --color-danger-light: #e06060;
+    --color-parchment: #f0e6d2;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 20px var(--color-gold-glow);
+    --font-heading: "Cinzel", serif;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    background: var(--color-bg);
+    background-image: radial-gradient(ellipse at 30% 0%, #152238 0%, #0a1220 50%, #080d14 100%);
+    background-attachment: fixed;
+    color: var(--color-text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .page { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Header */
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding: 48px 24px;
+    background: linear-gradient(180deg, rgba(22, 44, 66, 0.6), rgba(14, 30, 45, 0.3));
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-lg);
+    position: relative;
+    overflow: hidden;
+  }
+  .page-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, var(--color-gold-a12), transparent 60%);
+    pointer-events: none;
+  }
+  .page-header h1 {
+    font-family: var(--font-heading);
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--color-gold-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 30px var(--color-gold-glow);
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    font-size: 1rem;
+    color: var(--color-text-2);
+    max-width: 700px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* TOC */
+  .toc {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 8px;
+    margin-bottom: 48px;
+    padding: 16px;
+    background: linear-gradient(180deg, rgba(10, 18, 28, 0.7), rgba(8, 14, 22, 0.8));
+    border: 1px solid var(--color-gold-a20);
+    border-radius: var(--radius-lg);
+  }
+  .toc a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    color: var(--color-text-2);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: var(--transition-fast);
+  }
+  .toc a:hover {
+    background: var(--color-gold-a08);
+    border-color: var(--color-edge);
+    color: var(--color-gold-2);
+  }
+  .toc-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-gold-a12);
+    border: 1px solid var(--color-edge);
+    color: var(--color-gold-2);
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    flex-shrink: 0;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 56px;
+    scroll-margin-top: 24px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid;
+    border-image: linear-gradient(90deg, var(--color-gold-a50), transparent) 1;
+  }
+  .section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--color-gold-a20), var(--color-gold-a08));
+    border: 2px solid var(--color-gold);
+    color: var(--color-gold-2);
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-glow);
+  }
+  .section h2 {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-gold-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .section-desc {
+    color: var(--color-text-2);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    line-height: 1.7;
+    max-width: 800px;
+  }
+
+  /* Priority badges */
+  .priority { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .priority.high { background: rgba(201, 74, 58, 0.2); border: 1px solid rgba(201, 74, 58, 0.5); color: #f5a090; }
+  .priority.medium { background: var(--color-gold-a12); border: 1px solid var(--color-gold-a35); color: var(--color-gold-2); }
+  .priority.low { background: rgba(74, 110, 160, 0.15); border: 1px solid rgba(74, 110, 160, 0.4); color: #8ab4e0; }
+
+  /* Suggestion cards */
+  .suggestions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .suggestion {
+    background: linear-gradient(180deg, rgba(22, 44, 66, 0.9), rgba(14, 30, 45, 0.92));
+    border: 1px solid var(--color-edge);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .suggestion:hover {
+    border-color: var(--color-edge-glow);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  }
+  .suggestion-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(240, 200, 60, 0.15);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .suggestion-title {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-gold-2);
+  }
+  .suggestion-body {
+    padding: 16px 18px;
+    font-size: 0.88rem;
+    color: var(--color-text-2);
+    line-height: 1.65;
+  }
+  .suggestion-body p { margin-bottom: 10px; }
+  .suggestion-body p:last-child { margin-bottom: 0; }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .tag {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    border: 1px solid;
+  }
+  .tag.asset { background: rgba(74, 153, 96, 0.15); border-color: rgba(74, 153, 96, 0.4); color: #6fd68c; }
+  .tag.css { background: rgba(74, 110, 160, 0.15); border-color: rgba(74, 110, 160, 0.4); color: #8ab4e0; }
+  .tag.hybrid { background: var(--color-gold-a10); border-color: var(--color-gold-a35); color: var(--color-gold-2); }
+  .tag.file { background: rgba(140, 80, 180, 0.15); border-color: rgba(140, 80, 180, 0.4); color: #c8a0e8; }
+
+  /* Before/After panels */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--color-gold-a12);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin: 14px 0;
+  }
+  .compare-panel {
+    padding: 16px;
+    background: rgba(10, 20, 32, 0.85);
+  }
+  .compare-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .compare-label.before { color: var(--color-text-muted); }
+  .compare-label.after { color: var(--color-accent-green); }
+
+  /* Mockup elements */
+  .mock-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  .mock-badge.plain {
+    border: 1px solid var(--color-gold);
+    color: var(--color-gold-2);
+    background: linear-gradient(180deg, var(--color-gold-a12), rgba(170, 142, 28, 0.06));
+  }
+  .mock-badge.shield {
+    border: 1px solid var(--color-gold);
+    color: var(--color-gold-3);
+    background: linear-gradient(135deg, rgba(50, 38, 18, 0.95), rgba(30, 22, 10, 0.98));
+    box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(240, 200, 60, 0.2);
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    position: relative;
+  }
+  .mock-badge.shield::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  }
+
+  .mock-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: 1px solid var(--color-gold-a25);
+    background: var(--color-overlay-dark);
+    color: var(--color-text-2);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-fast);
+  }
+  .mock-btn.textured {
+    background: linear-gradient(180deg, rgba(50, 38, 18, 0.95), rgba(30, 22, 10, 0.98));
+    border: 2px solid var(--color-gold-a50);
+    color: var(--color-gold-3);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    border-radius: 4px;
+    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(240, 200, 60, 0.15), inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+  }
+  .mock-btn.textured::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(240, 200, 60, 0.08), transparent 50%, rgba(0, 0, 0, 0.15));
+  }
+  .mock-btn.textured:hover {
+    border-color: var(--color-gold);
+    box-shadow: var(--shadow-md), var(--shadow-glow), inset 0 1px 0 rgba(240, 200, 60, 0.2);
+  }
+
+  .mock-card {
+    background: linear-gradient(180deg, rgba(22, 44, 66, 0.9), rgba(14, 30, 45, 0.92));
+    border: 1px solid var(--color-edge);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 0.82rem;
+  }
+  .mock-card.framed {
+    border: 2px solid var(--color-gold-a50);
+    border-radius: 6px;
+    position: relative;
+    box-shadow: var(--shadow-md), inset 0 0 20px rgba(0, 0, 0, 0.3);
+  }
+  .mock-card.framed::before,
+  .mock-card.framed::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--color-gold);
+  }
+  .mock-card.framed::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+  .mock-card.framed::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+  .mock-divider {
+    height: 2px;
+    margin: 10px 0;
+  }
+  .mock-divider.plain {
+    background: linear-gradient(90deg, transparent, var(--color-edge-glow), transparent);
+  }
+  .mock-divider.ornate {
+    height: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .mock-divider.ornate::before,
+  .mock-divider.ornate::after {
+    content: "";
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-gold-a50));
+  }
+  .mock-divider.ornate::after {
+    background: linear-gradient(90deg, var(--color-gold-a50), transparent);
+  }
+  .mock-divider.ornate .ornament {
+    color: var(--color-gold);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    text-shadow: 0 0 10px var(--color-gold-glow);
+  }
+
+  .mock-progress {
+    height: 14px;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .mock-progress.plain {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .mock-progress.plain .fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-gold-dark), var(--color-gold));
+    border-radius: 3px;
+    width: 65%;
+  }
+  .mock-progress.game {
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid var(--color-gold-a35);
+    border-radius: 4px;
+    height: 20px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  .mock-progress.game .fill {
+    height: 100%;
+    width: 65%;
+    background: linear-gradient(180deg, #e4c778, #c9a34a 40%, #a0862e 80%, #8a7020);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 8px var(--color-gold-glow);
+    position: relative;
+  }
+  .mock-progress.game .fill::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.15), transparent);
+  }
+  .mock-progress.game .label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--color-parchment);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    z-index: 1;
+  }
+
+  .mock-empty {
+    text-align: center;
+    padding: 32px 20px;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+  .mock-empty.plain {
+    border: 1px dashed var(--color-gold-a25);
+    background: rgba(15, 34, 51, 0.3);
+  }
+  .mock-empty.scroll {
+    border: 2px solid var(--color-gold-a25);
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(240, 200, 60, 0.04) 0%, transparent 50%),
+      linear-gradient(180deg, rgba(18, 30, 42, 0.8), rgba(12, 20, 30, 0.9));
+    position: relative;
+    padding: 40px 28px;
+  }
+  .mock-empty.scroll::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    border: 1px solid var(--color-gold-a12);
+    border-radius: 6px;
+    pointer-events: none;
+  }
+  .mock-empty.scroll .empty-icon {
+    font-size: 2rem;
+    color: var(--color-gold-a25);
+    margin-bottom: 10px;
+    display: block;
+  }
+  .mock-empty.scroll .empty-title {
+    font-family: var(--font-heading);
+    color: var(--color-gold-2);
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+
+  .mock-tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+  }
+  .mock-tab.plain {
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    color: var(--color-text-2);
+    background: transparent;
+  }
+  .mock-tab.plain.active {
+    border-color: var(--color-gold-a50);
+    color: var(--color-gold-2);
+    background: linear-gradient(180deg, var(--color-gold-a15), rgba(170, 142, 28, 0.08));
+    box-shadow: 0 0 10px var(--color-gold-glow);
+  }
+  .mock-tab.game {
+    color: var(--color-text-2);
+    background: linear-gradient(180deg, rgba(15, 25, 38, 0.8), rgba(10, 18, 28, 0.9));
+    border: 1px solid var(--color-gold-a20);
+    border-bottom: none;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    position: relative;
+    padding: 10px 20px;
+  }
+  .mock-tab.game.active {
+    color: var(--color-gold-3);
+    background: linear-gradient(180deg, rgba(50, 38, 18, 0.95), rgba(30, 22, 10, 0.98));
+    border-color: var(--color-gold);
+    box-shadow: 0 -2px 12px var(--color-gold-glow);
+  }
+  .mock-tab.game.active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--color-gold);
+    box-shadow: 0 0 10px var(--color-gold);
+  }
+
+  .mock-tooltip {
+    display: inline-block;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    position: relative;
+  }
+  .mock-tooltip.plain {
+    background: rgba(10, 18, 28, 0.97);
+    border: 1px solid var(--color-gold-a35);
+    color: var(--color-gold-2);
+  }
+  .mock-tooltip.textured {
+    background: linear-gradient(180deg, rgba(30, 24, 14, 0.97), rgba(20, 16, 10, 0.98));
+    border: 2px solid var(--color-gold-a50);
+    color: var(--color-parchment);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(0, 0, 0, 0.4);
+    padding: 12px 18px;
+  }
+  .mock-tooltip.textured::before {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border: 1px solid var(--color-gold-a12);
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  .mock-stat-cell {
+    text-align: center;
+    padding: 14px 10px;
+  }
+  .mock-stat-cell.plain { background: rgba(10, 21, 32, 0.8); }
+  .mock-stat-cell.framed {
+    background: linear-gradient(180deg, rgba(30, 22, 10, 0.5), rgba(15, 28, 42, 0.7));
+    border: 1px solid var(--color-gold-a25);
+    border-radius: 6px;
+    position: relative;
+  }
+  .stat-value {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-gold-2);
+  }
+  .stat-label {
+    font-size: 0.62rem;
+    color: var(--color-text-2);
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .mock-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: var(--radius-sm);
+  }
+  .mock-loading.plain {
+    background: rgba(15, 34, 51, 0.3);
+  }
+  .mock-loading.plain .skel {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .mock-loading.game {
+    background: linear-gradient(180deg, rgba(18, 30, 42, 0.6), rgba(12, 20, 30, 0.7));
+    border: 1px solid var(--color-gold-a12);
+  }
+  .mock-loading.game .skel {
+    background: linear-gradient(90deg, rgba(240, 200, 60, 0.04), rgba(240, 200, 60, 0.1), rgba(240, 200, 60, 0.04));
+    background-size: 200% 100%;
+    border-radius: 4px;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border: 1px solid var(--color-gold-a08);
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .skel { height: 14px; }
+  .skel.w-80 { width: 80%; }
+  .skel.w-60 { width: 60%; }
+  .skel.w-40 { width: 40%; }
+  .skel.h-32 { height: 32px; }
+
+  /* Impact matrix */
+  .impact-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin: 16px 0;
+  }
+  .impact-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--color-gold-2);
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid var(--color-gold-a25);
+  }
+  .impact-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-gold-a08);
+    vertical-align: top;
+  }
+  .impact-table tr:hover td { background: var(--color-gold-a04); }
+
+  /* Asset category list */
+  .asset-cats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+    margin: 12px 0;
+  }
+  .asset-cat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-2);
+    border: 1px solid transparent;
+    transition: var(--transition-fast);
+  }
+  .asset-cat.used { color: var(--color-accent-green); border-color: rgba(74, 153, 96, 0.3); background: rgba(74, 153, 96, 0.08); }
+  .asset-cat.unused { color: var(--color-text-muted); border-color: var(--color-gold-a12); background: var(--color-gold-a04); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot.green { background: var(--color-accent-green); }
+  .dot.amber { background: var(--color-gold); }
+
+  .note {
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    background: rgba(74, 110, 160, 0.12);
+    border: 1px solid rgba(74, 110, 160, 0.3);
+    font-size: 0.82rem;
+    color: var(--color-text-2);
+    margin: 12px 0;
+    line-height: 1.6;
+  }
+  .note strong { color: #8ab4e0; }
+
+  @media (max-width: 768px) {
+    .compare { grid-template-columns: 1fr; }
+    .page-header h1 { font-size: 1.5rem; }
+    .section h2 { font-size: 1.1rem; }
+    .asset-cats { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    .toc { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="page-header">
+  <h1>Design System Suggestions</h1>
+  <p>A thorough audit of the Fortress Sanctum design system with actionable recommendations to better leverage game assets and improve UI quality across all surfaces.</p>
+</header>
+
+<!-- ═══════════════ TABLE OF CONTENTS ═══════════════ -->
+<nav class="toc">
+  <a href="#audit"><span class="toc-num">1</span> Asset Utilization Audit</a>
+  <a href="#frames"><span class="toc-num">2</span> Frame & Border Assets</a>
+  <a href="#buttons"><span class="toc-num">3</span> Game-Themed Buttons</a>
+  <a href="#badges"><span class="toc-num">4</span> Shield & Ribbon Badges</a>
+  <a href="#dividers"><span class="toc-num">5</span> Ornamental Dividers</a>
+  <a href="#progress"><span class="toc-num">6</span> Game Progress Bars</a>
+  <a href="#tabs"><span class="toc-num">7</span> Game-Style Tabs</a>
+  <a href="#empty"><span class="toc-num">8</span> Scroll-Style Empty States</a>
+  <a href="#tooltips"><span class="toc-num">9</span> Textured Tooltips</a>
+  <a href="#loading"><span class="toc-num">10</span> Gold Shimmer Loading</a>
+  <a href="#surfaces"><span class="toc-num">11</span> Surface Hierarchy</a>
+  <a href="#typography"><span class="toc-num">12</span> Typography Refinements</a>
+</nav>
+
+<!-- ═══════════════ 1. ASSET AUDIT ═══════════════ -->
+<section class="section" id="audit">
+  <div class="section-header">
+    <span class="section-num">1</span>
+    <h2>Asset Utilization Audit</h2>
+  </div>
+  <p class="section-desc">Your design system defines <strong>26 asset categories</strong> with potentially hundreds of game PNGs. Currently, only about 7 assets are actively used in the UI. This represents a significant opportunity to deepen the medieval identity.</p>
+
+  <h3 style="font-family:var(--font-heading);color:var(--color-gold-2);font-size:0.9rem;margin-bottom:12px;">Asset Categories: Current Usage</h3>
+  <div class="asset-cats">
+    <span class="asset-cat used"><span class="dot green"></span>background</span>
+    <span class="asset-cat used"><span class="dot green"></span>button</span>
+    <span class="asset-cat used"><span class="dot green"></span>decoration</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>arrow</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>badge</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>banner</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>character</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>cursor</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>drapery</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>effect</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>flag</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>frame</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>icon</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>progress</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>ribbon</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>scroll</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>shield</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>tab-panel</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>weapon</span>
+    <span class="asset-cat unused"><span class="dot amber"></span>widget</span>
+  </div>
+
+  <div class="note">
+    <strong>Key finding:</strong> 20 of 26 categories have no UI assignments yet. The assets exist in the database but aren't mapped to UI elements. Each suggestion below identifies specific categories to leverage and the components they'd enhance.
+  </div>
+
+  <h3 style="font-family:var(--font-heading);color:var(--color-gold-2);font-size:0.9rem;margin:20px 0 12px;">Impact Priority Matrix</h3>
+  <table class="impact-table">
+    <thead>
+      <tr>
+        <th>Suggestion</th>
+        <th>Impact</th>
+        <th>Effort</th>
+        <th>Asset Categories</th>
+        <th>Affected Pages</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Surface hierarchy tokens</td>
+        <td><span class="priority high">High</span></td>
+        <td>Low</td>
+        <td>CSS only</td>
+        <td>All pages</td>
+      </tr>
+      <tr>
+        <td>Frame assets for key cards</td>
+        <td><span class="priority high">High</span></td>
+        <td>Medium</td>
+        <td>frame, decoration</td>
+        <td>Dashboard, admin, events</td>
+      </tr>
+      <tr>
+        <td>Game-style buttons</td>
+        <td><span class="priority high">High</span></td>
+        <td>Medium</td>
+        <td>button, effect</td>
+        <td>All pages (CTAs)</td>
+      </tr>
+      <tr>
+        <td>Shield/ribbon rank badges</td>
+        <td><span class="priority medium">Medium</span></td>
+        <td>Medium</td>
+        <td>shield, ribbon, badge</td>
+        <td>Members, admin, forum</td>
+      </tr>
+      <tr>
+        <td>Ornamental section dividers</td>
+        <td><span class="priority medium">Medium</span></td>
+        <td>Low</td>
+        <td>decoration, drapery</td>
+        <td>All pages</td>
+      </tr>
+      <tr>
+        <td>Game progress bars</td>
+        <td><span class="priority medium">Medium</span></td>
+        <td>Low</td>
+        <td>progress</td>
+        <td>Dashboard, events</td>
+      </tr>
+      <tr>
+        <td>Tab panel assets</td>
+        <td><span class="priority medium">Medium</span></td>
+        <td>Medium</td>
+        <td>tab-panel</td>
+        <td>Admin, design system, settings</td>
+      </tr>
+      <tr>
+        <td>Scroll-themed empty states</td>
+        <td><span class="priority low">Low</span></td>
+        <td>Low</td>
+        <td>scroll, character</td>
+        <td>Forum, messages, events</td>
+      </tr>
+      <tr>
+        <td>Textured tooltips</td>
+        <td><span class="priority low">Low</span></td>
+        <td>Low</td>
+        <td>widget</td>
+        <td>Calendar, nav, tables</td>
+      </tr>
+      <tr>
+        <td>Gold shimmer loading</td>
+        <td><span class="priority low">Low</span></td>
+        <td>Low</td>
+        <td>CSS only</td>
+        <td>All loading states</td>
+      </tr>
+      <tr>
+        <td>Typography fluid scale</td>
+        <td><span class="priority medium">Medium</span></td>
+        <td>Low</td>
+        <td>CSS only</td>
+        <td>All pages</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════ 2. FRAME ASSETS ═══════════════ -->
+<section class="section" id="frames">
+  <div class="section-header">
+    <span class="section-num">2</span>
+    <h2>Frame & Border Assets</h2>
+  </div>
+  <p class="section-desc">The <code>frame</code> asset category is entirely unused. Game-style frames around key cards (dashboard stats, profile, event details) would reinforce the medieval identity far beyond simple CSS borders.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Framed Dashboard Stat Cells</span>
+        <span class="priority high">High Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>The <code>.stat-grid</code> / <code>.stat-cell</code> component currently uses flat backgrounds. Adding frame assets or CSS-simulated frame corners would give these stats the visual weight they deserve as key metrics.</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--color-gold-a12);">
+              <div class="mock-stat-cell plain"><div class="stat-value">42</div><div class="stat-label">Members</div></div>
+              <div class="mock-stat-cell plain"><div class="stat-value">8</div><div class="stat-label">Events</div></div>
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div class="mock-stat-cell framed"><div class="stat-value">42</div><div class="stat-label">Members</div></div>
+              <div class="mock-stat-cell framed"><div class="stat-value">8</div><div class="stat-label">Events</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="tags">
+          <span class="tag hybrid">hybrid render</span>
+          <span class="tag asset">frame assets</span>
+          <span class="tag file">components.css</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Corner-Accented Feature Cards</span>
+        <span class="priority medium">Medium Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Key cards (profile card, event detail, news detail) could use decorative corner accents from <code>frame</code> or <code>decoration</code> assets. This CSS-only preview shows the concept; with actual PNG corners it would look even richer.</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current</div>
+            <div class="mock-card">
+              <div style="font-family:var(--font-heading);color:var(--color-gold-2);font-size:0.88rem;margin-bottom:8px;">Event Details</div>
+              <div style="color:var(--color-text-2);font-size:0.82rem;">Standard card with 1px gold edge border...</div>
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested</div>
+            <div class="mock-card framed">
+              <div style="font-family:var(--font-heading);color:var(--color-gold-3);font-size:0.88rem;margin-bottom:8px;">Event Details</div>
+              <div style="color:var(--color-text-2);font-size:0.82rem;">Framed card with decorative corners and inset shadow...</div>
+            </div>
+          </div>
+        </div>
+        <div class="tags">
+          <span class="tag hybrid">hybrid render</span>
+          <span class="tag asset">frame, decoration</span>
+          <span class="tag file">components.css, events.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 3. BUTTONS ═══════════════ -->
+<section class="section" id="buttons">
+  <div class="section-header">
+    <span class="section-num">3</span>
+    <h2>Game-Themed Buttons</h2>
+  </div>
+  <p class="section-desc">The <code>.button.leather</code> variant exists but is rarely used. The <code>button</code> asset category has game-style button textures that could create a compelling "forged" CTA button for primary actions. Combined with <code>effect</code> assets for hover glow, this creates a strong action hierarchy.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Forged Primary CTA Button</span>
+        <span class="priority high">High Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Create a <code>.button.forged</code> variant for the most important actions (Create Event, New Post, Send Message). This uses a leather/metal texture background with embossed text and a gold glow on hover.</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current .button.primary</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <button class="mock-btn" style="background:linear-gradient(180deg, rgba(50, 38, 18, 0.95), rgba(30, 22, 10, 0.98));border-color:var(--color-gold-a50);color:var(--color-gold-2);font-weight:600;">Create Event</button>
+              <button class="mock-btn">Cancel</button>
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested .button.forged</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <button class="mock-btn textured">Create Event</button>
+              <button class="mock-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top:12px;">The forged button uses the heading font (Cinzel), uppercase text, a beveled edge effect, and a subtle inner highlight. On hover, a gold glow radiates outward. This provides a clear visual hierarchy where the primary action dominates.</p>
+        <div class="tags">
+          <span class="tag hybrid">hybrid render</span>
+          <span class="tag asset">button, effect</span>
+          <span class="tag file">components.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 4. BADGES ═══════════════ -->
+<section class="section" id="badges">
+  <div class="section-header">
+    <span class="section-num">4</span>
+    <h2>Shield & Ribbon Badges</h2>
+  </div>
+  <p class="section-desc">The <code>shield</code>, <code>ribbon</code>, and <code>badge</code> asset categories are all untapped. These could replace plain CSS-pill badges for member ranks (Owner, Admin, Member), pinned/locked status indicators, and achievements.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Asset-Backed Rank Badges</span>
+        <span class="priority medium">Medium Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Member rank badges in the <code>.table.users</code>, members directory, and forum currently use flat pill badges. Using shield-shaped backgrounds from the asset library would make ranks feel earned and meaningful.</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current CSS Badges</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="mock-badge plain">Owner</span>
+              <span class="mock-badge plain" style="border-color:rgba(74,153,96,0.7);color:#6fd68c;background:linear-gradient(180deg,rgba(74,153,96,0.2),rgba(45,100,60,0.12));">Admin</span>
+              <span class="mock-badge plain" style="border-color:rgba(74,110,160,0.6);color:#8ab4e0;background:linear-gradient(180deg,rgba(74,110,160,0.2),rgba(50,80,120,0.12));">Member</span>
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested Shield Badges</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <span class="mock-badge shield">Owner</span>
+              <span class="mock-badge shield" style="background:linear-gradient(135deg,rgba(20,45,30,0.95),rgba(15,35,25,0.98));border-color:rgba(74,153,96,0.7);">Admin</span>
+              <span class="mock-badge shield" style="background:linear-gradient(135deg,rgba(20,30,50,0.95),rgba(15,25,40,0.98));border-color:rgba(74,110,160,0.6);color:#8ab4e0;">Member</span>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top:12px;">Use shield PNGs from the asset library as badge backgrounds (via <code>render_type: "hybrid"</code>). The CSS-only preview above simulates the structure; actual game shield assets would add authentic texture and detail.</p>
+        <div class="tags">
+          <span class="tag asset">shield, badge, ribbon</span>
+          <span class="tag file">components.css, tables.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 5. DIVIDERS ═══════════════ -->
+<section class="section" id="dividers">
+  <div class="section-header">
+    <span class="section-num">5</span>
+    <h2>Ornamental Dividers</h2>
+  </div>
+  <p class="section-desc">Currently only one decoration asset is used (the scepter divider in the sidebar). The <code>decoration</code> and <code>drapery</code> categories likely contain ornamental line art, floral/geometric dividers, and border textures that could replace the CSS-only gradient dividers used throughout.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Asset-Based Section Dividers</span>
+        <span class="priority medium">Medium Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Replace the <code>.gold-divider</code> CSS gradient with asset-based ornamental dividers between major content sections (card headers, forum sections, sidebar groups, page sections).</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current CSS Gradient</div>
+            <div class="mock-divider plain"></div>
+            <div style="margin-top:16px;" class="mock-divider plain"></div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested Ornamental</div>
+            <div class="mock-divider ornate"><span class="ornament">&#9830;</span></div>
+            <div style="margin-top:16px;" class="mock-divider ornate"><span class="ornament">&#10022;</span></div>
+          </div>
+        </div>
+        <p style="margin-top:12px;">Use a centered decoration PNG (scepter, floral motif, or geometric pattern) flanked by gradient lines. This is already done in the sidebar with <code>components_decor_7.png</code> -- extend the pattern to cards, page sections, and the footer.</p>
+        <div class="tags">
+          <span class="tag asset">decoration, drapery</span>
+          <span class="tag file">components.css, layout.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 6. PROGRESS ═══════════════ -->
+<section class="section" id="progress">
+  <div class="section-header">
+    <span class="section-num">6</span>
+    <h2>Game-Style Progress Bars</h2>
+  </div>
+  <p class="section-desc">The <code>.game-progress</code> class already exists in components.css but could be enhanced with <code>progress</code> category assets. Add a beveled frame, glossy gold fill, and optional text overlay for a true game-quality progress bar.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Beveled Gold Progress Bar</span>
+        <span class="priority medium">Medium Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Enhance the existing <code>.game-progress</code> component with a thicker frame, glossy fill gradient, specular highlight, and optional centered label. Use this for event completion, profile completion, or any percentage metric.</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current Plain</div>
+            <div class="mock-progress plain"><div class="fill"></div></div>
+            <div style="margin-top:12px;font-size:0.72rem;color:var(--color-text-muted);">65% — Simple flat fill</div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested Game-Style</div>
+            <div class="mock-progress game">
+              <div class="fill"></div>
+              <span class="label">65%</span>
+            </div>
+            <div style="margin-top:12px;font-size:0.72rem;color:var(--color-text-muted);">65% — Framed, glossy, labeled</div>
+          </div>
+        </div>
+        <div class="tags">
+          <span class="tag hybrid">hybrid render</span>
+          <span class="tag asset">progress</span>
+          <span class="tag file">components.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 7. TABS ═══════════════ -->
+<section class="section" id="tabs">
+  <div class="section-header">
+    <span class="section-num">7</span>
+    <h2>Game-Style Tabs</h2>
+  </div>
+  <p class="section-desc">The <code>tab-panel</code> asset category is unused. Tabs are used heavily across the app (admin panel, design system, settings, messages). Using game-style tab visuals would reinforce the Fortress Sanctum identity in one of the most frequently seen UI patterns.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Embossed Active Tab with Bottom Glow</span>
+        <span class="priority medium">Medium Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Replace the current segmented-control tab style with a more traditional tab-bar where the active tab has a distinct leather/metal texture and a bottom gold glow line, while inactive tabs recede.</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current Segmented Control</div>
+            <div style="display:flex;gap:4px;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-gold-a20);background:linear-gradient(180deg,rgba(10,18,28,0.7),rgba(8,14,22,0.8));">
+              <span class="mock-tab plain active">Assets</span>
+              <span class="mock-tab plain">Inventory</span>
+              <span class="mock-tab plain">Assignments</span>
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested Game Tabs</div>
+            <div style="display:flex;gap:0;border-bottom:2px solid var(--color-gold-a25);">
+              <span class="mock-tab game active">Assets</span>
+              <span class="mock-tab game">Inventory</span>
+              <span class="mock-tab game">Assignments</span>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top:12px;">The active tab uses the same dark-gold background as the forged button, with a bright gold bottom border and subtle glow. This provides clearer active-state indication than the current subtle background shift.</p>
+        <div class="tags">
+          <span class="tag hybrid">hybrid render</span>
+          <span class="tag asset">tab-panel</span>
+          <span class="tag file">components.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 8. EMPTY STATES ═══════════════ -->
+<section class="section" id="empty">
+  <div class="section-header">
+    <span class="section-num">8</span>
+    <h2>Scroll-Style Empty States</h2>
+  </div>
+  <p class="section-desc">Empty states appear across many features (forum, messages, events, notifications). Currently they use a plain <code>.chart-empty</code> dashed-border box. Using <code>scroll</code> and <code>character</code> assets would make empty states feel intentional and on-brand rather than utilitarian.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Medieval Scroll Empty State</span>
+        <span class="priority low">Low Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Replace the generic dashed-border empty state with a scroll-themed container. Use a subtle radial glow, an inner border frame, and a thematic icon (quill for forum, sealed letter for messages, etc.).</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current Plain</div>
+            <div class="mock-empty plain">
+              <div style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;">No Events Found</div>
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested Scroll-Style</div>
+            <div class="mock-empty scroll">
+              <span class="empty-icon">&#x1F4DC;</span>
+              <div class="empty-title">The Scrolls Are Empty</div>
+              <div>No events have been recorded yet. Create the first one.</div>
+            </div>
+          </div>
+        </div>
+        <div class="tags">
+          <span class="tag asset">scroll, character</span>
+          <span class="tag file">components.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 9. TOOLTIPS ═══════════════ -->
+<section class="section" id="tooltips">
+  <div class="section-header">
+    <span class="section-num">9</span>
+    <h2>Textured Tooltips</h2>
+  </div>
+  <p class="section-desc">The top bar already uses <code>back_tooltip_2.png</code> for its textured header. Extend this pattern to other tooltips: calendar event tooltips, nav tooltips (collapsed sidebar), and dropdown headers. The <code>widget</code> asset category may contain suitable background textures.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Parchment-Style Tooltip</span>
+        <span class="priority low">Low Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Give tooltips a warm parchment-like texture with a double-border treatment. This is especially effective for the calendar hover tooltips that show event details.</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current Plain</div>
+            <div class="mock-tooltip plain">Guild War — 18:00 CET</div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested Textured</div>
+            <div class="mock-tooltip textured">Guild War — 18:00 CET</div>
+          </div>
+        </div>
+        <div class="tags">
+          <span class="tag hybrid">hybrid render</span>
+          <span class="tag asset">widget</span>
+          <span class="tag file">events.css, layout.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 10. LOADING ═══════════════ -->
+<section class="section" id="loading">
+  <div class="section-header">
+    <span class="section-num">10</span>
+    <h2>Gold Shimmer Loading</h2>
+  </div>
+  <p class="section-desc">Loading skeletons currently use a generic gray pulse animation. Replacing this with a gold shimmer effect (matching the theme) would make even loading states feel on-brand. This is pure CSS -- no assets needed.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Gold Shimmer Skeleton</span>
+        <span class="priority low">Low Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Replace the <code>@keyframes pulse</code> animation with a gold-tinted shimmer that sweeps left-to-right. Wrap skeletons in a subtle gold-bordered container for visual cohesion.</p>
+        <div class="compare">
+          <div class="compare-panel">
+            <div class="compare-label before">Current Gray Pulse</div>
+            <div class="mock-loading plain">
+              <div class="skel h-32 w-80"></div>
+              <div class="skel w-60"></div>
+              <div class="skel w-40"></div>
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label after">Suggested Gold Shimmer</div>
+            <div class="mock-loading game">
+              <div class="skel h-32 w-80"></div>
+              <div class="skel w-60"></div>
+              <div class="skel w-40"></div>
+            </div>
+          </div>
+        </div>
+        <div class="tags">
+          <span class="tag css">CSS only</span>
+          <span class="tag file">components.css, page-skeleton.tsx</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 11. SURFACES ═══════════════ -->
+<section class="section" id="surfaces">
+  <div class="section-header">
+    <span class="section-num">11</span>
+    <h2>Surface Hierarchy Tokens</h2>
+  </div>
+  <p class="section-desc">This aligns with the P2.1 backlog item that's still pending. The current surface system has <code>--color-surface</code> and <code>--color-surface-2</code>, but cards, panels, and active cards all look very similar. Define explicit elevation tiers with progressively warmer gold tinting and shadow depth.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Four-Tier Elevation System</span>
+        <span class="priority high">High Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Define four surface levels that create clear visual depth:</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0;">
+          <div style="padding:16px;border-radius:8px;background:rgba(8,13,20,0.9);border:1px solid var(--color-gold-a08);text-align:center;">
+            <div style="font-size:0.68rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Base</div>
+            <div style="font-size:0.78rem;color:var(--color-text-2);">Page background</div>
+          </div>
+          <div style="padding:16px;border-radius:8px;background:rgba(14,26,40,0.7);border:1px solid var(--color-gold-a12);text-align:center;">
+            <div style="font-size:0.68rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Raised</div>
+            <div style="font-size:0.78rem;color:var(--color-text-2);">Panels, filters</div>
+          </div>
+          <div style="padding:16px;border-radius:8px;background:linear-gradient(180deg,rgba(22,44,66,0.9),rgba(14,30,45,0.92));border:1px solid var(--color-edge);text-align:center;box-shadow:var(--shadow-sm);">
+            <div style="font-size:0.68rem;color:var(--color-gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Card</div>
+            <div style="font-size:0.78rem;color:var(--color-text);">Primary content</div>
+          </div>
+          <div style="padding:16px;border-radius:8px;background:linear-gradient(180deg,rgba(30,50,72,0.95),rgba(18,36,54,0.97));border:1px solid var(--color-edge-glow);text-align:center;box-shadow:var(--shadow-md),var(--shadow-glow);">
+            <div style="font-size:0.68rem;color:var(--color-gold-2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Elevated</div>
+            <div style="font-size:0.78rem;color:var(--color-gold-2);">Modals, dropdowns</div>
+          </div>
+        </div>
+        <p>Add these as new CSS custom properties in <code>theme.css</code>:</p>
+        <div style="background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);font-family:'Courier New',monospace;font-size:0.78rem;color:var(--color-text-2);margin-top:10px;line-height:1.6;overflow-x:auto;">
+          --surface-base: rgba(8, 13, 20, 0.9);<br>
+          --surface-raised: rgba(14, 26, 40, 0.7);<br>
+          --surface-card: linear-gradient(180deg, rgba(22, 44, 66, 0.9), rgba(14, 30, 45, 0.92));<br>
+          --surface-elevated: linear-gradient(180deg, rgba(30, 50, 72, 0.95), rgba(18, 36, 54, 0.97));
+        </div>
+        <div class="tags">
+          <span class="tag css">CSS only</span>
+          <span class="tag file">theme.css, components.css, layout.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 12. TYPOGRAPHY ═══════════════ -->
+<section class="section" id="typography">
+  <div class="section-header">
+    <span class="section-num">12</span>
+    <h2>Typography Refinements</h2>
+  </div>
+  <p class="section-desc">The Cinzel + Inter pairing is strong and appropriate for the theme. A few refinements would improve readability and hierarchy across all surfaces.</p>
+
+  <div class="suggestions">
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Fluid Type Scale</span>
+        <span class="priority medium">Medium Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>The current <code>html { font-size: 15px; }</code> is slightly below the recommended 16px minimum for body text on mobile. Adopt a fluid base using <code>clamp()</code> so it scales gracefully from small to large viewports:</p>
+        <div style="background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);font-family:'Courier New',monospace;font-size:0.78rem;color:var(--color-text-2);margin:10px 0;line-height:1.6;overflow-x:auto;">
+          html { font-size: clamp(15px, 0.3vw + 14.5px, 16px); }
+        </div>
+        <p>Also add fluid heading sizes for better scaling on tablets:</p>
+        <div style="background:rgba(0,0,0,0.35);padding:12px 16px;border-radius:var(--radius-sm);font-family:'Courier New',monospace;font-size:0.78rem;color:var(--color-text-2);margin:10px 0;line-height:1.6;overflow-x:auto;">
+          .hero-title { font-size: clamp(1.2rem, 3vw + 0.5rem, 1.6rem); }<br>
+          .top-bar-title { font-size: clamp(0.92rem, 1vw + 0.7rem, 1.12rem); }<br>
+          .news-card-title { font-size: clamp(1.1rem, 2vw + 0.5rem, 1.5rem); }
+        </div>
+        <div class="tags">
+          <span class="tag css">CSS only</span>
+          <span class="tag file">theme.css, components.css, news.css</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="suggestion">
+      <div class="suggestion-head">
+        <span class="suggestion-title">Heading Weight Hierarchy</span>
+        <span class="priority low">Low Impact</span>
+      </div>
+      <div class="suggestion-body">
+        <p>Cinzel is used uniformly at weight 700 across most headings. Create a weight hierarchy for visual depth:</p>
+        <div style="margin:14px 0;display:flex;flex-direction:column;gap:8px;">
+          <div style="font-family:var(--font-heading);font-weight:900;font-size:1.4rem;color:var(--color-gold-2);letter-spacing:0.04em;">Page Title (900)</div>
+          <div style="font-family:var(--font-heading);font-weight:700;font-size:1.05rem;color:var(--color-gold-2);letter-spacing:0.03em;">Card Header (700)</div>
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:0.85rem;color:var(--color-text-2);letter-spacing:0.02em;">Section Label (600)</div>
+          <div style="font-family:var(--font-heading);font-weight:400;font-size:0.78rem;color:var(--color-text-muted);letter-spacing:0.02em;">Meta/Subtitle (400)</div>
+        </div>
+        <p>This four-level weight scale creates a clear visual hierarchy while staying within a single font family. Reserve weight 900 for page-level titles only, 700 for card headers, 600 for section labels, and 400 for subtle meta text.</p>
+        <div class="tags">
+          <span class="tag css">CSS only</span>
+          <span class="tag file">theme.css</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SUMMARY ═══════════════ -->
+<section class="section" style="margin-bottom:0;">
+  <div class="section-header">
+    <span class="section-num" style="background:linear-gradient(180deg,rgba(74,153,96,0.3),rgba(74,153,96,0.1));border-color:var(--color-accent-green);">&#10003;</span>
+    <h2>Implementation Roadmap</h2>
+  </div>
+  <p class="section-desc">A phased approach to implementing these suggestions, ordered by impact and effort:</p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;">
+    <div class="mock-card" style="border-color:rgba(201,74,58,0.4);">
+      <div style="font-family:var(--font-heading);color:#f5a090;font-size:0.82rem;margin-bottom:10px;text-transform:uppercase;">Phase 1 — Quick Wins (CSS Only)</div>
+      <div style="font-size:0.82rem;color:var(--color-text-2);line-height:1.65;">
+        <div style="margin-bottom:6px;">1. Surface hierarchy tokens (theme.css)</div>
+        <div style="margin-bottom:6px;">2. Gold shimmer loading animation</div>
+        <div style="margin-bottom:6px;">3. Fluid typography scale</div>
+        <div style="margin-bottom:6px;">4. Cinzel weight hierarchy</div>
+        <div style="color:var(--color-text-muted);font-size:0.72rem;margin-top:10px;">Estimated effort: 2-3 hours. No asset work needed.</div>
+      </div>
+    </div>
+
+    <div class="mock-card" style="border-color:var(--color-gold-a35);">
+      <div style="font-family:var(--font-heading);color:var(--color-gold-2);font-size:0.82rem;margin-bottom:10px;text-transform:uppercase;">Phase 2 — Hybrid Components</div>
+      <div style="font-size:0.82rem;color:var(--color-text-2);line-height:1.65;">
+        <div style="margin-bottom:6px;">5. Forged primary button variant</div>
+        <div style="margin-bottom:6px;">6. Beveled game progress bars</div>
+        <div style="margin-bottom:6px;">7. Game-style tab panels</div>
+        <div style="margin-bottom:6px;">8. Ornamental dividers</div>
+        <div style="color:var(--color-text-muted);font-size:0.72rem;margin-top:10px;">Estimated effort: 4-6 hours. Browse asset library for suitable PNGs.</div>
+      </div>
+    </div>
+
+    <div class="mock-card" style="border-color:rgba(74,110,160,0.4);">
+      <div style="font-family:var(--font-heading);color:#8ab4e0;font-size:0.82rem;margin-bottom:10px;text-transform:uppercase;">Phase 3 — Full Asset Integration</div>
+      <div style="font-size:0.82rem;color:var(--color-text-2);line-height:1.65;">
+        <div style="margin-bottom:6px;">9. Shield/ribbon rank badges</div>
+        <div style="margin-bottom:6px;">10. Frame-accented feature cards</div>
+        <div style="margin-bottom:6px;">11. Scroll-themed empty states</div>
+        <div style="margin-bottom:6px;">12. Textured tooltips</div>
+        <div style="color:var(--color-text-muted);font-size:0.72rem;margin-top:10px;">Estimated effort: 6-8 hours. Requires asset assignment workflow.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:20px;">
+    <strong>Compatibility note:</strong> All suggestions preserve the existing "Refined Command Table" direction from the UI/UX review backlog. The surface hierarchy tokens directly fulfill the pending P2.1 item. No suggestions conflict with completed P1 or P3 work.
+  </div>
+</section>
+
+</div>
+</body>
+</html>

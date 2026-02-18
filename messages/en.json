@@ -301,7 +301,7 @@
     "contactEmail": "Email — hello@chillers.gg for formal inquiries",
     "contactEmailBadge": "Email",
     "joinTheChillers": "Register",
-    "learnMoreAbout": "Learn More About Us"
+    "learnMoreAbout": "Learn More"
   },
   "dashboard": {
     "breadcrumb": "[THC] Chiller & Killer \u2022 Clan Platform",
@@ -336,8 +336,15 @@
     "ago": "ago",
     "loading": "Loading…",
     "quickStatsTitle": "Quick Stats",
+    "statMembersLabel": "Members",
+    "statPowerLabel": "Power",
+    "statEventsLabel": "Events",
+    "statActivityLabel": "Activity",
     "statsComingSoon": "Stats coming soon.",
     "weekHighlightsTitle": "Week Highlights",
+    "progressEventsLabel": "Event Participation",
+    "progressActivityLabel": "Weekly Activity",
+    "progressGrowthLabel": "Growth Target",
     "heroTitle": "Community Hub",
     "heroSubtitle": "Coordinated. Competitive. Welcoming.",
     "goToThread": "Go to discussion thread"

@@ -52,7 +52,7 @@ function ThumbnailSizePicker({ sizes, value, onChange, label, className }: Thumb
             fontSize: "0.7rem",
             borderRadius: 4,
             border: value === s.px ? "1px solid var(--color-gold)" : "1px solid var(--color-edge)",
-            background: value === s.px ? "rgba(201, 163, 74, 0.15)" : "transparent",
+            background: value === s.px ? "rgba(240, 200, 60, 0.15)" : "transparent",
             color: value === s.px ? "var(--color-gold)" : "var(--color-text-2)",
             cursor: "pointer",
             fontWeight: value === s.px ? 600 : 400,

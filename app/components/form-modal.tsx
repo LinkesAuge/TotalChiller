@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormEvent, ReactElement, ReactNode } from "react";
+import GameButton from "./ui/game-button";
 
 interface FormModalProps {
   /** Whether the modal is open. */
@@ -66,9 +67,9 @@ export default function FormModal({
           {children}
           {statusMessage ? <div className="alert info">{statusMessage}</div> : null}
           <div className="list inline">
-            <button className="button primary" type="submit" disabled={isSubmitDisabled}>
+            <GameButton variant="green" fontSize="0.6rem" type="submit" disabled={isSubmitDisabled}>
               {submitLabel}
-            </button>
+            </GameButton>
             <button className="button" type="button" onClick={onCancel}>
               {cancelLabel}
             </button>

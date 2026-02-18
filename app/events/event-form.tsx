@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import DatePicker from "../components/date-picker";
 import RadixSelect from "../components/ui/radix-select";
 import BannerPicker from "../components/banner-picker";
+import GameButton from "../components/ui/game-button";
 import MarkdownEditor from "../components/markdown-editor";
 import { BANNER_PRESETS } from "@/lib/constants/banner-presets";
 import type { GameAccountOption, RecurrenceType } from "./events-types";
@@ -310,9 +311,9 @@ export function EventForm({
           </label>
         )}
         <div className="list inline mt-4 flex-wrap">
-          <button className="button primary" type="submit" disabled={isSaving}>
+          <GameButton variant="green" fontSize="0.6rem" type="submit" disabled={isSaving}>
             {isSaving ? t("saving") : editingId ? t("save") : t("createEvent")}
-          </button>
+          </GameButton>
           <button className="button" type="button" onClick={onCancel}>
             {t("cancel")}
           </button>

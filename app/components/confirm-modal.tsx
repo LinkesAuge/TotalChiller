@@ -1,6 +1,14 @@
 "use client";
 
 import type { ReactElement, ReactNode } from "react";
+import type { GameButtonVariant } from "./ui/game-button";
+import GameButton from "./ui/game-button";
+
+const VARIANT_TO_BUTTON: Record<string, GameButtonVariant> = {
+  info: "green",
+  danger: "orange",
+  warning: "orange",
+};
 
 interface ConfirmModalProps {
   /** Whether the modal is open. */
@@ -13,6 +21,8 @@ interface ConfirmModalProps {
   readonly message: string | ReactNode;
   /** Visual variant controlling the card/button style. */
   readonly variant?: "danger" | "warning" | "info";
+  /** Override the GameButton variant for the confirm button. */
+  readonly confirmButtonVariant?: GameButtonVariant;
   /** Label for the danger/warning zone header. */
   readonly zoneLabel?: string;
   /** Label for the confirm button. */
@@ -47,6 +57,7 @@ export default function ConfirmModal({
   subtitle,
   message,
   variant = "danger",
+  confirmButtonVariant,
   zoneLabel,
   confirmLabel,
   cancelLabel,
@@ -61,7 +72,7 @@ export default function ConfirmModal({
 }: ConfirmModalProps): ReactElement | null {
   if (!isOpen) return null;
   const cardClass = `modal card ${variant}`;
-  const buttonClass = `button ${variant === "info" ? "primary" : variant}`;
+  const btnVariant = confirmButtonVariant ?? VARIANT_TO_BUTTON[variant] ?? "green";
   const isDisabled = isConfirmDisabled ?? (confirmPhrase ? phraseValue !== confirmPhrase : false);
 
   return (
@@ -95,9 +106,9 @@ export default function ConfirmModal({
           </div>
         ) : null}
         <div className="list inline">
-          <button className={buttonClass} type="button" onClick={onConfirm} disabled={isDisabled}>
+          <GameButton variant={btnVariant} fontSize="0.6rem" type="button" onClick={onConfirm} disabled={isDisabled}>
             {confirmLabel}
-          </button>
+          </GameButton>
           <button className="button" type="button" onClick={onCancel}>
             {cancelLabel}
           </button>

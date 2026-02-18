@@ -9,6 +9,7 @@ const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
 });
 import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
+import GameButton from "../components/ui/game-button";
 import { UpArrow, DownArrow, CommentIcon } from "./forum-icons";
 import { formatTimeAgo, type TFunction } from "./forum-utils";
 import type { ForumPost, ForumComment } from "./forum-types";
@@ -154,9 +155,15 @@ function ForumCommentEditorForm({
       )}
       <p className="forum-editor-hint">{t("markdownHint")}</p>
       <div className="forum-form-row">
-        <button className="button primary" onClick={handleSubmit} disabled={!commentText.trim()}>
+        <GameButton
+          variant="green"
+          fontSize="0.6rem"
+          type="button"
+          onClick={handleSubmit}
+          disabled={!commentText.trim()}
+        >
           {isReply ? t("submitReply") : t("submitComment")}
-        </button>
+        </GameButton>
         <button className="button" onClick={onReplyCancel}>
           {t("cancel")}
         </button>
@@ -334,14 +341,15 @@ function CommentItem({
               </>
             )}
             <div className="forum-comment-edit-actions">
-              <button
-                className="button primary py-1 px-3"
+              <GameButton
+                variant="green"
+                fontSize="0.6rem"
+                type="button"
                 onClick={handleSaveEdit}
                 disabled={!editContent.trim()}
-                style={{ fontSize: "0.75rem" }}
               >
                 {t("saveEdit")}
-              </button>
+              </GameButton>
               <button className="button py-1 px-3" onClick={handleCancelEdit} style={{ fontSize: "0.75rem" }}>
                 {t("cancelEdit")}
               </button>
@@ -378,9 +386,9 @@ function CommentItem({
         {isConfirmingDelete && (
           <div className="forum-comment-delete-confirm">
             <span>{t("deleteCommentConfirm")}</span>
-            <button className="button danger py-1 px-2" onClick={handleConfirmDelete} style={{ fontSize: "0.7rem" }}>
+            <GameButton variant="orange" fontSize="0.6rem" type="button" onClick={handleConfirmDelete}>
               {t("deleteCommentButton")}
-            </button>
+            </GameButton>
             <button
               className="button py-1 px-2"
               onClick={() => setIsConfirmingDelete(false)}
@@ -503,41 +511,13 @@ export default function ForumPostDetail({
           </span>
           {selectedPost.source_type === "event" && (
             <a className="forum-source-link event" href="/events">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
+              <img src="/assets/game/icons/icons_main_menu_daily_1.png" alt="" width={16} height={16} />
               {t("goToEvent")}
             </a>
           )}
           {selectedPost.source_type === "announcement" && (
             <a className="forum-source-link announcement" href="/news">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 01-3.46 0" />
-              </svg>
+              <img src="/assets/game/icons/icons_paper_saved_1.png" alt="" width={16} height={16} />
               {t("goToAnnouncement")}
             </a>
           )}
@@ -581,9 +561,9 @@ export default function ForumPostDetail({
             </p>
           )}
           <div className="flex gap-2 pt-0 px-4 pb-4">
-            <button className="button danger" onClick={onConfirmDelete}>
+            <GameButton variant="orange" fontSize="0.6rem" type="button" onClick={onConfirmDelete}>
               {t("deleteConfirmButton")}
-            </button>
+            </GameButton>
             <button className="button" onClick={onCancelDelete}>
               {t("cancel")}
             </button>
@@ -598,9 +578,9 @@ export default function ForumPostDetail({
             {t("comments")} ({selectedPost.comment_count})
           </h3>
           {!selectedPost.is_locked && (
-            <button className="button primary" onClick={() => handleReplyClick("thread")} type="button">
+            <GameButton variant="ornate1" fontSize="0.6rem" type="button" onClick={() => handleReplyClick("thread")}>
               {t("submitComment")}
-            </button>
+            </GameButton>
           )}
         </div>
 

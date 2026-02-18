@@ -281,26 +281,29 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 
 ## 5. Shared Components (`app/components/`)
 
-| Component             | File                           | Purpose                                                                                              |
-| --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| SidebarShell          | `sidebar-shell.tsx`            | App chrome wrapper (fixed sidebar + content), user card/menu, compact mobile account flyout          |
-| SidebarNav            | `sidebar-nav.tsx`              | Main/admin nav groups, active route logic, forum category sub-items (desktop-expanded only)          |
-| ClanAccessGate        | `clan-access-gate.tsx`         | Clan membership gate for scoped pages. Bypasses `/admin` routes. Syncs locale via `router.refresh()` |
-| MarkdownEditor        | `markdown-editor.tsx`          | Write/preview tabs, toolbar, image upload. Props: `storageBucket`                                    |
-| BannerPicker          | `banner-picker.tsx`            | 51 game-asset presets + custom upload                                                                |
-| ConfirmModal          | `confirm-modal.tsx`            | Danger/warning/info variants, optional phrase confirmation                                           |
-| FormModal             | `form-modal.tsx`               | Shared modal wrapper (backdrop, form, status)                                                        |
-| DataState             | `data-state.tsx`               | Loading/empty/error state wrapper                                                                    |
-| PaginationBar         | `pagination-bar.tsx`           | Page controls (compact mode available)                                                               |
-| SortableColumnHeader  | `sortable-column-header.tsx`   | Clickable sort header with direction arrow                                                           |
-| NotificationBell      | `notification-bell.tsx`        | Header bell icon + dropdown panel                                                                    |
-| DatePicker            | `date-picker.tsx`              | Flatpickr wrapper (date or datetime)                                                                 |
-| BugReportWidget       | `bug-report-widget.tsx`        | Floating bug report button + modal (root layout)                                                     |
-| BugReportWidgetLoader | `bug-report-widget-loader.tsx` | Client-only dynamic wrapper that defers widget bundle loading                                        |
-| SearchInput           | `ui/search-input.tsx`          | Labeled search field                                                                                 |
-| RadixSelect           | `ui/radix-select.tsx`          | Styled dropdown select with deterministic trigger/content ids for hydration-safe SSR                 |
-| ComboboxInput         | `ui/combobox-input.tsx`        | Text input with suggestion dropdown                                                                  |
-| IconButton            | `ui/icon-button.tsx`           | Icon-only action button                                                                              |
+| Component             | File                           | Purpose                                                                                                                            |
+| --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| SidebarShell          | `sidebar-shell.tsx`            | App chrome wrapper (fixed sidebar + content), user card/menu, compact mobile account flyout                                        |
+| SidebarNav            | `sidebar-nav.tsx`              | Main/admin nav groups, active route logic, forum category sub-items (desktop-expanded only)                                        |
+| ClanAccessGate        | `clan-access-gate.tsx`         | Clan membership gate for scoped pages. Bypasses `/admin` routes. Syncs locale via `router.refresh()`                               |
+| MarkdownEditor        | `markdown-editor.tsx`          | Write/preview tabs, toolbar, image upload. Props: `storageBucket`                                                                  |
+| BannerPicker          | `banner-picker.tsx`            | 51 game-asset presets + custom upload                                                                                              |
+| ConfirmModal          | `confirm-modal.tsx`            | Danger/warning/info variants, optional phrase confirmation, GameButton confirm (green/orange/turquoise via `confirmButtonVariant`) |
+| FormModal             | `form-modal.tsx`               | Shared modal wrapper (backdrop, form, GameButton green submit)                                                                     |
+| DataState             | `data-state.tsx`               | Loading/empty/error state wrapper                                                                                                  |
+| PaginationBar         | `pagination-bar.tsx`           | Page controls (compact mode available)                                                                                             |
+| SortableColumnHeader  | `sortable-column-header.tsx`   | Clickable sort header with direction arrow                                                                                         |
+| NotificationBell      | `notification-bell.tsx`        | Header bell icon + dropdown panel                                                                                                  |
+| DatePicker            | `date-picker.tsx`              | Flatpickr wrapper (date or datetime)                                                                                               |
+| BugReportWidget       | `bug-report-widget.tsx`        | Floating bug report button + modal (root layout)                                                                                   |
+| BugReportWidgetLoader | `bug-report-widget-loader.tsx` | Client-only dynamic wrapper that defers widget bundle loading                                                                      |
+| SearchInput           | `ui/search-input.tsx`          | Labeled search field                                                                                                               |
+| RadixSelect           | `ui/radix-select.tsx`          | Styled dropdown select with deterministic trigger/content ids for hydration-safe SSR                                               |
+| ComboboxInput         | `ui/combobox-input.tsx`        | Text input with suggestion dropdown                                                                                                |
+| IconButton            | `ui/icon-button.tsx`           | Icon-only action button                                                                                                            |
+| GameButton            | `ui/game-button.tsx`           | Themed button with game-asset texture background (9 variants: ornate1–3, hero, green/orange/purple/turquoise, standard)            |
+| GameIcon              | `ui/game-icon.tsx`             | Named game-asset icon with 5 size presets (xs–xl) and raw-path support                                                             |
+| GameAlert             | `ui/game-alert.tsx`            | Themed alert with gradient background, colored left accent, game icons (info/warn/error/success)                                   |
 
 ## 6. Shared Libraries (`lib/`)
 

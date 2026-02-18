@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import useClanContext from "../hooks/use-clan-context";
+import GameButton from "../components/ui/game-button";
 
 /* ─── Types ─── */
 
@@ -191,16 +192,16 @@ function ForumCategoryAdmin(): JSX.Element {
     <div>
       {/* Header */}
       <div className="flex justify-end items-center mb-4">
-        <button
-          className="button primary"
-          type="button"
+        <GameButton
+          variant={showCreateForm ? "orange" : "ornate2"}
+          fontSize="0.58rem"
           onClick={() => {
             setShowCreateForm(!showCreateForm);
             setCreateForm({ ...EMPTY_FORM, sort_order: String(categories.length + 1) });
           }}
         >
           {showCreateForm ? t("cancel") : t("addCategory")}
-        </button>
+        </GameButton>
       </div>
 
       {/* Status message */}
@@ -210,14 +211,14 @@ function ForumCategoryAdmin(): JSX.Element {
           <button
             type="button"
             onClick={() => setStatus("")}
-            className="ml-2 cursor-pointer text-[0.8rem]"
+            className="ml-2 cursor-pointer"
             style={{
               background: "none",
               border: "none",
-              color: "inherit",
+              padding: 0,
             }}
           >
-            &#10005;
+            <img src="/assets/game/icons/icons_close.png" alt="" width={16} height={16} style={{ opacity: 0.8 }} />
           </button>
         </div>
       )}
@@ -269,9 +270,9 @@ function ForumCategoryAdmin(): JSX.Element {
             </div>
           </div>
           <div className="flex gap-2 mt-2.5">
-            <button className="button primary" type="submit" disabled={!createForm.name.trim()}>
+            <GameButton variant="green" fontSize="0.58rem" type="submit" disabled={!createForm.name.trim()}>
               {t("createCategory")}
-            </button>
+            </GameButton>
             <button className="button" type="button" onClick={() => setShowCreateForm(false)}>
               {t("cancel")}
             </button>
@@ -343,14 +344,15 @@ function ForumCategoryAdmin(): JSX.Element {
                     className="w-full bg-bg text-text border border-edge rounded-sm text-[0.82rem]"
                   />
                   <div className="flex gap-1.5">
-                    <button
-                      className="button danger"
+                    <GameButton
+                      variant="orange"
+                      fontSize="0.6rem"
                       type="button"
                       onClick={handleConfirmDelete}
                       disabled={deleteConfirmInput !== `DELETE ${cat.name}`}
                     >
                       {t("delete")}
-                    </button>
+                    </GameButton>
                     <button
                       className="button"
                       type="button"
@@ -382,7 +384,7 @@ function ForumCategoryAdmin(): JSX.Element {
                   </div>
                   {/* Actions */}
                   <button className="forum-mod-btn" type="button" onClick={() => startEdit(cat)} aria-label={t("edit")}>
-                    &#9998;
+                    <img src="/assets/game/icons/icons_pen_2.png" alt="" width={18} height={18} />
                   </button>
                   <button
                     className="forum-mod-btn danger"
@@ -393,7 +395,7 @@ function ForumCategoryAdmin(): JSX.Element {
                     }}
                     aria-label={t("delete")}
                   >
-                    &#128465;
+                    <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={18} height={18} />
                   </button>
                 </div>
               )}

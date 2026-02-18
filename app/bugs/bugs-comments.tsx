@@ -7,6 +7,7 @@ import { formatLocalDateTime } from "@/lib/date-format";
 import { useSupabase } from "@/app/hooks/use-supabase";
 import { BUG_SCREENSHOTS_BUCKET } from "@/lib/constants";
 import MarkdownEditor from "@/app/components/markdown-editor";
+import GameButton from "@/app/components/ui/game-button";
 import { useBugComments } from "./use-bug-comments";
 import type { BugCommentWithAuthor } from "./bugs-types";
 
@@ -102,15 +103,15 @@ function CommentItem({
             storageBucket={BUG_SCREENSHOTS_BUCKET}
           />
           <div className="bugs-comment-edit-actions">
-            <button
-              className="button primary py-1 px-3"
+            <GameButton
+              variant="green"
+              fontSize="0.6rem"
+              type="button"
               onClick={handleSaveEdit}
               disabled={!editContent.trim()}
-              style={{ fontSize: "0.75rem" }}
-              type="button"
             >
               {t("saveEdit")}
-            </button>
+            </GameButton>
             <button
               className="button py-1 px-3"
               onClick={handleCancelEdit}
@@ -150,14 +151,9 @@ function CommentItem({
       {isConfirmingDelete && (
         <div className="bugs-comment-delete-confirm">
           <span>{t("confirmDelete")}</span>
-          <button
-            className="button danger py-1 px-2"
-            onClick={handleConfirmDelete}
-            style={{ fontSize: "0.7rem" }}
-            type="button"
-          >
+          <GameButton variant="orange" fontSize="0.6rem" type="button" onClick={handleConfirmDelete}>
             {t("confirmDeleteBtn")}
-          </button>
+          </GameButton>
           <button
             className="button py-1 px-2"
             onClick={() => setIsConfirmingDelete(false)}
@@ -240,9 +236,9 @@ function BugsComments({ reportId, currentUserId, canManage }: BugsCommentsProps)
               storageBucket={BUG_SCREENSHOTS_BUCKET}
             />
           </div>
-          <button className="button primary" type="submit" disabled={isSubmitting || !newComment.trim()}>
+          <GameButton variant="green" fontSize="0.6rem" type="submit" disabled={isSubmitting || !newComment.trim()}>
             {isSubmitting ? t("submitting") : t("submit")}
-          </button>
+          </GameButton>
         </form>
       </div>
     </section>

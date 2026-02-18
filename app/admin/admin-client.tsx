@@ -7,6 +7,15 @@ import AdminProvider, { useAdminContext } from "./admin-context";
 import type { AdminSection } from "./admin-types";
 import { ADMIN_SECTIONS } from "./admin-sections";
 
+const TAB_ICONS: Record<string, string> = {
+  users: "/assets/game/icons/gold_72.png",
+  clans: "/assets/game/icons/circle_mercenaries_01.png",
+  approvals: "/assets/game/icons/icons_check_1.png",
+  forum: "/assets/game/icons/icons_main_menu_storage_1.png",
+  designSystem: "/assets/game/icons/clan_emblem_11.png",
+  logs: "/assets/game/icons/icons_scroll_1.png",
+};
+
 /* ── Lazy-loaded tab components (code-split per tab) ── */
 
 const ClansTab = dynamic(() => import("./tabs/clans-tab"), {
@@ -86,6 +95,7 @@ function AdminInner(): ReactElement {
         <div className="tabs admin-tabs">
           {ADMIN_SECTIONS.map((section) => {
             const isActive = section.tab ? activeSection === section.tab : false;
+            const tabIcon = TAB_ICONS[section.labelKey];
             return (
               <button
                 key={section.labelKey}
@@ -94,6 +104,7 @@ function AdminInner(): ReactElement {
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => (section.tab ? updateActiveSection(section.tab) : navigateAdmin(section.href))}
               >
+                {tabIcon && <img src={tabIcon} alt="" width={28} height={28} className="admin-tab-icon" />}
                 <span>{tAdmin(`tabs.${section.labelKey}`)}</span>
                 {section.tab === "approvals" && totalPending > 0 ? (
                   <span className="tab-count" aria-label={`${totalPending} ${tAdmin("approvals.pending")}`}>

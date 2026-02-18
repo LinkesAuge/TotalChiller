@@ -36,7 +36,7 @@
   color: var(--color-text);
 }
 .forum-sort-btn.active {
-  background: var(--color-gold-a20);
+  background: var(--color-gold-a12);
   color: var(--color-gold);
   font-weight: 600;
 }
@@ -70,7 +70,7 @@
 }
 .forum-cat-pill.active {
   border-color: var(--color-gold);
-  background: var(--color-edge);
+  background: var(--color-gold-a12);
   color: var(--color-gold);
 }
 
@@ -250,7 +250,7 @@
   text-transform: uppercase;
 }
 .forum-badge-pinned {
-  background: var(--color-edge);
+  background: var(--color-gold-a12);
   color: var(--color-gold);
 }
 .forum-badge-locked {
@@ -284,11 +284,11 @@
   background: rgba(74, 110, 160, 0.32);
 }
 .forum-badge-source.announcement {
-  background: var(--color-edge);
+  background: var(--color-gold-a12);
   color: var(--color-gold);
 }
 .forum-badge-source.announcement:hover {
-  background: rgba(201, 163, 74, 0.28);
+  background: rgba(240, 200, 60, 0.28);
 }
 
 /* "View in Events / Announcements" link in detail actions bar */
@@ -324,7 +324,7 @@
   border: 1px solid var(--color-gold-a20);
 }
 .forum-source-link.announcement:hover {
-  background: rgba(201, 163, 74, 0.24);
+  background: rgba(240, 200, 60, 0.24);
   border-color: var(--color-gold-a40);
 }
 
@@ -717,7 +717,7 @@
   font-family: var(--font-body);
 }
 .forum-md-toolbar-btn:hover {
-  background: var(--color-edge);
+  background: var(--color-gold-a15);
   border-color: var(--color-edge-glow);
   color: var(--color-gold-2);
 }
@@ -836,7 +836,7 @@
   border-left: 3px solid var(--color-gold);
   margin: 8px 0;
   padding: 6px 12px;
-  background: rgba(201, 163, 74, 0.05);
+  background: rgba(240, 200, 60, 0.05);
   color: var(--color-text-2);
   font-style: italic;
 }

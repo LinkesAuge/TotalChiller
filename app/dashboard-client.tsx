@@ -15,21 +15,7 @@ const EVENT_DOT_COLORS: readonly string[] = ["#c94a3a", "#4a6ea0", "#4a9960", "#
 
 /** Chat bubble icon for "go to thread" buttons. */
 function ChatIcon(): JSX.Element {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
+  return <img src="/assets/game/icons/icons_message_1.png" alt="" width={14} height={14} />;
 }
 
 /* ── Helpers (defined outside component to avoid re-creation) ── */
@@ -62,10 +48,56 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 const DEFAULT_TAG_COLOR = "#4a6ea0";
 
+/* ── Sub-Components ── */
+
+/** Single stat card with game icon, value, and label. */
+function DashboardStatCard({
+  icon,
+  label,
+  value,
+}: {
+  readonly icon: string;
+  readonly label: string;
+  readonly value: string;
+}): JSX.Element {
+  return (
+    <div className="dashboard-stat-card">
+      <img src={icon} alt="" width={28} height={28} className="dashboard-stat-card__icon" />
+      <span className="dashboard-stat-card__value">{value}</span>
+      <span className="dashboard-stat-card__label">{label}</span>
+    </div>
+  );
+}
+
+/** Progress bar row using the game progress bar styles. */
+function DashboardProgressRow({
+  label,
+  percent,
+  colorVariant = "gold",
+}: {
+  readonly label: string;
+  readonly percent: number;
+  readonly colorVariant?: "gold" | "green" | "blue";
+}): JSX.Element {
+  const fillClass = colorVariant === "gold" ? "" : `game-pbar__fill--${colorVariant}`;
+  return (
+    <div>
+      <div className="flex justify-between text-[0.72rem] mb-1">
+        <span className="text-text-2">{label}</span>
+        <span className="text-gold-2">{percent}%</span>
+      </div>
+      <div className="game-pbar">
+        <div className={`game-pbar__fill ${fillClass}`.trim()} style={{ width: `${percent}%` }} />
+        <span className="game-pbar__text">{percent}%</span>
+      </div>
+    </div>
+  );
+}
+
 /* ── Component ── */
 
 /**
- * Dashboard client — announcements, events, and placeholder sections for stats.
+ * Dashboard client — announcements, events, stat cards, and week highlights.
  */
 function DashboardClient(): JSX.Element {
   const t = useTranslations("dashboard");
@@ -178,7 +210,7 @@ function DashboardClient(): JSX.Element {
           </div>
         </section>
 
-        {/* ── Quick Stats — placeholder ── */}
+        {/* ── Quick Stats — placeholder with game stat icons ── */}
         <section className="card col-span-2">
           <div className="tooltip-head">
             <Image
@@ -189,44 +221,41 @@ function DashboardClient(): JSX.Element {
               sizes="(max-width: 900px) 90vw, 70vw"
             />
             <div className="tooltip-head-inner">
-              <Image src="/assets/vip/batler_icons_stat_armor.png" alt="Stats" width={18} height={18} />
+              <Image src="/assets/vip/batler_icons_stat_armor.png" alt="" width={18} height={18} />
               <h3 className="card-title">{t("quickStatsTitle")}</h3>
             </div>
           </div>
-          <div className="flex flex-col items-center justify-center gap-2 py-10 px-4">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--color-text-muted)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M18 20V10M12 20V4M6 20v-6" />
-            </svg>
-            <p className="text-sm text-text-muted text-center m-0">{t("statsComingSoon")}</p>
+          <div className="dashboard-stats-grid">
+            <DashboardStatCard icon="/assets/game/icons/icons_player_5.png" label={t("statMembersLabel")} value="—" />
+            <DashboardStatCard icon="/assets/game/icons/icons_power.png" label={t("statPowerLabel")} value="—" />
+            <DashboardStatCard
+              icon="/assets/game/icons/icons_main_menu_daily_1.png"
+              label={t("statEventsLabel")}
+              value="—"
+            />
+            <DashboardStatCard icon="/assets/game/icons/icons_star_up_2.png" label={t("statActivityLabel")} value="—" />
           </div>
         </section>
 
         {/* ── Events (real data with FK join) ── */}
         <section className="card">
-          <Image
-            src="/assets/banners/banner_ragnarok_clan_event_708x123.png"
-            alt="Upcoming clan events banner"
-            width={708}
-            height={123}
-            className="w-full h-14 object-cover opacity-70"
-          />
-          <div className="py-2.5 px-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="card-title m-0">{t("eventsTitle")}</h3>
-              <Link href="/events" className="text-[0.65rem] text-gold no-underline">
+          <div className="tooltip-head">
+            <Image
+              src="/assets/vip/back_tooltip_2.png"
+              alt=""
+              className="tooltip-head-bg"
+              fill
+              sizes="(max-width: 900px) 90vw, 50vw"
+            />
+            <div className="tooltip-head-inner">
+              <img src="/assets/game/icons/icons_main_menu_daily_1.png" alt="" width={18} height={18} />
+              <h3 className="card-title">{t("eventsTitle")}</h3>
+              <Link href="/events" className="ml-auto text-[0.65rem] text-gold no-underline">
                 {t("viewAll")} →
               </Link>
             </div>
+          </div>
+          <div className="py-2.5 px-4">
             <DataState
               isLoading={isLoadingEvents}
               isEmpty={events.length === 0}
@@ -282,26 +311,28 @@ function DashboardClient(): JSX.Element {
           </div>
         </section>
 
-        {/* ── Week Highlights — placeholder ── */}
+        {/* ── Week Highlights — placeholder with game progress bars ── */}
         <section className="card">
-          <div className="card-header" style={{ alignItems: "center" }}>
-            <h3 className="card-title">{t("weekHighlightsTitle")}</h3>
+          <div className="tooltip-head">
+            <Image
+              src="/assets/vip/back_tooltip_2.png"
+              alt=""
+              className="tooltip-head-bg"
+              fill
+              sizes="(max-width: 900px) 90vw, 50vw"
+            />
+            <div className="tooltip-head-inner">
+              <img src="/assets/game/icons/icons_star_up_2.png" alt="" width={18} height={18} />
+              <h3 className="card-title">{t("weekHighlightsTitle")}</h3>
+            </div>
           </div>
-          <div className="flex flex-col items-center justify-center gap-2 py-10 px-4">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--color-text-muted)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
-            </svg>
-            <p className="text-sm text-text-muted text-center m-0">{t("statsComingSoon")}</p>
+          <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 12 }}>
+            <DashboardProgressRow label={t("progressEventsLabel")} percent={0} colorVariant="gold" />
+            <DashboardProgressRow label={t("progressActivityLabel")} percent={0} colorVariant="green" />
+            <DashboardProgressRow label={t("progressGrowthLabel")} percent={0} colorVariant="blue" />
+            <p className="text-[0.72rem] text-text-muted text-center m-0" style={{ marginTop: 4 }}>
+              {t("statsComingSoon")}
+            </p>
           </div>
         </section>
       </div>

@@ -21,6 +21,7 @@ const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-20 rounded" />,
 });
 import type { ListItem } from "./use-site-content";
+import GameButton from "./ui/game-button";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /* ─── Preset icons ─── */
@@ -349,19 +350,7 @@ function EditableList({
                 onClick={() => openEdit(item)}
                 aria-label={t("editItem")}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
+                <img src="/assets/game/icons/icons_pen_2.png" alt="" width={12} height={12} />
               </button>
               <button
                 className="editable-list-btn editable-list-remove"
@@ -369,7 +358,7 @@ function EditableList({
                 onClick={() => handleRemove(item.id)}
                 aria-label={t("removeItem")}
               >
-                ✕
+                <img src="/assets/game/icons/icons_close.png" alt="" width={12} height={12} />
               </button>
             </div>
           )}
@@ -548,15 +537,16 @@ function EditableList({
             {actionError && <div className="editable-text-error">{actionError}</div>}
 
             <div className="editable-text-actions">
-              <button
-                className="button primary"
+              <GameButton
+                variant="green"
+                fontSize="0.6rem"
                 type="button"
                 onClick={handleEditSave}
                 disabled={isSaving}
-                aria-label={t("save")}
+                ariaLabel={t("save")}
               >
                 {isSaving ? "…" : t("save")}
-              </button>
+              </GameButton>
               <button className="button" type="button" onClick={() => setEditModal(null)} aria-label={t("cancel")}>
                 {t("cancel")}
               </button>

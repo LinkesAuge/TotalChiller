@@ -9,6 +9,7 @@ const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-32 rounded" />,
 });
 import AppMarkdownToolbar, { handleImagePaste, handleImageDrop } from "@/lib/markdown/app-markdown-toolbar";
+import GameButton from "../components/ui/game-button";
 import type { TFunction } from "./forum-utils";
 
 export interface ForumPostFormProps {
@@ -164,9 +165,9 @@ export default function ForumPostForm({
         <p className="forum-editor-hint">{t("markdownHint")}</p>
       </div>
       <div className="forum-form-row">
-        <button className="button primary" onClick={onSubmit} disabled={!formTitle.trim()}>
+        <GameButton variant="green" fontSize="0.6rem" type="button" onClick={onSubmit} disabled={!formTitle.trim()}>
           {editingPostId ? t("save") : t("submit")}
-        </button>
+        </GameButton>
         <button className="button" onClick={onCancel}>
           {t("cancel")}
         </button>

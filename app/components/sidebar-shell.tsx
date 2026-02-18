@@ -395,7 +395,15 @@ function SidebarUserRow({
         <div className={`sidebar-user-info${isOpen ? "" : " collapsed"}`}>
           <div className="sidebar-user-name">
             {displayLabel}
-            {isAdmin && <Image src="/assets/vip/button_vip_crown_22x33.png" alt="Admin" width={12} height={18} />}
+            {isAdmin && (
+              <img
+                src="/assets/vip/button_vip_crown_22x33.png"
+                alt="Admin"
+                width={12}
+                height={18}
+                style={{ flexShrink: 0, objectFit: "contain" }}
+              />
+            )}
           </div>
           <div className="sidebar-user-status">{statusLine}</div>
         </div>
@@ -410,19 +418,13 @@ function SidebarUserRow({
             data-tip={!isOpen ? tMenu("profile") : undefined}
             aria-label={tMenu("profile")}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            <img
+              src="/assets/game/icons/icons_player_5.png"
+              alt=""
+              width={28}
+              height={28}
+              className="sidebar-action-icon"
+            />
           </Link>
           <Link
             href="/settings"
@@ -430,19 +432,13 @@ function SidebarUserRow({
             data-tip={!isOpen ? tNav("settings") : undefined}
             aria-label={tNav("settings")}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
+            <img
+              src="/assets/game/icons/icons_options_gear_on_1.png"
+              alt=""
+              width={28}
+              height={28}
+              className="sidebar-action-icon"
+            />
           </Link>
         </div>
       ) : null}
@@ -455,34 +451,15 @@ function SidebarUserRow({
           {statusLine ? <span className="sidebar-user-menu__label">{statusLine}</span> : null}
           <div className="sidebar-user-menu__divider" />
           <Link className="sidebar-user-menu__link" href="/profile" onClick={() => setMenuOpen(false)}>
-            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.5" />
-              <path
-                d="M2.5 14C2.5 11 5 9 8 9C11 9 13.5 11 13.5 14"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
+            <img src="/assets/game/icons/icons_player_5.png" alt="" width={20} height={20} />
             {tMenu("profile")}
           </Link>
           <Link className="sidebar-user-menu__link" href="/messages" onClick={() => setMenuOpen(false)}>
-            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <rect x="1.5" y="3" width="13" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M1.5 5.5L8 9L14.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <img src="/assets/game/icons/icons_envelope_1.png" alt="" width={20} height={20} />
             {tMenu("messages")}
           </Link>
           <Link className="sidebar-user-menu__link" href="/settings" onClick={() => setMenuOpen(false)}>
-            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-              <path
-                d="M8 1.5V3M8 13V14.5M1.5 8H3M13 8H14.5M3.05 3.05L4.1 4.1M11.9 11.9L12.95 12.95M12.95 3.05L11.9 4.1M4.1 11.9L3.05 12.95"
-                stroke="currentColor"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-              />
-            </svg>
+            <img src="/assets/game/icons/icons_options_gear_on_1.png" alt="" width={20} height={20} />
             {tMenu("settings")}
           </Link>
           {isCompactViewport ? (

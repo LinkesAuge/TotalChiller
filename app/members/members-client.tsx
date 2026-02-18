@@ -18,6 +18,10 @@ import {
   countRoleSubstitutes,
 } from "./members-utils";
 
+/* ── Rank indicator assets ── */
+
+const RANK_ICON = "/assets/game/icons/icons_rang_over.png";
+
 /* ── Types ── */
 
 /** Supabase join response for game_account_clan_memberships with game_accounts and clans. */
@@ -277,7 +281,10 @@ function MembersClient(): JSX.Element {
                     }
                   }}
                 >
-                  <span className="text-muted">{index + 1}</span>
+                  <span className="member-dir-pos">
+                    <img src={RANK_ICON} alt="" width={26} height={26} className="member-dir-rank-hex" />
+                    <span className="member-dir-pos-num">{index + 1}</span>
+                  </span>
                   <div className="member-dir-identity">
                     <span className="member-dir-username">{member.gameUsername}</span>
                     {member.displayName && <span className="member-dir-user">{member.displayName}</span>}

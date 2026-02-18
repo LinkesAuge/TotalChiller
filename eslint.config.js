@@ -12,8 +12,8 @@ module.exports = [
       "react-hooks/set-state-in-effect": "off",
 
       /* ── Next.js image optimization ── */
-      /* Block raw <img> tags — use next/image for optimized loading */
-      "@next/next/no-img-element": "error",
+      /* Warn on raw <img> — small decorative game icons intentionally use <img> */
+      "@next/next/no-img-element": "warn",
 
       /* ── TypeScript strictness ── */
       /* Flag explicit `any` — gradually eliminate untyped code */

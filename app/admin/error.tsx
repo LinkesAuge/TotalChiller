@@ -1,5 +1,7 @@
 "use client";
 
+import GameButton from "../components/ui/game-button";
+
 /**
  * Section-level error boundary.
  */
@@ -20,9 +22,9 @@ export default function SectionError({
             {error.digest ? <p className="text-muted text-xs mt-2">Error ID: {error.digest}</p> : null}
           </div>
           <div className="list mt-4">
-            <button className="button primary" type="button" onClick={reset}>
+            <GameButton variant="ornate1" fontSize="0.6rem" type="button" onClick={reset}>
               Try again
-            </button>
+            </GameButton>
             <a className="button" href="/home">
               Go home
             </a>

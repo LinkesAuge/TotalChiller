@@ -3,8 +3,12 @@
 import type { ReactElement } from "react";
 import { useTranslations } from "next-intl";
 import RadixSelect from "./ui/radix-select";
-import IconButton from "./ui/icon-button";
 import type { PaginationState } from "@/lib/hooks/use-pagination";
+
+/* ── Arrow asset paths ── */
+
+const ARROW_LEFT = "/assets/game/buttons/button_arrow_over_2.png";
+const ARROW_RIGHT = "/assets/game/buttons/button_arrow_over_1.png";
 
 interface PaginationBarProps {
   /** State returned by `usePagination()`. */
@@ -17,9 +21,40 @@ interface PaginationBarProps {
   readonly compact?: boolean;
 }
 
+/** Game-styled arrow button for pagination navigation. */
+function PaginationArrow({
+  direction,
+  onClick,
+  disabled,
+  ariaLabel,
+}: {
+  direction: "left" | "right";
+  onClick: () => void;
+  disabled: boolean;
+  ariaLabel: string;
+}): ReactElement {
+  return (
+    <button
+      type="button"
+      className={`pagination-arrow${disabled ? " pagination-arrow--disabled" : ""}`}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+    >
+      <img
+        src={direction === "left" ? ARROW_LEFT : ARROW_RIGHT}
+        alt=""
+        width={28}
+        height={28}
+        className="pagination-arrow__img"
+      />
+    </button>
+  );
+}
+
 /**
  * Reusable pagination controls: page-size selector, "Showing X-Y of Z",
- * page-jump input, and prev/next buttons.
+ * page-jump input, and game-styled prev/next arrow buttons.
  */
 export default function PaginationBar({
   pagination,
@@ -82,28 +117,8 @@ export default function PaginationBar({
             <span className="text-muted">/ {totalPages}</span>
           </div>
         )}
-        <IconButton ariaLabel={t("previousPage")} onClick={goPrev} disabled={page === 1}>
-          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M10 3L6 8L10 13"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </IconButton>
-        <IconButton ariaLabel={t("nextPage")} onClick={goNext} disabled={page >= totalPages}>
-          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M6 3L10 8L6 13"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </IconButton>
+        <PaginationArrow direction="left" onClick={goPrev} disabled={page === 1} ariaLabel={t("previousPage")} />
+        <PaginationArrow direction="right" onClick={goNext} disabled={page >= totalPages} ariaLabel={t("nextPage")} />
       </div>
     </div>
   );

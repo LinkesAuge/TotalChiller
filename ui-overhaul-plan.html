@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chiller &amp; Killer — UI Overhaul Implementation Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080d14;
+  --bg-gradient: radial-gradient(ellipse at 30% 0%, #152238 0%, #0a1220 50%, #080d14 100%);
+  --surface: rgba(18,39,58,.7);
+  --surface-solid: #12273a;
+  --surface-2: rgba(15,34,51,.8);
+  --surface-hover: rgba(25,50,75,.8);
+  --edge: rgba(240,200,60,.38);
+  --edge-glow: rgba(240,200,60,.65);
+  --gold: #c9a34a;
+  --gold-2: #e4c778;
+  --gold-3: #f5dda3;
+  --gold-dark: #a0862e;
+  --gold-glow: rgba(240,200,60,.25);
+  --gold-a08: rgba(240,200,60,.08);
+  --gold-a12: rgba(240,200,60,.12);
+  --gold-a15: rgba(240,200,60,.15);
+  --gold-a20: rgba(240,200,60,.20);
+  --gold-a25: rgba(240,200,60,.34);
+  --text: #f2e6c9;
+  --text-2: #b8a888;
+  --text-muted: #9d8d76;
+  --accent-red: #c94a3a;
+  --accent-green: #4a9960;
+  --accent-blue: #4a6ea0;
+  --overlay-dark: rgba(10,20,32,.85);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
+  --font-heading: "Cinzel", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --transition-fast: .15s cubic-bezier(.4,0,.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+img { display: block; }
+code { background: rgba(240,200,60,.08); padding: 1px 5px; border-radius: 4px; font-size: .82em; color: var(--gold-2); }
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+
+.toc { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 20px 0 36px; justify-content: center; }
+.toc a {
+  padding: 5px 12px; border-radius: 999px; border: 1px solid var(--edge);
+  font-size: .68rem; color: var(--gold-2); text-decoration: none; background: var(--gold-a08);
+  transition: all var(--transition-fast);
+}
+.toc a:hover { background: var(--gold-a25); border-color: var(--gold); }
+.toc a.review { border-color: rgba(74,153,96,.4); color: #5ec07e; background: rgba(74,153,96,.08); }
+.toc a.review:hover { background: rgba(74,153,96,.15); }
+
+/* Phase blocks */
+.phase { margin: 52px 0 0; scroll-margin-top: 24px; }
+.phase-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%; font-family: var(--font-heading);
+  font-size: .82rem; font-weight: 900; margin-right: 8px;
+}
+.phase-num--build { background: var(--gold-dark); color: #fff; }
+.phase-num--review { background: var(--accent-green); color: #fff; }
+.phase-title { font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700; color: var(--gold-2); display: inline; vertical-align: middle; }
+.phase-scope { color: var(--text-muted); font-size: .76rem; margin-top: 6px; }
+
+.task-list { margin: 16px 0; display: flex; flex-direction: column; gap: 8px; }
+.task {
+  padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--edge);
+  background: var(--surface); display: flex; gap: 12px; align-items: flex-start;
+}
+.task-check { width: 16px; height: 16px; border: 2px solid var(--gold); border-radius: 3px; flex-shrink: 0; margin-top: 3px; }
+.task-body { flex: 1; }
+.task-name { font-size: .84rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.task-detail { font-size: .74rem; color: var(--text-muted); line-height: 1.5; }
+.task-files { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.task-file { padding: 1px 7px; border-radius: 4px; background: rgba(74,110,160,.1); border: 1px solid rgba(74,110,160,.2); font-size: .6rem; color: #8ab4e0; font-family: monospace; }
+.task-asset { padding: 1px 7px; border-radius: 4px; background: var(--gold-a08); border: 1px solid var(--edge); font-size: .6rem; color: var(--gold-2); font-family: monospace; }
+
+.review-box {
+  margin: 16px 0; padding: 14px 18px; border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(74,153,96,.08), rgba(18,39,58,.5));
+  border: 1px solid rgba(74,153,96,.35); border-left: 3px solid var(--accent-green);
+}
+.review-title { font-family: var(--font-heading); font-size: .82rem; font-weight: 700; color: #5ec07e; margin-bottom: 6px; }
+.review-items { list-style: none; }
+.review-items li { font-size: .76rem; color: var(--text-2); padding: 2px 0; }
+.review-items li::before { content: "✓ "; color: #5ec07e; font-weight: 700; }
+
+/* Mockup boxes */
+.mock-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin: 16px 0 8px; }
+.mock { border: 1px solid var(--edge); border-radius: var(--radius-md); overflow: hidden; background: rgba(8,13,20,.5); }
+.mock-pad { padding: 14px; }
+
+/* Summary table */
+.summary-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+.summary-table th { text-align: left; padding: 8px 10px; font-size: .68rem; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--edge); font-family: var(--font-heading); }
+.summary-table td { padding: 8px 10px; font-size: .78rem; color: var(--text-2); border-bottom: 1px solid var(--gold-a08); }
+.summary-table tr:hover td { background: var(--gold-a08); }
+
+/* Sidebar mockup */
+.sidebar-mock {
+  width: 240px; background: linear-gradient(180deg, rgba(10,17,26,.99), rgba(6,10,16,1));
+  border: 1px solid var(--edge-glow); border-radius: var(--radius-md); overflow: hidden;
+  font-size: .78rem;
+}
+.sidebar-mock-header { padding: 12px 14px 8px; border-bottom: 1px solid var(--gold-a20); display: flex; align-items: center; gap: 8px; }
+.sidebar-mock-nav { padding: 6px 0; }
+.sidebar-mock-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  text-decoration: none; color: var(--text); position: relative;
+  transition: all var(--transition-fast); cursor: pointer; border-left: 3px solid transparent;
+}
+.sidebar-mock-item:hover { background: var(--gold-a08); }
+.sidebar-mock-item.active {
+  color: var(--gold-2); font-weight: 600;
+  background: linear-gradient(90deg, var(--gold-a12), transparent);
+  border-left-color: var(--gold);
+}
+.sidebar-mock-item img { width: 18px; height: 18px; object-fit: contain; }
+.sidebar-mock-divider { height: 1px; background: linear-gradient(90deg, var(--gold-a20), transparent 80%); margin: 4px 14px; }
+.sidebar-mock-group { padding: 4px 14px 2px; font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); font-weight: 700; font-family: var(--font-heading); }
+
+/* Tab mockups */
+.tab-mock { display: flex; gap: 4px; }
+.tab-item {
+  position: relative; padding: 7px 16px; border-radius: var(--radius-sm);
+  font-size: .78rem; font-weight: 600; cursor: pointer;
+  border: 1px solid transparent; color: var(--text-muted);
+  transition: all var(--transition-fast); font-family: var(--font-heading);
+}
+.tab-item:hover { color: var(--text); background: var(--gold-a08); }
+.tab-item.active {
+  color: var(--gold-2); border-color: var(--gold-a25);
+  background: linear-gradient(180deg, var(--gold-a15), var(--gold-a08));
+  box-shadow: 0 2px 8px rgba(240,200,60,.08);
+}
+.tab-item img.tab-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: fill; border-radius: var(--radius-sm); opacity: .25;
+}
+.tab-item.active img.tab-bg { opacity: .4; }
+.tab-count { margin-left: 4px; padding: 1px 6px; border-radius: 999px; font-size: .6rem; background: var(--gold-a15); color: var(--gold-2); }
+
+.flex-center { display: flex; align-items: center; }
+.flex-wrap { display: flex; flex-wrap: wrap; }
+.gap-8 { display: flex; flex-direction: column; gap: 8px; }
+.gold-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--edge), transparent); margin: 5px 0; }
+
+/* Notification mockups */
+.notif { position: relative; border-radius: var(--radius-md); overflow: hidden; }
+.notif-inner { position: relative; padding: 14px 18px; display: flex; align-items: flex-start; gap: 12px; }
+.notif-icon { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; margin-top: 1px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+.notif-title { font-family: var(--font-heading); font-size: .8rem; font-weight: 700; margin-bottom: 3px; }
+.notif-text { font-size: .76rem; color: var(--text-2); line-height: 1.45; }
+.notif--warn { background: linear-gradient(135deg, rgba(201,163,74,.12) 0%, rgba(18,39,58,.6) 100%); border: 1px solid rgba(201,163,74,.45); border-left: 3px solid var(--gold); box-shadow: inset 0 0 20px rgba(201,163,74,.06), 0 2px 8px rgba(0,0,0,.25); }
+.notif--info { background: linear-gradient(135deg, rgba(74,110,160,.12) 0%, rgba(18,39,58,.6) 100%); border: 1px solid rgba(74,110,160,.4); border-left: 3px solid var(--accent-blue); box-shadow: inset 0 0 20px rgba(74,110,160,.06), 0 2px 8px rgba(0,0,0,.25); }
+
+/* Button mockups */
+.gbtn { position: relative; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border: none; background: transparent; padding: 0; transition: filter var(--transition-fast), transform var(--transition-fast); }
+.gbtn:hover { filter: brightness(1.15) drop-shadow(0 0 6px rgba(240,200,60,.25)); transform: translateY(-1px); }
+.gbtn img { display: block; }
+.gbtn-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 5px; font-family: var(--font-heading); font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.5); text-transform: uppercase; letter-spacing: .05em; }
+
+@media (max-width: 768px) {
+  .summary-table { font-size: .72rem; }
+  .sidebar-mock { width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div style="text-align:center; margin-bottom:8px;">
+    <img src="./public/assets/ui/chillerkiller_logo.png" alt="" style="height:56px; margin:0 auto; filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));">
+    <h1 style="font-family:var(--font-heading); font-size:1.3rem; font-weight:900; color:var(--gold-3); letter-spacing:.05em; margin-top:6px;">UI OVERHAUL — IMPLEMENTATION PLAN</h1>
+    <p style="color:var(--text-muted); font-size:.78rem; max-width:600px; margin:4px auto 0;">
+      Phased rollout applying the v4 asset proposals across all 21 pages. Each phase is independently deployable with a review checkpoint before proceeding.
+    </p>
+  </div>
+
+  <!-- SCOPE OVERVIEW -->
+  <div style="margin:28px 0;">
+    <table class="summary-table">
+      <thead><tr><th>Metric</th><th>Count</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Pages affected</td><td style="color:var(--gold-2); font-weight:700;">21</td><td>All routes including auth pages</td></tr>
+        <tr><td>CSS files modified</td><td style="color:var(--gold-2); font-weight:700;">9</td><td>theme, layout, components, tables, events, forum, news, messages, bugs</td></tr>
+        <tr><td>TSX components</td><td style="color:var(--gold-2); font-weight:700;">~18</td><td>Shared components + page-specific clients</td></tr>
+        <tr><td>New shared components</td><td style="color:var(--gold-2); font-weight:700;">3</td><td>GameIcon, GameButton, GameAlert</td></tr>
+        <tr><td>Phases (build)</td><td style="color:var(--gold-2); font-weight:700;">7</td><td>Foundation → Sidebar → Dashboard → Tables → Content → Pages → Polish</td></tr>
+        <tr><td>Review checkpoints</td><td style="color:var(--gold-2); font-weight:700;">8</td><td>After each phase + final comprehensive review</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <nav class="toc">
+    <a href="#p1">Phase 1: Foundation</a>
+    <a href="#r1" class="review">Review 1</a>
+    <a href="#p2">Phase 2: Sidebar</a>
+    <a href="#r2" class="review">Review 2</a>
+    <a href="#p3">Phase 3: Dashboard</a>
+    <a href="#r3" class="review">Review 3</a>
+    <a href="#p4">Phase 4: Tables &amp; Members</a>
+    <a href="#r4" class="review">Review 4</a>
+    <a href="#p5">Phase 5: Content Pages</a>
+    <a href="#r5" class="review">Review 5</a>
+    <a href="#p6">Phase 6: Remaining Pages</a>
+    <a href="#r6" class="review">Review 6</a>
+    <a href="#p7">Phase 7: Polish &amp; Accessibility</a>
+    <a href="#rfinal" class="review">Final Review</a>
+  </nav>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 1: FOUNDATION                            -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="phase" id="p1">
+    <span class="phase-num phase-num--build">1</span>
+    <span class="phase-title">Foundation — Shared Components &amp; CSS Tokens</span>
+    <div class="phase-scope">Build the reusable building blocks before touching any page. Everything below becomes the API that all pages consume.</div>
+
+    <div class="task-list">
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">1.1 — Create <code>GameIcon</code> component</div>
+          <div class="task-detail">
+            Reusable component that renders a game asset icon with consistent sizing, object-fit, and drop-shadow.
+            Accepts <code>name</code> (maps to filename), <code>size</code> (sm/md/lg), and optional <code>className</code>.
+            Centralises the icon mapping table from proposal #9 so every page uses the same paths.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/components/ui/game-icon.tsx</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">1.2 — Create <code>GameButton</code> component</div>
+          <div class="task-detail">
+            Wraps the <code>.gbtn</code> pattern from proposal #6. Props: <code>variant</code> (ornate | hero | green | orange | purple | turquoise | standard | icon-sm | icon-round), <code>children</code> for label text, <code>onClick</code>, <code>disabled</code>, etc.
+            Renders the correct button image asset and overlays the label. Replaces inline <code>&lt;button class="gbtn"&gt;</code> usage.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/components/ui/game-button.tsx</span>
+            <span class="task-asset">button_171x72_up_*.png</span>
+            <span class="task-asset">batler_button_*_up_88x40.png</span>
+            <span class="task-asset">button_294x72_up_1.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">1.3 — Create <code>GameAlert</code> component</div>
+          <div class="task-detail">
+            Replaces the existing <code>.alert</code> CSS classes with the gradient notification panels from proposal #8.
+            Props: <code>variant</code> (warn | success | error | info), <code>title</code>, <code>children</code>.
+            Uses the CSS gradient backgrounds and curated game icons per variant.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/components/ui/game-alert.tsx</span>
+            <span class="task-asset">icons_paper_info_2.png</span>
+            <span class="task-asset">components_check_box_mark.png</span>
+            <span class="task-asset">icons_paper_cross_1.png</span>
+            <span class="task-asset">info_icon.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">1.4 — Update <code>components.css</code> — button system</div>
+          <div class="task-detail">
+            Add <code>.gbtn</code>, <code>.gbtn-label</code> styles alongside existing <code>.button</code> classes.
+            Keep <code>.button</code> for backward compatibility during migration. Add <code>.game-alert--*</code> classes.
+            Update <code>.tab</code> / <code>.tab.active</code> with gradient background and brighter borders (see tab mockup below).
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/styles/components.css</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">1.5 — Update <code>components.css</code> — pagination bar</div>
+          <div class="task-detail">
+            Update <code>.pagination-bar</code> to use arrow image buttons. Add gradient page-number pill styles with brighter gold outlines. Update <code>PaginationBar</code> TSX component to render arrow images.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/styles/components.css</span>
+            <span class="task-file">app/components/pagination-bar.tsx</span>
+            <span class="task-asset">button_arrow_over_1/2.png</span>
+            <span class="task-asset">button_arr_double_over_1/2.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">1.6 — Update <code>data-state.tsx</code> — notifications</div>
+          <div class="task-detail">
+            Replace existing <code>.alert.error</code> / <code>.alert.info</code> usage in the DataState component with the new <code>GameAlert</code> component for loading errors, empty states, and info messages.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/components/data-state.tsx</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab improvement mockup -->
+    <div class="mock-label">Proposed tab styling (admin tabs, message tabs, forum tabs)</div>
+    <div class="mock mock-pad">
+      <div style="margin-bottom:14px;">
+        <div style="font-size:.68rem; color:var(--text-muted); margin-bottom:6px;">CURRENT: flat gold border on active, plain hover</div>
+        <div style="display:flex; gap:4px;">
+          <span style="padding:7px 14px; border-radius:var(--radius-sm); border:1px solid var(--gold-a25); color:var(--gold-2); font-size:.78rem; font-weight:600; background:var(--gold-a08); font-family:var(--font-heading);">Clans <span class="tab-count">3</span></span>
+          <span style="padding:7px 14px; border-radius:var(--radius-sm); border:1px solid transparent; color:var(--text-muted); font-size:.78rem; font-family:var(--font-heading);">Users</span>
+          <span style="padding:7px 14px; border-radius:var(--radius-sm); border:1px solid transparent; color:var(--text-muted); font-size:.78rem; font-family:var(--font-heading);">Logs</span>
+        </div>
+      </div>
+      <div class="gold-divider"></div>
+      <div style="margin-top:14px;">
+        <div style="font-size:.68rem; color:var(--accent-green); margin-bottom:6px;">PROPOSED: gradient fill, subtle glow, brighter border on active</div>
+        <div class="tab-mock">
+          <div class="tab-item active">Clans <span class="tab-count">3</span></div>
+          <div class="tab-item">Users</div>
+          <div class="tab-item">Logs</div>
+          <div class="tab-item">Approvals <span class="tab-count">2</span></div>
+          <div class="tab-item">Forum</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW 1 -->
+  <div class="phase" id="r1">
+    <span class="phase-num phase-num--review">R</span>
+    <span class="phase-title" style="color:#5ec07e;">Review Checkpoint 1</span>
+    <div class="review-box">
+      <div class="review-title">Self-review after Foundation</div>
+      <ul class="review-items">
+        <li>GameIcon renders all 10 mapped icons correctly at sm/md/lg</li>
+        <li>GameButton renders all variants (ornate, hero, colored, icon-sm, round) with hover/active states</li>
+        <li>GameAlert renders all 4 states with correct colors and icons</li>
+        <li>PaginationBar uses arrow images and gradient page pills</li>
+        <li>Tab styling updated — check admin tabs, message tabs, forum editor tabs</li>
+        <li>No regressions on existing .button and .alert usage (backward compatible)</li>
+        <li>All new components have proper TypeScript types and accessibility (aria-labels, focus-visible)</li>
+        <li>Run <code>npm run build</code> — no type errors</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 2: SIDEBAR                               -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="phase" id="p2">
+    <span class="phase-num phase-num--build">2</span>
+    <span class="phase-title">Sidebar — Game Icons &amp; Navigation Polish</span>
+    <div class="phase-scope">Replace SVG path icons in the sidebar with curated game asset icons. Improve hover/active states and visual hierarchy.</div>
+
+    <div class="task-list">
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">2.1 — Replace SVG nav icons with game asset icons</div>
+          <div class="task-detail">
+            Update <code>sidebar-nav.tsx</code> to use curated game icons for each nav item instead of SVG paths.
+            Mapping: Home → existing, Dashboard → <code>icons_options_gear_on_1.png</code> (or keep SVG), Announcements → <code>icons_paper_saved_1.png</code>,
+            Events → <code>sword_icon_28.png</code>, Forum → <code>icons_question_mark_1.png</code>, Messages → <code>widget_journal_spine.png</code>,
+            Members → <code>icons_player_3.png</code>, Bugs → keep SVG.
+            Use the <code>vipIcon</code> prop that already exists on NavItem — just populate the paths.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/components/sidebar-nav.tsx</span>
+            <span class="task-asset">icons_paper_saved_1.png</span>
+            <span class="task-asset">sword_icon_28.png</span>
+            <span class="task-asset">icons_player_3.png</span>
+            <span class="task-asset">widget_journal_spine.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">2.2 — Improve active state indicator</div>
+          <div class="task-detail">
+            The current active state uses <code>backs_31.png</code> as a full-width background arrow. Evaluate whether this still reads well with the new game icons.
+            If needed, simplify to the CSS gradient + gold left-border approach (which already works in collapsed state). Ensure the gold glow on hover is visible with asset icons.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/styles/layout.css</span>
+            <span class="task-file">app/components/sidebar-nav.tsx</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">2.3 — Sidebar section dividers with ornament</div>
+          <div class="task-detail">
+            Replace the plain <code>.nav-group-divider</code> (1px gold line) between Main and Admin sections with a subtle ornamental divider
+            using <code>components_title_1.png</code> at reduced opacity, centered and small.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/styles/layout.css</span>
+            <span class="task-asset">components_title_1.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">2.4 — Sidebar user area refinement</div>
+          <div class="task-detail">
+            Replace the settings/profile SVG icon buttons in the user row with game icons (<code>icons_options_gear_on_1.png</code>, <code>icons_player_3.png</code>).
+            Consistent with the rest of the sidebar.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/components/sidebar-shell.tsx</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar mockup -->
+    <div class="mock-label">Proposed sidebar with game icons</div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+      <div class="sidebar-mock">
+        <div class="sidebar-mock-header">
+          <img src="./public/assets/ui/chillerkiller_logo.png" alt="" style="width:28px; height:28px; object-fit:contain;">
+          <div>
+            <div style="font-family:var(--font-heading); font-size:.72rem; font-weight:700; color:var(--gold-2);">Chiller &amp; Killer</div>
+            <div style="font-size:.58rem; color:var(--text-muted);">Fortress Sanctum</div>
+          </div>
+        </div>
+        <div class="sidebar-mock-nav">
+          <div class="sidebar-mock-group">Main</div>
+          <div class="sidebar-mock-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="sidebar-mock-item active">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z"/></svg>
+            <span>Dashboard</span>
+          </div>
+          <div class="sidebar-mock-item">
+            <img src="./public/design-assets/icon/icons_paper_saved_1.png" alt="">
+            <span>Neuigkeiten</span>
+          </div>
+          <div class="sidebar-mock-item">
+            <img src="./public/design-assets/icon/sword_icon_28.png" alt="">
+            <span>Events</span>
+          </div>
+          <div class="sidebar-mock-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            <span>Analytics</span>
+          </div>
+          <div class="sidebar-mock-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2v-1M13 6H7a2 2 0 00-2 2v6a2 2 0 002 2h2v4l4-4h2a2 2 0 002-2V8a2 2 0 00-2-2z"/></svg>
+            <span>Forum</span>
+          </div>
+          <div class="sidebar-mock-item">
+            <img src="./public/design-assets/widget/widget_journal_spine.png" alt="">
+            <span>Nachrichten</span>
+          </div>
+          <div class="sidebar-mock-item">
+            <img src="./public/design-assets/icon/icons_player_3.png" alt="">
+            <span>Mitglieder</span>
+          </div>
+          <div class="sidebar-mock-divider"></div>
+          <div class="sidebar-mock-group">Administration</div>
+          <div class="sidebar-mock-item">
+            <img src="./public/design-assets/icon/icons_options_gear_on_1.png" alt="">
+            <span>Clan-Verwaltung</span>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1; min-width:200px;">
+        <div style="font-size:.72rem; color:var(--text-muted); line-height:1.6;">
+          <strong style="color:var(--gold-2);">Key changes:</strong><br>
+          • SVG icons kept for Home, Dashboard, Analytics, Forum (clean + match theme well)<br>
+          • Game asset icons for Neuigkeiten, Events, Nachrichten, Mitglieder (thematic fit)<br>
+          • Admin section gets gear icon for Clan-Verwaltung<br>
+          • Divider between Main/Admin uses ornamental asset at low opacity<br>
+          • Active state unchanged (gold left-border + gradient works well)<br>
+          • User area icons get same treatment
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW 2 -->
+  <div class="phase" id="r2">
+    <span class="phase-num phase-num--review">R</span>
+    <span class="phase-title" style="color:#5ec07e;">Review Checkpoint 2</span>
+    <div class="review-box">
+      <div class="review-title">Self-review after Sidebar</div>
+      <ul class="review-items">
+        <li>All sidebar icons render at correct size (16×16) in both expanded and collapsed states</li>
+        <li>Tooltips still appear on hover in collapsed mode</li>
+        <li>Active state indicator is clearly visible with new icons</li>
+        <li>Mobile sidebar (≤900px) collapses correctly with centered icons</li>
+        <li>Forum sub-items still render when on /forum (expanded desktop only)</li>
+        <li>Ornamental divider is subtle, not overwhelming</li>
+        <li>No layout shift on sidebar expand/collapse transition</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 3: DASHBOARD                             -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="phase" id="p3">
+    <span class="phase-num phase-num--build">3</span>
+    <span class="phase-title">Dashboard — Stats, Cards, Progress</span>
+    <div class="phase-scope">Bring the dashboard to life with stat cards, enhanced card headers, and week-highlights progress bars.</div>
+
+    <div class="task-list">
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">3.1 — Implement Quick Stats grid (proposal #2)</div>
+          <div class="task-detail">
+            Replace "Quick Stats — coming soon" placeholder in <code>dashboard-client.tsx</code>.
+            4-card grid with game icons: members (icons_player_5), events (sword_icon_28), news (icons_star_up_2), forum (icons_power).
+            Data from existing hooks or simple counts.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/dashboard-client.tsx</span>
+            <span class="task-asset">icons_player_5.png, sword_icon_28.png, icons_star_up_2.png, icons_power.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">3.2 — Enhanced card headers (proposal #3)</div>
+          <div class="task-detail">
+            Update the <code>.tooltip-head</code> pattern to use <code>back_tooltip_2.png</code> as background.
+            Replace SVG section icons with game icons: <code>icons_paper_saved_1.png</code> for news, <code>sword_icon_28.png</code> for events.
+            Pin icon (<code>icons_paper_add_2.png</code>) for pinned items, star (<code>icons_pve_star_small.png</code>) for normal.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/dashboard-client.tsx</span>
+            <span class="task-file">app/styles/components.css</span>
+            <span class="task-asset">back_tooltip_2.png, icons_paper_saved_1.png, icons_paper_add_2.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">3.3 — Week Highlights progress bars (proposal #4)</div>
+          <div class="task-detail">
+            Replace "Week Highlights — coming soon" with progress bars. Gold/green/blue bars with slider markers.
+            Add <code>.pbar</code>, <code>.pbar-fill</code>, <code>.pbar-slider</code> styles to <code>components.css</code>.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/dashboard-client.tsx</span>
+            <span class="task-file">app/styles/components.css</span>
+            <span class="task-asset">components_progress_slider_1/3/4.png</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW 3 -->
+  <div class="phase" id="r3">
+    <span class="phase-num phase-num--review">R</span>
+    <span class="phase-title" style="color:#5ec07e;">Review Checkpoint 3</span>
+    <div class="review-box">
+      <div class="review-title">Self-review after Dashboard</div>
+      <ul class="review-items">
+        <li>Stat cards render correctly on all breakpoints (4-col → 2-col → 1-col)</li>
+        <li>Card headers with back_tooltip_2.png background visible but subtle</li>
+        <li>Progress bars animate fill width smoothly</li>
+        <li>Slider marker images positioned correctly at fill edge</li>
+        <li>Announcements and Events list items use correct pin/star icons</li>
+        <li>No CLS (content layout shift) during data loading</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 4: TABLES & MEMBERS                      -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="phase" id="p4">
+    <span class="phase-num phase-num--build">4</span>
+    <span class="phase-title">Tables &amp; Members — Leaderboard Style</span>
+    <div class="phase-scope">Redesign the member directory table as a game-style leaderboard (proposal #1). Also update admin tables.</div>
+
+    <div class="task-list">
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">4.1 — Member directory leaderboard (proposal #1)</div>
+          <div class="task-detail">
+            Refactor <code>members-client.tsx</code> to replace the expandable table with a leaderboard. Top 3 get rank medal icons.
+            Others get hexagon icons at increased size. Rank badges use exact colors from <code>getRankColor()</code> / <code>getRoleColor()</code>.
+            Golden feather (<code>icons_pen_2.png</code>) replaces SVG message icon.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/members/members-client.tsx</span>
+            <span class="task-file">app/styles/tables.css</span>
+            <span class="task-asset">icons_rating_I/II/III_40x36_1.png, icons_rang_over.png, icons_pen_2.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">4.2 — Rank summary chips above table</div>
+          <div class="task-detail">
+            Add colored rank chips above the leaderboard showing each rank group with member count.
+            Colors match <code>getRankColor()</code> exactly: leader=#e4c778, superior=#d4a54a, officer=#6ba3d6, veteran=#5ec07e, soldier=#b0a08a.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/members/members-client.tsx</span>
+            <span class="task-file">app/styles/tables.css</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">4.3 — Admin tables polish</div>
+          <div class="task-detail">
+            Minor polish: update admin users/approvals tables to use <code>GameIcon</code> for action buttons where appropriate (edit=pen, delete=cross). Keep functional — no major restructuring.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/admin/admin-client.tsx</span>
+            <span class="task-file">app/styles/tables.css</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW 4 -->
+  <div class="phase" id="r4">
+    <span class="phase-num phase-num--review">R</span>
+    <span class="phase-title" style="color:#5ec07e;">Review Checkpoint 4</span>
+    <div class="review-box">
+      <div class="review-title">Self-review after Tables</div>
+      <ul class="review-items">
+        <li>Member leaderboard renders all ranks with correct colors</li>
+        <li>Top 3 medal icons display at correct size</li>
+        <li>Hexagon rank indicators visible (26px, opacity 0.65-0.8)</li>
+        <li>Rank chips match getRankColor() and getRoleColor() values exactly</li>
+        <li>Message action (golden feather) links correctly to messages page</li>
+        <li>Table is responsive — horizontal scroll on mobile</li>
+        <li>Sort order preserved (leader → superior → officer → veteran → soldier)</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 5: CONTENT PAGES                         -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="phase" id="p5">
+    <span class="phase-num phase-num--build">5</span>
+    <span class="phase-title">Content Pages — Events, Forum, News</span>
+    <div class="phase-scope">Apply game assets to the three main content pages. Event cards get banners, forum gets refined buttons, news gets improved card styling.</div>
+
+    <div class="task-list">
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">5.1 — Event cards with game banners (proposal #5)</div>
+          <div class="task-detail">
+            Enhance event cards in the upcoming sidebar with banner image headers from event type.
+            Add ornate CTA button for event details. Star badge for active/upcoming status.
+            Update calendar month navigation to use arrow button assets.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/events/events-client.tsx</span>
+            <span class="task-file">app/styles/events.css</span>
+            <span class="task-asset">button_171x72_up_1.png, icons_pve_star_small.png, button_arrow_over_*.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">5.2 — Forum button and icon upgrade</div>
+          <div class="task-detail">
+            Replace "New Post" button with <code>GameButton variant="ornate"</code>.
+            Use <code>GameIcon</code> for search, sort icons in forum toolbar.
+            Update forum pagination to use new PaginationBar styling.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/forum/forum-client.tsx</span>
+            <span class="task-file">app/styles/forum.css</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">5.3 — News card refinements</div>
+          <div class="task-detail">
+            Update news cards to use <code>GameIcon</code> for pinned indicators (<code>icons_paper_add_2.png</code>).
+            Replace the "Neuer Beitrag" button with <code>GameButton</code>.
+            News filter search input: add spyglass icon.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/news/news-client.tsx</span>
+            <span class="task-file">app/styles/news.css</span>
+            <span class="task-asset">icons_paper_add_2.png, icons_spyglass_1.png</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW 5 -->
+  <div class="phase" id="r5">
+    <span class="phase-num phase-num--review">R</span>
+    <span class="phase-title" style="color:#5ec07e;">Review Checkpoint 5</span>
+    <div class="review-box">
+      <div class="review-title">Self-review after Content Pages</div>
+      <ul class="review-items">
+        <li>Event cards display banner headers with correct aspect ratio</li>
+        <li>Calendar arrows navigate months correctly</li>
+        <li>Forum "New Post" button renders as ornate GameButton</li>
+        <li>Forum pagination uses updated arrow images and gradient page pills</li>
+        <li>News pinned indicator uses game icon, not SVG</li>
+        <li>News filter search has spyglass icon</li>
+        <li>All pages remain responsive at 768px and 480px breakpoints</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 6: REMAINING PAGES                       -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="phase" id="p6">
+    <span class="phase-num phase-num--build">6</span>
+    <span class="phase-title">Remaining Pages — Messages, Settings, CMS, Auth</span>
+    <div class="phase-scope">Apply consistent styling to all remaining pages. Lighter touch — these pages use shared components, so Phase 1 changes already ripple through.</div>
+
+    <div class="task-list">
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">6.1 — Messages page</div>
+          <div class="task-detail">
+            Update compose button to <code>GameButton</code>. Message view tabs get updated tab styling from Phase 1.
+            Inbox item icons: use <code>widget_journal_spine.png</code> for messages.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/messages/messages-client.tsx</span>
+            <span class="task-file">app/styles/messages.css</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">6.2 — Settings page</div>
+          <div class="task-detail">
+            Settings page buttons → <code>GameButton</code> where appropriate (primary save actions).
+            Settings gear icon → <code>GameIcon name="settings"</code>.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/settings/settings-client.tsx</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">6.3 — CMS pages (Home, About, Contact, Privacy)</div>
+          <div class="task-detail">
+            These primarily use <code>CmsPageShell</code> + <code>EditableText</code>. Card headers already benefit from Phase 3 tooltip-head changes. Minimal extra work: update any remaining plain buttons to <code>GameButton</code>.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/home/home-client.tsx</span>
+            <span class="task-file">app/about/about-client.tsx</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">6.4 — Auth pages refinement</div>
+          <div class="task-detail">
+            Auth pages (login, register, forgot, update) already use <code>.button.leather</code> with texture.
+            Keep the leather auth buttons but update secondary/link buttons to match the new system.
+            Update any error/info alerts to <code>GameAlert</code>.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/auth/login/page.tsx</span>
+            <span class="task-file">app/auth/register/page.tsx</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">6.5 — Bugs, Analytics, Profile, Admin tabs</div>
+          <div class="task-detail">
+            Bugs: update report button to GameButton. Analytics placeholder: no changes needed (just a card).
+            Profile: uses server rendering + client children — update any client action buttons.
+            Admin tabs: already updated via Phase 1 tab CSS changes.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/bugs/bugs-client.tsx</span>
+            <span class="task-file">app/admin/admin-client.tsx</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW 6 -->
+  <div class="phase" id="r6">
+    <span class="phase-num phase-num--review">R</span>
+    <span class="phase-title" style="color:#5ec07e;">Review Checkpoint 6</span>
+    <div class="review-box">
+      <div class="review-title">Self-review after Remaining Pages</div>
+      <ul class="review-items">
+        <li>Navigate to every page — no broken layouts or missing icons</li>
+        <li>Messages compose button renders as GameButton</li>
+        <li>Settings save buttons are game-styled</li>
+        <li>Auth pages retain leather button feel, alerts upgraded</li>
+        <li>CMS pages render without visual regressions</li>
+        <li>Admin tabs use updated gradient styling</li>
+        <li>All pages load without console errors</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PHASE 7: POLISH & ACCESSIBILITY                -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="phase" id="p7">
+    <span class="phase-num phase-num--build">7</span>
+    <span class="phase-title">Polish &amp; Accessibility</span>
+    <div class="phase-scope">Final pass: hover transitions, focus states, reduced-motion support, ornamental dividers, hero banner variety.</div>
+
+    <div class="task-list">
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">7.1 — Hero banner variety (proposal #10)</div>
+          <div class="task-detail">
+            Ensure each major section has a distinct banner. Add <code>components_decor_6.png</code> corner decorations to hero banners.
+            Verify banners are set: Dashboard, Events, Members, Forum, News, Messages each have unique <code>bannerSrc</code>.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/components/section-hero.tsx</span>
+            <span class="task-file">Each page's server page.tsx (bannerSrc prop)</span>
+            <span class="task-asset">components_decor_6.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">7.2 — Ornamental dividers (proposal #11)</div>
+          <div class="task-detail">
+            Use <code>components_title_1.png</code> as an optional section separator in dashboard cards and between news/forum list sections.
+            Add as a reusable <code>OrnamentalDivider</code> component or CSS class.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/styles/components.css</span>
+            <span class="task-asset">components_title_1.png</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">7.3 — Accessibility audit</div>
+          <div class="task-detail">
+            Verify all game icon images have empty <code>alt=""</code> (decorative) or descriptive alt text (functional).
+            GameButton must have <code>aria-label</code> when label is image-only.
+            Focus states on GameButton: visible gold ring.
+            Add <code>prefers-reduced-motion</code> media query to disable progress bar shimmer animation.
+            Touch targets ≥ 44px on all interactive game buttons.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/components/ui/game-button.tsx</span>
+            <span class="task-file">app/components/ui/game-icon.tsx</span>
+            <span class="task-file">app/styles/components.css</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">7.4 — Transition polish</div>
+          <div class="task-detail">
+            Verify all hover states use consistent 150ms transitions (var(--transition-fast)).
+            GameButton hover: brightness + translateY(-1px). No layout shift.
+            Tab active transition: smooth background/border color change.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/styles/components.css</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">7.5 — Clean up deprecated CSS</div>
+          <div class="task-detail">
+            After all pages are migrated, remove any unused <code>.button</code> variants that have been fully replaced.
+            Keep <code>.button.leather</code> for auth pages. Keep <code>.button.danger</code> for destructive actions.
+            Remove orphaned <code>.alert</code> classes if fully replaced by <code>GameAlert</code>.
+          </div>
+          <div class="task-files">
+            <span class="task-file">app/styles/components.css</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL REVIEW -->
+  <div class="phase" id="rfinal">
+    <span class="phase-num phase-num--review">F</span>
+    <span class="phase-title" style="color:#5ec07e;">Final Comprehensive Review</span>
+    <div class="review-box">
+      <div class="review-title">Full-site review before marking complete</div>
+      <ul class="review-items">
+        <li>Navigate to all 21 pages — verify consistent visual language</li>
+        <li>Test at 1440px, 1024px, 768px, 480px, 375px breakpoints</li>
+        <li>Sidebar expand/collapse works on desktop and mobile</li>
+        <li>Tab keyboard navigation (Tab + Enter) works on all tab groups</li>
+        <li>Run <code>npm run build</code> — no TypeScript or build errors</li>
+        <li>Run <code>npm run lint</code> — no new lint warnings</li>
+        <li>Check browser console — no runtime errors on any page</li>
+        <li>Verify all game asset paths resolve (no 404s)</li>
+        <li>Test <code>prefers-reduced-motion</code> — animations disabled</li>
+        <li>Verify no hardcoded colors — all use CSS variables</li>
+        <li>Update CHANGELOG.md with comprehensive entry</li>
+        <li>Update ARCHITECTURE.md if component inventory changed</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- FILE IMPACT SUMMARY                            -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div style="margin-top:52px;">
+    <h2 style="font-family:var(--font-heading); font-size:1.1rem; color:var(--gold-2); margin-bottom:12px;">File Impact Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>File</th><th>Phase</th><th>Change Type</th></tr></thead>
+      <tbody>
+        <tr><td><code>app/components/ui/game-icon.tsx</code></td><td>1</td><td>New component</td></tr>
+        <tr><td><code>app/components/ui/game-button.tsx</code></td><td>1</td><td>New component</td></tr>
+        <tr><td><code>app/components/ui/game-alert.tsx</code></td><td>1</td><td>New component</td></tr>
+        <tr><td><code>app/styles/components.css</code></td><td>1, 3, 7</td><td>Add gbtn, pbar, game-alert, tab, ornamental CSS</td></tr>
+        <tr><td><code>app/components/pagination-bar.tsx</code></td><td>1</td><td>Arrow images + gradient pills</td></tr>
+        <tr><td><code>app/components/data-state.tsx</code></td><td>1</td><td>Use GameAlert</td></tr>
+        <tr><td><code>app/components/sidebar-nav.tsx</code></td><td>2</td><td>Game icon paths via vipIcon</td></tr>
+        <tr><td><code>app/components/sidebar-shell.tsx</code></td><td>2</td><td>User area icons</td></tr>
+        <tr><td><code>app/styles/layout.css</code></td><td>2</td><td>Ornamental nav divider</td></tr>
+        <tr><td><code>app/dashboard-client.tsx</code></td><td>3</td><td>Stats, card headers, progress</td></tr>
+        <tr><td><code>app/members/members-client.tsx</code></td><td>4</td><td>Leaderboard table</td></tr>
+        <tr><td><code>app/styles/tables.css</code></td><td>4</td><td>Leaderboard + chip styles</td></tr>
+        <tr><td><code>app/events/events-client.tsx</code></td><td>5</td><td>Banner cards, arrow nav</td></tr>
+        <tr><td><code>app/styles/events.css</code></td><td>5</td><td>Banner card styles, calendar arrows</td></tr>
+        <tr><td><code>app/forum/forum-client.tsx</code></td><td>5</td><td>GameButton, GameIcon</td></tr>
+        <tr><td><code>app/styles/forum.css</code></td><td>5</td><td>Minor polish</td></tr>
+        <tr><td><code>app/news/news-client.tsx</code></td><td>5</td><td>Pin icons, GameButton</td></tr>
+        <tr><td><code>app/messages/messages-client.tsx</code></td><td>6</td><td>Compose button, tab styling</td></tr>
+        <tr><td><code>app/settings/settings-client.tsx</code></td><td>6</td><td>GameButton save actions</td></tr>
+        <tr><td><code>app/home/home-client.tsx</code></td><td>6</td><td>Minor button updates</td></tr>
+        <tr><td><code>app/bugs/bugs-client.tsx</code></td><td>6</td><td>Report button</td></tr>
+        <tr><td><code>app/auth/*/page.tsx</code></td><td>6</td><td>GameAlert for errors</td></tr>
+        <tr><td><code>app/components/section-hero.tsx</code></td><td>7</td><td>Corner decorations</td></tr>
+        <tr><td><code>Documentation/CHANGELOG.md</code></td><td>7</td><td>Update</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Execution estimate -->
+  <div style="margin-top:36px; padding:16px 20px; border-radius:var(--radius-md); background:var(--surface); border:1px solid var(--edge);">
+    <div style="font-family:var(--font-heading); font-size:.88rem; font-weight:700; color:var(--gold-2); margin-bottom:8px;">Execution Notes</div>
+    <ul style="list-style:none; font-size:.78rem; color:var(--text-2); line-height:1.7;">
+      <li style="padding:2px 0;">• Each phase is independently deployable — the site stays functional between phases</li>
+      <li style="padding:2px 0;">• Phase 1 (Foundation) is the critical path — all other phases depend on it</li>
+      <li style="padding:2px 0;">• Phases 2–6 can run in any order after Phase 1, but recommended order minimizes rework</li>
+      <li style="padding:2px 0;">• Existing <code>.button</code> class kept alongside <code>GameButton</code> during migration for zero breakage</li>
+      <li style="padding:2px 0;">• All game asset paths use <code>/design-assets/</code> — already in public/ directory</li>
+      <li style="padding:2px 0;">• No new npm dependencies required — all CSS + existing Next.js Image component</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

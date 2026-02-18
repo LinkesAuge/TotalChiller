@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chiller &amp; Killer — Asset UI Proposals v4</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080d14;
+  --bg-gradient: radial-gradient(ellipse at 30% 0%, #152238 0%, #0a1220 50%, #080d14 100%);
+  --surface: rgba(18,39,58,.7);
+  --surface-solid: #12273a;
+  --surface-2: rgba(15,34,51,.8);
+  --surface-hover: rgba(25,50,75,.8);
+  --edge: rgba(240,200,60,.38);
+  --edge-glow: rgba(240,200,60,.65);
+  --gold: #c9a34a;
+  --gold-2: #e4c778;
+  --gold-3: #f5dda3;
+  --gold-dark: #a0862e;
+  --gold-glow: rgba(240,200,60,.25);
+  --gold-a08: rgba(240,200,60,.08);
+  --gold-a12: rgba(240,200,60,.12);
+  --gold-a15: rgba(240,200,60,.15);
+  --gold-a20: rgba(240,200,60,.20);
+  --gold-a25: rgba(240,200,60,.34);
+  --text: #f2e6c9;
+  --text-2: #b8a888;
+  --text-muted: #9d8d76;
+  --accent-red: #c94a3a;
+  --accent-green: #4a9960;
+  --accent-blue: #4a6ea0;
+  --overlay-dark: rgba(10,20,32,.85);
+  --overlay-darker: rgba(10,20,32,.95);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
+  --font-heading: "Cinzel", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --transition-fast: .15s cubic-bezier(.4,0,.2,1);
+  --a: ./public/design-assets;
+  --v: ./public/assets/vip;
+  --b: ./public/assets/banners;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+img { display: block; }
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+
+/* ─── TOC ─── */
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0 36px; justify-content: center; }
+.toc a {
+  padding: 5px 12px; border-radius: 999px; border: 1px solid var(--edge);
+  font-size: .68rem; color: var(--gold-2); text-decoration: none; background: var(--gold-a08);
+  transition: all var(--transition-fast);
+}
+.toc a:hover { background: var(--gold-a25); border-color: var(--gold); }
+
+/* ─── Proposal blocks ─── */
+.proposal { margin: 52px 0 0; scroll-margin-top: 24px; }
+.ptag {
+  display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .62rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px;
+}
+.ptag--page { background: var(--accent-blue); color: #fff; }
+.ptag--global { background: var(--gold-dark); color: #fff; }
+.ptitle { font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: var(--gold-2); margin-bottom: 4px; }
+.pdesc { color: var(--text-muted); font-size: .8rem; margin-bottom: 16px; max-width: 680px; }
+.plabel { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin-bottom: 8px; }
+.pbox { border: 1px solid var(--edge); border-radius: var(--radius-md); overflow: hidden; background: rgba(8,13,20,.5); }
+.pfiles { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+.pfile { padding: 2px 8px; border-radius: 4px; background: rgba(74,110,160,.12); border: 1px solid rgba(74,110,160,.25); font-size: .62rem; color: #8ab4e0; font-family: monospace; }
+.passet { padding: 2px 8px; border-radius: 4px; background: var(--gold-a08); border: 1px solid var(--edge); font-size: .62rem; color: var(--gold-2); font-family: monospace; }
+.passets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 16px; }
+.gold-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--edge), transparent); margin: 5px 0; }
+
+/* ─── Member table ─── */
+.mtable { width: 100%; border-collapse: separate; border-spacing: 0 3px; }
+.mtable th { font-family: var(--font-heading); font-size: .68rem; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: .06em; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--edge); }
+.mtable td { padding: 7px 12px; font-size: .8rem; color: var(--text); background: var(--surface); transition: background var(--transition-fast); vertical-align: middle; }
+.mtable tbody tr:hover td { background: var(--surface-hover); }
+.mtable td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.mtable td:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.mrank { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.mrank img { width: 24px; height: 22px; object-fit: contain; }
+.mid { display: flex; flex-direction: column; gap: 1px; }
+.mid-name { font-weight: 600; }
+.mid-sub { font-size: .7rem; color: var(--text-muted); }
+.mbadge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: .66rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.mact { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--edge); background: transparent; color: var(--text-muted); font-size: .7rem; cursor: pointer; transition: all var(--transition-fast); text-decoration: none; }
+.mact:hover { color: var(--gold-2); background: var(--gold-a08); border-color: var(--gold); }
+.mchips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.mchip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; border: 1px solid; font-size: .66rem; font-weight: 600; }
+.mchip-ct { opacity: .55; font-size: .6rem; }
+
+/* ─── Stat cards ─── */
+.sgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.scard { position: relative; padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--edge); background: var(--surface); display: flex; align-items: center; gap: 12px; transition: transform var(--transition-fast), box-shadow var(--transition-fast); overflow: hidden; }
+.scard:hover { transform: translateY(-1px); box-shadow: var(--shadow-md), 0 0 14px var(--gold-glow); }
+.scard-glow { position: absolute; top: -16px; left: -16px; width: 64px; height: 64px; border-radius: 50%; background: radial-gradient(circle, rgba(240,200,60,.07) 0%, transparent 70%); pointer-events: none; }
+.scard-icon { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+.scard-label { font-size: .66rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.scard-val { font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700; color: var(--gold-2); line-height: 1.2; }
+.scard-trend { font-size: .64rem; font-weight: 600; margin-top: 1px; }
+.scard-trend--up { color: var(--accent-green); }
+
+/* ─── Button system ─── */
+.gbtn { position: relative; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border: none; background: transparent; padding: 0; transition: filter var(--transition-fast), transform var(--transition-fast); }
+.gbtn:hover { filter: brightness(1.15) drop-shadow(0 0 6px rgba(240,200,60,.25)); transform: translateY(-1px); }
+.gbtn:active { filter: brightness(.85); transform: translateY(1px); }
+.gbtn img { display: block; }
+.gbtn-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 5px; font-family: var(--font-heading); font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.5); text-transform: uppercase; letter-spacing: .05em; }
+.gbtn-label img { width: 14px; height: 14px; object-fit: contain; }
+
+/* ─── Progress ─── */
+.pbar { position: relative; height: 22px; border-radius: 3px; border: 2px solid var(--edge); background: rgba(10,20,32,.8); overflow: hidden; box-shadow: inset 0 2px 6px rgba(0,0,0,.4); }
+.pbar-fill { height: 100%; border-radius: 1px; background: linear-gradient(180deg, #dab44d, #9a7520 50%, #8b6914); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 0 8px rgba(240,200,60,.2); position: relative; transition: width .6s ease; }
+.pbar-fill::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.12) 50%, transparent 100%); animation: shimmer 2.5s infinite; }
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+.pbar-fill--green { background: linear-gradient(180deg, #5cb870, #35804a 50%, #286838); box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 0 8px rgba(74,153,96,.2); }
+.pbar-fill--blue { background: linear-gradient(180deg, #5890d0, #3a6898 50%, #2d5480); box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 0 8px rgba(74,110,160,.2); }
+.pbar-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .64rem; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); z-index: 1; }
+.pbar-slider { position: absolute; top: 50%; transform: translate(-50%, -50%); z-index: 2; width: 18px; height: 18px; object-fit: contain; filter: drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
+
+/* ─── Notifications ─── */
+.notif { position: relative; border-radius: var(--radius-md); overflow: hidden; }
+.notif-inner { position: relative; padding: 14px 18px; display: flex; align-items: flex-start; gap: 12px; }
+.notif-icon { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; margin-top: 1px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+.notif-title { font-family: var(--font-heading); font-size: .8rem; font-weight: 700; margin-bottom: 3px; }
+.notif-text { font-size: .76rem; color: var(--text-2); line-height: 1.45; }
+.notif--warn { background: linear-gradient(135deg, rgba(201,163,74,.12) 0%, rgba(18,39,58,.6) 100%); border: 1px solid rgba(201,163,74,.45); border-left: 3px solid var(--gold); box-shadow: inset 0 0 20px rgba(201,163,74,.06), 0 2px 8px rgba(0,0,0,.25); }
+.notif--success { background: linear-gradient(135deg, rgba(74,153,96,.12) 0%, rgba(18,39,58,.6) 100%); border: 1px solid rgba(74,153,96,.4); border-left: 3px solid var(--accent-green); box-shadow: inset 0 0 20px rgba(74,153,96,.06), 0 2px 8px rgba(0,0,0,.25); }
+.notif--error { background: linear-gradient(135deg, rgba(201,74,58,.12) 0%, rgba(18,39,58,.6) 100%); border: 1px solid rgba(201,74,58,.4); border-left: 3px solid var(--accent-red); box-shadow: inset 0 0 20px rgba(201,74,58,.06), 0 2px 8px rgba(0,0,0,.25); }
+.notif--info { background: linear-gradient(135deg, rgba(74,110,160,.12) 0%, rgba(18,39,58,.6) 100%); border: 1px solid rgba(74,110,160,.4); border-left: 3px solid var(--accent-blue); box-shadow: inset 0 0 20px rgba(74,110,160,.06), 0 2px 8px rgba(0,0,0,.25); }
+
+/* ─── Hero ─── */
+.hero { position: relative; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--edge); box-shadow: var(--shadow-lg); height: 130px; }
+.hero img.himg { width: 100%; height: 100%; object-fit: cover; filter: brightness(.8) contrast(1.05); }
+.hero-ov { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,13,20,.05) 0%, rgba(8,13,20,.75) 75%, rgba(8,13,20,.95) 100%); }
+.hero-dec { position: absolute; width: 44px; height: 44px; object-fit: contain; opacity: .55; filter: drop-shadow(0 0 5px rgba(240,200,60,.2)); }
+.hero-dec--l { top: 8px; left: 10px; }
+.hero-dec--r { top: 8px; right: 10px; transform: scaleX(-1); }
+.hero-c { position: absolute; bottom: 14px; left: 20px; }
+.hero-t { font-family: var(--font-heading); font-size: 1.3rem; font-weight: 900; color: var(--gold-3); text-shadow: 0 2px 8px rgba(0,0,0,.5), 0 0 16px rgba(240,200,60,.12); letter-spacing: .04em; }
+.hero-st { color: var(--text-2); font-size: .78rem; margin-top: 2px; }
+
+/* ─── Banner card ─── */
+.bcard { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--edge); box-shadow: var(--shadow-md); transition: transform var(--transition-fast), box-shadow var(--transition-fast); }
+.bcard:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg), 0 0 12px var(--gold-glow); }
+.bcard-hdr { position: relative; height: 72px; overflow: hidden; }
+.bcard-hdr img { width: 100%; height: 100%; object-fit: cover; filter: brightness(.6); }
+.bcard-hdr-ov { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 20%, rgba(8,13,20,.85) 100%); }
+.bcard-badge { position: absolute; top: 7px; right: 7px; display: flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: rgba(10,20,32,.75); border: 1px solid var(--edge); font-size: .62rem; color: var(--gold-2); font-weight: 600; text-transform: uppercase; }
+.bcard-badge img { width: 13px; height: 13px; object-fit: contain; }
+.bcard-body { padding: 14px; background: linear-gradient(180deg, var(--surface-solid), rgba(10,20,32,.95)); }
+.bcard-title { font-family: var(--font-heading); font-size: .9rem; font-weight: 700; color: var(--gold-2); margin-bottom: 4px; }
+.bcard-text { font-size: .78rem; color: var(--text-2); line-height: 1.4; margin-bottom: 10px; }
+.bcard-foot { display: flex; align-items: center; justify-content: space-between; }
+
+/* ─── Card header ─── */
+.chdr { position: relative; padding: 9px 14px; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+.chdr-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; opacity: .3; }
+.chdr-icon { position: relative; width: 18px; height: 18px; object-fit: contain; }
+.chdr-title { position: relative; font-family: var(--font-heading); font-size: .8rem; font-weight: 700; color: var(--gold-2); }
+.chdr-action { position: relative; margin-left: auto; font-size: .62rem; color: var(--gold); text-decoration: none; }
+
+/* ─── Utility ─── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.gap-8 { display: flex; flex-direction: column; gap: 8px; }
+.gap-10 { display: flex; flex-direction: column; gap: 10px; }
+.gap-14 { display: flex; flex-direction: column; gap: 14px; }
+.pad { padding: 14px; }
+.flex-center { display: flex; align-items: center; }
+.flex-wrap { display: flex; flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .sgrid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .sgrid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div style="text-align:center; margin-bottom:8px;">
+    <img src="./public/assets/ui/chillerkiller_logo.png" alt="" style="height:56px; margin:0 auto; filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));">
+    <h1 style="font-family:var(--font-heading); font-size:1.2rem; font-weight:900; color:var(--gold-3); letter-spacing:.05em; margin-top:6px;">ASSET UI PROPOSALS v4</h1>
+    <p style="color:var(--text-muted); font-size:.78rem; max-width:520px; margin:4px auto 0;">Refined proposals with corrected rank colors, bigger buttons, brighter pagination, and CSS-based notifications.</p>
+  </div>
+
+  <nav class="toc">
+    <a href="#members">1. Members Table</a>
+    <a href="#stats">2. Dashboard Stats</a>
+    <a href="#cards">3. Dashboard Cards</a>
+    <a href="#progress">4. Progress Bars</a>
+    <a href="#events">5. Event Cards</a>
+    <a href="#buttons">6. Button System</a>
+    <a href="#nav">7. Pagination &amp; Nav</a>
+    <a href="#notifs">8. Notifications</a>
+    <a href="#icons">9. Icon Replacements</a>
+    <a href="#hero">10. Hero Banners</a>
+    <a href="#dividers">11. Ornamental Dividers</a>
+  </nav>
+
+
+  <!-- ═══════ 1 · MEMBERS TABLE ═══════ -->
+  <div class="proposal" id="members">
+    <span class="ptag ptag--page">Members / Mitglieder</span>
+    <h2 class="ptitle">Game-Style Member Directory</h2>
+    <p class="pdesc">Replace the expandable <code>.table.member-dir</code> with a leaderboard table. Top 3 get your curated rank place icons. Shield icons serve as rank-type backgrounds. The golden feather replaces the SVG message icon.</p>
+    <div class="pfiles">
+      <span class="pfile">app/members/members-client.tsx</span>
+      <span class="pfile">app/styles/tables.css</span>
+    </div>
+    <div class="passets">
+      <span class="passet">icons_rating_I_40x36_1.png</span>
+      <span class="passet">icons_rating_II_40x36_1.png</span>
+      <span class="passet">icons_rating_III_40x36_1.png</span>
+      <span class="passet">icons_rang_over.png</span>
+      <span class="passet">icons_pen_2.png</span>
+      <span class="passet">icons_player_3.png</span>
+      <span class="passet">icons_spyglass_1.png</span>
+    </div>
+
+    <div class="plabel">Proposed table</div>
+    <div class="pbox">
+      <div style="padding:12px 14px 6px;">
+        <div class="flex-center" style="gap:10px; margin-bottom:10px;">
+          <img src="./public/design-assets/icon/icons_player_3.png" alt="" style="width:20px; height:20px; object-fit:contain; opacity:.7;">
+          <span style="font-family:var(--font-heading); font-size:.95rem; font-weight:700; color:var(--gold-2);">Chiller & Killer</span>
+          <span style="font-size:.72rem; color:var(--text-muted);">24 Mitglieder</span>
+        </div>
+        <div class="mchips">
+          <span class="mchip" style="border-color:#e4c778; color:#e4c778;">Anführer <span class="mchip-ct">1</span></span>
+          <span class="mchip" style="border-color:#d4a54a; color:#d4a54a;">Vorgesetzter <span class="mchip-ct">2</span></span>
+          <span class="mchip" style="border-color:#c9a84c; color:#c9a84c;">Webmaster <span class="mchip-ct">1</span></span>
+          <span class="mchip" style="border-color:#6ba3d6; color:#6ba3d6;">Offizier <span class="mchip-ct">5</span></span>
+          <span class="mchip" style="border-color:#5ec07e; color:#5ec07e;">Veteran <span class="mchip-ct">8</span></span>
+          <span class="mchip" style="border-color:#b0a08a; color:#b0a08a;">Soldat <span class="mchip-ct">7</span></span>
+        </div>
+      </div>
+      <div style="padding:0 14px 14px; overflow-x:auto;">
+        <table class="mtable">
+          <thead><tr><th style="width:56px;">#</th><th>Spieler</th><th>Rang</th><th style="width:110px;"></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="mrank"><img src="./public/design-assets/icon/icons_rating_I_40x36_1.png" alt="">1</div></td>
+              <td><div class="mid"><span class="mid-name">DragonSlayer99</span><span class="mid-sub">Max M.</span></div></td>
+              <td><span class="mbadge" style="border:1px solid #e4c778; color:#e4c778; background:rgba(228,199,120,.08);">Anführer</span></td>
+              <td><a href="#" class="mact"><img src="./public/design-assets/icon/icons_pen_2.png" alt="" style="width:14px; height:14px; object-fit:contain;">Nachricht</a></td>
+            </tr>
+            <tr>
+              <td><div class="mrank"><img src="./public/design-assets/icon/icons_rating_II_40x36_1.png" alt="">2</div></td>
+              <td><div class="mid"><span class="mid-name">IronFortress</span><span class="mid-sub">Sarah K.</span></div></td>
+              <td><span class="mbadge" style="border:1px solid #d4a54a; color:#d4a54a; background:rgba(212,165,74,.08);">Vorgesetzter</span></td>
+              <td><a href="#" class="mact"><img src="./public/design-assets/icon/icons_pen_2.png" alt="" style="width:14px; height:14px; object-fit:contain;">Nachricht</a></td>
+            </tr>
+            <tr>
+              <td><div class="mrank"><img src="./public/design-assets/icon/icons_rating_III_40x36_1.png" alt="">3</div></td>
+              <td><div class="mid"><span class="mid-name">ShadowWarlord</span><span class="mid-sub">Jonas F.</span></div></td>
+              <td><span class="mbadge" style="border:1px solid #6ba3d6; color:#6ba3d6; background:rgba(107,163,214,.08);">Offizier</span></td>
+              <td><a href="#" class="mact"><img src="./public/design-assets/icon/icons_pen_2.png" alt="" style="width:14px; height:14px; object-fit:contain;">Nachricht</a></td>
+            </tr>
+            <tr>
+              <td><div class="mrank"><img src="./public/design-assets/icon/icons_rang_over.png" alt="" style="width:26px; height:26px; opacity:.8;">4</div></td>
+              <td><div class="mid"><span class="mid-name">NightReaper</span><span class="mid-sub">Lisa W.</span></div></td>
+              <td><span class="mbadge" style="border:1px solid #5ec07e; color:#5ec07e; background:rgba(94,192,126,.08);">Veteran</span></td>
+              <td><a href="#" class="mact"><img src="./public/design-assets/icon/icons_pen_2.png" alt="" style="width:14px; height:14px; object-fit:contain;">Nachricht</a></td>
+            </tr>
+            <tr>
+              <td><div class="mrank"><img src="./public/design-assets/icon/icons_rang.png" alt="" style="width:26px; height:26px; opacity:.65;">5</div></td>
+              <td><div class="mid"><span class="mid-name">StormBreaker</span><span class="mid-sub">Tim R.</span></div></td>
+              <td><span class="mbadge" style="border:1px solid #b0a08a; color:#b0a08a; background:rgba(176,160,138,.06);">Soldat</span></td>
+              <td><a href="#" class="mact"><img src="./public/design-assets/icon/icons_pen_2.png" alt="" style="width:14px; height:14px; object-fit:contain;">Nachricht</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 2 · DASHBOARD STATS ═══════ -->
+  <div class="proposal" id="stats">
+    <span class="ptag ptag--page">Dashboard</span>
+    <h2 class="ptitle">Quick Stats with Curated Icons</h2>
+    <p class="pdesc">Replace the "Quick Stats — coming soon" placeholder. Each stat uses an icon from your curated list: glowing players for members, sword for battles, star for news, power fist for forum activity.</p>
+    <div class="pfiles"><span class="pfile">app/dashboard-client.tsx</span><span class="pfile">app/hooks/use-dashboard-data.ts</span></div>
+    <div class="passets">
+      <span class="passet">icons_player_5.png</span>
+      <span class="passet">sword_icon_28.png</span>
+      <span class="passet">icons_star_up_2.png</span>
+      <span class="passet">icons_power.png</span>
+    </div>
+    <div class="plabel">Replacing the placeholder</div>
+    <div class="pbox pad">
+      <div class="sgrid">
+        <div class="scard">
+          <div class="scard-glow"></div>
+          <img class="scard-icon" src="./public/design-assets/icon/icons_player_5.png" alt="">
+          <div><div class="scard-label">Mitglieder</div><div class="scard-val">24</div><div class="scard-trend scard-trend--up">+2 diese Woche</div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-glow"></div>
+          <img class="scard-icon" src="./public/design-assets/icon/sword_icon_28.png" alt="">
+          <div><div class="scard-label">Events</div><div class="scard-val">7</div><div class="scard-trend scard-trend--up">3 diese Woche</div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-glow"></div>
+          <img class="scard-icon" src="./public/design-assets/icon/icons_star_up_2.png" alt="">
+          <div><div class="scard-label">Neuigkeiten</div><div class="scard-val">12</div><div class="scard-trend" style="color:var(--text-muted);">2 ungelesen</div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-glow"></div>
+          <img class="scard-icon" src="./public/design-assets/icon/icons_power.png" alt="">
+          <div><div class="scard-label">Forum Posts</div><div class="scard-val">156</div><div class="scard-trend scard-trend--up">+8 diese Woche</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 3 · DASHBOARD CARDS ═══════ -->
+  <div class="proposal" id="cards">
+    <span class="ptag ptag--page">Dashboard</span>
+    <h2 class="ptitle">Enhanced Card Headers with Curated Assets</h2>
+    <p class="pdesc">Refine the existing <code>.tooltip-head</code> pattern. Use <code>back_tooltip_2.png</code> (from your uncategorized list) as header background. Pin icons from your list replace SVG pins. Stars indicate pinned vs normal items.</p>
+    <div class="pfiles"><span class="pfile">app/dashboard-client.tsx</span><span class="pfile">app/styles/components.css</span></div>
+    <div class="passets">
+      <span class="passet">uncategorized/back_tooltip_2.png</span>
+      <span class="passet">icons_paper_add_2.png (pin)</span>
+      <span class="passet">icons_pve_star_small.png</span>
+      <span class="passet">icons_paper_saved_1.png</span>
+    </div>
+
+    <div class="plabel">Announcements card</div>
+    <div class="pbox">
+      <div class="chdr">
+        <img class="chdr-bg" src="./public/design-assets/uncategorized/back_tooltip_2.png" alt="">
+        <img class="chdr-icon" src="./public/design-assets/icon/icons_paper_saved_1.png" alt="">
+        <span class="chdr-title">Neuigkeiten</span>
+        <a href="#" class="chdr-action">Alle anzeigen →</a>
+      </div>
+      <div class="pad gap-8">
+        <div class="flex-center" style="gap:8px; padding:3px 0;">
+          <img src="./public/design-assets/icon/icons_paper_add_2.png" alt="" style="width:14px; height:14px; object-fit:contain;">
+          <div style="flex:1;">
+            <div style="font-size:.82rem;">Server-Wartung am Freitag</div>
+            <div style="font-size:.66rem; color:var(--text-muted);">vor 2 Stunden • Admin</div>
+          </div>
+          <span style="padding:2px 8px; border-radius:999px; background:#c94a3a; color:#fff; font-size:.6rem; font-weight:700;">Priorität</span>
+        </div>
+        <div class="gold-divider"></div>
+        <div class="flex-center" style="gap:8px; padding:3px 0;">
+          <img src="./public/design-assets/icon/icons_pve_star_small.png" alt="" style="width:14px; height:14px; object-fit:contain;">
+          <div style="flex:1;">
+            <div style="font-size:.82rem;">Neues Clan-Event gestartet</div>
+            <div style="font-size:.66rem; color:var(--text-muted);">vor 5 Stunden • EventBot</div>
+          </div>
+          <span style="padding:2px 8px; border-radius:999px; background:#4a9960; color:#fff; font-size:.6rem; font-weight:700;">Neu</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 4 · PROGRESS BARS ═══════ -->
+  <div class="proposal" id="progress">
+    <span class="ptag ptag--page">Dashboard</span>
+    <h2 class="ptitle">Week Highlights with Progress Bars &amp; Slider Markers</h2>
+    <p class="pdesc">Replace the "Week Highlights — coming soon" placeholder. The gold/green/red slider markers from your list sit on the progress fill edge as position indicators.</p>
+    <div class="pfiles"><span class="pfile">app/dashboard-client.tsx</span></div>
+    <div class="passets">
+      <span class="passet">progress/components_progress_slider_1.png</span>
+      <span class="passet">progress/components_progress_slider_4.png</span>
+      <span class="passet">progress/components_progress_slider_3.png</span>
+      <span class="passet">progress/gold_bar_72.png</span>
+      <span class="passet">icons_player_5.png</span>
+      <span class="passet">sword_icon_28.png</span>
+    </div>
+    <div class="plabel">Replacing the placeholder</div>
+    <div class="pbox pad">
+      <div style="font-family:var(--font-heading); font-size:.82rem; font-weight:700; color:var(--gold-2); margin-bottom:12px;">Wochenziele</div>
+      <div class="gap-14">
+        <div>
+          <div class="flex-center" style="justify-content:space-between; margin-bottom:4px;">
+            <span class="flex-center" style="gap:6px; font-size:.74rem; color:var(--text-2); font-weight:600;">
+              <img src="./public/design-assets/icon/icons_player_5.png" alt="" style="width:16px; height:16px; object-fit:contain;">
+              Clan-Aktivität
+            </span>
+            <span style="font-family:var(--font-heading); font-size:.74rem; color:var(--gold-2); font-weight:700;">72%</span>
+          </div>
+          <div class="pbar">
+            <div class="pbar-fill" style="width:72%;"></div>
+            <img class="pbar-slider" src="./public/design-assets/progress/components_progress_slider_1.png" alt="" style="left:72%;">
+            <span class="pbar-text">18 / 25 aktive Mitglieder</span>
+          </div>
+        </div>
+        <div>
+          <div class="flex-center" style="justify-content:space-between; margin-bottom:4px;">
+            <span class="flex-center" style="gap:6px; font-size:.74rem; color:var(--text-2); font-weight:600;">
+              <img src="./public/design-assets/icon/sword_icon_28.png" alt="" style="width:16px; height:16px; object-fit:contain;">
+              Event-Teilnahme
+            </span>
+            <span style="font-family:var(--font-heading); font-size:.74rem; color:var(--gold-2); font-weight:700;">85%</span>
+          </div>
+          <div class="pbar">
+            <div class="pbar-fill pbar-fill--green" style="width:85%;"></div>
+            <img class="pbar-slider" src="./public/design-assets/progress/components_progress_slider_4.png" alt="" style="left:85%;">
+            <span class="pbar-text">17 / 20 Teilnehmer</span>
+          </div>
+        </div>
+        <div>
+          <div class="flex-center" style="justify-content:space-between; margin-bottom:4px;">
+            <span class="flex-center" style="gap:6px; font-size:.74rem; color:var(--text-2); font-weight:600;">
+              <img src="./public/design-assets/icon/icons_power.png" alt="" style="width:16px; height:16px; object-fit:contain;">
+              Forum-Beiträge
+            </span>
+            <span style="font-family:var(--font-heading); font-size:.74rem; color:var(--gold-2); font-weight:700;">35%</span>
+          </div>
+          <div class="pbar">
+            <div class="pbar-fill pbar-fill--blue" style="width:35%;"></div>
+            <img class="pbar-slider" src="./public/design-assets/progress/components_progress_slider_3.png" alt="" style="left:35%;">
+            <span class="pbar-text">7 / 20 Beiträge</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 5 · EVENT CARDS ═══════ -->
+  <div class="proposal" id="events">
+    <span class="ptag ptag--page">Events / Upcoming Sidebar</span>
+    <h2 class="ptitle">Event Cards with Game Banners</h2>
+    <p class="pdesc">The upcoming sidebar gains banner headers per event. The ornate 171x72 button serves as the CTA. Star icons mark active/upcoming status.</p>
+    <div class="pfiles"><span class="pfile">app/events/events-client.tsx</span><span class="pfile">app/styles/events.css</span></div>
+    <div class="passets">
+      <span class="passet">button_171x72_up_1.png (CTA)</span>
+      <span class="passet">icons_pve_star_small.png</span>
+      <span class="passet">banner_ragnarok_*</span>
+      <span class="passet">banner_tournir_kvk.png</span>
+    </div>
+    <div class="plabel">Upcoming events sidebar cards</div>
+    <div style="max-width:340px;">
+      <div class="gap-10">
+        <div class="bcard">
+          <div class="bcard-hdr">
+            <img src="./public/design-assets/banner/banner_ragnarok_clan_event_708x123.png" alt="">
+            <div class="bcard-hdr-ov"></div>
+            <div class="bcard-badge"><img src="./public/design-assets/icon/icons_pve_star_small.png" alt="">Aktiv</div>
+          </div>
+          <div class="bcard-body">
+            <div class="bcard-title">Ragnarok Clan Event</div>
+            <div class="bcard-text">Clan-weiter Kampf gegen die Ragnarok-Kräfte.</div>
+            <div class="bcard-foot">
+              <span style="font-size:.7rem; color:var(--text-muted);">Endet in 2T 14Std</span>
+              <button class="gbtn">
+                <img src="./public/design-assets/button/button_171x72_up_1.png" alt="" style="height:32px; width:auto;">
+                <span class="gbtn-label" style="font-size:.65rem;">Details</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="bcard">
+          <div class="bcard-hdr">
+            <img src="./public/design-assets/banner/banner_tournir_kvk.png" alt="">
+            <div class="bcard-hdr-ov"></div>
+            <div class="bcard-badge">Bald</div>
+          </div>
+          <div class="bcard-body">
+            <div class="bcard-title">Kingdom vs Kingdom</div>
+            <div class="bcard-text">Königreich-übergreifendes Turnier.</div>
+            <div class="bcard-foot">
+              <span style="font-size:.7rem; color:var(--text-muted);">Startet in 5T</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 6 · BUTTON SYSTEM ═══════ -->
+  <div class="proposal" id="buttons">
+    <span class="ptag ptag--global">Global / All Pages</span>
+    <h2 class="ptitle">Full Button System from Curated Assets</h2>
+    <p class="pdesc">A complete button hierarchy built from your selected button assets. Each type maps to a specific interaction pattern across the site.</p>
+    <div class="pfiles"><span class="pfile">app/styles/components.css</span><span class="pfile">All page TSX files</span></div>
+
+    <div class="plabel">Primary CTAs (one per page)</div>
+    <div class="pbox pad">
+      <div style="display:grid; grid-template-columns:100px 1fr; gap:10px 16px; align-items:center;">
+        <span style="font-size:.68rem; color:var(--text-muted); text-align:right;">Ornate 171×72:</span>
+        <div class="flex-wrap" style="gap:14px; align-items:center;">
+          <button class="gbtn"><img src="./public/design-assets/button/button_171x72_up_1.png" alt="" style="height:48px; width:auto;"><span class="gbtn-label" style="font-size:.76rem;">Neuer Beitrag</span></button>
+          <button class="gbtn"><img src="./public/design-assets/button/button_171x72_up_2.png" alt="" style="height:48px; width:auto;"><span class="gbtn-label" style="font-size:.76rem;">Event erstellen</span></button>
+          <button class="gbtn"><img src="./public/design-assets/button/button_171x72_up_3.png" alt="" style="height:48px; width:auto;"><span class="gbtn-label" style="font-size:.76rem;">Nachricht</span></button>
+        </div>
+        <span style="font-size:.68rem; color:var(--text-muted); text-align:right;">Hero 294×72:</span>
+        <div>
+          <button class="gbtn"><img src="./public/design-assets/button/button_294x72_up_1.png" alt="" style="height:54px; width:auto;"><span class="gbtn-label" style="font-size:.85rem;">Jetzt Beitreten</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:12px;"></div>
+    <div class="plabel">Colored action buttons (confirm, warn, special, info)</div>
+    <div class="pbox pad">
+      <div class="flex-wrap" style="gap:12px; align-items:center;">
+        <button class="gbtn"><img src="./public/design-assets/button/batler_button_green_up_88x40.png" alt="" style="height:38px; width:auto;"><span class="gbtn-label" style="font-size:.68rem;">Bestätigen</span></button>
+        <button class="gbtn"><img src="./public/design-assets/button/batler_button_orange_up_88x40.png" alt="" style="height:38px; width:auto;"><span class="gbtn-label" style="font-size:.68rem;">Warnung</span></button>
+        <button class="gbtn"><img src="./public/design-assets/button/batler_button_purple_up_88x40.png" alt="" style="height:38px; width:auto;"><span class="gbtn-label" style="font-size:.68rem;">Spezial</span></button>
+        <button class="gbtn"><img src="./public/design-assets/button/batler_button_turquoise_up_88x40.png" alt="" style="height:38px; width:auto;"><span class="gbtn-label" style="font-size:.68rem;">Info</span></button>
+        <button class="gbtn"><img src="./public/design-assets/button/button_104x48_up_1.png" alt="" style="height:38px; width:auto;"><span class="gbtn-label" style="font-size:.68rem;">Standard</span></button>
+      </div>
+    </div>
+
+    <div style="height:12px;"></div>
+    <div class="plabel">Small icon buttons (close, help, toggle)</div>
+    <div class="pbox pad">
+      <div class="flex-wrap" style="gap:12px; align-items:center;">
+        <div style="text-align:center;">
+          <button class="gbtn"><img src="./public/design-assets/button/button_28x28_up_1.png" alt="" style="width:28px; height:28px;"></button>
+          <div style="font-size:.58rem; color:var(--text-muted); margin-top:4px;">Close/X</div>
+        </div>
+        <div style="text-align:center;">
+          <button class="gbtn"><img src="./public/design-assets/button/button_28x28_up_2.png" alt="" style="width:28px; height:28px;"></button>
+          <div style="font-size:.58rem; color:var(--text-muted); margin-top:4px;">Help (?)</div>
+        </div>
+        <div style="text-align:center;">
+          <button class="gbtn"><img src="./public/design-assets/button/button_28x28_blue_pause.png" alt="" style="width:28px; height:28px;"></button>
+          <div style="font-size:.58rem; color:var(--text-muted); margin-top:4px;">Pause</div>
+        </div>
+        <div style="text-align:center;">
+          <button class="gbtn"><img src="./public/design-assets/button/button_38x38_up_1.png" alt="" style="width:32px; height:32px;"></button>
+          <div style="font-size:.58rem; color:var(--text-muted); margin-top:4px;">Icon 38px</div>
+        </div>
+        <div style="text-align:center;">
+          <button class="gbtn"><img src="./public/design-assets/button/button_27x27_up_1.png" alt="" style="width:24px; height:24px;"></button>
+          <div style="font-size:.58rem; color:var(--text-muted); margin-top:4px;">Icon 27px</div>
+        </div>
+        <div style="text-align:center;">
+          <button class="gbtn"><img src="./public/design-assets/button/button_21x21_up_1.png" alt="" style="width:20px; height:20px;"></button>
+          <div style="font-size:.58rem; color:var(--text-muted); margin-top:4px;">Icon 21px</div>
+        </div>
+        <div style="text-align:center;">
+          <button class="gbtn"><img src="./public/design-assets/button/battler_button_round_up_96x96.png" alt="" style="width:40px; height:40px;"></button>
+          <div style="font-size:.58rem; color:var(--text-muted); margin-top:4px;">Round</div>
+        </div>
+        <div style="text-align:center;">
+          <button class="gbtn"><img src="./public/design-assets/button/battler_button_round_on_96x96.png" alt="" style="width:40px; height:40px;"></button>
+          <div style="font-size:.58rem; color:var(--text-muted); margin-top:4px;">Round On</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 7 · PAGINATION & NAVIGATION ═══════ -->
+  <div class="proposal" id="nav">
+    <span class="ptag ptag--global">PaginationBar / Forum / Events</span>
+    <h2 class="ptitle">Arrow Buttons for Pagination &amp; Navigation</h2>
+    <p class="pdesc">Replace the current CSS <code>.pagination-bar</code> prev/next arrows and the forum sort arrows with your curated arrow button assets. Single arrows = next/prev, double = jump 5 pages, triple = first/last.</p>
+    <div class="pfiles"><span class="pfile">app/components/pagination-bar.tsx</span><span class="pfile">app/styles/events.css (calendar nav)</span></div>
+    <div class="passets">
+      <span class="passet">button_arrow_over_1/2.png</span>
+      <span class="passet">button_arr_double_over_1/2.png</span>
+      <span class="passet">button_arr_tripple_over_1/2.png</span>
+    </div>
+    <div class="plabel">Pagination bar with game arrows</div>
+    <div class="pbox pad">
+      <div class="flex-center" style="justify-content:center; gap:6px;">
+        <button class="gbtn"><img src="./public/design-assets/button/button_arr_tripple_over_2.png" alt="" style="width:28px; height:28px;"></button>
+        <button class="gbtn"><img src="./public/design-assets/button/button_arr_double_over_2.png" alt="" style="width:28px; height:28px;"></button>
+        <button class="gbtn"><img src="./public/design-assets/button/button_arrow_over_2.png" alt="" style="width:28px; height:28px;"></button>
+        <div style="display:flex; gap:4px;">
+          <span style="padding:5px 12px; border-radius:5px; background:linear-gradient(135deg, rgba(201,163,74,.3), rgba(228,199,120,.15)); color:var(--gold-3); font-size:.78rem; font-weight:700; border:1px solid var(--gold); box-shadow:0 0 8px rgba(240,200,60,.2);">1</span>
+          <span style="padding:5px 12px; border-radius:5px; background:linear-gradient(135deg, rgba(18,39,58,.9), rgba(25,50,75,.6)); color:var(--text-2); font-size:.78rem; font-weight:500; border:1px solid rgba(240,200,60,.45);">2</span>
+          <span style="padding:5px 12px; border-radius:5px; background:linear-gradient(135deg, rgba(18,39,58,.9), rgba(25,50,75,.6)); color:var(--text-2); font-size:.78rem; font-weight:500; border:1px solid rgba(240,200,60,.45);">3</span>
+          <span style="padding:5px 12px; border-radius:5px; background:linear-gradient(135deg, rgba(18,39,58,.9), rgba(25,50,75,.6)); color:var(--text-muted); font-size:.78rem; border:1px solid rgba(240,200,60,.3);">…</span>
+          <span style="padding:5px 12px; border-radius:5px; background:linear-gradient(135deg, rgba(18,39,58,.9), rgba(25,50,75,.6)); color:var(--text-2); font-size:.78rem; font-weight:500; border:1px solid rgba(240,200,60,.45);">12</span>
+        </div>
+        <button class="gbtn"><img src="./public/design-assets/button/button_arrow_over_1.png" alt="" style="width:28px; height:28px;"></button>
+        <button class="gbtn"><img src="./public/design-assets/button/button_arr_double_over_1.png" alt="" style="width:28px; height:28px;"></button>
+        <button class="gbtn"><img src="./public/design-assets/button/button_arr_tripple_over_1.png" alt="" style="width:28px; height:28px;"></button>
+      </div>
+      <div style="text-align:center; margin-top:8px; font-size:.64rem; color:var(--text-muted);">
+        ‹ First&emsp; « -5&emsp; ‹ Prev&emsp; [ pages ]&emsp; Next ›&emsp; +5 »&emsp; Last ›
+      </div>
+    </div>
+
+    <div style="height:12px;"></div>
+    <div class="plabel">Calendar month navigation (Events page)</div>
+    <div class="pbox pad">
+      <div class="flex-center" style="justify-content:center; gap:16px;">
+        <button class="gbtn"><img src="./public/design-assets/button/button_arrow_over_2.png" alt="" style="width:28px; height:28px;"></button>
+        <span style="font-family:var(--font-heading); font-size:.9rem; color:var(--gold-2); font-weight:700; min-width:120px; text-align:center;">Februar 2026</span>
+        <button class="gbtn"><img src="./public/design-assets/button/button_arrow_over_1.png" alt="" style="width:28px; height:28px;"></button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 8 · NOTIFICATIONS ═══════ -->
+  <div class="proposal" id="notifs">
+    <span class="ptag ptag--global">DataState / Notification Bell / Dashboard</span>
+    <h2 class="ptitle">Game-Style Notifications with Curated Icons</h2>
+    <p class="pdesc">CSS gradient panels with a colored left accent stripe per state. No image backgrounds — pure CSS for consistency and flexibility. Curated game icons identify each alert type.</p>
+    <div class="pfiles"><span class="pfile">app/components/data-state.tsx</span><span class="pfile">app/components/notification-bell.tsx</span></div>
+    <div class="passets">
+      <span class="passet">icons_paper_info_2.png (warning)</span>
+      <span class="passet">components_check_box_mark.png (success)</span>
+      <span class="passet">icons_paper_cross_1.png (error)</span>
+      <span class="passet">info_icon.png (info)</span>
+    </div>
+
+    <div class="plabel">Warning</div>
+    <div class="notif notif--warn" style="margin-bottom:10px;">
+      <div class="notif-inner">
+        <img class="notif-icon" src="./public/design-assets/icon/icons_paper_info_2.png" alt="">
+        <div><div class="notif-title" style="color:var(--gold-2);">KvK startet in 2 Stunden!</div><div class="notif-text">Bereite deine Truppen vor. Die Registrierung endet bald.</div></div>
+      </div>
+    </div>
+
+    <div class="plabel">Success</div>
+    <div class="notif notif--success" style="margin-bottom:10px;">
+      <div class="notif-inner">
+        <img class="notif-icon" src="./public/design-assets/uncategorized/components_check_box_mark.png" alt="">
+        <div><div class="notif-title" style="color:#5ec07e;">Event erfolgreich erstellt</div><div class="notif-text">Dein Event "Monster Jagd" ist jetzt für alle sichtbar.</div></div>
+      </div>
+    </div>
+
+    <div class="plabel">Error</div>
+    <div class="notif notif--error" style="margin-bottom:10px;">
+      <div class="notif-inner">
+        <img class="notif-icon" src="./public/design-assets/icon/icons_paper_cross_1.png" alt="">
+        <div><div class="notif-title" style="color:#e05555;">Verbindung fehlgeschlagen</div><div class="notif-text">Daten konnten nicht geladen werden. Bitte versuche es erneut.</div></div>
+      </div>
+    </div>
+
+    <div class="plabel">Info</div>
+    <div class="notif notif--info">
+      <div class="notif-inner">
+        <img class="notif-icon" src="./public/design-assets/icon/info_icon.png" alt="">
+        <div><div class="notif-title" style="color:#6ba3d6;">Neues Mitglied beigetreten</div><div class="notif-text">StormBreaker ist dem Clan beigetreten.</div></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 9 · ICON REPLACEMENTS ═══════ -->
+  <div class="proposal" id="icons">
+    <span class="ptag ptag--global">All Pages</span>
+    <h2 class="ptitle">Game Icon Replacements for SVG Icons</h2>
+    <p class="pdesc">Replace generic SVG icons across the site with your curated game icons. Each maps to a specific UI action or label.</p>
+    <div class="pfiles"><span class="pfile">Sidebar, forms, search inputs, modals</span></div>
+
+    <div class="plabel">Icon mapping table</div>
+    <div class="pbox pad">
+      <table style="width:100%; border-collapse:collapse; font-size:.76rem;">
+        <thead><tr style="border-bottom:1px solid var(--edge);"><th style="text-align:left; padding:6px 8px; color:var(--gold); font-size:.66rem; text-transform:uppercase;">Use case</th><th style="text-align:left; padding:6px 8px; color:var(--gold); font-size:.66rem; text-transform:uppercase;">Icon</th><th style="text-align:center; padding:6px 8px; color:var(--gold); font-size:.66rem; text-transform:uppercase;">Preview</th><th style="text-align:left; padding:6px 8px; color:var(--gold); font-size:.66rem; text-transform:uppercase;">Where</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid rgba(240,200,60,.08);"><td style="padding:6px 8px;">Search</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">icons_spyglass_1.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/icon/icons_spyglass_1.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Forum search, member search, news filter</td></tr>
+          <tr style="border-bottom:1px solid rgba(240,200,60,.08);"><td style="padding:6px 8px;">Edit / Write</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">icons_pen_2.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/icon/icons_pen_2.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Edit buttons, compose message</td></tr>
+          <tr style="border-bottom:1px solid rgba(240,200,60,.08);"><td style="padding:6px 8px;">Add / Create</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">icons_plus_3.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/icon/icons_plus_3.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Create buttons, add new item</td></tr>
+          <tr style="border-bottom:1px solid rgba(240,200,60,.08);"><td style="padding:6px 8px;">Settings</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">icons_options_gear_on_1.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/icon/icons_options_gear_on_1.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Sidebar, settings page</td></tr>
+          <tr style="border-bottom:1px solid rgba(240,200,60,.08);"><td style="padding:6px 8px;">Members</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">icons_player_3.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/icon/icons_player_3.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Sidebar members link, member count</td></tr>
+          <tr style="border-bottom:1px solid rgba(240,200,60,.08);"><td style="padding:6px 8px;">Pinned</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">icons_paper_add_2.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/icon/icons_paper_add_2.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Pinned news, pinned forum posts</td></tr>
+          <tr style="border-bottom:1px solid rgba(240,200,60,.08);"><td style="padding:6px 8px;">Star / Favorite</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">icons_star_up_2.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/icon/icons_star_up_2.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Announcements, featured items</td></tr>
+          <tr style="border-bottom:1px solid rgba(240,200,60,.08);"><td style="padding:6px 8px;">Mail / Journal</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">widget_journal_spine.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/widget/widget_journal_spine.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Sidebar messages link</td></tr>
+          <tr style="border-bottom:1px solid rgba(240,200,60,.08);"><td style="padding:6px 8px;">Rank</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">icons_rang_over.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/icon/icons_rang_over.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Member rank indicators</td></tr>
+          <tr><td style="padding:6px 8px;">Help / ?</td><td style="padding:6px 8px; color:var(--text-muted); font-family:monospace; font-size:.62rem;">icons_question_mark_1.png</td><td style="padding:6px 8px; text-align:center;"><img src="./public/design-assets/icon/icons_question_mark_1.png" alt="" style="width:22px; height:22px; object-fit:contain;"></td><td style="padding:6px 8px; color:var(--text-2);">Help tooltips, info buttons</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 10 · HERO BANNERS ═══════ -->
+  <div class="proposal" id="hero">
+    <span class="ptag ptag--global">All Section Pages</span>
+    <h2 class="ptitle">Per-Page Hero Banners</h2>
+    <p class="pdesc">Each section gets a distinct banner. The existing <code>SectionHero</code> already handles this — just varies the <code>bannerSrc</code> prop.</p>
+    <div class="pfiles"><span class="pfile">app/components/section-hero.tsx</span></div>
+
+    <div class="plabel">Dashboard / Events / Members / Forum</div>
+    <div class="gap-10">
+      <div class="hero"><img class="himg" src="./public/assets/banners/banner_gold_dragon.png" alt=""><div class="hero-ov"></div><img class="hero-dec hero-dec--l" src="./public/design-assets/decoration/components_decor_6.png" alt=""><img class="hero-dec hero-dec--r" src="./public/design-assets/decoration/components_decor_6.png" alt=""><div class="hero-c"><div class="hero-t">Dashboard</div><div class="hero-st">Willkommen zurück, Kommandant.</div></div></div>
+      <div class="hero"><img class="himg" src="./public/assets/banners/banner_ragnarok_clan_event_708x123.png" alt=""><div class="hero-ov"></div><img class="hero-dec hero-dec--l" src="./public/design-assets/decoration/components_decor_6.png" alt=""><img class="hero-dec hero-dec--r" src="./public/design-assets/decoration/components_decor_6.png" alt=""><div class="hero-c"><div class="hero-t">Events</div><div class="hero-st">Veranstaltungen und Turniere.</div></div></div>
+      <div class="hero"><img class="himg" src="./public/assets/banners/banner_captain.png" alt=""><div class="hero-ov"></div><img class="hero-dec hero-dec--l" src="./public/design-assets/decoration/components_decor_6.png" alt=""><img class="hero-dec hero-dec--r" src="./public/design-assets/decoration/components_decor_6.png" alt=""><div class="hero-c"><div class="hero-t">Mitglieder</div><div class="hero-st">Deine Clan-Kameraden.</div></div></div>
+      <div class="hero"><img class="himg" src="./public/assets/banners/banner_tournir_kvk.png" alt=""><div class="hero-ov"></div><img class="hero-dec hero-dec--l" src="./public/design-assets/decoration/components_decor_6.png" alt=""><img class="hero-dec hero-dec--r" src="./public/design-assets/decoration/components_decor_6.png" alt=""><div class="hero-c"><div class="hero-t">Forum</div><div class="hero-st">Diskussionen und Strategien.</div></div></div>
+    </div>
+  </div>
+
+
+  <!-- ═══════ 11 · ORNAMENTAL DIVIDERS ═══════ -->
+  <div class="proposal" id="dividers">
+    <span class="ptag ptag--global">All Pages</span>
+    <h2 class="ptitle">Ornamental Dividers &amp; Section Headers</h2>
+    <p class="pdesc">Your curated ornamental divider assets used as section separators and title decorations. Can replace the current CSS <code>.gold-divider</code> in dashboard cards and between list items.</p>
+    <div class="passets">
+      <span class="passet">uncategorized/components_title_1.png</span>
+      <span class="passet">uncategorized/components_title_2.png</span>
+      <span class="passet">uncategorized/connections_title_3.png</span>
+    </div>
+
+    <div class="plabel">As section dividers</div>
+    <div class="pbox pad gap-14">
+      <div style="text-align:center;">
+        <span style="font-size:.64rem; color:var(--text-muted); display:block; margin-bottom:4px;">components_title_1.png (green ornamental)</span>
+        <div class="flex-center" style="justify-content:center; gap:12px;">
+          <div style="flex:1; max-width:200px; height:1px; background:linear-gradient(90deg, transparent, var(--edge));"></div>
+          <img src="./public/design-assets/uncategorized/components_title_1.png" alt="" style="height:24px; width:auto; object-fit:contain; filter:drop-shadow(0 0 4px rgba(240,200,60,.2));">
+          <div style="flex:1; max-width:200px; height:1px; background:linear-gradient(270deg, transparent, var(--edge));"></div>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <span style="font-size:.64rem; color:var(--text-muted); display:block; margin-bottom:4px;">components_title_2.png (blue ornamental)</span>
+        <div class="flex-center" style="justify-content:center; gap:12px;">
+          <div style="flex:1; max-width:200px; height:1px; background:linear-gradient(90deg, transparent, var(--edge));"></div>
+          <img src="./public/design-assets/uncategorized/components_title_2.png" alt="" style="height:24px; width:auto; object-fit:contain; filter:drop-shadow(0 0 4px rgba(74,110,160,.3));">
+          <div style="flex:1; max-width:200px; height:1px; background:linear-gradient(270deg, transparent, var(--edge));"></div>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <span style="font-size:.64rem; color:var(--text-muted); display:block; margin-bottom:4px;">connections_title_3.png (green ornamental alt)</span>
+        <div class="flex-center" style="justify-content:center; gap:12px;">
+          <div style="flex:1; max-width:200px; height:1px; background:linear-gradient(90deg, transparent, var(--edge));"></div>
+          <img src="./public/design-assets/uncategorized/connections_title_3.png" alt="" style="height:24px; width:auto; object-fit:contain; filter:drop-shadow(0 0 4px rgba(240,200,60,.2));">
+          <div style="flex:1; max-width:200px; height:1px; background:linear-gradient(270deg, transparent, var(--edge));"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -2,11 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
+import GameButton from "../components/ui/game-button";
 import { useMessages } from "./use-messages";
 import { MessagesInbox } from "./messages-inbox";
+import { MessagesThread } from "./messages-thread";
 
 const MessagesCompose = dynamic(() => import("./messages-compose").then((mod) => mod.MessagesCompose));
-const MessagesThread = dynamic(() => import("./messages-thread").then((mod) => mod.MessagesThread));
 
 interface MessagesClientProps {
   readonly userId: string;
@@ -28,16 +29,22 @@ function MessagesClient({ userId, initialRecipientId, initialTab }: MessagesClie
   return (
     <div className="grid">
       <div className="col-span-full flex gap-3 flex-wrap">
-        <button
-          className="button"
-          type="button"
-          onClick={() => {
-            if (api.isComposeOpen) api.resetCompose();
-            api.setIsComposeOpen(!api.isComposeOpen);
-          }}
-        >
-          {api.isComposeOpen ? t("cancel") : t("newMessage")}
-        </button>
+        {api.isComposeOpen ? (
+          <button
+            className="button"
+            type="button"
+            onClick={() => {
+              api.resetCompose();
+              api.setIsComposeOpen(false);
+            }}
+          >
+            {t("cancel")}
+          </button>
+        ) : (
+          <GameButton variant="ornate1" fontSize="0.62rem" onClick={() => api.setIsComposeOpen(true)}>
+            {t("newMessage")}
+          </GameButton>
+        )}
       </div>
 
       {api.isComposeOpen ? <MessagesCompose userId={userId} api={api} /> : null}

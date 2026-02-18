@@ -7,6 +7,7 @@ import TableScroll from "../../components/table-scroll";
 import { formatLocalDateTime } from "../../../lib/date-format";
 import { useAdminContext } from "../admin-context";
 import ConfirmModal from "@/app/components/confirm-modal";
+import GameButton from "../../components/ui/game-button";
 import type { UserRow } from "../admin-types";
 
 /**
@@ -238,9 +239,9 @@ export default function ApprovalsTab(): ReactElement {
               {unconfirmedUsers.length} {tAdmin("approvals.pending")}
             </span>
             {unconfirmedUsers.length > 0 ? (
-              <button className="button primary" type="button" onClick={handleConfirmAllUsers}>
+              <GameButton variant="turquoise" fontSize="0.58rem" onClick={handleConfirmAllUsers}>
                 {tAdmin("approvals.confirmAll")}
-              </button>
+              </GameButton>
             ) : null}
           </div>
         </div>
@@ -278,9 +279,9 @@ export default function ApprovalsTab(): ReactElement {
                     <span className="text-muted">{user.email}</span>
                   </div>
                   <div>
-                    <button className="button primary" type="button" onClick={() => handleConfirmUser(user.id)}>
+                    <GameButton variant="turquoise" fontSize="0.58rem" onClick={() => handleConfirmUser(user.id)}>
                       {tAdmin("users.confirmUser")}
-                    </button>
+                    </GameButton>
                   </div>
                 </div>
               ))}
@@ -301,9 +302,9 @@ export default function ApprovalsTab(): ReactElement {
               {pendingApprovals.length} {tAdmin("approvals.pending")}
             </span>
             {pendingApprovals.length > 0 ? (
-              <button className="button primary" type="button" onClick={handleApproveAll}>
+              <GameButton variant="turquoise" fontSize="0.58rem" onClick={handleApproveAll}>
                 {tAdmin("approvals.approveAll")}
-              </button>
+              </GameButton>
             ) : null}
           </div>
         </div>
@@ -353,16 +354,16 @@ export default function ApprovalsTab(): ReactElement {
                     <span className="text-muted">{formatLocalDateTime(approval.created_at, locale)}</span>
                   </div>
                   <div className="list inline admin-table-actions">
-                    <button
-                      className="button primary"
-                      type="button"
+                    <GameButton
+                      variant="turquoise"
+                      fontSize="0.58rem"
                       onClick={() => handleAction(approval.id, "approve")}
                     >
                       {tAdmin("common.approve")}
-                    </button>
-                    <button className="button danger" type="button" onClick={() => handleAction(approval.id, "reject")}>
+                    </GameButton>
+                    <GameButton variant="orange" fontSize="0.58rem" onClick={() => handleAction(approval.id, "reject")}>
                       {tAdmin("common.reject")}
-                    </button>
+                    </GameButton>
                   </div>
                 </div>
               ))}
@@ -377,6 +378,7 @@ export default function ApprovalsTab(): ReactElement {
         title={tAdmin("approvals.approveAll")}
         message={tAdmin("approvals.approveAllConfirm")}
         variant="info"
+        confirmButtonVariant="turquoise"
         confirmLabel={tAdmin("common.approve")}
         cancelLabel={tAdmin("common.cancel")}
         onConfirm={() => void handleConfirmApproveAll()}
@@ -388,6 +390,7 @@ export default function ApprovalsTab(): ReactElement {
         title={tAdmin("approvals.confirmAll")}
         message={tAdmin("approvals.confirmAllConfirm")}
         variant="info"
+        confirmButtonVariant="turquoise"
         confirmLabel={tAdmin("users.confirmUser")}
         cancelLabel={tAdmin("common.cancel")}
         onConfirm={() => void handleConfirmConfirmAll()}

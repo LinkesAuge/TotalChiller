@@ -9,6 +9,7 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import PageShell from "@/app/components/page-shell";
 import DataState from "@/app/components/data-state";
 import ConfirmModal from "@/app/components/confirm-modal";
+import GameButton from "@/app/components/ui/game-button";
 import { useBugs } from "./use-bugs";
 import BugsList from "./bugs-list";
 
@@ -112,9 +113,9 @@ function BugsClient(): ReactElement {
       {/* Content action bar */}
       <div className="bugs-content-actions">
         {bugs.view === "list" ? (
-          <button className="button primary" type="button" onClick={() => bugs.setView("create")}>
+          <GameButton variant="ornate1" onClick={() => bugs.setView("create")}>
             {t("newReport")}
-          </button>
+          </GameButton>
         ) : (
           <button
             className="button"
@@ -127,9 +128,7 @@ function BugsClient(): ReactElement {
                 : bugs.backToList
             }
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
+            <img src="/assets/game/icons/icons_arrow_back.png" alt="" width={14} height={14} />
             {bugs.view === "edit" && editOrigin === "detail" ? t("backToDetail") : t("backToList")}
           </button>
         )}

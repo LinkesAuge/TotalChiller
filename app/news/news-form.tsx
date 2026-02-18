@@ -6,6 +6,7 @@ import { BANNER_PRESETS } from "@/lib/constants/banner-presets";
 import RadixSelect from "../components/ui/radix-select";
 import BannerPicker from "../components/banner-picker";
 import MarkdownEditor from "../components/markdown-editor";
+import GameButton from "../components/ui/game-button";
 
 /* ── Types ── */
 
@@ -152,9 +153,9 @@ export default function NewsForm({
           </label>
         </div>
         <div className="list inline mt-4">
-          <button className="button primary" type="submit" disabled={isSaving}>
+          <GameButton variant="green" fontSize="0.6rem" type="submit" disabled={isSaving}>
             {isSaving ? t("saving") : isEditing ? t("save") : t("createPost")}
-          </button>
+          </GameButton>
           <button className="button" type="button" onClick={onCancel}>
             {t("cancel")}
           </button>

@@ -45,6 +45,8 @@ interface NavItem {
   readonly iconKey: string;
   readonly tab?: "clans" | "users" | "logs" | "approvals" | "forum";
   readonly vipIcon?: string;
+  /** Render icon at a larger size (for detailed multi-element icons). */
+  readonly lgIcon?: boolean;
 }
 
 interface NavSection {
@@ -54,16 +56,36 @@ interface NavSection {
 }
 
 /** Maps ADMIN_SECTIONS labelKey to sidebar-specific display properties. */
-const SIDEBAR_ADMIN_META: Record<string, { labelKey: string; iconKey: string; vipIcon?: string }> = {
-  clans: { labelKey: "clanManagement", iconKey: "clanManagement" },
-  approvals: { labelKey: "approvals", iconKey: "approvals" },
-  users: { labelKey: "users", iconKey: "users" },
-  logs: { labelKey: "auditLogs", iconKey: "auditLogs" },
-  forum: { labelKey: "forumAdmin", iconKey: "forum" },
-  designSystem: { labelKey: "designSystem", iconKey: "settings" },
+const SIDEBAR_ADMIN_META: Record<string, { labelKey: string; iconKey: string; vipIcon: string; lgIcon?: boolean }> = {
+  clans: {
+    labelKey: "clanManagement",
+    iconKey: "clanManagement",
+    vipIcon: "/assets/game/icons/circle_mercenaries_01.png",
+    lgIcon: true,
+  },
+  approvals: { labelKey: "approvals", iconKey: "approvals", vipIcon: "/assets/game/icons/icons_check_1.png" },
+  users: { labelKey: "users", iconKey: "users", vipIcon: "/assets/game/icons/gold_72.png", lgIcon: true },
+  logs: { labelKey: "auditLogs", iconKey: "auditLogs", vipIcon: "/assets/game/icons/icons_scroll_1.png" },
+  forum: {
+    labelKey: "forumAdmin",
+    iconKey: "forum",
+    vipIcon: "/assets/game/icons/icons_main_menu_storage_1.png",
+    lgIcon: true,
+  },
+  designSystem: {
+    labelKey: "designSystem",
+    iconKey: "settings",
+    vipIcon: "/assets/game/icons/clan_emblem_11.png",
+    lgIcon: true,
+  },
 };
 
-const HOME_NAV_ITEM: NavItem = { href: "/home", labelKey: "home", iconKey: "home" };
+const HOME_NAV_ITEM: NavItem = {
+  href: "/home",
+  labelKey: "home",
+  iconKey: "home",
+  vipIcon: "/assets/game/icons/icons_card_house_1.png",
+};
 
 const NAV_SECTIONS: readonly NavSection[] = [
   {
@@ -71,14 +93,62 @@ const NAV_SECTIONS: readonly NavSection[] = [
     groupLabel: "main",
     items: [
       HOME_NAV_ITEM,
-      { href: "/", labelKey: "dashboard", iconKey: "dashboard" },
-      { href: "/news", labelKey: "announcements", iconKey: "news" },
-      { href: "/events", labelKey: "events", iconKey: "events" },
-      { href: "/analytics", labelKey: "analytics", iconKey: "analytics" },
-      { href: "/forum", labelKey: "forum", iconKey: "forum" },
-      { href: "/messages", labelKey: "messages", iconKey: "messages" },
-      { href: "/members", labelKey: "members", iconKey: "clanManagement" },
-      { href: "/bugs", labelKey: "bugs", iconKey: "bugs" },
+      {
+        href: "/",
+        labelKey: "dashboard",
+        iconKey: "dashboard",
+        vipIcon: "/assets/game/icons/icons_main_menu_workroom_1.png",
+        lgIcon: true,
+      },
+      {
+        href: "/news",
+        labelKey: "announcements",
+        iconKey: "news",
+        vipIcon: "/assets/game/icons/icons_main_menu_daily_1.png",
+        lgIcon: true,
+      },
+      {
+        href: "/events",
+        labelKey: "events",
+        iconKey: "events",
+        vipIcon: "/assets/game/icons/icons_main_menu_clan_1.png",
+        lgIcon: true,
+      },
+      {
+        href: "/analytics",
+        labelKey: "analytics",
+        iconKey: "analytics",
+        vipIcon: "/assets/game/icons/icons_main_menu_rating_1.png",
+        lgIcon: true,
+      },
+      {
+        href: "/forum",
+        labelKey: "forum",
+        iconKey: "forum",
+        vipIcon: "/assets/game/icons/icons_main_menu_technology_1.png",
+        lgIcon: true,
+      },
+      {
+        href: "/messages",
+        labelKey: "messages",
+        iconKey: "messages",
+        vipIcon: "/assets/game/icons/widget_journal_spine.png",
+        lgIcon: true,
+      },
+      {
+        href: "/members",
+        labelKey: "members",
+        iconKey: "clanManagement",
+        vipIcon: "/assets/game/icons/icons_main_menu_army_1.png",
+        lgIcon: true,
+      },
+      {
+        href: "/bugs",
+        labelKey: "bugs",
+        iconKey: "bugs",
+        vipIcon: "/assets/game/icons/icons_spyglass_2.png",
+        lgIcon: true,
+      },
     ],
   },
   {
@@ -92,6 +162,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
         labelKey: meta?.labelKey ?? section.labelKey,
         iconKey: meta?.iconKey ?? "admin",
         vipIcon: meta?.vipIcon,
+        lgIcon: meta?.lgIcon,
       };
     }),
   },
@@ -116,16 +187,18 @@ function isNavItemActive(pathname: string, activeTab: string | null, item: NavIt
   return pathname.startsWith(item.href);
 }
 
-/** Renders an SVG icon for a nav item, or a VIP image icon. */
+/** Renders a game asset icon for a nav item, falling back to SVG. */
 function NavItemIcon({ item }: { readonly item: NavItem }): JSX.Element {
   if (item.vipIcon) {
-    return <Image src={item.vipIcon} alt="" className="w-4 h-4 object-contain" width={16} height={16} />;
+    const cls = item.lgIcon ? "nav-game-icon nav-game-icon--lg" : "nav-game-icon";
+    const px = item.lgIcon ? 34 : 22;
+    return <img src={item.vipIcon} alt="" width={px} height={px} className={cls} loading="lazy" />;
   }
   const iconPath = ICONS[item.iconKey] ?? ICONS.dashboard;
   return (
     <svg
-      width="16"
-      height="16"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -221,7 +294,19 @@ function SidebarNav(): JSX.Element {
                 className={`nav-group${isCompactViewport && section.groupLabel === "administration" ? " compact-secondary" : ""}`}
                 key={section.title}
               >
-                {sectionIndex > 0 && <div className="nav-group-divider" />}
+                {sectionIndex > 0 && (
+                  <div className="nav-group-divider">
+                    {isOpen && (
+                      <img
+                        src="/assets/game/decorations/components_title_1.png"
+                        alt=""
+                        width={120}
+                        height={14}
+                        className="nav-group-divider__ornament"
+                      />
+                    )}
+                  </div>
+                )}
                 <div className={`nav-group-title${isOpen ? "" : " collapsed"}`}>{t(section.groupLabel)}</div>
                 {section.items.map((item) => {
                   const isActive = isNavItemActive(pathname, searchParams.get("tab"), item);
@@ -255,7 +340,7 @@ function SidebarNav(): JSX.Element {
                         <span className={`nav-label${isOpen ? "" : " collapsed"}`}>{label}</span>
                       </Link>
                       {/* Forum category sub-items (expanded desktop sidebar only) */}
-                      {item.iconKey === "forum" &&
+                      {item.href === "/forum" &&
                         isOnForum &&
                         isOpen &&
                         !isCompactViewport &&

@@ -155,7 +155,7 @@
     border-color 0.15s ease;
 }
 .news-card-preview:hover .news-card-read-more {
-  background: rgba(201, 163, 74, 0.22);
+  background: rgba(240, 200, 60, 0.22);
   border-color: var(--color-gold-a50);
 }
 
@@ -182,7 +182,7 @@
   padding: 6px 18px;
   border-radius: var(--radius-full);
   border: 1px solid var(--color-gold-a20);
-  background: linear-gradient(180deg, var(--color-gold-a06), rgba(201, 163, 74, 0.02));
+  background: linear-gradient(180deg, var(--color-gold-a06), rgba(240, 200, 60, 0.02));
   color: var(--color-gold-2);
   font-size: 0.76rem;
   font-weight: 600;
@@ -343,12 +343,12 @@
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-gold);
-  border-color: rgba(201, 163, 74, 0.22);
+  border-color: rgba(240, 200, 60, 0.22);
   background: var(--color-gold-a06);
   margin-right: auto;
 }
 .news-action-btn.thread:hover {
-  background: var(--color-edge);
+  background: var(--color-gold-a15);
   border-color: var(--color-gold-a45);
   color: var(--color-gold-2);
 }

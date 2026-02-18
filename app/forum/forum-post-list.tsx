@@ -14,6 +14,7 @@ import type { ForumCategory } from "@/lib/types/domain";
 import type { TFunction } from "./forum-utils";
 import type { PaginationState } from "@/lib/hooks/use-pagination";
 import PaginationBar from "../components/pagination-bar";
+import GameButton from "../components/ui/game-button";
 
 export interface ForumPostListProps {
   readonly posts: ForumPost[];
@@ -53,6 +54,9 @@ export default function ForumPostList({
   return (
     <>
       <div className="forum-toolbar">
+        <GameButton variant="ornate1" onClick={onNewPost}>
+          {t("newPost")}
+        </GameButton>
         <div className="forum-sort-group">
           <button
             className={`forum-sort-btn${sortMode === "hot" ? " active" : ""}`}
@@ -84,11 +88,6 @@ export default function ForumPostList({
           onChange={(e) => onSearchChange(e.target.value)}
           style={{ maxWidth: 260, fontSize: "0.78rem" }}
         />
-        <div className="ml-auto">
-          <button className="button primary" onClick={onNewPost}>
-            {t("newPost")}
-          </button>
-        </div>
       </div>
 
       <div className="forum-categories mb-4">

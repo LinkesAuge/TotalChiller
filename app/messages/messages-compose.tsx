@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import RadixSelect from "../components/ui/radix-select";
 import MarkdownEditor from "../components/markdown-editor";
+import GameButton from "../components/ui/game-button";
 import { MESSAGE_IMAGES_BUCKET } from "@/lib/constants";
 import type { RecipientResult } from "@/lib/types/domain";
 import type { SelectedRecipient } from "./messages-types";
@@ -212,9 +213,9 @@ export function MessagesCompose({ userId, api }: MessagesComposeProps): JSX.Elem
         </div>
 
         <div className="list inline">
-          <button className="button primary" type="submit">
+          <GameButton variant="green" fontSize="0.6rem" type="submit">
             {composeMode === "direct" ? t("send") : t("sendBroadcast")}
-          </button>
+          </GameButton>
         </div>
         {composeStatus ? <p className="text-muted">{composeStatus}</p> : null}
       </form>

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import LanguageSelector from "../components/language-selector";
+import GameButton from "../components/ui/game-button";
 import { buildFallbackUserDb } from "@/app/admin/admin-types";
 
 import type { NotificationPrefs } from "@/lib/types/domain";
@@ -274,9 +275,9 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
               />
             </div>
             <div className="list">
-              <button className="button primary" type="submit">
+              <GameButton variant="green" fontSize="0.58rem" type="submit">
                 {t("updateEmail")}
-              </button>
+              </GameButton>
             </div>
             {formState.emailStatus ? <p className="text-muted">{formState.emailStatus}</p> : null}
           </form>
@@ -303,9 +304,9 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
               />
             </div>
             <div className="list">
-              <button className="button primary" type="submit">
+              <GameButton variant="green" fontSize="0.58rem" type="submit">
                 {t("updateUsername")}
-              </button>
+              </GameButton>
             </div>
             {!isAdmin ? <span className="badge">{t("usernameHint")}</span> : null}
             {formState.usernameStatus ? <p className="text-muted">{formState.usernameStatus}</p> : null}
@@ -329,9 +330,9 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
               />
             </div>
             <div className="list">
-              <button className="button primary" type="submit">
+              <GameButton variant="green" fontSize="0.58rem" type="submit">
                 {t("updateNickname")}
-              </button>
+              </GameButton>
             </div>
             {formState.displayNameStatus ? <p className="text-muted">{formState.displayNameStatus}</p> : null}
           </form>
@@ -367,9 +368,9 @@ function SettingsClient({ userId }: SettingsClientProps): JSX.Element {
               />
             </div>
             <div className="list">
-              <button className="button primary" type="submit">
+              <GameButton variant="green" fontSize="0.58rem" type="submit">
                 {t("updatePassword")}
-              </button>
+              </GameButton>
             </div>
             {formState.passwordStatus ? <p className="text-muted">{formState.passwordStatus}</p> : null}
           </form>

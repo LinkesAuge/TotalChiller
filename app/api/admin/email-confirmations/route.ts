@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";
-import { strictLimiter } from "../../../../lib/rate-limit";
+import { standardLimiter, strictLimiter } from "../../../../lib/rate-limit";
 import { requireAdmin } from "../../../../lib/api/require-admin";
 
 const CONFIRM_USER_SCHEMA = z.object({
@@ -14,7 +14,7 @@ const CONFIRM_USER_SCHEMA = z.object({
  * Uses the Supabase Admin API to iterate through all users.
  */
 export async function GET(request: Request): Promise<Response> {
-  const blocked = strictLimiter.check(request);
+  const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
 
   try {

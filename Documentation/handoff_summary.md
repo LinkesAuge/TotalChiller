@@ -78,7 +78,22 @@ Closed the remaining warning/perf follow-up items from the P3 review step.
 - `npm run lint`
 - `npx playwright test tests/notifications.spec.ts tests/auth.spec.ts --project=chromium` (`28 passed`)
 - Public warning-follow-up audit (`node scripts/playwright/ui-audit.mjs --routes "/auth/login,/auth/register,/auth/forgot,/home"`): `output/playwright/console-warning-fix-public.log` reports `Total messages: 65 (Errors: 0, Warnings: 0)`.
-- Owner warning-follow-up audit (`/home,/messages,/admin,/admin?tab=users`): no NotificationBell abort warnings, no Vercel CSP warnings, no LCP advisory; only automation-rate-limit `429` console errors on `/api/admin/email-confirmations` under rapid tab churn.
+- Owner warning-follow-up audit (`/home,/messages,/admin,/admin?tab=users`): no NotificationBell abort warnings, no Vercel CSP warnings, no LCP advisory; at this stage only automation-rate-limit `429` console errors remained on `/api/admin/email-confirmations` under rapid tab churn.
+
+### Admin Email Confirmation 429 Hardening (2026-02-18)
+
+Eliminated the remaining `/api/admin/email-confirmations` tab-churn `429` noise with a shared-fetch + limiter-alignment pass.
+
+- **Shared confirmation map in admin context:** `app/admin/admin-context.tsx` now owns email-confirmation map state and exposes `refreshEmailConfirmations()` with short-lived caching/in-flight request dedupe.
+- **Tab fetch dedupe:** `users-tab.tsx` and `approvals-tab.tsx` now consume confirmation data from `AdminProvider` context instead of issuing independent GET calls on each tab mount.
+- **Limiter alignment:** `app/api/admin/email-confirmations/route.ts` now uses `standardLimiter` for `GET` (read-heavy/status endpoint) while keeping `strictLimiter` for `POST` confirm mutations.
+
+**Validation run (passing):**
+
+- `npx eslint app/admin/admin-context.tsx app/admin/tabs/users-tab.tsx app/admin/tabs/approvals-tab.tsx app/api/admin/email-confirmations/route.ts`
+- `npm run type-check`
+- `npx playwright test tests/admin.spec.ts --project=chromium` (`18 passed`)
+- Owner churn audit (`/home,/messages,/admin,/admin?tab=users,/admin?tab=approvals`, desktop + mobile): `output/playwright/console-email-confirmation-429-fix.log` reports `Total messages: 35 (Errors: 0, Warnings: 0)`.
 
 ### P3 Review Step + Final Verification (2026-02-18)
 

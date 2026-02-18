@@ -354,7 +354,7 @@ Bug reporting/ticket system. Users submit reports with screenshots; admins manag
 | `/api/admin/create-user`            | POST                     | admin        | strict           | Invite new user                                     |
 | `/api/admin/delete-user`            | POST                     | admin        | strict           | Delete user                                         |
 | `/api/admin/user-lookup`            | POST                     | admin        | strict           | Lookup user by email                                |
-| `/api/admin/email-confirmations`    | GET, POST                | admin        | strict           | Email confirmation status / Manual confirm          |
+| `/api/admin/email-confirmations`    | GET, POST                | admin        | standard/strict  | Email confirmation status / Manual confirm          |
 | `/api/admin/game-account-approvals` | GET, PATCH               | admin        | strict           | Approval queue                                      |
 | `/api/admin/forum-categories`       | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                                 |
 | `/api/design-system/assets`         | GET, PATCH               | admin        | relaxed/standard | Design asset library                                |

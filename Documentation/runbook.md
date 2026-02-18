@@ -365,7 +365,7 @@ Admin email notifications require a [Resend](https://resend.com) account (free t
 - If Playwright console sweeps show CSP blocks for `https://va.vercel-scripts.com/v1/script.debug.js`: verify `next.config.js` still allows `https://va.vercel-scripts.com` in `script-src` and Vercel vitals endpoints in `connect-src`
 - If Playwright console sweeps show `[NotificationBell] AbortError: signal is aborted without reason`: verify `app/components/notification-bell.tsx` still ignores `AbortError` in polling fetch catch paths
 - If Next.js logs an LCP advisory for `/assets/vip/back_tooltip_2.png` on auth flows: verify auth tooltip header images still use `loading="eager"` (`app/auth/login|register|forgot|update`)
-- If console shows `429` on `/api/admin/email-confirmations` during automated admin route sweeps: this is rate-limit pressure under rapid tab churn; slow navigation or reduce parallel load for clean console captures
+- If console shows `429` on `/api/admin/email-confirmations`: verify admin confirmation fetch dedupe is still wired through `AdminProvider` (`refreshEmailConfirmations` + shared context state) and that GET keeps `standard` rate limiting; reference baseline `output/playwright/console-email-confirmation-429-fix.log` (`Errors: 0, Warnings: 0`)
 - If API routes return HTML instead of JSON: verify that `proxy.ts` skips the auth redirect for `/api/` paths (the proxy should not redirect API requests — they handle their own auth)
 - If bug report screenshot upload fails: verify the `bug-screenshots` storage bucket exists in Supabase Dashboard (Storage section) and that it is public
 - If bug report categories are empty: re-run the `bug_reports.sql` migration — it seeds 5 default categories

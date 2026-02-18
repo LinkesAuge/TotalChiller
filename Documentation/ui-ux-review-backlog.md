@@ -133,7 +133,7 @@ Target outcome: production polish and reduced interaction friction.
   - Accessibility sweep passed: `npx playwright test tests/accessibility.spec.ts --project=chromium` (`17 passed`).
   - Keyboard focus-order + visible-focus sanity passed: `output/playwright/focus-visible-p3-review.json` shows visible focus indicators across reviewed `/home`, `/messages`, `/settings`, and `/admin?tab=users` tab sequences.
   - Reduced-motion sanity pass completed: `output/playwright/reduced-motion-p3-review.json` shows `prefers-reduced-motion` respected on all reviewed routes with no overflow regressions.
-  - Follow-up warning cleanup completed: post-review audit (`console-warning-fix-public.log`) now reports `Errors: 0, Warnings: 0` for `/auth/login`, `/auth/register`, `/auth/forgot`, and `/home`; owner follow-up audit removed prior NotificationBell/CSP/LCP noise and now only shows occasional automation-driven `429` responses on `/api/admin/email-confirmations` during rapid admin route churn.
+  - Follow-up warning cleanup completed: post-review audit (`console-warning-fix-public.log`) reports `Errors: 0, Warnings: 0` for `/auth/login`, `/auth/register`, `/auth/forgot`, and `/home`; admin email-confirmation request hardening then removed the remaining `429` churn from owner admin route sweeps (`console-email-confirmation-429-fix.log` now `Errors: 0, Warnings: 0`).
 
 ---
 

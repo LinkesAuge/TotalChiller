@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
@@ -54,9 +55,13 @@ export interface AdminContextValue {
   /* Unconfirmed registration count (shared for tab bar badge) */
   readonly pendingRegistrationCount: number;
   readonly setPendingRegistrationCount: React.Dispatch<React.SetStateAction<number>>;
+  readonly emailConfirmationsByUserId: Readonly<Record<string, string | null>>;
+  readonly setEmailConfirmationsByUserId: React.Dispatch<React.SetStateAction<Record<string, string | null>>>;
+  readonly refreshEmailConfirmations: (options?: { force?: boolean }) => Promise<Record<string, string | null> | null>;
 }
 
 const AdminContext = createContext<AdminContextValue | null>(null);
+const EMAIL_CONFIRMATION_CACHE_MS = 30_000;
 
 /**
  * Reads the shared admin context. Throws if used outside `<AdminProvider>`.
@@ -90,6 +95,10 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
   const [status, setStatus] = useState("");
   const [pendingApprovals, setPendingApprovals] = useState<readonly PendingApprovalRow[]>([]);
   const [pendingRegistrationCount, setPendingRegistrationCount] = useState(0);
+  const [emailConfirmationsByUserId, setEmailConfirmationsByUserId] = useState<Record<string, string | null>>({});
+  const emailConfirmationsFetchRef = useRef<Promise<Record<string, string | null> | null> | null>(null);
+  const emailConfirmationsFetchedAtRef = useRef(0);
+  const hasInitializedRef = useRef(false);
 
   const clanNameById = useMemo(() => new Map(clans.map((c) => [c.id, c.name])), [clans]);
 
@@ -106,16 +115,62 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
     setUnassignedClanId(unassigned?.id ?? "");
   }, [supabase]);
 
+  const refreshEmailConfirmations = useCallback(
+    async (options?: { force?: boolean }): Promise<Record<string, string | null> | null> => {
+      const force = options?.force ?? false;
+      const now = Date.now();
+
+      if (!force) {
+        const hasFreshCache =
+          emailConfirmationsFetchedAtRef.current > 0 &&
+          now - emailConfirmationsFetchedAtRef.current < EMAIL_CONFIRMATION_CACHE_MS;
+        if (hasFreshCache) {
+          return emailConfirmationsByUserId;
+        }
+        if (emailConfirmationsFetchRef.current) {
+          return emailConfirmationsFetchRef.current;
+        }
+      }
+
+      const request = (async () => {
+        try {
+          const response = await fetch("/api/admin/email-confirmations");
+          if (!response.ok) return null;
+          const result = (await response.json()) as { data?: Record<string, string | null> };
+          const nextMap = result.data ?? {};
+          setEmailConfirmationsByUserId(nextMap);
+          emailConfirmationsFetchedAtRef.current = Date.now();
+          return nextMap;
+        } catch {
+          return null;
+        } finally {
+          emailConfirmationsFetchRef.current = null;
+        }
+      })();
+
+      emailConfirmationsFetchRef.current = request;
+      return request;
+    },
+    [emailConfirmationsByUserId],
+  );
+
+  useEffect(() => {
+    const unconfirmed = Object.values(emailConfirmationsByUserId).filter((value) => !value).length;
+    setPendingRegistrationCount(unconfirmed);
+  }, [emailConfirmationsByUserId]);
+
   /* ── Initialize once ── */
   useEffect(() => {
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+
     async function init(): Promise<void> {
       /* Parallelize independent init queries (reuses loadClans for clan data) */
-      const [, { data: defClan }, { data: authData }, approvalsRes, confirmRes] = await Promise.all([
+      const [, { data: defClan }, { data: authData }, approvalsRes] = await Promise.all([
         loadClans(),
         supabase.from("clans").select("id").eq("is_default", true).maybeSingle(),
         supabase.auth.getUser(),
         fetch("/api/admin/game-account-approvals").catch(() => null),
-        fetch("/api/admin/email-confirmations").catch(() => null),
       ]);
 
       // Default clan
@@ -140,21 +195,10 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
           /* ignore parse failure for badge count */
         }
       }
-
-      // Pending registration confirmations (for badge)
-      if (confirmRes?.ok) {
-        try {
-          const result = await confirmRes.json();
-          const confirmMap = (result.data ?? {}) as Record<string, string | null>;
-          const unconfirmed = Object.values(confirmMap).filter((v) => !v).length;
-          setPendingRegistrationCount(unconfirmed);
-        } catch {
-          /* ignore parse failure for badge count */
-        }
-      }
+      await refreshEmailConfirmations({ force: true });
     }
     void init();
-  }, [supabase, loadClans]);
+  }, [supabase, loadClans, refreshEmailConfirmations]);
 
   /* ── Restore/sync selected clan: localStorage takes priority, else default clan ── */
   const [hasRestoredClan, setHasRestoredClan] = useState(false);
@@ -222,6 +266,9 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       setPendingApprovals,
       pendingRegistrationCount,
       setPendingRegistrationCount,
+      emailConfirmationsByUserId,
+      setEmailConfirmationsByUserId,
+      refreshEmailConfirmations,
     }),
     [
       supabase,
@@ -239,6 +286,8 @@ export default function AdminProvider({ children }: AdminProviderProps): ReactEl
       status,
       pendingApprovals,
       pendingRegistrationCount,
+      emailConfirmationsByUserId,
+      refreshEmailConfirmations,
     ],
   );
 

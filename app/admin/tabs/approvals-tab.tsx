@@ -15,7 +15,15 @@ import type { UserRow } from "../admin-types";
  *   Right: Pending game-account approval requests
  */
 export default function ApprovalsTab(): ReactElement {
-  const { supabase, pendingApprovals, setPendingApprovals, setPendingRegistrationCount } = useAdminContext();
+  const {
+    supabase,
+    pendingApprovals,
+    setPendingApprovals,
+    setPendingRegistrationCount,
+    emailConfirmationsByUserId,
+    setEmailConfirmationsByUserId,
+    refreshEmailConfirmations,
+  } = useAdminContext();
   const { pushToast } = useToast();
   const tAdmin = useTranslations("admin");
   const locale = useLocale();
@@ -27,14 +35,13 @@ export default function ApprovalsTab(): ReactElement {
 
   /* ── User registration confirmation state ── */
   const [allUsers, setAllUsers] = useState<readonly UserRow[]>([]);
-  const [emailConfirmations, setEmailConfirmations] = useState<Record<string, string | null>>({});
   const [isLoadingRegistrations, setIsLoadingRegistrations] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState("");
   const [pendingConfirmAll, setPendingConfirmAll] = useState(false);
 
   const unconfirmedUsers = useMemo(
-    () => allUsers.filter((u) => !emailConfirmations[u.id]),
-    [allUsers, emailConfirmations],
+    () => allUsers.filter((u) => !emailConfirmationsByUserId[u.id]),
+    [allUsers, emailConfirmationsByUserId],
   );
 
   /* ── Load game account approvals ── */
@@ -62,18 +69,10 @@ export default function ApprovalsTab(): ReactElement {
     async function loadRegistrations(): Promise<void> {
       setIsLoadingRegistrations(true);
       try {
-        const [confirmRes, profileRes] = await Promise.all([
-          fetch("/api/admin/email-confirmations"),
+        const [, profileRes] = await Promise.all([
+          refreshEmailConfirmations(),
           supabase.from("profiles").select("id,email,display_name,username,user_db").order("email"),
         ]);
-        if (confirmRes.ok) {
-          const payload = (await confirmRes.json()) as { data?: Record<string, string | null> };
-          if (payload.data) {
-            setEmailConfirmations(payload.data);
-            const count = Object.values(payload.data).filter((v) => !v).length;
-            setPendingRegistrationCount(count);
-          }
-        }
         if (!profileRes.error && profileRes.data) {
           setAllUsers(profileRes.data as UserRow[]);
         }
@@ -83,7 +82,7 @@ export default function ApprovalsTab(): ReactElement {
       setIsLoadingRegistrations(false);
     }
     void loadRegistrations();
-  }, [supabase, setPendingRegistrationCount]);
+  }, [supabase, refreshEmailConfirmations]);
 
   /* ── Game account: approve / reject ── */
   const handleAction = useCallback(
@@ -171,7 +170,7 @@ export default function ApprovalsTab(): ReactElement {
           setRegistrationStatus(payload.error ?? tAdmin("users.confirmUserFailed"));
           return;
         }
-        setEmailConfirmations((c) => ({
+        setEmailConfirmationsByUserId((c) => ({
           ...c,
           [userId]: payload.data?.email_confirmed_at ?? new Date().toISOString(),
         }));
@@ -182,7 +181,7 @@ export default function ApprovalsTab(): ReactElement {
         setRegistrationStatus(tAdmin("users.confirmUserFailed"));
       }
     },
-    [tAdmin, pushToast, setPendingRegistrationCount],
+    [tAdmin, pushToast, setPendingRegistrationCount, setEmailConfirmationsByUserId],
   );
 
   /* ── User registration: confirm all ── */
@@ -220,10 +219,10 @@ export default function ApprovalsTab(): ReactElement {
       setRegistrationStatus(tAdmin("approvals.allConfirmed"));
       pushToast(tAdmin("approvals.allConfirmed"));
     }
-    setEmailConfirmations((c) => ({ ...c, ...confirmed }));
+    setEmailConfirmationsByUserId((c) => ({ ...c, ...confirmed }));
     const newCount = unconfirmedUsers.length - Object.keys(confirmed).length;
     setPendingRegistrationCount(Math.max(0, newCount));
-  }, [unconfirmedUsers, tAdmin, pushToast, setPendingRegistrationCount]);
+  }, [unconfirmedUsers, tAdmin, pushToast, setPendingRegistrationCount, setEmailConfirmationsByUserId]);
 
   return (
     <div className="approvals-split-grid">

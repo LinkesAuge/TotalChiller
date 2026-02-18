@@ -49,6 +49,9 @@ export default function UsersTab(): ReactElement {
     currentUserRole,
     setStatus: _setStatus,
     setPendingApprovals,
+    emailConfirmationsByUserId,
+    setEmailConfirmationsByUserId,
+    refreshEmailConfirmations,
   } = useAdminContext();
   const { pushToast } = useToast();
   const tAdmin = useTranslations("admin");
@@ -88,7 +91,6 @@ export default function UsersTab(): ReactElement {
   const [gameAccountToDelete, setGameAccountToDelete] = useState<GameAccountRow | null>(null);
   const [pendingSaveAllCount, setPendingSaveAllCount] = useState<number | null>(null);
   const [pendingResendInviteEmail, setPendingResendInviteEmail] = useState<string | null>(null);
-  const [emailConfirmations, setEmailConfirmations] = useState<Record<string, string | null>>({});
   const [pendingConfirmUser, setPendingConfirmUser] = useState<UserRow | null>(null);
 
   const clanSelectOptions = useMemo(
@@ -171,20 +173,16 @@ export default function UsersTab(): ReactElement {
   }, [supabase, unassignedClanId, userSearch]);
 
   const loadEmailConfirmations = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/email-confirmations");
-      if (!res.ok) return;
-      const payload = (await res.json()) as { data?: Record<string, string | null> };
-      if (payload.data) setEmailConfirmations(payload.data);
-    } catch {
-      /* silent — confirmation column degrades gracefully */
-    }
-  }, []);
+    await refreshEmailConfirmations();
+  }, [refreshEmailConfirmations]);
 
   useEffect(() => {
     void loadUsers();
+  }, [loadUsers]);
+
+  useEffect(() => {
     void loadEmailConfirmations();
-  }, [loadUsers, loadEmailConfirmations]);
+  }, [loadEmailConfirmations]);
 
   useEffect(() => {
     if (userDeleteState.step === "closed") setUserToDelete(null);
@@ -196,7 +194,10 @@ export default function UsersTab(): ReactElement {
 
   const getUserRole = useCallback((userId: string) => userRolesById[userId] ?? "member", [userRolesById]);
 
-  const isUserConfirmed = useCallback((userId: string): boolean => !!emailConfirmations[userId], [emailConfirmations]);
+  const isUserConfirmed = useCallback(
+    (userId: string): boolean => !!emailConfirmationsByUserId[userId],
+    [emailConfirmationsByUserId],
+  );
 
   const getUserSortValue = useCallback(
     (user: UserRow): string | number => {
@@ -219,7 +220,7 @@ export default function UsersTab(): ReactElement {
         if (userGameAccountFilter === "without" && hasAccounts) return false;
       }
       if (userConfirmedFilter !== "all") {
-        const confirmed = !!emailConfirmations[user.id];
+        const confirmed = !!emailConfirmationsByUserId[user.id];
         if (userConfirmedFilter === "confirmed" && !confirmed) return false;
         if (userConfirmedFilter === "unconfirmed" && confirmed) return false;
       }
@@ -232,7 +233,7 @@ export default function UsersTab(): ReactElement {
     userConfirmedFilter,
     userRolesById,
     gameAccountsByUserId,
-    emailConfirmations,
+    emailConfirmationsByUserId,
   ]);
 
   const sortedUserRows = useMemo(() => {
@@ -779,7 +780,7 @@ export default function UsersTab(): ReactElement {
         setUserStatus(payload.error ?? tAdmin("users.confirmUserFailed"));
         return;
       }
-      setEmailConfirmations((c) => ({
+      setEmailConfirmationsByUserId((c) => ({
         ...c,
         [pendingConfirmUser.id]: payload.data?.email_confirmed_at ?? new Date().toISOString(),
       }));
@@ -788,7 +789,7 @@ export default function UsersTab(): ReactElement {
     } catch {
       setUserStatus(tAdmin("users.confirmUserFailed"));
     }
-  }, [pendingConfirmUser, tAdmin, pushToast]);
+  }, [pendingConfirmUser, tAdmin, pushToast, setEmailConfirmationsByUserId]);
 
   const handleResendInvite = useCallback((email: string) => {
     if (!email) {

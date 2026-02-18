@@ -6,6 +6,7 @@ import {
   resolveBroadcastRecipients,
   userMatchesBroadcastTargetingSync,
   loadUserBroadcastContext,
+  canUserReplyToBroadcast,
 } from "@/lib/messages/broadcast-targeting";
 import { requireAuth } from "../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../lib/supabase/service-role-client";
@@ -265,10 +266,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     /* ── Authorization for broadcasts ── */
     if (isBroadcast) {
+      const isReply = !!body.parent_id;
       const isCM = await getIsContentManager({ supabase: auth.supabase });
+
       if (!isCM) {
-        return NextResponse.json({ error: "Forbidden: content manager access required." }, { status: 403 });
+        if (isReply) {
+          const targetClanId = body.clan_id ?? null;
+          const canReply = await canUserReplyToBroadcast(svc, senderId, targetClanId);
+          if (!canReply) {
+            return NextResponse.json({ error: "Forbidden: you cannot reply to this broadcast." }, { status: 403 });
+          }
+        } else {
+          return NextResponse.json({ error: "Forbidden: content manager access required." }, { status: 403 });
+        }
       }
+
       if (body.message_type === "clan" && !body.clan_id) {
         return NextResponse.json({ error: "clan_id is required for clan messages." }, { status: 400 });
       }

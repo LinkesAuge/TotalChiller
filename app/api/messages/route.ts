@@ -200,13 +200,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     /* ── Build thread summaries ── */
-    const threads = Array.from(threadMap.entries()).map(([tid, { messages: threadMsgs, unreadCount }]) => {
+    const rawThreads = Array.from(threadMap.entries()).map(([tid, { messages: threadMsgs, unreadCount }]) => {
       const sorted = threadMsgs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       const latest = sorted[0]!;
-      const rootSubject = latest.subject ?? sorted[sorted.length - 1]!.subject;
+      const localSubject = latest.subject ?? sorted[sorted.length - 1]!.subject;
       return {
         thread_id: tid,
-        latest_message: { ...latest, subject: rootSubject },
+        latest_message: { ...latest, subject: localSubject },
         message_count: sorted.length,
         unread_count: unreadCount,
         message_type: latest.message_type,
@@ -214,6 +214,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       };
     });
 
+    /* Fill in missing subjects from root messages not in the inbox */
+    const missingSubjectIds = rawThreads.filter((t) => !t.latest_message.subject).map((t) => t.thread_id);
+
+    if (missingSubjectIds.length > 0) {
+      const { data: rootMsgs } = await svc.from("messages").select("id,subject").in("id", missingSubjectIds);
+
+      const rootSubjectMap = new Map<string, string | null>();
+      for (const rm of rootMsgs ?? []) {
+        rootSubjectMap.set(rm.id as string, rm.subject as string | null);
+      }
+      for (const t of rawThreads) {
+        if (!t.latest_message.subject) {
+          const rootSub = rootSubjectMap.get(t.thread_id);
+          if (rootSub) t.latest_message.subject = rootSub;
+        }
+      }
+    }
+
+    const threads = rawThreads;
     threads.sort(
       (a, b) => new Date(b.latest_message.created_at).getTime() - new Date(a.latest_message.created_at).getTime(),
     );

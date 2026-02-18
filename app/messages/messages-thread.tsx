@@ -17,6 +17,13 @@ const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-16 rounded" />,
 });
 
+/** Strip trailing blockquote sections from message content.
+ *  Old replies had the previous message auto-quoted as `> ` lines.
+ *  In a chat timeline the context is visible above, so these are redundant. */
+function stripTrailingQuotes(content: string): string {
+  return content.replace(/\n{0,4}(?:> .*(?:\n|$))+\s*$/, "").trim();
+}
+
 export interface MessagesThreadProps {
   readonly userId: string;
   readonly api: UseMessagesResult;
@@ -115,7 +122,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
                       <span className="messages-chat-time">{formatLocalDateTime(message.created_at, locale)}</span>
                     </div>
                     <div className="messages-chat-content">
-                      <AppMarkdown content={message.content} />
+                      <AppMarkdown content={stripTrailingQuotes(message.content)} />
                     </div>
                     {!isSelf && message.recipient_entry_id ? (
                       <button
@@ -204,7 +211,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
                 </span>
               </div>
               <div className="messages-chat-content">
-                <AppMarkdown content={selectedSentMessage.content} />
+                <AppMarkdown content={stripTrailingQuotes(selectedSentMessage.content)} />
               </div>
             </div>
           </div>

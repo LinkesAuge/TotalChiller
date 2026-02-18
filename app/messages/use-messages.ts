@@ -667,7 +667,6 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             recipient_ids: [lastReceived.sender_id],
-            subject: null,
             content: replyContent.trim(),
             message_type: "private",
             parent_id: selectedThreadId,

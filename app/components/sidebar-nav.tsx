@@ -192,7 +192,7 @@ function NavItemIcon({ item }: { readonly item: NavItem }): JSX.Element {
   if (item.vipIcon) {
     const cls = item.lgIcon ? "nav-game-icon nav-game-icon--lg" : "nav-game-icon";
     const px = item.lgIcon ? 34 : 22;
-    return <img src={item.vipIcon} alt="" width={px} height={px} className={cls} loading="lazy" />;
+    return <Image src={item.vipIcon} alt="" width={px} height={px} className={cls} />;
   }
   const iconPath = ICONS[item.iconKey] ?? ICONS.dashboard;
   return (
@@ -297,7 +297,7 @@ function SidebarNav(): JSX.Element {
                 {sectionIndex > 0 && (
                   <div className="nav-group-divider">
                     {isOpen && (
-                      <img
+                      <Image
                         src="/assets/game/decorations/components_title_1.png"
                         alt=""
                         width={120}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import RadixSelect from "../../components/ui/radix-select";
@@ -748,7 +749,7 @@ export default function ClansTab(): ReactElement {
           variant="danger"
           className="admin-action-danger"
         >
-          <img src="/assets/game/icons/icons_paper_info_2.png" alt="" width={16} height={16} />
+          <Image src="/assets/game/icons/icons_paper_info_2.png" alt="" width={16} height={16} />
         </IconButton>
       </div>
 
@@ -781,7 +782,7 @@ export default function ClansTab(): ReactElement {
               variant="primary"
               className="admin-action-primary"
             >
-              <img src="/assets/game/icons/shield_22.png" alt="" width={16} height={16} />
+              <Image src="/assets/game/icons/shield_22.png" alt="" width={16} height={16} />
             </IconButton>
             <IconButton
               ariaLabel={tAdmin("clans.editClan")}
@@ -800,7 +801,7 @@ export default function ClansTab(): ReactElement {
               disabled={!selectedClanId}
               className="admin-action-secondary"
             >
-              <img src="/assets/game/icons/icons_pen_2.png" alt="" width={16} height={16} />
+              <Image src="/assets/game/icons/icons_pen_2.png" alt="" width={16} height={16} />
             </IconButton>
             <IconButton
               ariaLabel={tAdmin("clans.assignAccounts")}
@@ -808,7 +809,7 @@ export default function ClansTab(): ReactElement {
               disabled={!selectedClanId}
               className="admin-action-secondary"
             >
-              <img src="/assets/game/icons/icons_plus_3.png" alt="" width={16} height={16} />
+              <Image src="/assets/game/icons/icons_plus_3.png" alt="" width={16} height={16} />
             </IconButton>
             <IconButton
               ariaLabel={tAdmin("clans.setDefault")}
@@ -832,7 +833,7 @@ export default function ClansTab(): ReactElement {
               disabled={!selectedClanId}
               className="admin-action-secondary"
             >
-              <img src="/assets/game/icons/icons_star_up_2.png" alt="" width={16} height={16} />
+              <Image src="/assets/game/icons/icons_star_up_2.png" alt="" width={16} height={16} />
             </IconButton>
             {selectedClanId && selectedClanId === defaultClanId ? (
               <IconButton
@@ -854,8 +855,8 @@ export default function ClansTab(): ReactElement {
                 className="admin-action-danger"
               >
                 <span className="icon-stack">
-                  <img src="/assets/game/icons/icons_star_down_2.png" alt="" width={16} height={16} />
-                  <img
+                  <Image src="/assets/game/icons/icons_star_down_2.png" alt="" width={16} height={16} />
+                  <Image
                     src="/assets/game/icons/icons_close.png"
                     alt=""
                     width={9}
@@ -1082,14 +1083,14 @@ export default function ClansTab(): ReactElement {
                     variant="primary"
                     className="admin-action-primary"
                   >
-                    <img src="/assets/game/icons/components_check_box_mark.png" alt="" width={16} height={16} />
+                    <Image src="/assets/game/icons/components_check_box_mark.png" alt="" width={16} height={16} />
                   </IconButton>
                   <IconButton
                     ariaLabel={tAdmin("common.cancelChanges")}
                     onClick={() => cancelMembershipEdits(membership.id)}
                     className="admin-action-secondary"
                   >
-                    <img src="/assets/game/icons/icons_close.png" alt="" width={16} height={16} />
+                    <Image src="/assets/game/icons/icons_close.png" alt="" width={16} height={16} />
                   </IconButton>
                   <IconButton
                     ariaLabel={tAdmin("clans.toggleShadow")}
@@ -1102,7 +1103,7 @@ export default function ClansTab(): ReactElement {
                     }
                     className="admin-action-secondary"
                   >
-                    <img src="/assets/game/icons/icons_player_4.png" alt="" width={16} height={16} />
+                    <Image src="/assets/game/icons/icons_player_4.png" alt="" width={16} height={16} />
                   </IconButton>
                   {membership.game_accounts?.id ? (
                     <IconButton
@@ -1117,7 +1118,7 @@ export default function ClansTab(): ReactElement {
                       variant="danger"
                       className="admin-action-danger"
                     >
-                      <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={16} height={16} />
+                      <Image src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={16} height={16} />
                     </IconButton>
                   ) : null}
                   {membershipErrors[membership.id] ? (

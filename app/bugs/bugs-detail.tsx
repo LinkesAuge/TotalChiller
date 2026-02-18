@@ -100,7 +100,7 @@ function BugsDetail({ report, categories, onUpdate, onEdit, onDelete }: BugsDeta
                     aria-label={t("detail.editReport")}
                     title={t("detail.editReport")}
                   >
-                    <img src="/assets/game/icons/icons_pen_2.png" alt="" width={16} height={16} />
+                    <Image src="/assets/game/icons/icons_pen_2.png" alt="" width={16} height={16} />
                   </button>
                   <button
                     className="bugs-action-btn danger"
@@ -109,7 +109,7 @@ function BugsDetail({ report, categories, onUpdate, onEdit, onDelete }: BugsDeta
                     aria-label={t("detail.deleteReport")}
                     title={t("detail.deleteReport")}
                   >
-                    <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={16} height={16} />
+                    <Image src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={16} height={16} />
                   </button>
                 </div>
               )}
@@ -200,8 +200,14 @@ function BugsDetail({ report, categories, onUpdate, onEdit, onDelete }: BugsDeta
             if (e.key === "Escape") setLightboxUrl(null);
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- lightbox needs native sizing */}
-          <img src={lightboxUrl} alt="Screenshot" />
+          <Image
+            src={lightboxUrl}
+            alt="Screenshot"
+            width={800}
+            height={600}
+            unoptimized
+            style={{ width: "100%", height: "auto" }}
+          />
         </div>
       )}
     </div>

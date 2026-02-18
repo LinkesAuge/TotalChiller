@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useCallback, useState, type ReactElement } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "@/app/hooks/use-supabase";
@@ -128,7 +129,7 @@ function BugsClient(): ReactElement {
                 : bugs.backToList
             }
           >
-            <img src="/assets/game/icons/icons_arrow_back.png" alt="" width={14} height={14} />
+            <Image src="/assets/game/icons/icons_arrow_back.png" alt="" width={14} height={14} />
             {bugs.view === "edit" && editOrigin === "detail" ? t("backToDetail") : t("backToList")}
           </button>
         )}

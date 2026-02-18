@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import MarkdownEditor from "../components/markdown-editor";
@@ -69,7 +70,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     return (
       <section className="card messages-thread-panel">
         <button type="button" className="messages-back-btn" onClick={clearSelection}>
-          <img src="/assets/game/icons/icons_arrow_back.png" alt="" width={16} height={16} />
+          <Image src="/assets/game/icons/icons_arrow_back.png" alt="" width={16} height={16} />
           {t("backToInbox")}
         </button>
         <div className="card-header">
@@ -202,7 +203,7 @@ export function MessagesThread({ userId, api }: MessagesThreadProps): JSX.Elemen
     return (
       <section className="card messages-thread-panel">
         <button type="button" className="messages-back-btn" onClick={clearSelection}>
-          <img src="/assets/game/icons/icons_arrow_back.png" alt="" width={16} height={16} />
+          <Image src="/assets/game/icons/icons_arrow_back.png" alt="" width={16} height={16} />
           {t("backToInbox")}
         </button>
         <div className="card-header">

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
@@ -218,7 +219,7 @@ function ForumCategoryAdmin(): JSX.Element {
               padding: 0,
             }}
           >
-            <img src="/assets/game/icons/icons_close.png" alt="" width={16} height={16} style={{ opacity: 0.8 }} />
+            <Image src="/assets/game/icons/icons_close.png" alt="" width={16} height={16} style={{ opacity: 0.8 }} />
           </button>
         </div>
       )}
@@ -384,7 +385,7 @@ function ForumCategoryAdmin(): JSX.Element {
                   </div>
                   {/* Actions */}
                   <button className="forum-mod-btn" type="button" onClick={() => startEdit(cat)} aria-label={t("edit")}>
-                    <img src="/assets/game/icons/icons_pen_2.png" alt="" width={18} height={18} />
+                    <Image src="/assets/game/icons/icons_pen_2.png" alt="" width={18} height={18} />
                   </button>
                   <button
                     className="forum-mod-btn danger"
@@ -395,7 +396,7 @@ function ForumCategoryAdmin(): JSX.Element {
                     }}
                     aria-label={t("delete")}
                   >
-                    <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={18} height={18} />
+                    <Image src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={18} height={18} />
                   </button>
                 </div>
               )}

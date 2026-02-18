@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useToast } from "../../components/toast-provider";
@@ -1153,7 +1154,7 @@ export default function UsersTab(): ReactElement {
                           variant="primary"
                           className="admin-action-primary"
                         >
-                          <img src="/assets/game/icons/icons_moderator_add.png" alt="" width={16} height={16} />
+                          <Image src="/assets/game/icons/icons_moderator_add.png" alt="" width={16} height={16} />
                         </IconButton>
                       ) : null}
                       <IconButton
@@ -1161,14 +1162,14 @@ export default function UsersTab(): ReactElement {
                         onClick={() => handleResendInvite(user.email)}
                         className="admin-action-secondary"
                       >
-                        <img src="/assets/game/icons/icons_envelope_1.png" alt="" width={16} height={16} />
+                        <Image src="/assets/game/icons/icons_envelope_1.png" alt="" width={16} height={16} />
                       </IconButton>
                       <IconButton
                         ariaLabel={tAdmin("users.addGameAccount")}
                         onClick={() => openCreateGameAccountModal(user)}
                         className="admin-action-secondary"
                       >
-                        <img src="/assets/game/icons/icons_plus_3.png" alt="" width={16} height={16} />
+                        <Image src="/assets/game/icons/icons_plus_3.png" alt="" width={16} height={16} />
                       </IconButton>
                       <IconButton
                         ariaLabel={tAdmin("common.saveChanges")}
@@ -1176,14 +1177,14 @@ export default function UsersTab(): ReactElement {
                         variant="primary"
                         className="admin-action-primary"
                       >
-                        <img src="/assets/game/icons/components_check_box_mark.png" alt="" width={16} height={16} />
+                        <Image src="/assets/game/icons/components_check_box_mark.png" alt="" width={16} height={16} />
                       </IconButton>
                       <IconButton
                         ariaLabel={tAdmin("common.cancelChanges")}
                         onClick={() => cancelUserEdit(user.id)}
                         className="admin-action-secondary"
                       >
-                        <img src="/assets/game/icons/icons_close.png" alt="" width={16} height={16} />
+                        <Image src="/assets/game/icons/icons_close.png" alt="" width={16} height={16} />
                       </IconButton>
                       <IconButton
                         ariaLabel={tAdmin("users.deleteUser")}
@@ -1191,7 +1192,7 @@ export default function UsersTab(): ReactElement {
                         variant="danger"
                         className="admin-action-danger"
                       >
-                        <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={16} height={16} />
+                        <Image src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={16} height={16} />
                       </IconButton>
                     </div>
                   </div>
@@ -1249,7 +1250,7 @@ export default function UsersTab(): ReactElement {
                                               variant="primary"
                                               className="admin-action-primary"
                                             >
-                                              <img
+                                              <Image
                                                 src="/assets/game/icons/components_check_box_mark.png"
                                                 alt=""
                                                 width={16}
@@ -1262,7 +1263,7 @@ export default function UsersTab(): ReactElement {
                                               variant="danger"
                                               className="admin-action-danger"
                                             >
-                                              <img
+                                              <Image
                                                 src="/assets/game/icons/icons_close.png"
                                                 alt=""
                                                 width={16}
@@ -1277,7 +1278,7 @@ export default function UsersTab(): ReactElement {
                                           variant="danger"
                                           className="admin-action-danger"
                                         >
-                                          <img
+                                          <Image
                                             src="/assets/game/icons/icons_paper_cross_1.png"
                                             alt=""
                                             width={16}
@@ -1375,7 +1376,7 @@ export default function UsersTab(): ReactElement {
                                             variant="primary"
                                             className="admin-action-primary"
                                           >
-                                            <img
+                                            <Image
                                               src="/assets/game/icons/components_check_box_mark.png"
                                               alt=""
                                               width={16}
@@ -1390,7 +1391,7 @@ export default function UsersTab(): ReactElement {
                                             }}
                                             className="admin-action-secondary"
                                           >
-                                            <img
+                                            <Image
                                               src="/assets/game/icons/icons_close.png"
                                               alt=""
                                               width={16}
@@ -1408,7 +1409,7 @@ export default function UsersTab(): ReactElement {
                                         variant={(memberEdits.is_shadow ?? membership.is_shadow) ? "active" : undefined}
                                         className="admin-action-secondary"
                                       >
-                                        <img
+                                        <Image
                                           src="/assets/game/icons/icons_player_4.png"
                                           alt=""
                                           width={16}
@@ -1423,7 +1424,7 @@ export default function UsersTab(): ReactElement {
                                             variant="primary"
                                             className="admin-action-primary"
                                           >
-                                            <img
+                                            <Image
                                               src="/assets/game/icons/components_check_box_mark.png"
                                               alt=""
                                               width={16}
@@ -1436,7 +1437,7 @@ export default function UsersTab(): ReactElement {
                                             variant="danger"
                                             className="admin-action-danger"
                                           >
-                                            <img
+                                            <Image
                                               src="/assets/game/icons/icons_close.png"
                                               alt=""
                                               width={16}
@@ -1451,7 +1452,7 @@ export default function UsersTab(): ReactElement {
                                         variant="danger"
                                         className="admin-action-danger"
                                       >
-                                        <img
+                                        <Image
                                           src="/assets/game/icons/icons_paper_cross_1.png"
                                           alt=""
                                           width={16}

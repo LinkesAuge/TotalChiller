@@ -350,7 +350,7 @@ function EditableList({
                 onClick={() => openEdit(item)}
                 aria-label={t("editItem")}
               >
-                <img src="/assets/game/icons/icons_pen_2.png" alt="" width={12} height={12} />
+                <Image src="/assets/game/icons/icons_pen_2.png" alt="" width={12} height={12} />
               </button>
               <button
                 className="editable-list-btn editable-list-remove"
@@ -358,7 +358,7 @@ function EditableList({
                 onClick={() => handleRemove(item.id)}
                 aria-label={t("removeItem")}
               >
-                <img src="/assets/game/icons/icons_close.png" alt="" width={12} height={12} />
+                <Image src="/assets/game/icons/icons_close.png" alt="" width={12} height={12} />
               </button>
             </div>
           )}

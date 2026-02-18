@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import NotificationBell from "./notification-bell";
@@ -144,15 +145,15 @@ function AuthActions(): JSX.Element {
             {authState.email ? <span className="text-muted">{authState.email}</span> : null}
             <div className="user-menu__divider" />
             <a className="user-menu__link" href="/profile">
-              <img src="/assets/game/icons/icons_player_5.png" alt="" width={20} height={20} />
+              <Image src="/assets/game/icons/icons_player_5.png" alt="" width={20} height={20} />
               {t("profile")}
             </a>
             <a className="user-menu__link" href="/messages">
-              <img src="/assets/game/icons/icons_envelope_1.png" alt="" width={20} height={20} />
+              <Image src="/assets/game/icons/icons_envelope_1.png" alt="" width={20} height={20} />
               {t("messages")}
             </a>
             <a className="user-menu__link" href="/settings">
-              <img src="/assets/game/icons/icons_options_gear_on_1.png" alt="" width={20} height={20} />
+              <Image src="/assets/game/icons/icons_options_gear_on_1.png" alt="" width={20} height={20} />
               {t("settings")}
             </a>
             <div className="user-menu__divider" />

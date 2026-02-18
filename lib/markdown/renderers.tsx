@@ -82,7 +82,6 @@ export function buildMarkdownComponents(prefix: string, features: MarkdownFeatur
       if (!src || typeof src !== "string" || !isSafeUrl(src)) return null;
       return (
         <span className={`${prefix}-media`}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- user-submitted markdown images from arbitrary external domains; next/image requires domain whitelisting */}
           <img src={src} alt={alt ?? ""} loading="lazy" className={`${prefix}-image`} {...rest} />
         </span>
       );
@@ -114,7 +113,6 @@ export function buildMarkdownComponents(prefix: string, features: MarkdownFeatur
       if (f.imageEmbed && isImageUrl(href)) {
         return (
           <span className={`${prefix}-media`}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- user-submitted link-to-image embeds from arbitrary external domains */}
             <img
               src={href}
               alt={typeof children === "string" ? children : ""}

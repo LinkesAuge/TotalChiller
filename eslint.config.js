@@ -12,8 +12,7 @@ module.exports = [
       "react-hooks/set-state-in-effect": "off",
 
       /* ── Next.js image optimization ── */
-      /* Warn on raw <img> — small decorative game icons intentionally use <img> */
-      "@next/next/no-img-element": "warn",
+      "@next/next/no-img-element": "error",
 
       /* ── TypeScript strictness ── */
       /* Flag explicit `any` — gradually eliminate untyped code */
@@ -46,6 +45,13 @@ module.exports = [
       /* ── React best practices ── */
       /* Prevent security issues with target="_blank" */
       "react/jsx-no-target-blank": "error",
+    },
+  },
+  {
+    /* Markdown renderers use native <img> for user-submitted images from arbitrary domains. */
+    files: ["lib/markdown/renderers.tsx"],
+    rules: {
+      "@next/next/no-img-element": "off",
     },
   },
   {

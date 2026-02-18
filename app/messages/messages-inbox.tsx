@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, type ReactElement } from "react";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import SearchInput from "../components/ui/search-input";
 import ConfirmModal from "../components/confirm-modal";
@@ -12,15 +13,15 @@ import type { UseMessagesResult } from "./use-messages";
 /* ── Inline icons (matches project convention) ── */
 
 function TrashIcon(): ReactElement {
-  return <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={14} height={14} />;
+  return <Image src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={14} height={14} />;
 }
 
 function ArchiveIcon(): ReactElement {
-  return <img src="/assets/game/icons/icons_bag_1.png" alt="" width={14} height={14} />;
+  return <Image src="/assets/game/icons/icons_bag_1.png" alt="" width={14} height={14} />;
 }
 
 function UnarchiveIcon(): ReactElement {
-  return <img src="/assets/game/icons/icons_envelope_1.png" alt="" width={14} height={14} />;
+  return <Image src="/assets/game/icons/icons_envelope_1.png" alt="" width={14} height={14} />;
 }
 
 /** i18n key lookup for notification type badges. */

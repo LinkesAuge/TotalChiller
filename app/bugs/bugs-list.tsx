@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
 import { formatLocalDateTime } from "@/lib/date-format";
 import { stripMarkdown } from "@/lib/markdown/strip-markdown";
@@ -169,7 +170,7 @@ function BugsList({
                         onEditReport(report.id);
                       }}
                     >
-                      <img src="/assets/game/icons/icons_pen_2.png" alt="" width={14} height={14} />
+                      <Image src="/assets/game/icons/icons_pen_2.png" alt="" width={14} height={14} />
                     </button>
                   )}
                   {onDeleteReport && (
@@ -183,7 +184,7 @@ function BugsList({
                         onDeleteReport(report.id);
                       }}
                     >
-                      <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={14} height={14} />
+                      <Image src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={14} height={14} />
                     </button>
                   )}
                 </div>
@@ -207,13 +208,13 @@ function BugsList({
                 )}
                 {report.comment_count > 0 && (
                   <span className="bugs-card-count">
-                    <img src="/assets/game/icons/icons_message_1.png" alt="" width={13} height={13} />
+                    <Image src="/assets/game/icons/icons_message_1.png" alt="" width={13} height={13} />
                     {report.comment_count}
                   </span>
                 )}
                 {report.screenshot_count > 0 && (
                   <span className="bugs-card-count">
-                    <img src="/assets/game/icons/icons_spyglass_1.png" alt="" width={13} height={13} />
+                    <Image src="/assets/game/icons/icons_spyglass_1.png" alt="" width={13} height={13} />
                     {report.screenshot_count}
                   </span>
                 )}

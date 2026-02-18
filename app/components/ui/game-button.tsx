@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode, MouseEvent } from "react";
+import Image from "next/image";
 
 /* ── Asset paths per variant ── */
 
@@ -80,7 +81,7 @@ interface GameButtonProps {
 /**
  * Image-backed game button with overlaid label text.
  *
- * All variants use a fixed-size <img> as the background so decorative
+ * All variants use a fixed-size Image as the background so decorative
  * borders stay pixel-perfect. The label is absolutely positioned on top.
  */
 export default function GameButton({
@@ -106,7 +107,7 @@ export default function GameButton({
       aria-label={ariaLabel}
       className={`gbtn ${disabled ? "gbtn--disabled" : ""} ${className ?? ""}`.trim()}
     >
-      <img src={src} alt="" height={height} width={Math.round(height * ratio)} className="gbtn-bg" />
+      <Image src={src} alt="" height={height} width={Math.round(height * ratio)} className="gbtn-bg" />
       <span className="gbtn-label" style={{ fontSize }}>
         <span className="gbtn-text">{children}</span>
       </span>

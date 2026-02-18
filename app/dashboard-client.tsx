@@ -15,7 +15,7 @@ const EVENT_DOT_COLORS: readonly string[] = ["#c94a3a", "#4a6ea0", "#4a9960", "#
 
 /** Chat bubble icon for "go to thread" buttons. */
 function ChatIcon(): JSX.Element {
-  return <img src="/assets/game/icons/icons_message_1.png" alt="" width={14} height={14} />;
+  return <Image src="/assets/game/icons/icons_message_1.png" alt="" width={14} height={14} />;
 }
 
 /* ── Helpers (defined outside component to avoid re-creation) ── */
@@ -62,7 +62,7 @@ function DashboardStatCard({
 }): JSX.Element {
   return (
     <div className="dashboard-stat-card">
-      <img src={icon} alt="" width={28} height={28} className="dashboard-stat-card__icon" />
+      <Image src={icon} alt="" width={28} height={28} className="dashboard-stat-card__icon" />
       <span className="dashboard-stat-card__value">{value}</span>
       <span className="dashboard-stat-card__label">{label}</span>
     </div>
@@ -248,7 +248,7 @@ function DashboardClient(): JSX.Element {
               sizes="(max-width: 900px) 90vw, 50vw"
             />
             <div className="tooltip-head-inner">
-              <img src="/assets/game/icons/icons_main_menu_daily_1.png" alt="" width={18} height={18} />
+              <Image src="/assets/game/icons/icons_main_menu_daily_1.png" alt="" width={18} height={18} />
               <h3 className="card-title">{t("eventsTitle")}</h3>
               <Link href="/events" className="ml-auto text-[0.65rem] text-gold no-underline">
                 {t("viewAll")} →
@@ -322,7 +322,7 @@ function DashboardClient(): JSX.Element {
               sizes="(max-width: 900px) 90vw, 50vw"
             />
             <div className="tooltip-head-inner">
-              <img src="/assets/game/icons/icons_star_up_2.png" alt="" width={18} height={18} />
+              <Image src="/assets/game/icons/icons_star_up_2.png" alt="" width={18} height={18} />
               <h3 className="card-title">{t("weekHighlightsTitle")}</h3>
             </div>
           </div>

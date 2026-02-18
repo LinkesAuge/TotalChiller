@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import { useSupabase } from "../hooks/use-supabase";
@@ -282,7 +283,7 @@ function MembersClient(): JSX.Element {
                   }}
                 >
                   <span className="member-dir-pos">
-                    <img src={RANK_ICON} alt="" width={26} height={26} className="member-dir-rank-hex" />
+                    <Image src={RANK_ICON} alt="" width={26} height={26} className="member-dir-rank-hex" />
                     <span className="member-dir-pos-num">{index + 1}</span>
                   </span>
                   <div className="member-dir-identity">

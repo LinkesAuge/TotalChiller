@@ -63,6 +63,16 @@ Run: `npx playwright test`
 
 ## Recently Completed
 
+### Next.js Image Migration (2026-02-18)
+
+Migrated all native `<img>` tags to Next.js `<Image>` for automatic optimization (WebP/AVIF conversion, lazy loading, responsive sizing).
+
+- **Scope:** ~25 TSX files across core components (`GameIcon`, `GameButton`, `sidebar-nav`, `sidebar-shell`, `pagination-bar`, `admin-client`, `auth-actions`, `editable-text`, `editable-list`) and feature files (`dashboard`, `news`, `forum`, `messages`, `members`, `bugs`, all admin tabs).
+- **Excluded:** `lib/markdown/renderers.tsx` — user-submitted markdown images from arbitrary external domains stay as native `<img>`.
+- **Sidebar logo:** Replaced the `<picture>` + `<source>` + `<img>` pattern with a single `<Image>` (Next.js handles format negotiation automatically).
+- **Bug screenshot lightbox:** Uses `<Image unoptimized>` for dynamic Supabase storage URLs.
+- **ESLint:** Restored `@next/next/no-img-element` to `"error"` with a file-level override for `lib/markdown/renderers.tsx`.
+
 ### Sidebar Icon Reassignment (2026-02-18)
 
 Reshuffled sidebar navigation icons for better visual fit across main and admin sections.

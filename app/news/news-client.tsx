@@ -321,7 +321,7 @@ function NewsClient(): JSX.Element {
                           aria-label={t("goToThread")}
                           title={t("goToThread")}
                         >
-                          <img src="/assets/game/icons/icons_message_1.png" alt="" width={14} height={14} />
+                          <Image src="/assets/game/icons/icons_message_1.png" alt="" width={14} height={14} />
                           {t("goToThread")}
                         </Link>
                       )}
@@ -339,7 +339,7 @@ function NewsClient(): JSX.Element {
                             aria-label={t("editPost")}
                             title={t("editPost")}
                           >
-                            <img src="/assets/game/icons/icons_pen_2.png" alt="" width={14} height={14} />
+                            <Image src="/assets/game/icons/icons_pen_2.png" alt="" width={14} height={14} />
                           </button>
                           <button
                             className="news-action-btn danger"
@@ -348,7 +348,7 @@ function NewsClient(): JSX.Element {
                             aria-label={t("deletePost")}
                             title={t("deletePost")}
                           >
-                            <img src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={14} height={14} />
+                            <Image src="/assets/game/icons/icons_paper_cross_1.png" alt="" width={14} height={14} />
                           </button>
                         </>
                       )}

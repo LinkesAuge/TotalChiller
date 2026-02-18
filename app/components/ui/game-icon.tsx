@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 /**
  * Maps logical icon names to optimized game asset paths under /assets/game/icons/.
  * Centralises all icon references so pages never hardcode asset paths.
@@ -59,8 +61,6 @@ interface GameIconProps {
 
 /**
  * Renders a game asset icon at a consistent size with drop-shadow.
- * Uses native <img> — these are small decorative icons that don't
- * benefit from Next.js Image optimization.
  * Accepts either a logical name (from ICON_MAP) or a raw asset path.
  */
 export default function GameIcon({ name, size = "md", className, alt = "" }: GameIconProps): JSX.Element {
@@ -76,7 +76,7 @@ export default function GameIcon({ name, size = "md", className, alt = "" }: Gam
 
   return (
     <span className={`game-icon ${className ?? ""}`.trim()} style={{ width: px, height: px }}>
-      <img src={src} alt={alt} width={px} height={px} className="game-icon-img" loading="lazy" />
+      <Image src={src} alt={alt} width={px} height={px} className="game-icon-img" />
     </span>
   );
 }

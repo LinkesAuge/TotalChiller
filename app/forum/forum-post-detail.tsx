@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import type { RefObject } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -511,13 +512,13 @@ export default function ForumPostDetail({
           </span>
           {selectedPost.source_type === "event" && (
             <a className="forum-source-link event" href="/events">
-              <img src="/assets/game/icons/icons_main_menu_daily_1.png" alt="" width={16} height={16} />
+              <Image src="/assets/game/icons/icons_main_menu_daily_1.png" alt="" width={16} height={16} />
               {t("goToEvent")}
             </a>
           )}
           {selectedPost.source_type === "announcement" && (
             <a className="forum-source-link announcement" href="/news">
-              <img src="/assets/game/icons/icons_paper_saved_1.png" alt="" width={16} height={16} />
+              <Image src="/assets/game/icons/icons_paper_saved_1.png" alt="" width={16} height={16} />
               {t("goToAnnouncement")}
             </a>
           )}

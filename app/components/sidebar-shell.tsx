@@ -215,17 +215,14 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
             gap: isOpen ? 8 : 4,
           }}
         >
-          <picture>
-            <source srcSet="/assets/ui/chillerkiller_logo.webp" type="image/webp" />
-            <img
-              src="/assets/ui/chillerkiller_logo.png"
-              alt="Chillers & Killers logo"
-              width={480}
-              height={484}
-              style={{ objectFit: "contain", width: isOpen ? 160 : 36, height: isOpen ? 160 : 36, flexShrink: 0 }}
-              loading="eager"
-            />
-          </picture>
+          <Image
+            src="/assets/ui/chillerkiller_logo.png"
+            alt="Chillers & Killers logo"
+            width={480}
+            height={484}
+            style={{ objectFit: "contain", width: isOpen ? 160 : 36, height: isOpen ? 160 : 36, flexShrink: 0 }}
+            priority
+          />
           <div className={`sidebar-header-text${isOpen ? "" : " collapsed"}`}>
             <div className="sidebar-title" style={{ fontSize: "1.3rem" }}>
               {t("title")}
@@ -396,7 +393,7 @@ function SidebarUserRow({
           <div className="sidebar-user-name">
             {displayLabel}
             {isAdmin && (
-              <img
+              <Image
                 src="/assets/vip/button_vip_crown_22x33.png"
                 alt="Admin"
                 width={12}
@@ -418,7 +415,7 @@ function SidebarUserRow({
             data-tip={!isOpen ? tMenu("profile") : undefined}
             aria-label={tMenu("profile")}
           >
-            <img
+            <Image
               src="/assets/game/icons/icons_player_5.png"
               alt=""
               width={28}
@@ -432,7 +429,7 @@ function SidebarUserRow({
             data-tip={!isOpen ? tNav("settings") : undefined}
             aria-label={tNav("settings")}
           >
-            <img
+            <Image
               src="/assets/game/icons/icons_options_gear_on_1.png"
               alt=""
               width={28}
@@ -451,15 +448,15 @@ function SidebarUserRow({
           {statusLine ? <span className="sidebar-user-menu__label">{statusLine}</span> : null}
           <div className="sidebar-user-menu__divider" />
           <Link className="sidebar-user-menu__link" href="/profile" onClick={() => setMenuOpen(false)}>
-            <img src="/assets/game/icons/icons_player_5.png" alt="" width={20} height={20} />
+            <Image src="/assets/game/icons/icons_player_5.png" alt="" width={20} height={20} />
             {tMenu("profile")}
           </Link>
           <Link className="sidebar-user-menu__link" href="/messages" onClick={() => setMenuOpen(false)}>
-            <img src="/assets/game/icons/icons_envelope_1.png" alt="" width={20} height={20} />
+            <Image src="/assets/game/icons/icons_envelope_1.png" alt="" width={20} height={20} />
             {tMenu("messages")}
           </Link>
           <Link className="sidebar-user-menu__link" href="/settings" onClick={() => setMenuOpen(false)}>
-            <img src="/assets/game/icons/icons_options_gear_on_1.png" alt="" width={20} height={20} />
+            <Image src="/assets/game/icons/icons_options_gear_on_1.png" alt="" width={20} height={20} />
             {tMenu("settings")}
           </Link>
           {isCompactViewport ? (

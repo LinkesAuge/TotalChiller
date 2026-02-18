@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import RadixSelect from "./ui/radix-select";
 import type { PaginationState } from "@/lib/hooks/use-pagination";
@@ -41,7 +42,7 @@ function PaginationArrow({
       disabled={disabled}
       aria-label={ariaLabel}
     >
-      <img
+      <Image
         src={direction === "left" ? ARROW_LEFT : ARROW_RIGHT}
         alt=""
         width={28}

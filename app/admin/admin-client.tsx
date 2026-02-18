@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import AdminProvider, { useAdminContext } from "./admin-context";
@@ -104,7 +105,7 @@ function AdminInner(): ReactElement {
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => (section.tab ? updateActiveSection(section.tab) : navigateAdmin(section.href))}
               >
-                {tabIcon && <img src={tabIcon} alt="" width={28} height={28} className="admin-tab-icon" />}
+                {tabIcon && <Image src={tabIcon} alt="" width={28} height={28} className="admin-tab-icon" />}
                 <span>{tAdmin(`tabs.${section.labelKey}`)}</span>
                 {section.tab === "approvals" && totalPending > 0 ? (
                   <span className="tab-count" aria-label={`${totalPending} ${tAdmin("approvals.pending")}`}>

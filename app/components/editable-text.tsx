@@ -14,6 +14,7 @@
  */
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
@@ -255,7 +256,7 @@ function EditableText({
       }}
       aria-label={t("editContent")}
     >
-      <img src="/assets/game/icons/icons_pen_2.png" alt="" width={14} height={14} />
+      <Image src="/assets/game/icons/icons_pen_2.png" alt="" width={14} height={14} />
     </button>
   ) : null;
 

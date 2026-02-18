@@ -102,7 +102,7 @@ test.describe("Role-based access: Content management buttons", () => {
       /* Wait for page content to render */
       await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       await waitForClanAccessResolution(page);
-      const createBtn = page.locator("button.primary", { hasText: /erstellen|create|new|neu|post|beitrag/i });
+      const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|new|neu|post|beitrag/i });
       const noClanMsg = page.locator(
         "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
       );
@@ -119,7 +119,7 @@ test.describe("Role-based access: Content management buttons", () => {
       await page.waitForLoadState("domcontentloaded");
       await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       await waitForClanAccessResolution(page);
-      const createBtn = page.locator("button.primary", { hasText: /erstellen|create|new|neu|post|beitrag/i });
+      const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|new|neu|post|beitrag/i });
       const noClanMsg = page.locator(
         "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
       );
@@ -136,7 +136,7 @@ test.describe("Role-based access: Content management buttons", () => {
       await page.waitForLoadState("domcontentloaded");
       await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       await waitForClanAccessResolution(page);
-      const createBtn = page.locator("button.primary", { hasText: /erstellen|create|new|neu|post|beitrag/i });
+      const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|new|neu|post|beitrag/i });
       expect(await createBtn.count()).toBe(0);
     });
   });
@@ -150,7 +150,7 @@ test.describe("Role-based access: Event management", () => {
       await page.waitForLoadState("domcontentloaded");
       await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       await waitForClanAccessResolution(page);
-      const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
+      const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|hinzufügen|add/i });
       const noClanMsg = page.locator(
         "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
       );
@@ -167,7 +167,7 @@ test.describe("Role-based access: Event management", () => {
       await page.waitForLoadState("domcontentloaded");
       await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
       await waitForClanAccessResolution(page);
-      const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
+      const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|hinzufügen|add/i });
       expect(await createBtn.count()).toBe(0);
     });
   });

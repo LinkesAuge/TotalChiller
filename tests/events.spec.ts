@@ -44,7 +44,7 @@ test.describe("Events: Content manager features (editor)", () => {
     await waitForClanAccessResolution(page);
 
     /* Editor is a content manager but may lack clan membership */
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|hinzufügen|add/i });
     const noClanMsg = page.locator(
       "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
     );
@@ -61,7 +61,7 @@ test.describe("Events: Content manager features (member)", () => {
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create|hinzufügen|add/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|hinzufügen|add/i });
     expect(await createBtn.count()).toBe(0);
   });
 });
@@ -72,7 +72,7 @@ test.describe("Events: Event form", () => {
     await page.goto("/events");
     await page.waitForLoadState("domcontentloaded");
 
-    const createBtn = page.locator("button.primary, button", { hasText: /erstellen|create|hinzufügen|add/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|hinzufügen|add/i });
     if ((await createBtn.count()) > 0) {
       await createBtn.first().click();
       await expect(page.locator("form")).toBeVisible({ timeout: 5000 });
@@ -191,7 +191,7 @@ test.describe("Events: Form textarea fills container width", () => {
     await page.goto("/events");
     await page.waitForLoadState("domcontentloaded");
 
-    const createBtn = page.locator("button.primary, button", { hasText: /erstellen|create|hinzufügen|add/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|hinzufügen|add/i });
     if ((await createBtn.count()) === 0) return; // editor may lack clan access
 
     await createBtn.first().click();

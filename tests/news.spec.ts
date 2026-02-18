@@ -40,7 +40,7 @@ test.describe("News: Content manager features (editor)", () => {
     await waitForClanAccessResolution(page);
 
     /* Editor is a content manager but may lack clan membership */
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create|new|neu|post|beitrag/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|new|neu|post|beitrag/i });
     const noClanMsg = page.locator(
       "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil/i",
     );
@@ -59,7 +59,7 @@ test.describe("News: Content manager features (member)", () => {
     await waitForClanAccessResolution(page);
 
     /* Members are NOT content managers, so no create button */
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create|new|neu|post|beitrag/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|new|neu|post|beitrag/i });
     expect(await createBtn.count()).toBe(0);
   });
 });
@@ -72,7 +72,7 @@ test.describe("News: Content manager features (guest)", () => {
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
     await waitForClanAccessResolution(page);
 
-    const createBtn = page.locator("button.primary", { hasText: /erstellen|create|new|neu|post|beitrag/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create|new|neu|post|beitrag/i });
     expect(await createBtn.count()).toBe(0);
   });
 });
@@ -84,7 +84,7 @@ test.describe("News: Article form", () => {
     await page.waitForLoadState("domcontentloaded");
     await waitForClanAccessResolution(page);
 
-    const createBtn = page.locator("button.primary, button", { hasText: /erstellen|create/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /erstellen|create/i });
     if ((await createBtn.count()) > 0) {
       await createBtn.first().click();
       await expect(page.locator("form")).toBeVisible({ timeout: 5000 });

@@ -140,8 +140,7 @@ test.describe("Events: CRUD flow", () => {
       return;
     }
 
-    /* The create event button has class "button primary" */
-    const createBtn = page.locator("button.primary", { hasText: /create|erstellen|hinzufügen|event/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /create|erstellen|hinzufügen|event/i });
     await expect(createBtn.first()).toBeVisible({ timeout: 10000 });
     await createBtn.first().click();
 

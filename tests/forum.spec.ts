@@ -51,7 +51,7 @@ test.describe("Forum: Create post (member)", () => {
     await waitForClanAccessResolution(page);
 
     /* Forum may show "no clan" message if user has no clan membership */
-    const createBtn = page.locator("button.primary", { hasText: /neuer beitrag|new post/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /neuer beitrag|new post/i });
     const noClanMsg = page.locator(
       "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil|wähle einen Clan|select a clan/i",
     );
@@ -69,7 +69,7 @@ test.describe("Forum: Create post (guest)", () => {
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
     await waitForClanAccessResolution(page);
 
-    const createBtn = page.locator("button.primary", { hasText: /neuer beitrag|new post/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /neuer beitrag|new post/i });
     const noClanMsg = page.locator(
       "text=/Clan-Bereichen|clan access|clan areas|keinen Zugang|Go to Profile|Zum Profil|wähle einen Clan|select a clan/i",
     );
@@ -87,7 +87,7 @@ test.describe("Forum: Moderation", () => {
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
 
     /* Moderator should see the pinned checkbox option in the create form */
-    const createBtn = page.locator("button.primary, button", { hasText: /neuer beitrag|new post|erstellen|create/i });
+    const createBtn = page.locator("button.gbtn", { hasText: /neuer beitrag|new post|erstellen|create/i });
     if ((await createBtn.count()) > 0) {
       await createBtn.first().click();
       /* The forum form uses section.forum-form, not a bare <form> */

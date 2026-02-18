@@ -739,13 +739,19 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
             clan_id: tgt.target_clan_id ?? undefined,
           };
         } else {
-          const lastReceived = [...threadMessages].reverse().find((m) => m.sender_id !== userId);
-          if (!lastReceived?.sender_id) {
+          const participantIds = new Set<string>();
+          for (const msg of threadMessages) {
+            if (msg.sender_id && msg.sender_id !== userId) participantIds.add(msg.sender_id);
+            for (const r of msg.recipients) {
+              if (r.id !== userId) participantIds.add(r.id);
+            }
+          }
+          if (participantIds.size === 0) {
             setReplyStatus(t("failedToSend"));
             return;
           }
           payload = {
-            recipient_ids: [lastReceived.sender_id],
+            recipient_ids: Array.from(participantIds),
             content: replyContent.trim(),
             message_type: "private",
             parent_id: selectedThreadId,

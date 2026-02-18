@@ -67,13 +67,13 @@ Run: `npx playwright test`
 
 Major architectural shift for broadcast messaging. Broadcasts no longer create per-user `message_recipients` rows. Instead, targeting criteria are stored on the message itself and visibility is resolved at read time.
 
-- **Pull-based visibility:** Broadcast messages store `target_ranks`, `target_roles`, `target_clan_id` on the `messages` row. Inbox and thread views check the user's current rank, clan membership, and role against these criteria. New clan members and promoted members automatically see relevant historical broadcasts.
-- **Rank filtering in compose:** Content managers can filter broadcasts by rank via a dropdown with preset chips ("Führung" = leader + superior + Webmaster, "Mitglieder" = officer + veteran + soldier + guest). All ranks selected = `target_ranks: NULL` (backwards compatible).
-- **Leadership reply-all:** Users with leader/superior rank in the target clan, or the Webmaster (owner) role, can reply to broadcast threads. Replies copy the thread root's targeting criteria and are delivered as broadcasts to all matching recipients.
+- **Pull-based visibility:** Broadcast (`broadcast`, `clan`) messages store `target_ranks`, `target_roles`, `target_clan_id` on the `messages` row. Inbox and thread views check the user's current rank, clan membership, and role against these criteria. New clan members and promoted members automatically see relevant historical broadcasts. **System messages** (e.g., "Game Account Approved") are NOT pull-based — they use `message_recipients` like private messages.
+- **Rank filtering in compose:** Content managers can filter broadcasts by rank via a Radix Popover dropdown with preset chips ("Führung" = leader + superior + Webmaster, "Mitglieder" = officer + veteran + soldier + guest). All ranks selected = `target_ranks: NULL` (backwards compatible). Uses `@radix-ui/react-popover` for portaled rendering (no z-index issues).
+- **Leadership reply-all:** Users with leader/superior rank in the target clan, the Webmaster (owner) role, or the original sender can reply to broadcast threads. Replies copy the thread root's targeting criteria and are delivered as broadcasts to all matching recipients.
 - **New DB tables:** `message_reads` (broadcast read tracking), `message_dismissals` (broadcast delete/archive per user).
-- **New shared module:** `lib/messages/broadcast-targeting.ts` centralizes recipient resolution, visibility checking, and reply-all authorization.
-- **New component:** `app/messages/rank-filter.tsx` — rank filter dropdown with presets.
-- **Dual-path inbox:** `GET /api/messages` now queries private messages via `message_recipients` and broadcasts via rank matching, merging results.
+- **New shared module:** `lib/messages/broadcast-targeting.ts` centralizes recipient resolution, visibility checking (async per-message + batched sync via `loadUserBroadcastContext`), and reply-all authorization.
+- **New component:** `app/messages/rank-filter.tsx` — rank filter Radix Popover dropdown with presets.
+- **Dual-path inbox:** `GET /api/messages` queries private/system messages via `message_recipients` (Part A) and broadcasts via rank matching (Part B), merging results. Part B uses `loadUserBroadcastContext()` + `userMatchesBroadcastTargetingSync()` for O(1) per-message matching.
 - **Thread metadata:** `GET /api/messages/thread/[threadId]` returns `meta.can_reply` and `meta.thread_targeting` for client-side reply logic.
 - **Migration:** `Documentation/migrations/messages_broadcast_targeting.sql`
 

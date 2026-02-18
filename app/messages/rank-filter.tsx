@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
+import * as Popover from "@radix-ui/react-popover";
 import { ALL_RANKS, RANK_PRESET_FUEHRUNG, RANK_PRESET_MITGLIEDER } from "./use-messages";
 
 interface RankFilterProps {
@@ -27,18 +28,6 @@ export function RankFilter({
   onIncludeWebmasterChange,
 }: RankFilterProps): JSX.Element {
   const t = useTranslations("messagesPage");
-  const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent): void {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const isAllSelected = selectedRanks.length === ALL_RANKS.length && includeWebmaster;
 
@@ -91,14 +80,32 @@ export function RankFilter({
   return (
     <div className="form-group">
       <label>{t("rankFilter")}</label>
-      <div ref={wrapperRef} className="relative">
-        <button type="button" className="rank-filter-trigger" onClick={() => setIsOpen((prev) => !prev)}>
-          <span className="rank-filter-summary">{summaryLabel}</span>
-          <span className="rank-filter-chevron">{isOpen ? "\u25B2" : "\u25BC"}</span>
-        </button>
-
-        {isOpen ? (
-          <div className="rank-filter-dropdown">
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button type="button" className="select-trigger" aria-label={t("rankFilter")}>
+            <span>{summaryLabel}</span>
+            <span className="select-icon-wrap">
+              <span className="select-icon">
+                <svg aria-hidden="true" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                  <path
+                    d="M1 1L6 6L11 1"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            className="select-content rank-filter-popover"
+            sideOffset={6}
+            align="start"
+            style={{ width: "var(--radix-popover-trigger-width)", maxHeight: 320 }}
+          >
             <div className="rank-filter-presets">
               <button type="button" className="rank-filter-preset" onClick={selectAll}>
                 {t("allRanks")}
@@ -127,9 +134,9 @@ export function RankFilter({
                 <span>{t("webmaster")}</span>
               </label>
             </div>
-          </div>
-        ) : null}
-      </div>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
     </div>
   );
 }

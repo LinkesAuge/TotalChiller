@@ -14,6 +14,7 @@
 - **Runbook stale sections**: Removed the non-existent `public/icon-preview.html` guidance and corrected admin shared-hook/component path references in `Documentation/runbook.md`
 - **Template screenshot archive cleanup**: Removed unreferenced tracked files under `Design/TotalBattleTemplate/` and added an ignore guard in `.gitignore` to avoid accidental re-commits
 - **Dependency manifest hygiene**: Added explicit `dotenv` + `typescript-eslint` dev dependencies used by tooling (`scan-design-assets.ts`, `eslint.config.js`) and removed unused direct `@eslint/eslintrc`
+- **Desktop top-bar parity with mobile framing**: Strengthened the desktop-only gold divider glow and slightly compacted desktop top-bar padding in `app/styles/layout.css` so desktop header framing matches the clearer mobile look while leaving mobile breakpoints unchanged
 
 - **Messages recipient privacy**: Removed `email` fields from message-related profile payloads returned to clients (`/api/messages`, `/api/messages/sent`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, `/api/messages/search-recipients`) to prevent exposing user email addresses in messaging API responses
 - **Message profile fallback consistency**: Unified sender/recipient label fallback behavior through shared resolver logic so message routes and `useMessages` use the same display-name/username fallback order

@@ -1,359 +1,152 @@
-# Runbook (Setup + Usage)
+# Runbook
 
-This runbook explains how to set up, run, and use the [THC] Chiller & Killer community platform.
+> Setup, operations, and troubleshooting. For architecture and code patterns see `ARCHITECTURE.md`.
 
-## 1) Supabase Setup
+## 1. Supabase Setup
 
 1. Create a Supabase project.
-2. Go to **Project Settings → API** and copy:
-   - Project URL
-   - anon public key
-   - service role key
-3. In Supabase SQL Editor, run in order:
-   - `Documentation/supabase_chest_entries.sql` (base schema)
-   - `Documentation/migrations/game_account_approval.sql`
-   - `Documentation/migrations/messages_v2.sql`
-   - `Documentation/migrations/messages_sender_delete.sql`
-   - `Documentation/migrations/messages_archive.sql`
-   - `Documentation/migrations/notifications.sql`
-   - `Documentation/migrations/event_recurrence.sql`
-   - `Documentation/migrations/event_organizer.sql`
-   - `Documentation/migrations/event_templates.sql`
-   - `Documentation/migrations/event_banner_url.sql`
-   - `Documentation/migrations/event_is_pinned.sql`
-   - `Documentation/migrations/forum_tables.sql`
-   - `Documentation/migrations/forum_storage.sql`
-   - `Documentation/migrations/forum_seed_categories.sql`
-   - `Documentation/migrations/forum_thread_linking.sql`
-   - `Documentation/migrations/forum_rls_permissions.sql`
-   - `Documentation/migrations/member_forum_delete_permission.sql`
-   - `Documentation/migrations/forum_comment_count_trigger.sql`
-   - `Documentation/migrations/profile_default_game_account.sql`
-   - `Documentation/migrations/shadow_membership.sql`
-   - `Documentation/migrations/member_directory_rls.sql`
-   - `Documentation/migrations/article_banner.sql`
-   - `Documentation/migrations/article_updated_by.sql`
-   - `Documentation/migrations/author_fk_constraints.sql`
-   - `Documentation/migrations/site_content.sql`
-   - `Documentation/migrations/site_list_items.sql`
-   - `Documentation/migrations/site_list_items_bulk_reorder.sql`
-   - `Documentation/migrations/cms_icons_bucket.sql` (manual bucket creation — see file)
-   - `Documentation/migrations/fix_broken_markdown.sql`
-   - `Documentation/migrations/roles_permissions_cleanup.sql`
-   - `Documentation/migrations/guest_role_permissions.sql`
-   - `Documentation/migrations/role_change_protection.sql`
-   - `Documentation/migrations/clans_delete_policy_fix.sql`
-   - `Documentation/migrations/design_system_tables.sql`
-   - `Documentation/migrations/design_system_render_type.sql`
-   - `Documentation/migrations/bug_reports.sql`
-   - `Documentation/migrations/bug_reports_v2.sql`
-   - `Documentation/migrations/bug_reports_v3.sql`
-   - `Documentation/migrations/drop_chest_data_tables.sql`
-   - Legacy only (do not run on fresh setup): `Documentation/migrations/messages.sql` (pre-v2 single-table model)
+2. Copy Project URL, anon key, and service role key from **Project Settings → API**.
+3. Run migrations in order in the Supabase SQL Editor. All files in `Documentation/migrations/`:
 
-## 2) Local Environment
+```
+supabase_chest_entries.sql              (base schema)
+game_account_approval.sql
+messages_v2.sql
+messages_sender_delete.sql
+messages_archive.sql
+messages_broadcast_targeting.sql
+messages_strip_quotes.sql
+notifications.sql
+event_recurrence.sql
+event_organizer.sql
+event_templates.sql
+event_banner_url.sql
+event_is_pinned.sql
+forum_tables.sql
+forum_storage.sql
+forum_seed_categories.sql
+forum_thread_linking.sql
+forum_rls_permissions.sql
+member_forum_delete_permission.sql
+forum_comment_count_trigger.sql
+profile_default_game_account.sql
+shadow_membership.sql
+member_directory_rls.sql
+article_banner.sql
+article_updated_by.sql
+author_fk_constraints.sql
+site_content.sql
+site_list_items.sql
+site_list_items_bulk_reorder.sql
+cms_icons_bucket.sql                    (manual bucket creation — see file)
+fix_broken_markdown.sql
+roles_permissions_cleanup.sql
+guest_role_permissions.sql
+role_change_protection.sql
+clans_delete_policy_fix.sql
+design_system_tables.sql
+design_system_render_type.sql
+bug_reports.sql
+bug_reports_v2.sql
+bug_reports_v3.sql
+drop_chest_data_tables.sql
+```
+
+Legacy only (do not run on fresh setup): `messages.sql` (pre-v2 single-table model).
+
+## 2. Local Environment
 
 Create `.env.local` in the project root:
 
-```
+```env
 NEXT_PUBLIC_SUPABASE_URL=YOUR_PROJECT_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 
-# Optional: bug report email notifications (via Resend)
-RESEND_API_KEY=re_xxxxx
+# Optional
+TURNSTILE_SECRET_KEY=...            # Cloudflare CAPTCHA for forgot-password
+SENTRY_DSN=...                      # Error tracking
+RESEND_API_KEY=re_xxxxx             # Bug report email notifications
 RESEND_FROM_EMAIL=bugs@yourdomain.com
 NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```
 
-## 3) Install + Run
+## 3. Install + Run
 
-```
+```bash
 npm install
-npm run dev
+npm run dev        # http://localhost:3000
 ```
 
-Open: `http://localhost:3000`
+## 4. Auth Flow
 
-## 4) Auth Flow
-
-- Register: `/auth/register`
+- Register: `/auth/register` → confirm email → login → first-login redirect to `/profile` → create game account → admin assigns clan.
 - Login: `/auth/login`
-- Forgot password: `/auth/forgot`
-- Update password: `/auth/update` — redirects to dashboard after 2 seconds on success
+- Forgot password: `/auth/forgot` → `/auth/update`
 
-### New User Onboarding Flow
+Email templates (dual-theme: Outlook light + modern dark) are documented in `supabase-email-templates.md` and configured in **Supabase Dashboard → Authentication → Email Templates**.
 
-1. **Register** at `/auth/register` (email, username, password).
-2. **Confirm email** — a bilingual (DE/EN) confirmation email is sent. The link redirects to the login page after verification.
-3. **Log in** at `/auth/login` — the login page detects first-time users (no game accounts) and automatically redirects them to `/profile`.
-4. **Create game account** — in the profile page, the user adds their Total Battle player name.
-5. **Clan assignment** — an admin assigns the user to a clan (typically within 24–48 hours).
+## 5. Running Tests
 
-Email templates (dual-theme: light for Outlook, dark for modern clients) are documented in `Documentation/supabase-email-templates.md` and must be configured in the Supabase Dashboard under **Authentication → Email Templates**.
+### Unit Tests (Vitest)
 
-## 5) Routing Behavior
-
-- Unauthenticated `/` redirects to `/home`
-- Authenticated `/home` redirects to `/`
-- **API routes** (`/api/`) are **not** redirected by the proxy — they handle their own auth and return JSON error responses (e.g. 401, 403)
-- **PKCE catch-all:** Stray auth codes (when Supabase ignores redirectTo) are caught by the proxy and redirected to `/auth/callback`. Registration, email change, and forgot-password set `auth_redirect_next` fallback cookie.
-- Non-API, non-public page routes redirect unauthenticated users to `/home`
-- Admin page routes (`/admin`, `/design-system`) require admin role; non-admins redirected to `/not-authorized?reason=admin` (admin-specific access denied message). "Verwaltung" nav section is visible to all authenticated users.
-
-## 6) Core Pages
-
-- Public Home: `/home`
-- Dashboard: `/`
-- Announcements: `/news`
-- Forum: `/forum`
-- Analytics (Analysen): `/analytics`
-- Events (Event-Kalender): `/events`
-- Messages: `/messages`
-- Profile: `/profile`
-- Members: `/members`
-- Bug Reports: `/bugs`
-- Settings: `/settings`
-- Admin: `/admin`
-- Design System: `/design-system` (admin only)
-
-## 7) Admin: Clans + Memberships
-
-1. Go to `/admin`
-2. Create a clan
-3. Add members by **user_id** or **email**
-4. Assign role and active status
-
-## 8) Admin: Forum Categories
-
-In `/admin` → Forum tab:
-
-- Create/edit/delete forum categories
-- Reorder categories via up/down buttons
-
-## Admin Architecture
-
-The admin panel uses a modular, code-split architecture:
-
-- **`admin-client.tsx`**: Slim orchestrator (~140 lines) — renders the tab bar and dynamically imports the active tab.
-- **`admin-context.tsx`**: `AdminProvider` context — shared Supabase client, clan data, section routing, status. All tabs call `useAdminContext()`.
-- **Tabs** (`app/admin/tabs/`): Each tab is a self-contained component lazy-loaded via `next/dynamic`. Tab names: `clans-tab`, `users-tab`, `logs-tab`, `approvals-tab`, `forum-tab`.
-- **Shared hooks**: `lib/hooks/use-pagination.ts`, `lib/hooks/use-sortable.ts`, and admin-specific `app/admin/hooks/use-confirm-delete.ts`.
-- **Shared components**: `app/admin/components/danger-confirm-modal.tsx`, plus global table helpers `app/components/sortable-column-header.tsx` and `app/components/pagination-bar.tsx`.
-
-When modifying the admin panel:
-
-- Add new tabs in `app/admin/tabs/`, register them in `admin-client.tsx`'s `TAB_MAP` and `AdminSection` type.
-- Use shared hooks for pagination, sorting, and delete flows instead of reimplementing.
-- Context state is in `admin-context.tsx` — add new shared state there, not in individual tabs.
-
-## 9) Announcements
-
-In `/news`:
-
-- Create announcements with banner images (6 templates + custom upload)
-- Rich markdown editor with image upload (paste/drag-drop)
-- Content supports formatting, images, videos, links
-- Pinned announcements appear at top
-- Edit tracking: original author is preserved, editor tracked separately
-
-## 10) Forum
-
-In `/forum`:
-
-- Browse by category
-- Create posts with rich markdown editor
-- Comment/reply with voting
-- Pin important posts (content managers only)
-- Post thumbnails extracted from content
-
-## 11) Events
-
-In `/events`:
-
-- Create single or recurring events (daily/weekly/biweekly/monthly)
-- Use templates for common event types
-- Calendar view with day-detail panel (auto-scrolls on day click)
-- Optional organizer field
-
-## 12) Running Tests
-
-### Vitest Unit Tests
-
-**Current status (2026-02-17):** 581 tests across 30 test files in `lib/` and `app/`.
-
-```
-npm run test:unit                            # Run all unit tests once
-npm run test:unit:watch                      # Run in watch mode (re-runs on file change)
-npx vitest run lib/permissions.test.ts       # Run a specific test file
+```bash
+npm run test:unit                        # Run all
+npm run test:unit:watch                  # Watch mode
+npx vitest run lib/permissions.test.ts   # Specific file
 ```
 
-### Playwright E2E Tests
+### E2E Tests (Playwright)
 
-**Current status (2026-02-17):** 435 tests across 29 files in Chromium (`npx playwright test --list --project=chromium`). 5 browser projects (chromium, firefox, webkit, mobile-chrome + setup).
-
-```
-npx playwright test                          # Run all tests (all browsers)
-npx playwright test --project=chromium       # Run in Chromium only (fastest)
-npx playwright test tests/admin.spec.ts      # Run a specific spec file
-npx playwright test tests/messages.spec.ts --project=mobile-chrome  # Mobile inbox/thread flow checks
-npx playwright test --ui                     # Open interactive test UI
+```bash
+npx playwright test                      # All browsers
+npx playwright test --project=chromium   # Chromium only (fastest)
+npx playwright test tests/admin.spec.ts  # Specific spec
+npx playwright test --ui                 # Interactive UI
 ```
 
-Testing guidance:
+**Test user setup:** Before first run, execute `Documentation/test-user-setup.sql` in Supabase SQL Editor. Creates 6 test roles (owner, admin, moderator, editor, member, guest). Password: `TestPassword123!`.
 
-- Prefer `domcontentloaded` + explicit locator waits over `waitForLoadState("networkidle")` (persistent Supabase traffic can keep pages busy).
-- Keep this suite-wide convention: all current Playwright tests/helpers are already migrated away from `networkidle`; new tests should follow the same `domcontentloaded` + polling/wait pattern.
-- For assertions that depend on clan-access resolution, use `waitForClanAccessResolution()` from `tests/helpers/wait-for-clan-access.ts`.
+**Auth:** Tests use pre-authenticated `storageState` saved by `tests/auth.setup.ts`. No login round-trip per test.
 
-### Authentication: storageState
+**Key conventions:**
 
-Tests use **pre-authenticated browser state** for fast, login-free test execution:
-
-1. A global `tests/auth.setup.ts` runs once before all browser projects.
-2. It logs in as each of the 6 test roles (owner, admin, moderator, editor, member, guest) and saves browser state to `tests/.auth/{role}.json`.
-3. Test files declare their required role via `test.use({ storageState: storageStatePath("role") })` at the file or describe level.
-4. This eliminates the ~3-5 second login round-trip per test.
-
-The `loginAs(page, role)` helper is retained in `tests/helpers/auth.ts` as a fallback for per-test role overrides (currently used in 1 test).
-
-### Test User Setup
-
-Before running tests for the first time, create test users by running `Documentation/test-user-setup.sql` in the Supabase SQL Editor. This creates roles for 6 pre-provisioned test users (owner, admin, moderator, editor, member, guest). All use password `TestPassword123!`.
-
-### Test Suite Structure
-
-```
-tests/
-├── auth.setup.ts              # Global setup: pre-authenticate all 6 roles
-├── helpers/auth.ts            # storageStatePath(), loginAs(), TEST_USERS
-├── helpers/wait-for-clan-access.ts  # Wait helper for ClanAccessGate loading transitions
-├── smoke.spec.ts              # Page load & redirect checks
-├── auth.spec.ts               # Login, register, forgot password forms
-├── navigation.spec.ts         # Sidebar links, access control
-├── api-endpoints.spec.ts      # API contracts (status codes, response shapes)
-├── cms-*.spec.ts (6 files)    # CMS pages, API, components, markdown, responsive, public-view
-├── news.spec.ts               # News/articles functionality
-├── events.spec.ts             # Events/calendar functionality
-├── forum.spec.ts              # Forum posts, comments, moderation
-├── messages.spec.ts           # Messaging system
-├── messages-api-contract.spec.ts  # Messaging API contract + privacy assertions
-├── profile-settings.spec.ts   # Profile & settings forms
-├── dashboard.spec.ts          # Authenticated landing page
-├── admin.spec.ts              # Admin access control & section rendering
-├── admin-actions.spec.ts      # Admin interactive tab actions
-├── crud-flows.spec.ts         # CRUD workflows (news, events, forum, messages)
-├── feature-flows.spec.ts      # Feature integration flows
-├── notifications.spec.ts      # Notification bell, dropdown, API
-├── bugs.spec.ts               # Bug reports: API auth/CRUD, UI, widget, settings, email guard
-├── i18n.spec.ts               # Language switching, cookies
-├── accessibility.spec.ts      # axe-core accessibility audits
-├── permissions-unit.spec.ts   # Permission system unit tests
-├── roles-permissions.spec.ts  # E2E role-based access control
-└── debug-game-account-modal.spec.ts  # Game account modal edge cases
-```
+- Use `domcontentloaded` + explicit element waits (never `networkidle`)
+- Use `waitForClanAccessResolution()` for clan-gate-dependent assertions
+- API tests accept 429 alongside expected status codes
+- Use regex alternation for i18n text matching (`/erstellen|create/i`)
 
 ### CI / Pre-commit
 
-- **Husky pre-commit hooks** run lint-staged (ESLint + Prettier) on staged files.
-- **GitHub Actions CI** runs `npm run lint`, `npm run type-check`, `npm run build`, and Playwright tests on push/PR.
-- **Unit tests** can be run locally via `npm run test:unit`. CI currently runs Playwright only; Vitest can be added to the workflow as needed.
+- **Husky pre-commit:** lint-staged (ESLint + Prettier) on staged files.
+- **GitHub Actions:** `npm run lint`, `npm run type-check`, `npm run build`, Playwright tests.
 
-### Notes
+## 6. Design System Asset Manager
 
-- Admin panel tests use 10-15s timeouts for lazy-loaded tab content — `toContainText` and `toBeVisible` assertions auto-retry until the `next/dynamic` chunks load.
-- Firefox and WebKit require separate browser installations (`npx playwright install`). Chromium is the primary test target.
-- API tests accept both expected status codes and 429 (rate-limited) as valid responses.
-- Tests use regex alternation for i18n-aware text matching (`/erstellen|create/i`).
-- Tests handle conditional UI gracefully (e.g. "no clan access" messages).
-- The mobile messages thread-flow spec auto-seeds a private message (admin API context) when inbox data is empty, then verifies list→thread and back-to-list behavior.
-
-## 13) Design System Asset Manager
-
-Admin-only tool at `/design-system` for managing game assets, UI inventory, and assignments.
+Admin tool at `/design-system`.
 
 ### First-time setup
 
-1. Run migrations in Supabase SQL Editor (in order):
-   - `Documentation/migrations/design_system_tables.sql`
-   - `Documentation/migrations/design_system_render_type.sql`
-2. Scan and copy assets (from `Design/Resources/Assets` into `public/design-assets/` + Supabase):
-   ```
-   npx tsx scripts/scan-design-assets.ts
-   ```
-3. Scan UI elements (from codebase + checklist into Supabase — includes render_type and preview_html):
-   ```
-   npx tsx scripts/scan-ui-elements.ts
-   ```
-4. Open `/design-system` in the browser (admin login required).
+1. Run `design_system_tables.sql` + `design_system_render_type.sql` migrations.
+2. Scan assets: `npx tsx scripts/scan-design-assets.ts`
+3. Scan UI elements: `npx tsx scripts/scan-ui-elements.ts`
+4. Open `/design-system` (admin login required).
 
-### Re-running scanners
+Both scripts are idempotent (upsert on unique keys). Re-run after adding new assets or elements. Flags: `--dry-run`, `--skip-copy`, `--skip-db`.
 
-Both scripts are idempotent (upsert on unique keys). Re-run after adding new assets or UI elements:
+## 7. Troubleshooting
 
-```
-npx tsx scripts/scan-design-assets.ts        # re-scan game assets
-npx tsx scripts/scan-ui-elements.ts          # re-scan UI elements
-```
-
-Flags:
-
-- `--dry-run` — log actions without copying files or writing to DB
-- `--skip-copy` — skip the file copy step (DB upsert only)
-- `--skip-db` — skip DB upsert (copy files only)
-
-## 14) Bug Reports
-
-In `/bugs`:
-
-- Any authenticated user can submit bug reports with title, description, category, page URL, and up to 5 screenshots.
-- All reports are visible to all authenticated users (transparent issue tracking).
-- Simple workflow: Open → Resolved → Closed.
-- Admin/content manager controls appear inline for status changes, priority assignment (low/medium/high/critical), and category reassignment.
-- Threaded comments allow back-and-forth between reporters and admins. Reporters receive a notification when someone comments on their report.
-- Admin-managed categories (default: Bug, Feature Request, UI Issue, Data Problem, Other) — add/edit/delete via the admin controls or directly via the `/api/bugs/categories` API.
-- A floating quick-report widget button appears on every page (bottom-right). It auto-captures the current page URL and opens a compact report form in a modal. Hidden on the `/bugs` page itself and for unauthenticated users.
-- Deep-link: `/bugs?report=<id>` opens a specific report directly.
-- Screenshots are stored in the Supabase Storage `bug-screenshots` bucket. The bucket is created by the migration; verify it exists in the Supabase Dashboard under Storage.
-
-### First-time setup
-
-1. Run migrations in order in Supabase SQL Editor:
-   - `Documentation/migrations/bug_reports.sql`
-   - `Documentation/migrations/bug_reports_v2.sql`
-   - `Documentation/migrations/bug_reports_v3.sql`
-2. Verify the `bug-screenshots` storage bucket was created (Dashboard → Storage). If not, create it manually with `public = true`.
-3. Default categories (Bug, Feature Request, UI Issue, Data Problem, Other) are seeded by the migration.
-
-### Email notifications (optional)
-
-Admin email notifications require a [Resend](https://resend.com) account (free tier: 100 emails/day).
-
-1. Create a Resend account and verify your sending domain.
-2. Add these to `.env.local`:
-   - `RESEND_API_KEY` — your Resend API key.
-   - `RESEND_FROM_EMAIL` — verified sender (e.g. `bugs@yourdomain.com`).
-   - `NEXT_PUBLIC_SITE_URL` — your site URL for the "View Report" link.
-3. Admins (owner/admin only) opt in via Settings → Notifications → "Bug report email" toggle (off by default). The toggle is hidden for non-admin users; the API silently ignores `bugs_email_enabled` from non-admins.
-4. If env vars are missing, email notifications are silently skipped — no errors.
-
-## 15) Troubleshooting
-
-- If data insert fails: check RLS policies and membership
-- If user lookup fails: verify `profiles` trigger ran on signup
-- If page redirects unexpectedly: confirm auth session in Supabase
-- If YouTube embeds are blocked: verify CSP headers in `next.config.js`
-- If forum category add/sort fails: verify `/api/admin/forum-categories` route and service role key
-- If announcement banner not saving: verify `banner_url` column exists in articles table
-- If admin tab shows loading skeleton indefinitely: check browser devtools network tab for chunk load errors (dynamic imports via `next/dynamic`)
-- If admin tests fail with timeouts: increase the `timeout` value in `toContainText()` / `toBeVisible()` assertions, or check that the dev server is running
-- If `.next` cache causes stale behavior after refactoring: delete `.next/` and restart `npm run dev`
-- If `npm run lint` reports hook/unused-var errors in `playwright-report/trace/assets/*`: remove generated Playwright report artifacts (`playwright-report/`, `.playwright-cli/`) before running lint; those minified trace bundles are not source files
-- If Playwright console sweeps show CSP blocks for `https://va.vercel-scripts.com/v1/script.debug.js`: verify `next.config.js` still allows `https://va.vercel-scripts.com` in `script-src` and Vercel vitals endpoints in `connect-src`
-- If Playwright console sweeps show `[NotificationBell] AbortError: signal is aborted without reason`: verify `app/components/notification-bell.tsx` still ignores `AbortError` in polling fetch catch paths
-- If Next.js logs an LCP advisory for `/assets/vip/back_tooltip_2.png` on auth flows: verify auth tooltip header images still use `loading="eager"` (`app/auth/login|register|forgot|update`)
-- If console shows `429` on `/api/admin/email-confirmations`: verify admin confirmation fetch dedupe is still wired through `AdminProvider` (`refreshEmailConfirmations` + shared context state) and that GET keeps `standard` rate limiting; reference baseline `output/playwright/console-email-confirmation-429-fix.log` (`Errors: 0, Warnings: 0`)
-- If API routes return HTML instead of JSON: verify that `proxy.ts` skips the auth redirect for `/api/` paths (the proxy should not redirect API requests — they handle their own auth)
-- If bug report screenshot upload fails: verify the `bug-screenshots` storage bucket exists in Supabase Dashboard (Storage section) and that it is public
-- If bug report categories are empty: re-run the `bug_reports.sql` migration — it seeds 5 default categories
-- If Radix Select dropdowns lose their visible scrollbar after upgrading `@radix-ui/react-select`: Radix injects a runtime `<style>` tag hiding scrollbars on `[data-radix-select-viewport]`. Our `!important` overrides in `app/styles/components.css` counter this. Verify the injected styles haven't changed shape — see `handoff_summary.md → Radix Select Scrollbar` for the full explanation.
+| Problem                                       | Fix                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Data insert fails                             | Check RLS policies and membership                                                                 |
+| User lookup fails                             | Verify `profiles` trigger ran on signup                                                           |
+| Unexpected redirect                           | Confirm auth session in Supabase                                                                  |
+| YouTube embeds blocked                        | Verify CSP headers in `next.config.js`                                                            |
+| Forum category add/sort fails                 | Verify `/api/admin/forum-categories` route and service role key                                   |
+| Admin tab loading indefinitely                | Check devtools network for chunk load errors (dynamic imports)                                    |
+| `.next` cache causes stale behavior           | Delete `.next/` and restart `npm run dev`                                                         |
+| `npm run lint` errors in `playwright-report/` | Remove generated Playwright artifacts before lint                                                 |
+| API routes return HTML instead of JSON        | Verify `proxy.ts` skips auth redirect for `/api/` paths                                           |
+| Bug screenshot upload fails                   | Verify `bug-screenshots` storage bucket exists (Supabase → Storage)                               |
+| Radix Select scrollbar missing after upgrade  | Check `!important` overrides in `app/styles/components.css` still counter Radix's injected styles |
+| Bug report categories empty                   | Re-run `bug_reports.sql` migration (seeds 5 defaults)                                             |

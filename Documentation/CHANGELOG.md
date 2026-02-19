@@ -1,893 +1,239 @@
 # Changelog
 
-> Historical record of all changes. Newest first. For architecture, see `ARCHITECTURE.md`. For current status, see `handoff_summary.md`.
+> Historical record of changes (newest first). For architecture see `ARCHITECTURE.md`. For setup see `runbook.md`.
 
 ---
 
-## [Unreleased] – 2026-02-19
+## 2026-02-19
 
 ### Fixed
 
-- **Auth error messages untranslated and generic**: Login, registration, forgot-password, and update-password pages displayed raw Supabase error messages (e.g. "Invalid login credentials") instead of user-friendly, locale-aware text. Added `getAuthErrorKey()` utility in `lib/supabase/error-utils.ts` that maps known Supabase GoTrue error fragments to i18n keys. Added `auth.errors` namespace in both `en.json` and `de.json` with translated messages for invalid credentials, unconfirmed email, duplicate registration, weak password, rate limiting, CAPTCHA failure, and generic fallback. Updated all four auth pages (`login`, `register`, `forgot`, `update`) to use translated errors. Forgot-password API route now returns `errorKey` instead of hardcoded English strings.
+- **Auth error messages untranslated:** Login, register, forgot-password, and update-password pages displayed raw Supabase error messages. Added `getAuthErrorKey()` utility mapping GoTrue errors to i18n keys with translated messages in both locales.
 
 ---
 
-## [Unreleased] – 2026-02-18
+## 2026-02-18
 
 ### Added
 
-- **Pull-based broadcast visibility with rank filtering**: Broadcasts (clan and global) no longer create per-user `message_recipients` rows. Instead, targeting criteria (`target_ranks`, `target_roles`, `target_clan_id`) are stored on the message itself, and visibility is resolved at read time based on the user's current rank, clan membership, and role. This means new clan members and promoted members automatically see relevant historical broadcasts. New database tables: `message_reads` (tracks which broadcast messages a user has opened), `message_dismissals` (per-user delete/archive for broadcasts). Migration: `Documentation/migrations/messages_broadcast_targeting.sql`.
-- **Broadcast rank filter in compose form**: Content managers can filter broadcasts by rank when composing clan or global messages. A multi-select dropdown with preset chips ("Führung" = leader + superior + Webmaster, "Mitglieder" = officer + veteran + soldier + guest) allows targeting specific ranks. The Webmaster role (`owner`) can be included/excluded independently.
-- **Leadership reply-all on broadcasts**: Users with leader/superior rank in the target clan, or the Webmaster (owner) role, can reply to broadcast threads. Replies are sent as broadcasts with the same targeting criteria as the thread root, reaching all original recipients. Thread API returns `can_reply` boolean and `thread_targeting` metadata.
-- **New shared module `lib/messages/broadcast-targeting.ts`**: Contains `resolveBroadcastRecipients()`, `userMatchesBroadcastTargeting()`, `userMatchesBroadcastTargetingSync()`, `loadUserBroadcastContext()`, and `canUserReplyToBroadcast()` utilities used across multiple API routes.
-- **New component `app/messages/rank-filter.tsx`**: Rank filter dropdown using Radix Popover (portaled) with preset chips for the compose form.
-
-### Fixed
-
-- **System messages visible to all users**: Pull-based broadcast logic incorrectly included `"system"` message type alongside `"broadcast"` and `"clan"`. System messages (e.g., "Game Account Approved") are individual notifications delivered via `message_recipients` and should not use pull-based visibility. Removed `"system"` from all broadcast type arrays across API routes, targeting utilities, and migration RLS policy. System messages now correctly use `message_recipients` path (same as private).
-- **Duplicate broadcasts in inbox**: When `typeFilter === "all"`, Part A of the inbox query fetched all messages with `message_recipients` rows (including old broadcast rows not yet cleaned up), while Part B also found those broadcasts via targeting. Part A now filters to `["private", "system"]` only.
-- **Broadcast reply-all fails with "Invalid input"**: When the original broadcast had no rank filter, `target_ranks` was `null` in thread targeting metadata. The client sent this `null` in the reply payload, but the Zod schema rejected it (`.optional()` does not accept `null`). Added `.nullable()` to both `target_ranks` and `target_roles` in the schema.
-- **Content manager can't reply to own broadcast thread**: `canReply` check only allowed owner/leader/superior. A content manager who sent the broadcast but didn't hold those ranks couldn't reply. Thread route now also grants `canReply` when user is the thread sender.
-- **Delete button hidden for broadcast messages in thread view**: The delete button was gated on `recipient_entry_id`, which is always null for broadcasts. Removed the guard; the DELETE API correctly handles both types.
-- **Inbox broadcast filtering N+1 queries**: `userMatchesBroadcastTargeting()` made 1–2 DB queries per message. Added `loadUserBroadcastContext()` (pre-fetches user roles/memberships once) and `userMatchesBroadcastTargetingSync()` (in-memory matching) to eliminate per-message DB calls.
-- **Rank filter dropdown rendering behind form fields**: Custom CSS dropdown had z-index stacking context issues. Replaced with `@radix-ui/react-popover` using `Popover.Portal`, matching the pattern used by all other dropdowns in the project.
-- **Inbox tab header text clipped with large badge numbers**: Tabs used `flex: 1 1 0` with `min-width: 0` and `overflow: hidden`, causing text like "Posteingang 36" to be cut off. Changed to `flex: 1 1 auto` with `min-width: fit-content`.
+- **Pull-based broadcast visibility with rank filtering:** Broadcasts no longer create per-user `message_recipients` rows. Targeting criteria (`target_ranks`, `target_roles`, `target_clan_id`) stored on the message, visibility resolved at read time. New tables: `message_reads`, `message_dismissals`. New module: `lib/messages/broadcast-targeting.ts`. New component: `app/messages/rank-filter.tsx` (Radix Popover with rank presets).
+- **Leadership reply-all on broadcasts:** Users with leader/superior rank or Webmaster role can reply to broadcast threads. Thread API returns `can_reply` metadata.
 
 ### Changed
 
-- **Message list panel wider by default**: Increased list panel max width from 420px to 500px (`grid-template-columns: minmax(300px, 500px) 1fr`) to give the message overview more room relative to the detail panel.
-- **Archive/delete action buttons moved to sender row**: Action buttons (archive, delete, unarchive) relocated from the subject row to the sender/meta row across inbox, sent, and archive lists. This gives the subject line full width and prevents title clipping on smaller screens.
-- **"Mitglieder" rank preset excludes Gast**: The broadcast rank filter preset "Mitglieder" now targets all ranks plus Webmaster except Gast (leader, superior, officer, veteran, soldier + Webmaster).
-
-- **Messages thread view: email cards → chat-style timeline**: Replaced the email-style stacked cards in thread detail with a chat-style flat timeline. Own messages align right with gold accent, received messages align left. Subject is shown once in the thread header only (no more per-message "Re:" subjects). Removed per-message reply buttons — there is a single thread-level reply at the bottom. Reply form simplified: removed subject field, removed quoted content prefill. The `parent_id` nesting concept is no longer used in the UI (replies always target the thread root). Auto-scrolls to the latest message when opening a thread. Trailing blockquotes (auto-generated by the old reply system) are cleaned up via a one-time DB migration (`Documentation/migrations/messages_strip_quotes.sql`) rather than render-time stripping. Touched files: `messages-thread.tsx`, `use-messages.ts`, `messages.css`.
+- **Messages thread view → chat timeline:** Replaced email-style stacked cards with flat chat bubbles (own messages right, received left). Subject shown once in header. Single thread-level reply. Auto-scroll to latest message. Trailing blockquotes cleaned via DB migration.
+- **Next.js Image migration:** Migrated ~25 files from `<img>` to `<Image>`. Restored `no-img-element` ESLint rule with override for markdown renderers.
+- **Sidebar icon reassignment:** Reshuffled sidebar navigation icons for better visual fit across main and admin sections.
+- **Complete GameButton adoption:** Replaced all `className="button primary/danger"` elements site-wide with `GameButton` variants across ~30 files.
+- **Game asset migration:** Re-encoded design assets through Sharp and moved to `public/assets/game/`. Updated all component references.
 
 ### Fixed
 
-- **Mobile sidebar: admin nav collapsed into single icon**: Admin navigation items were collapsed into a single `/admin` link on mobile (<=900px) via `COMPACT_ADMIN_ITEMS`. Removed the compact-viewport collapse so all admin nav icons remain individually visible in the icon-only sidebar strip, matching the main nav behavior. Removed `getNavSectionsForViewport()`, `COMPACT_ADMIN_ITEMS`, and `.nav-group.compact-secondary` CSS.
-- **Mobile sidebar: clan logo still visible**: The CSS rule hiding the sidebar logo on mobile targeted `.sidebar-header picture` (legacy markup), but the logo is now a Next.js `<Image>` rendering an `<img>`. Added `sidebar-header-logo` class to the logo image and updated the mobile CSS selector to match.
-- **Mobile sidebar: section divider sizing**: Adjusted `.nav-group-divider` height and margin within the 900px mobile breakpoint to fit the narrow icon-only strip.
-- **Messages reply "Invalid input" error**: Reply API call sent `subject: null` which failed Zod validation (`z.string().optional()` rejects `null`). Removed the `subject` key from the reply payload so Zod treats it as `undefined`.
+- System messages incorrectly included in broadcast visibility logic.
+- Duplicate broadcasts in inbox when `typeFilter === "all"`.
+- Broadcast reply-all failures with null `target_ranks`.
+- Content managers unable to reply to own broadcast threads.
+- Delete button hidden for broadcast messages in thread view.
+- Inbox broadcast filtering N+1 queries (added batched sync matching).
+- Rank filter dropdown z-index issues (switched to Radix Popover).
+- Inbox tab header text clipped with large badge numbers.
+- Mobile sidebar admin nav, clan logo, section divider issues.
+- Messages reply "Invalid input" from null subject.
+- Approvals table column misalignment.
+- Messages thread not rendering on first click (removed outer `dynamic()`).
+- Pagination page-jump input misaligned (CSS specificity fix).
+- Settings button text overflow (added `width: fit-content` to `.gbtn`).
+- **UI/UX polish batch (P1-P3):** Top chrome compaction, auth progressive disclosure, unified loading skeletons, mobile navigation refinements, interaction + focus polish, accessibility hardening, console warning cleanup.
 
-- **Approvals table column misalignment**: The game-account approvals table header and row columns were misaligned because the actions column used `auto` width, which resolves to different sizes in each separate grid context (header text vs. two GameButtons). Replaced with a fixed `240px` width so all `fr` columns distribute space identically.
-- **Messages thread not rendering on first click**: Replaced `next/dynamic` import for `MessagesThread` with a static import in `messages-client.tsx`. The dynamic wrapper rendered `null` while the JS chunk downloaded (no loading fallback), so the first message click showed a blank thread panel until the user clicked a second message (by which time the chunk had loaded). The heavy `AppMarkdown` dependency inside `MessagesThread` already has its own dynamic import with a skeleton fallback, so removing the outer `dynamic()` has negligible bundle impact.
-- **Pagination page-jump input misaligned**: The page number input in `PaginationBar` was receiving the global `input` padding (`12px 14px`) and `width: 100%` because the global `input:not([type="checkbox"])` selector (specificity 0-1-1) beat `.pagination-page-input` (0-1-0). Bumped the selector to `input.pagination-page-input` (0-1-1, later in file) so the compact `6px 8px` padding and `64px` width apply correctly, fixing the "/ N" label misalignment.
-- **Settings button text overflow**: German labels like "BENUTZERNAME AKTUALISIEREN" overflowed the fixed-width green `GameButton` on the settings page. Root cause: `.gbtn` (`inline-flex`) was being blockified inside column flex containers (`.list`), stretching to full parent width. The absolutely positioned `.gbtn-label` (with `inset: 0`) then filled the stretched button, giving the text far more room than the 114px image — so it never wrapped. Fix: added `width: fit-content` to `.gbtn` so the button always matches its image dimensions. Also added inner `.gbtn-text` span with `display: block; width: 100%; min-width: 0; overflow-wrap: break-word` for proper text wrapping, plus `padding: 2px 6px`, `line-height: 1.2`, and `overflow: hidden` on `.gbtn-label`. Font size reduced to `0.58rem` on settings buttons.
+---
 
-### Changed
-
-- **Next.js Image migration**: Migrated all native `<img>` tags (~25 files) to Next.js `<Image>` for automatic optimization (WebP/AVIF conversion, lazy loading, responsive sizing). Core components (`GameIcon`, `GameButton`, sidebar, pagination, admin tabs) and all feature files now use optimized images. Sidebar logo replaced `<picture>` pattern with single `<Image>`. Bug screenshot lightbox uses `unoptimized` for dynamic Supabase URLs. `@next/next/no-img-element` ESLint rule restored to `"error"` with file-level override for markdown renderers (user-submitted images from arbitrary domains).
-- **Sidebar icon reassignment**: Reshuffled sidebar navigation icons for better visual fit. Main nav: Ankündigungen→daily, Events→clan, Mitglieder→army, Forum→technology. Admin nav: Clan-Verwaltung→`circle_mercenaries_01.png`, Benutzer→`gold_72.png`, Logs→`icons_scroll_1.png`, Forenverwaltung→`icons_main_menu_storage_1.png`, Design System→`clan_emblem_11.png`, Fehlerberichte→`icons_spyglass_2.png`. Bumped Ankündigungen, Fehlerberichte, and Benutzer to `lgIcon: true`. Consolidated all new icons into `public/assets/game/icons/`.
-- **Complete GameButton adoption**: Replaced every remaining `className="button primary"` and `className="button danger"` `<button>` element site-wide with `GameButton` variants — including dynamically-constructed classes in `ConfirmModal`. Submit/save/send actions use `variant="green"`, delete/danger actions use `variant="orange"`, reply/retry/general actions use `variant="ornate1"`, approval/confirmation actions use `variant="turquoise"`. Updated ~30 files: shared components (`form-modal`, `danger-confirm-modal`, `confirm-modal`, `editable-text`, `editable-list`), all feature pages (messages, forum, news, events, bugs, settings, profile), admin tabs (`forum-category-admin`, `approvals-tab`), and all 14 error boundary pages. `ConfirmModal` now accepts optional `confirmButtonVariant` prop (type `GameButtonVariant`) for per-instance override; defaults based on modal variant: info→green, danger/warning→orange. Navigation links (`<Link>`/`<a>`) with button styling left unchanged. `className="button"` (secondary/cancel) buttons kept as CSS-only.
-- **Admin icon consistency**: Changed "Clan erstellen" icon from `icons_plus_3.png` to `shield_22.png` (shield = clan). Changed "Spielkonten zuweisen" in Clan-Verwaltung from `icons_player_1.png` to `icons_plus_3.png` (matching Benutzer tab). Changed "Registrierung bestätigen" IconButton from `icons_check_1.png` to `icons_moderator_add.png` (distinct from generic save checkmark). "Standard entfernen" now uses `variant="danger"` with stacked star + cross badge (`.icon-stack` CSS).
-- **Admin layout tightening**: Reduced `.admin-members-filters` / `.filter-bar` padding (8px→5px), margin-bottom (6px→2px), gap (8px→6px). Reduced `.admin-clan-row` padding (12px→8px) and gap (12px→8px). Removed `width: 100%` and `flex-basis: 100%` from `.admin-clan-actions` so "Clan-Aktionen" label and icons sit inline with the dropdown instead of wrapping below. Added `.filter-bar-spacer` CSS for aligning GameButton vertically with labeled filter inputs. Added `.icon-stack` / `.icon-stack-badge` CSS for compositing badge overlays on icons.
-- **User/profile widget icons enlarged**: Bumped dropdown menu icons (profile, messages, settings) from 16px to 20px in both `sidebar-shell.tsx` and `auth-actions.tsx`.
-- **Game asset migration to `/assets/game/`**: Re-encoded 32 referenced design-assets through Sharp (PNG level-9 optimization) and copied them into `public/assets/game/{icons,buttons,decorations}/`. Updated all component references from `/design-assets/` to `/assets/game/`. Switched small decorative icons and button textures from Next.js `<Image>` to native `<img>` tags — these 14–72px assets don't benefit from on-the-fly optimization and the format was causing Sharp null-response failures in dev mode.
-- **GameButton size reduction**: Reduced ornate button heights from 48→40px, hero from 54→46px, colored/standard from 38→34px with proportionally scaled fonts. Action buttons ("Neuer Beitrag", "Event erstellen", etc.) no longer look oversized.
-- **Shortened CTA text**: "Erfahre mehr über uns" → "Erfahre mehr" / "Learn More About Us" → "Learn More" to fit button dimensions.
-- **Full game icon coverage for sidebar navigation**: Every nav item (main + admin) now displays a game asset icon instead of generic SVGs. Added icons for Home (house), Dashboard (workroom), Analytics (rating), Forum (scroll), Bugs (skull), and all admin tabs (Clans, Approvals, Logs, Forum Admin). Nav icons have hover/active gold glow via CSS `filter: drop-shadow`. Profile and settings action buttons also switched to game icons.
-- **Sidebar ornamental divider**: Switched from Next.js `<Image>` to native `<img>` to eliminate width/height aspect ratio warning.
+## 2026-02-17
 
 ### Added
 
-- **UI overhaul — full implementation** (7 phases completed):
-  - **Phase 1 — Foundation**: New shared components `GameIcon` (18 mapped icons, 5 sizes, raw-path support), `GameButton` (9 variants: ornate1–3, hero, green/orange/purple/turquoise, standard), `GameAlert` (4 variants with gradient backgrounds, colored left accent, game icons). CSS for `.game-pbar` progress bars with shimmer animation and color variants. `.ornamental-divider` utility. `PaginationBar` updated to use game arrow asset images. `DataState` now renders `GameAlert` for loading/error states.
-  - **Phase 2 — Sidebar**: Game asset icons on News, Events, Messages, Members, admin Users, Design System nav items. Ornamental divider (`components_title_1.png`) between nav groups (hidden in collapsed mode). Settings gear action replaced with game icon asset.
-  - **Phase 3 — Dashboard**: Stat cards grid with game icons (Members, Power, Events, Activity) in `.dashboard-stats-grid`. All 4 cards now use consistent `tooltip-head` game headers. Week Highlights section uses `.game-pbar` progress bars (gold/green/blue variants). Events card header upgraded from banner image to tooltip-head.
-  - **Phase 4 — Members**: Hexagonal rank indicator badges using `icons_rang_over.png` (gold, top-3) and `icons_rang.png` (default). Position numbers overlaid on indicator. Podium rows (top 3) get subtle gold tint. Rank label colors preserved from `getRankColor()`/`getRoleColor()`.
-  - **Phase 5 — Content Pages**: Forum "New Post" → `GameButton` ornate1. News "Create Post" → `GameButton` ornate1, pinned star → `GameIcon`. Events "Create Event" → `GameButton` ornate2. All three pages inherit game arrows from `PaginationBar` and `GameAlert` from `DataState`.
-  - **Phase 6 — Remaining Pages**: Home "Apply Now" → `GameButton` hero, "Learn More" → `GameButton` ornate3. Messages "New Message" → `GameButton` ornate1. Bugs "Report Bug" → `GameButton` ornate1. Settings/profile/admin form submit buttons → `GameButton` green; danger/delete actions → `GameButton` orange. Cancel/secondary buttons kept as CSS `.button`.
-  - **Phase 7 — Polish**: `prefers-reduced-motion` support for GameButton, pagination arrows, and progress bar shimmer. All accent colors verified (`--color-accent-red`, `--color-accent-green`, `--color-accent-blue`). Backward-compatible — old `.alert`, `.button`, `.tab` CSS preserved.
-- **UI overhaul implementation plan** (`ui-overhaul-plan.html`): 7-phase HTML plan with review checkpoints covering all 21 pages, 9 CSS files, ~18 TSX components.
-- **Game asset UI preview v4** (`asset-ui-preview.html`): Refined v3 proposals with corrected rank colors, bigger buttons, brighter pagination, CSS-based notifications
-
-## [Unreleased] – 2026-02-17
-
-### Fixed
-
-- **Stale Playwright helper workflows**: Replaced removed data-import dashboard checks in `scripts/playwright/dashboard-workflow.mjs` with current dashboard/news/events/forum deep-link checks, and updated `scripts/playwright/ui-audit.mjs` default routes to active pages only
-- **Obsolete migration step**: Removed legacy `public.chest_entries` FK mutations from `Documentation/migrations/clans_delete_policy_fix.sql` so fresh setups no longer hit missing-table errors
-- **API documentation drift**: Synced `Documentation/ARCHITECTURE.md` route index with current code (`/api/admin/resend-invite`, `/api/notifications/delete-all`, `/api/notifications/[id]` DELETE support, and `[commentId]` path naming)
-- **Runbook stale sections**: Removed the non-existent `public/icon-preview.html` guidance and corrected admin shared-hook/component path references in `Documentation/runbook.md`
-- **Template screenshot archive cleanup**: Removed unreferenced tracked files under `Design/TotalBattleTemplate/` and added an ignore guard in `.gitignore` to avoid accidental re-commits
-- **Dependency manifest hygiene**: Added explicit `dotenv` + `typescript-eslint` dev dependencies used by tooling (`scan-design-assets.ts`, `eslint.config.js`) and removed unused direct `@eslint/eslintrc`
-- **Desktop top-bar parity with mobile framing**: Strengthened the desktop-only gold divider glow and slightly compacted desktop top-bar padding in `app/styles/layout.css` so desktop header framing matches the clearer mobile look while leaving mobile breakpoints unchanged
-- **Global border/line emphasis pass**: Strengthened shared gold border tokens in `app/styles/theme.css` (`--color-edge`, `--color-edge-glow`, and `--color-gold-a*`) so separators, borders, and focus rings read with clearer golden contrast across pages; also added missing alpha tokens (`--color-gold-a15`, `--color-gold-a30`, `--color-gold-a65`) already referenced by style modules
-- **Gold color rebase — brown-amber to true gold**: Rebased every `--color-gold-a*` token and `--color-edge*` in `theme.css` from the dark amber `rgb(201,163,74)` to the brighter `rgb(228,199,120)` (`--color-gold-2`) and normalised alpha values to match token names; replaced all 50+ hardcoded `rgba(201,163,74,…)` instances across `components.css`, `events.css`, `forum.css`, `news.css`, `design-system.css`, and two TSX files with the new base; shifted dark gradient stops from `rgb(138,109,47)` to `rgb(160,135,58)` in `layout.css`, `components.css`, and `tables.css` — borders, separators, focus rings, scrollbars, and gradient fills now read as clean gold instead of muted brown-orange
-
-- **Messages recipient privacy**: Removed `email` fields from message-related profile payloads returned to clients (`/api/messages`, `/api/messages/sent`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, `/api/messages/search-recipients`) to prevent exposing user email addresses in messaging API responses
-- **Message profile fallback consistency**: Unified sender/recipient label fallback behavior through shared resolver logic so message routes and `useMessages` use the same display-name/username fallback order
-- **Initial page payload pressure**: Deferred bug-report widget/form code paths with `next/dynamic` (`BugReportWidgetLoader`, lazy `BugsForm`) so heavyweight report UI code is no longer part of the eager baseline
-- **Image preload contention**: Reduced non-critical `next/image` `priority` usage on decorative assets (sidebar textures, hero lights, top-bar background) to avoid competing with true LCP assets
-- **Auth/role fetch duplication**: Added a shared auth-state provider so `useAuth()` and `useUserRole()` consume centralized session/role state instead of each triggering independent Supabase lookups
-- **Events overfetch growth**: Added bounded event/template fetch windows and limits in `use-events-data.ts` to keep payload size stable as historical data grows
-- **Playwright Chromium flake cleanup**: Stabilized admin/news/events/notifications/roles CRUD and access specs by replacing fragile `networkidle` waits with `domcontentloaded` + explicit/polled UI state checks, removing intermittent full-suite failures
-- **Playwright wait strategy completion**: Removed the remaining `waitForLoadState("networkidle")` calls from the rest of the test suite (including auth setup/helpers) and replaced them with deterministic `domcontentloaded` + explicit URL/locator polling in smoke/CMS/dashboard/events/forum/profile specs
-- **Clan-access gate race in E2E checks**: Added explicit wait for gate-loading resolution before permission assertions in affected specs to avoid false negatives while `"Zugang wird geladen"` is still rendered
-- **Admin API contract assertions**: Updated unauthenticated admin endpoint expectations in `api-endpoints.spec.ts` to include auth-first `401` responses (in addition to validation/rate-limit outcomes)
-- **Authenticated API test rate-limit tolerance**: Updated `tests/crud-flows.spec.ts` (`GET /api/messages`) to accept `429` under parallel suite load, matching existing rate-limit-tolerant endpoint assertions
-- **Admin logs tab test flakiness**: Replaced brittle text-only logs-tab checks with deterministic logs-filter control assertions (`#auditSearch`, `#audit*Filter`) in `tests/admin.spec.ts` and `tests/admin-actions.spec.ts`
-- **Auth form strict-mode collisions in Playwright**: Hardened auth setup/helpers/spec flows by targeting `.first()` for login/register inputs and submit buttons where duplicate hidden/transitioning auth fields could momentarily exist, removing intermittent setup/auth flakes
-- **Auth selector consistency in CRUD error-path checks**: Applied the same `.first()` hardening to login-form interactions in `tests/crud-flows.spec.ts` (`#identifier`, `#password`, submit selectors) and stabilized form-submit clicks that could resolve to multiple matching buttons
-- **Forum guest no-clan assertion drift**: Expanded fallback detection in `tests/forum.spec.ts` to include "Bitte wähle einen Clan..." / "select a clan" states, preventing false negatives when forum access is blocked by missing clan selection rather than generic no-access text
-- **Admin auth guard order**: `POST /api/admin/delete-user` now executes `requireAdmin()` before request body parsing for consistent auth-first protection across admin mutation routes
-- **Bugs deep-link routing consistency**: Replaced `window.history.pushState` with App Router navigation in `useBugs()` so `/bugs?report=<id>` URL state stays synchronized with `useSearchParams()`
-- **Bugs list/detail reload churn**: Optimized `useBugs()` deep-link effect to avoid redundant detail reloads and to skip unnecessary list reloads outside list mode
-- **Home internal navigation**: Replaced raw anchor links with `Link` in `home-client.tsx` CTA buttons to avoid full page reloads on internal routes
-- **Admin hydration mismatch (Radix Select)**: Eliminated recurring SSR/client hydration warnings on `/admin` by making `RadixSelect` trigger/content wiring deterministic (`aria-controls` + content id), so filter/select controls now hydrate cleanly in both dev and production builds
-- **Hero clipping on narrow screens**: Updated shared hero typography/layout to prevent title/subtitle clipping on 393px/360px/320px widths (balanced wrapping, constrained widths, mobile font/spacing tuning)
-- **Mobile touch targets in dense UIs**: Increased critical control sizes on small screens (sidebar toggle, notification bell, icon buttons, messages row actions/checkboxes, table sort controls) to improve tap reliability
-- **Next/Image runtime warnings**: Removed width/height mismatch warnings for decorative/header assets by normalizing image sizing (`height: auto` where width is CSS-driven, `fill` + realistic `sizes` for tooltip headers, `width/height: auto` in design-system previews)
-- **Production type-check blocker (media query listeners)**: Removed deprecated `MediaQueryList.addListener/removeListener` fallbacks in sidebar components; now uses `addEventListener('change', ...)` only, aligning with TS/DOM typings and restoring clean `next build`
-- **Transition performance cleanup**: Replaced all `transition: all` declarations across touched style modules with explicit property transitions (color/background/border/shadow/transform/opacity) for more predictable rendering
-- **Mobile sidebar branding**: Hid the large clan logo in the sidebar header on small/mobile screens (<=900px) to keep the collapsed navigation strip visually clean and reduce top padding noise
-- **Responsive navbar sizing**: Sidebar navbar text and icon sizes now scale fluidly with viewport width using `clamp(...)`, with explicit lower limits to preserve readability and tap clarity on very small screens
-- **Lint noise cleanup for tooling scripts**: Kept strict `no-console` for app/runtime code, but disabled it for script-only paths (`scripts/**`, `output/playwright/**`) where progress logging is intentional; removed an unused `UsersTab` context binding
-- **UI Inventory contrast + mobile responsiveness**: Improved visibility across the entire UI-Inventar tab — card backgrounds use opaque gradients instead of semi-transparent surfaces, preview area lightened from darkest bg to a readable level, text colors upgraded from muted to visible tones (descriptions, metadata, notes, subcategories), badge font sizes increased, action bar border and background brightened, CSS code snippets highlighted in gold, empty states use readable text color; added phone/tablet layout fixes (single-column add form and card grid, full-width filters, wrapped header/actions, disabled nested-scroll sticky behavior on small screens)
-- **Sidebar responsive code consolidation**: Moved all sidebar/layout mobile rules from `events.css` into `layout.css` — eliminates a CSS cascade conflict where `events.css` was overriding `layout.css` content-inner padding
-- **Content padding mobile**: Consolidated `.content-inner` padding to `16px 12px 32px` on mobile, with `overflow-x: hidden` to prevent horizontal scroll
-- **Footer mobile**: Added responsive rules for `.app-footer` — tighter padding and `flex-wrap` on links at 900px
-- **Message tabs clipping**: Tabs now use `flex-wrap: wrap` and `overflow: visible` on mobile; reduced font and padding so long German labels ("Posteingang", "Hinweise") are never truncated
-- **Message thread panel**: Removed `max-height` constraint on mobile; thread panel and reply form expand naturally, page scrolls instead
-- **Forum mobile**: Added 900px breakpoint with `flex-wrap: wrap` for post footer, detail actions, comment meta/actions, form rows, reply indicator, and detail header; reduced reply indent from 32px to 16px (8px at 480px); compact comment section padding
-- **News mobile**: Added `flex-wrap: wrap` for `.news-card-badges` and `.news-card-actions`; reduced banner and tag padding on mobile
-- **Bugs mobile**: Added `flex-wrap: wrap` for card tags, content actions, card header, detail actions, comment actions, and delete confirm; reduced detail title font-size
-- **Grid-12 responsive**: Added `@media (max-width: 900px)` breakpoint to collapse 12-column grid to single column
-- **Action icons mobile**: `.action-icons` and `.list.inline.action-icons` now allow `flex-wrap` at 900px
-- **Member table mobile**: `.table.members .list.inline` allows wrapping at 900px
-- **Messages mobile panel switching**: On mobile/tablet (<900px), the inbox list and thread panel now toggle instead of stacking — selecting a message shows the thread with a "Back to list" button; eliminates the need to scroll past the entire inbox to reach the thread/reply area
-- **Messages tablet overflow**: Changed fixed 420px list panel to `minmax(280px, 420px)` so it shrinks gracefully on tablets instead of causing horizontal scroll
-- **Messages reply form mobile**: Reduced reply textarea height and padding on mobile so thread messages remain scrollable; added iOS safe-area padding; MarkdownEditor in reply context uses smaller `minHeight` (100px vs 200px default)
-- **Messages touch targets**: Increased action button size from 26px to 36px on touch devices and mobile; increased delete button padding; improved touch-device action button discoverability (opacity 0.7)
-- **Messages mobile layout**: Conversation item subject rows wrap on mobile to prevent timestamp overlap; email card padding optimized for small screens
-- **Grid responsive**: Added `@media (max-width: 900px)` breakpoint to `.grid` class (single column) — all pages using the 2-column grid now properly stack on mobile
-- **Notification bell overflow**: Panel width constrained to `calc(100vw - 32px)` on screens under 420px to prevent clipping
-- **Sidebar forum sub-items on collapsed/mobile**: Forum category sub-items are now properly hidden when sidebar is collapsed (mobile); added a viewport-aware guard in `sidebar-nav.tsx` plus CSS fallback so sub-items stay hidden even if the sidebar `isOpen` state remains true after resizing to small widths
-- **Sidebar bottom controls on mobile/small screens**: Reworked cramped bottom area into a compact account flyout pattern — standalone language toggle and profile/settings icon buttons are hidden in compact viewport, user avatar becomes the single trigger, and the flyout now contains user identity, quick links, sign out, and full DE/EN language toggle; compact flyout now uses fixed positioning (not clipped by sidebar overflow), avatar touch target is enlarged, and empty clan-slot/divider artifacts are removed in icon-only mode
-- **Auth page layout focus**: Long explanatory sections on login/register/forgot are now collapsible helper cards so primary auth actions remain visible sooner (especially on mobile)
-- **Top chrome compaction**: Reduced top-bar and hero vertical footprint in shared styles to bring primary page content above the fold faster on smaller screens
-- **Sidebar texture image warning**: Replaced fixed-dimension `next/image` usage for `/assets/vip/back_left.png` with `fill` sizing to eliminate repeated width/height mismatch warnings
-
-### Added
-
-- **Vercel Web Analytics integration**: Added `@vercel/analytics` dependency and mounted `<Analytics />` in `app/layout.tsx` to enable route-aware traffic tracking on Vercel deployments
-- **Shared auth state context/provider**: Added `lib/hooks/auth-state-context.ts` + `app/hooks/auth-state-provider.tsx` for app-wide auth + role session state
-- **Auth helper card component**: Added reusable `app/auth/components/auth-info-card.tsx` for collapsible explanatory content blocks across auth screens
-- **Shared messaging contract + helper modules**: Added `lib/types/messages-api.ts` (message endpoint DTO contracts) and `lib/messages/profile-utils.ts` (profile map loading, recipient mapping, label fallback resolution)
-- **Playwright clan-access helper**: Added `tests/helpers/wait-for-clan-access.ts` for stable waiting on ClanAccessGate loading transitions in E2E specs
-- **Messages API contract suite**: Added `tests/messages-api-contract.spec.ts` covering all `/api/messages*` endpoints for response envelope shape and privacy guarantees (no `email` field leakage)
-- **Messages privacy regression coverage**: Added Playwright test coverage in `tests/messages.spec.ts` to assert recipient search responses do not expose an `email` field
-- **Playwright mobile thread-flow coverage**: Added a dedicated mobile inbox test in `tests/messages.spec.ts` that validates list→thread switch and back navigation; if inbox is empty, the test seeds a private message via authenticated admin API context before asserting behavior
-- **Inline membership editing in Users tab**: Game account subrows now have editable dropdowns for clan, rank, and active/inactive status (RadixSelect), matching the Clan-Verwaltung tab; includes shadow toggle button, combined save/cancel for game account name + membership fields, and integration with Save All / Cancel All bulk actions
-- **Email confirmation status in Users tab**: New "Confirmed" column shows whether each user has verified their email (green "Bestätigt"/"Confirmed" badge or yellow "Unbestätigt"/"Unconfirmed" badge); sortable, filterable (All/Confirmed/Unconfirmed); admin can manually confirm unconfirmed users via action button with confirmation modal
-- **Approvals tab split layout**: Approvals tab now shows two side-by-side sections — "Benutzerkonto-Genehmigungen" (user account confirmations, left) and "Spielkonto-Genehmigungen" (game account approvals, right); each with independent badge counts, "confirm/approve all" bulk actions, and empty states; responsive: stacks vertically on mobile (≤900px)
-- **Admin API `/api/admin/email-confirmations`**: `GET` returns a map of userId → email_confirmed_at for all auth users; `POST` with `{ userId }` manually confirms a user's email via Supabase Admin API
-- `pendingRegistrationCount` in `AdminProvider` context — drives the combined badge count on the Approvals tab button
-- `clearSelection` method on `useMessages` hook for programmatic back-navigation
-- `backToInbox` i18n key (EN: "Back to list", DE: "Zurück zur Liste")
-- `.messages-back-btn` CSS class (hidden on desktop, shown on mobile)
+- Vercel Web Analytics integration.
+- Shared auth state context/provider for deduplicated session lookups.
+- Inline membership editing in admin Users tab.
+- Email confirmation status column + manual confirm in Users tab.
+- Approvals tab split layout (registrations + game account approvals).
+- Messages mobile panel-toggle pattern with back button.
+- Playwright clan-access helper and messages API contract suite.
 
 ### Changed
 
-- **UI density/hierarchy pass (P2.2 phase 1)**: Improved scanability and vertical rhythm on `news`, `forum`, and `bugs` list/detail surfaces with tuned spacing, line-height, badge/meta sizing, and mobile-specific density adjustments in `app/styles/news.css`, `app/styles/forum.css`, and `app/styles/bugs.css`
-- **Admin/member table readability**: Increased row/header spacing and text rhythm in `app/styles/tables.css` (base table rows, member rows, member directory rows, and users rows) to reduce crowding in high-density admin tables on desktop and mobile
-- **Admin IA clarity (P2.3 phases 1-2)**: Added explicit active-tab context in the admin section panel, standardized responsive toolbar/filter action layout patterns (`admin-filter-row`, `admin-toolbar-inline`, `admin-table-actions`, `admin-clan-actions`), and introduced action-priority styling (`admin-action-primary`, `admin-action-secondary`, `admin-action-danger`, `admin-row-actions`) to reduce control overload and make critical actions clearer in dense users/clans rows
-- **Unified loading skeletons (P3.1 phase 1)**: Expanded `PageSkeleton` into surface-specific variants (`dashboard`, `list`, `table`, `detail`, `article`, `auth`, `messages`, `admin`) and wired route-level loaders plus key Suspense fallbacks (`/`, `/home`, `/news`, `/events`, `/forum`, `/bugs`, `/members`, `/profile`, `/settings`, `/messages`, `/auth`, `/about`, `/contact`, `/privacy-policy`, `/admin`) to matching loading patterns instead of one generic shape
-- **Mobile navigation refinement (P3.2 phase 1)**: Optimized compact sidebar behavior by collapsing mobile admin links to a single `/admin` entry, improving tap-target sizing for compact nav controls and flyout actions (44px-oriented minimums + touch-action tuning), and switching compact user-flyout profile/messages/settings links to `Link` navigation for smoother in-app transitions
-- **Interaction + focus polish (P3.3 phase 1)**: Added consistent focus-visible styling across shared interactive controls (buttons/tabs/form fields/user-menu/notification controls/sidebar-nav actions) and refined CTA hierarchy in dense admin toolbars/filter rows by strengthening primary-action emphasis while keeping secondary controls quieter
-- **P3 review gate + final verification pass**: Completed the required accessibility/reduced-motion/console validation sweep for the UI/UX polish phase (public + owner route audits, owner admin-tab walkthrough, and full lint/type-check), refreshed review artifacts in `output/playwright`, and documented remaining known console noise for follow-up
-- **Post-review warning cleanup pass (P3 follow-up)**: Removed previously tracked console/perf noise by ignoring expected `AbortError` cancellations in `NotificationBell` polling, allowing Vercel Analytics domains in CSP (`script-src` + `connect-src`), and marking auth tooltip header images (`/assets/vip/back_tooltip_2.png`) as eager on auth flows where they are the likely LCP element
-- **Admin email-confirmation request hardening**: Reduced `/api/admin/email-confirmations` request pressure by centralizing confirmation-map loading in `AdminProvider` (shared cached refresh + context state for users/approvals tabs) and aligning GET rate limiting to `standard` while keeping POST at `strict`, removing tab-churn `429` console noise in owner admin sweeps
-- **Messaging route internals**: Refactored `/api/messages`, `/api/messages/sent`, `/api/messages/thread/[threadId]`, `/api/messages/archive`, and `/api/messages/search-recipients` to use shared profile map + recipient label helpers instead of duplicated local mapping blocks
-- **Messages client typing**: Updated `useMessages` and `messages-types.ts` to consume centralized message API DTOs for inbox/sent/thread/archive/search payloads
-- **Heavy feature panel loading**: Converted conditional panels in `messages`, `bugs`, `forum`, and `events` to route-level dynamic loading so non-active views no longer inflate initial client bundles
-- **Brand copy refresh**: Replaced legacy brand wording with `[THC] Chiller & Killer` across EN/DE locale bundles, auth/privacy metadata, root app metadata, bug report email copy, and Supabase email template docs
-- **Runbook migration order**: Updated `Documentation/runbook.md` to use `messages_v2.sql` for fresh setups (legacy `messages.sql` is now explicitly marked as legacy-only) and added missing migrations to the primary setup sequence
-- **Runbook lint troubleshooting**: Added guidance for lint failures caused by generated `playwright-report/trace/assets/*` bundles (clean report artifacts before repo-wide lint)
-- **Doc test counts**: Updated current Vitest/Playwright totals in `Documentation/runbook.md` and `Documentation/handoff_summary.md`
-- **UI/UX review implementation backlog**: Added prioritized execution plan at `Documentation/ui-ux-review-backlog.md` with P1/P2/P3 scope, review gates, and final test checklist
+- UI density/hierarchy pass on news, forum, bugs list surfaces and admin tables.
+- Admin IA clarity pass with active-tab context and standardized toolbar patterns.
+- Messaging route internals refactored to shared profile map + label helpers.
+- Heavy feature panels converted to dynamic imports for code splitting.
+- Brand copy refreshed to `[THC] Chiller & Killer` across all surfaces.
+- Performance optimization: widget deferral, image loading priorities, auth/role dedupe, events query windowing, route-level code splitting.
+
+### Fixed
+
+- Stale Playwright workflows and obsolete migration steps.
+- API documentation drift and runbook stale sections.
+- Desktop top-bar parity, gold color rebase (brown-amber → true gold).
+- Messages recipient privacy (removed email from API payloads).
+- Playwright suite-wide migration from `networkidle` to `domcontentloaded`.
+- Admin hydration mismatch, hero clipping, mobile touch targets.
+- Production type-check blocker (deprecated MediaQueryList listeners).
+- Comprehensive responsive/mobile fixes across all feature pages.
+
+---
 
 ## 2026-02-16
 
-### Fixed
-
-- **Messages tab badges**: Unread-count badges in Posteingang/Benachrichtigungen tabs no longer cause layout shift when they appear/disappear; replaced oversized global `.badge` styling with compact `.messages-tab-badge` class; removed hover jitter (`translateY`) on badges inside tabs; stabilized tab row height with `min-height`
-
 ### Removed
 
-- **Datenimport**: Removed all data import routes, components, API endpoints, CSV parser, and import utilities
-- **Truhen-Datenbank**: Removed chest database viewer, filters, batch editing, and all related routes
-- **Validierung**: Removed validation rules tab, validation evaluator, and all validation rule management
-- **Korrekturen**: Removed correction rules tab, correction applicator, and all correction rule management
-- **Analytics/Charts**: Removed analytics client, chart components, recharts dependency, and analytics API endpoint
-- **Database tables**: Created migration to drop `chest_entries`, `validation_rules`, `correction_rules`, `scoring_rules` (see `Documentation/migrations/drop_chest_data_tables.sql`)
-- **Tests**: Removed `charts.spec.ts`, `data-workflows.spec.ts`, `validation-evaluator.test.ts`, `correction-applicator.test.ts`; updated remaining test files to remove references
+- **Data import, chest database, validation rules, correction rules, analytics/charts:** All routes, components, API endpoints, parsers, and related DB tables dropped. Analytics replaced with placeholder page.
 
-### Added
+### Fixed
 
-- Analytics placeholder page with "coming soon" messaging
-- Dashboard stats placeholder cards replacing Quick Stats and Week Highlights sections
+- Messages tab badge layout shift.
 
 ### Changed
 
-- Admin panel: Removed dataImport, validation, corrections, chestDb sections; kept clans, users, approvals, forum, designSystem, logs
-- Sidebar navigation: Removed entries for data import, validation, corrections, chest DB
-- Proxy middleware: Removed /data-import and /data-table redirect logic
-- Dashboard: Announcements and events remain functional; stats sections show placeholder
-- Translations: Cleaned up de.json and en.json, removed ~300 unused keys
+- Admin panel reduced to: clans, users, approvals, forum, design system, logs.
+- ~300 unused translation keys cleaned up.
 
 ---
 
-## 2026-02-16 — Codebase audit: security, bugs, performance, quality, accessibility
+## 2026-02-16
 
-**Deleted:**
+### Security
 
-- Removed `/redesign` pages (v3a, v3b, v3c, preview, selector, layout) and all exclusive references.
+- SVG XSS blocked in markdown URLs, LIKE injection fixed, auth-before-parse in admin routes, email validation hardened, CAPTCHA fails in production when unconfigured, reporter emails removed from bugs API.
 
-**Security fixes:**
+### Fixed
 
-- Block `data:image/svg+xml` in markdown URL sanitizer to prevent XSS via SVG scripts.
-- Escape LIKE wildcards in game-accounts search (`escapeLikePattern`).
-- Move `requireAdmin()` before body parsing in `admin/create-user` and `admin/resend-invite` routes.
-- Validate email recipient in `sendEmail()` to prevent header injection (reject newlines/null bytes).
-- Fail CAPTCHA verification in production when `TURNSTILE_SECRET_KEY` is unset instead of silently skipping.
-- Remove `email` from bug report/comment API profile selects — only expose `username` and `display_name`.
+- Banner filename typo, `statsError` exposure in dashboard hook, hardcoded German strings replaced with i18n.
+- Deleted stale `/redesign` pages and references.
 
-**Bug fixes:**
+### Added
 
-- Fix banner preset filename typo: `banner_event_exhange_708.png` renamed to `banner_event_exchange_708.png`.
-- Add `statsError` state to `useDashboardData` — stats failures now surface an error instead of silent zeros.
-- Replace hardcoded German strings in `useSiteContent` with i18n keys (`loadContentFailed`, `saveFailed`, etc.).
-
-**Performance:**
-
-- Extract inline `HOME_NAV_ITEM` constant in sidebar-nav to avoid re-creating objects on every render.
-- Add `loading.tsx` for `/bugs` and `/data-import` routes.
-
-**Code quality:**
-
-- Remove unguarded `console.warn` in `useDashboardData` (announcements/events fetch errors already stored in state).
-- Standardize all API "Internal server error" messages to include trailing period across 15+ route files.
-
-**Configuration:**
-
-- Add `no-console` ESLint rule (warn, allowing `warn`/`error`).
-- Add `audit:deps` npm script for dependency vulnerability checks.
-- Add CSP documentation comment explaining `unsafe-inline` necessity.
-- Remove `/redesign` from public paths, robots.txt disallow list, and ESLint overrides.
-
-**Accessibility:**
-
-- Add descriptive `alt` text to event banner images (uses event title).
-- Add media-type alt text to forum post thumbnails.
-- Add `selectedBanner` alt text to banner picker preview (new i18n key in DE + EN).
-
-**Review fixes:**
-
-- Fix stale `statsError` when `clanId` becomes falsy (add `setStatsError(null)` in early-return branch).
-- Add `tCommon` to all `useCallback` dependency arrays in `useSiteContent` for correct locale-aware error messages.
-- Fix indentation on two `throw` statements in `useSiteContent`.
-
-**Files changed:** `lib/markdown/renderers.tsx`, `app/api/game-accounts/route.ts`, `app/api/admin/create-user/route.ts`, `app/api/admin/resend-invite/route.ts`, `lib/email/send-email.ts`, `app/api/auth/forgot-password/route.ts`, `app/api/bugs/route.ts`, `app/api/bugs/[id]/route.ts`, `app/api/bugs/[id]/comments/route.ts`, `app/bugs/bugs-types.ts`, `app/bugs/bugs-list.tsx`, `app/bugs/bugs-detail.tsx`, `app/bugs/bugs-comments.tsx`, `lib/constants/banner-presets.ts`, `app/hooks/use-dashboard-data.ts`, `app/components/use-site-content.ts`, `app/components/sidebar-nav.tsx`, `app/components/banner-picker.tsx`, `app/events/upcoming-event-card.tsx`, `app/events/day-panel-event-card.tsx`, `app/forum/forum-icons.tsx`, `lib/public-paths.ts`, `eslint.config.js`, `next.config.js`, `package.json`, `app/robots.ts`, `scripts/playwright/dashboard-workflow.mjs`, `messages/de.json`, `messages/en.json`, `app/bugs/loading.tsx` (new), `app/data-import/loading.tsx` (new), 15+ API route files (error message standardization).
+- `no-console` ESLint rule, `audit:deps` npm script, descriptive alt text on images.
 
 ---
 
-## 2026-02-15 — Fix: Bug report email toggle restricted to admins + test coverage
+## 2026-02-15
 
-**Bug report email toggle restricted to admins:**
+### Added
 
-- **UI**: Toggle in Settings now wrapped in `isAdmin` check — hidden for non-admin users.
-- **API**: `PATCH /api/notification-settings` silently ignores `bugs_email_enabled` if the caller is not an admin (via `is_any_admin` RPC check).
-- **Email query**: Bug report email fan-out now queries only `owner` and `admin` roles (was also including `moderator` and `editor`).
+- **Bug report / ticket system:** Full `/bugs` page with list/detail views, screenshot uploads (up to 5), status workflow (open/resolved/closed), admin priority, threaded comments, admin-managed categories, floating quick-report widget, markdown editing, opt-in admin email notifications via Resend API.
+- **Guest role + rank:** Guest promoted to member-level permissions. New "guest" rank below soldier.
+- **Webmaster role rename + protection:** "Owner" → Webmaster. Role change protection enforced at UI and DB levels.
+- Bug report category i18n via slugs. Page selector dropdown in report form.
+- Bug report list redesign with card layout and pagination.
 
-**Test coverage for bug reporting system (new):**
+### Fixed
 
-- `tests/bugs.spec.ts`: 27 E2E tests covering: API auth guards (8 endpoints), authenticated CRUD (create, read, update, comment, delete lifecycle), categories admin guard, page UI (load, hero, form, category dropdown, markdown editor, back navigation), floating widget visibility, settings toggle visibility by role, and `bugs_email_enabled` API guard (member silently ignored, admin accepted).
-- `lib/api/validation.test.ts`: 4 new unit tests for `bugs_email_enabled` in `notificationSettingsSchema`.
-- `lib/markdown/strip-markdown.test.ts`: 16 new unit tests for the extracted `stripMarkdown()` utility (headings, bold, italic, strikethrough, inline code, fenced code blocks, images, links, lists, blockquotes, horizontal rules, whitespace collapsing, mixed input).
-- Extracted `stripMarkdown()` from `app/bugs/bugs-list.tsx` to `lib/markdown/strip-markdown.ts` for reusability and testability.
-
-**Files changed:** `app/settings/settings-client.tsx`, `app/api/notification-settings/route.ts`, `app/api/bugs/route.ts`, `tests/bugs.spec.ts` (new), `lib/markdown/strip-markdown.ts` (new), `lib/markdown/strip-markdown.test.ts` (new), `lib/api/validation.test.ts`, `app/bugs/bugs-list.tsx`.
+- Project-wide CSS browser compatibility (17 issues across 7 files): flex shrinking, word-break, border shift, hover-only visibility, webkit-appearance.
+- Event cards always show original author (not misleading "Edited by").
 
 ---
 
-## 2026-02-15 — Enhancement: Rename Owner to Webmaster + role protection
+## 2026-02-14
 
-**Role rename:**
+### Added
 
-- "Eigentümer" / "Owner" role renamed to **Webmaster** (both DE and EN). Internal key remains `owner`.
-- `ROLE_LABELS` in `lib/permissions.ts` and `LOCALIZED_ROLE_LABELS` in `app/admin/admin-types.ts` updated.
-- Sidebar status line now shows the actual localized role name (e.g. "Webmaster", "Administrator") instead of generic "Admin"/"Member".
+- Notifications tab on Messages page with unread badge and delete-all.
+- Split banner for two-event calendar days.
 
-**Rank fallback for Webmaster/Administrator:**
+### Changed
 
-- On the members page, if a user with role `owner` or `admin` has no in-game rank (null), the role name (e.g. "Webmaster") is displayed in the rank column instead of "No Rank".
+- Performance audit (85 → 89): removed redundant preloads, added image sizes, improved contrast.
+- Best practices: Supabase client singleton, parallelized queries, route-level loading/error pages.
+- Test coverage: 68 new unit tests, RLS silent delete fixes, Zod validation on data import.
+- Systematic code review (9 phases): ~40 i18n replacements, ConfirmModal adoption, typed interfaces, fetch error handling, centralized public paths.
 
-**Role change protection:**
+### Fixed
 
-- Nobody can change a Webmaster's (owner) role — the dropdown is disabled in the admin Users tab.
-- Only the Webmaster can change an Administrator's role.
-- Admins can still change roles of moderator, editor, member, and guest.
-- New helper: `isOwner()`, `canChangeRoleOf()` in `lib/permissions.ts`.
-- `currentUserRole` added to `AdminContextValue` for access in the Users tab.
-
-**Database migration:**
-
-- New migration: `Documentation/migrations/role_change_protection.sql`
-  - `is_owner()` SQL function (mirrors TypeScript `isOwner()`).
-  - `enforce_role_change_protection()` trigger on `user_roles` BEFORE UPDATE:
-    - Blocks any change to the Webmaster (owner) role.
-    - Only the Webmaster can change an Administrator (admin) role.
-    - Service-role operations are exempt.
-  - `enforce_role_delete_protection()` trigger on `user_roles` BEFORE DELETE:
-    - Prevents deleting the Webmaster's role row.
-    - Only the Webmaster can delete an Administrator's role row.
-    - Service-role operations are exempt.
-
-**Files changed:**
-
-- `lib/permissions.ts`: `ROLE_LABELS.owner` → "Webmaster"; new `isOwner()` and `canChangeRoleOf()` helpers.
-- `lib/permissions.test.ts`: Tests for `isOwner` and `canChangeRoleOf`.
-- `lib/hooks/use-user-role.ts`: Exposes `isOwner` in hook result.
-- `app/admin/admin-types.ts`: `LOCALIZED_ROLE_LABELS` — owner → "Webmaster" (DE + EN).
-- `app/admin/admin-types.test.ts`: Updated `formatRole` test expectations.
-- `app/admin/admin-context.tsx`: Added `currentUserRole` state (fetched during init).
-- `app/admin/tabs/users-tab.tsx`: Role dropdown disabled via `canChangeRoleOf()`; save handler blocks unauthorized changes.
-- `app/members/members-client.tsx`: Null rank + owner/admin → shows role name; `MembershipSupabaseRow.rank` typed as `string | null`; dead `roleMap` state removed; sort order places rankless Webmaster/Admin after "Vorgesetzter"; Webmaster/Admin chips in rank stats bar with distinct colours.
-- `app/components/sidebar-shell.tsx`: Status line uses `formatRole(userRole, locale)` for accurate display.
-- `Documentation/ARCHITECTURE.md`: Updated permissions section.
-- `Documentation/runbook.md`: Added `role_change_protection.sql` to migration order.
-
-**Review fixes (post-implementation):**
-
-- Removed dead `roleMap` state variable from `members-client.tsx` (was set but never read after refactor).
-- Fixed `MembershipSupabaseRow.rank` type from `string` to `string | null` to match actual DB schema.
-- Added BEFORE DELETE trigger (`enforce_role_delete_protection`) to the migration — prevents deleting protected role rows via the existing `user_roles_delete` RLS policy.
-
-**Test coverage (post-review):**
-
-- Extracted pure helpers from `members-client.tsx` into `app/members/members-utils.ts` (colours, sort comparator, role-substitute counting, constants).
-- Added `app/members/members-utils.test.ts` with 50 tests: `getRoleColor`, `getRankColor`, `compareMemberOrder`, `countRoleSubstitutes`, `RANK_ORDER`, `ROLE_SUBSTITUTE_ORDER`, `NOTABLE_ROLES`, `RANK_SUBSTITUTE_ROLES`, `buildMessageLink`.
-- Added ROLE_LABELS assertions to `lib/permissions.test.ts` (verifies "Webmaster" and "Administrator" labels).
-- Unit tests: 602 → 654 across 32 files.
+- 8 bug fixes from second-pass review (vote post, event highlight, toast key, silent errors).
+- E2E test fixes (Flatpickr race, networkidle replacement, banner typo).
+- Admin pages not redirecting unauthenticated users.
+- Admin Users tab 25-user limit removed.
+- Shadow members now receive notifications.
 
 ---
 
-## 2026-02-15 — Enhancement: Markdown editing for bug reports + scrollbar fix
+## 2026-02-13
 
-**Rich text editing (markdown + image upload):**
+### Added
 
-- Bug report description (create + edit) now uses `MarkdownEditor` with write/preview tabs, formatting toolbar, and image paste/drop/upload — same component used by events, news, and messages.
-- Bug comment add form replaced with `MarkdownEditor` (was plain textarea).
-- Bug comment inline edit form replaced with `MarkdownEditor`.
-- Bug report detail description and comment bodies now rendered with `AppMarkdown` (markdown-to-HTML) instead of plain text.
-- Image uploads go to `bug-screenshots` Supabase storage bucket.
-- List card description previews strip markdown syntax via `stripMarkdown()` so cards show clean plain text instead of raw `##`, `**`, `![](...)` characters.
+- Message archive (Gmail-style with batch archive/unarchive).
+- Message delete from inbox/outbox (soft-delete pattern).
+- Forum thread auto-linking (events/announcements auto-create forum threads, bidirectional sync via DB triggers).
+- Forum comment/reply markdown toolbar.
 
-**Select dropdown scrollbar fix (`RadixSelect`):**
+### Changed
 
-- `@radix-ui/react-select@2.2.6` injects a `<style>` tag that hides all scrollbars on the viewport (`scrollbar-width: none`, `::-webkit-scrollbar { display: none }`). Radix expects `ScrollUpButton`/`ScrollDownButton` instead of native scrollbars. Our CSS rules had no effect because Radix's injected styles silently overrode them.
-- Fixed by overriding every axis with `!important`: `scrollbar-width: thin !important` (Firefox + Chrome 121+), `scrollbar-color` with visible gold colors, and `display: block !important` on `::-webkit-scrollbar` (Chrome < 121 / Safari).
-- Also added `max-height` on `Select.Content` to cap the dropdown size and inline `maxHeight` + `overflowY: scroll` on `Select.Viewport` as belt-and-suspenders.
+- Dashboard deep-links to news, events, and forum posts.
+- Project-wide optimization audit: race condition fixes, path traversal fix, rate limiting on 5 endpoints, dead code removal, 55 new unit tests.
+- Code review & hardening (11 phases): security (escaped LIKE, DOMPurify), error handling (toasts, Sentry), performance (parallelized queries, extracted hooks), decomposition (5 oversized components split), API hardening (Zod on 8 routes), CSS split (7455-line globals.css → 10 modules), 194 unit tests.
 
-**Files changed:**
+### Fixed
 
-- `app/bugs/bugs-form.tsx`: Imports `MarkdownEditor`, `useSupabase`, `useAuth`; description field uses `MarkdownEditor`.
-- `app/bugs/bugs-detail.tsx`: Imports `AppMarkdown` (dynamic); description renders as markdown.
-- `app/bugs/bugs-comments.tsx`: Imports `MarkdownEditor`, `AppMarkdown`, `useSupabase`; add + edit comment forms use `MarkdownEditor`; comment bodies render as markdown.
-- `app/bugs/bugs-list.tsx`: Added `stripMarkdown()` for clean card description previews.
-- `app/components/ui/radix-select.tsx`: Inline `maxHeight` + `overflowY: scroll` on `Select.Viewport`; inline `maxHeight` on `Select.Content`.
-- `app/styles/components.css`: Scrollbar overrides with `!important` to defeat Radix's injected `<style>` that hides all scrollbars.
+- Playwright test suite (17 failures → 0): strict mode violations, drifted selectors, networkidle replacement.
+- ClanAccessGate locale reload, rate limiter alignment for test load.
 
 ---
 
-## 2026-02-15 — Enhancement: Bug report UX improvements (scrollbar, list actions, consistent styling)
+## 2026-02-12
 
-**Select dropdown scrollbar (initial attempt):**
+### Changed
 
-- Added custom scrollbar styles to `.select-viewport` (gold-tinted thumb, dark track). Reduced `max-height` from 340px to 280px. Note: these styles alone were insufficient — see the later "Select dropdown scrollbar fix" entry for the root cause (`@radix-ui/react-select` injects a `<style>` tag hiding all scrollbars).
-
-**Edit/delete actions on list cards:**
-
-- Report cards in the overview list now show edit (pencil) and delete (trash) icon buttons on hover (always visible on mobile).
-- Actions appear for the report author and content managers, matching the permission model of the detail view.
-- Delete from list triggers a `ConfirmModal` before proceeding.
-- Edit from list loads the full report, then switches to the edit form.
-
-**Consistent icon/styling patterns:**
-
-- Introduced `.bugs-action-btn` CSS class matching the established `.day-panel-action-btn` / `.news-action-btn` pattern (24px icon buttons, gold border, dark background).
-- Detail view edit/delete buttons replaced with icon buttons (were generic `.button` elements with inline font-size).
-- Comment action buttons (`.bugs-comment-action-btn`) updated to match `.forum-comment-action-btn` exactly (padding, border-radius, hover background).
-
-**Files changed:**
-
-- `app/styles/components.css`: Custom scrollbar on `.select-viewport`.
-- `app/styles/bugs.css`: `.bugs-action-btn`, `.bugs-card-actions`, `.bugs-card-header-left`, updated `.bugs-comment-action-btn`, mobile rule.
-- `app/bugs/bugs-list.tsx`: Accepts `onEditReport`, `onDeleteReport`, `currentUserId`, `isContentManager`; renders icon action buttons on cards.
-- `app/bugs/bugs-detail.tsx`: Edit/delete buttons replaced with `.bugs-action-btn` icon buttons.
-- `app/bugs/bugs-client.tsx`: Wires list-level edit/delete; adds `ConfirmModal` for list deletion; imports `useAuth`/`useUserRole`. Tracks `editOrigin` so the back button and cancel action return to the correct view (list vs detail) depending on where the edit was initiated.
+- Messaging system rewritten: flat model → `messages` + `message_recipients`. Gmail-style threading via `thread_id`/`parent_id`. Broadcasts: one message + N recipients.
+- Messaging audit: fixed rate limiter sharing global store, replaced duplicate markdown editor code, profile map optimization.
+- Redundancy reduction (7 phases, ~1,230 lines): created `requireAuth()`, `useSupabase()`, `DataState`, `ConfirmModal`, `FormModal`. Moved shared hooks to `lib/hooks/`.
 
 ---
 
-## 2026-02-15 — Enhancement: Bug report category i18n + page selector dropdown
+## 2026-02-11
 
-**Category translations:**
+### Added
 
-- Added `slug` column to `bug_report_categories` table. Built-in categories get slugs (`bug`, `feature_request`, `ui_issue`, `data_problem`, `other`).
-- Categories are now translated via `bugs.categories.<slug>` in `en.json`/`de.json`, with fallback to raw name for custom admin-created categories.
-- Updated all UI displaying category names: list badges, detail view, form dropdown, admin controls dropdown.
-- Admin controls status/priority dropdowns also now use i18n strings instead of hardcoded English.
-
-**Page selector dropdown:**
-
-- Replaced the free-text "Page URL" input with a dropdown listing all known site pages: 9 main pages, Profile, Settings, and all 10 admin sub-pages (Clan Management, Approvals, Users, Validation, Corrections, Logs, Forum Management, Data Import, Chest DB, Design System).
-- Includes an "Other / Custom URL" option that reveals a text input for arbitrary URLs.
-- Auto-detects known pages from `initialPageUrl` (e.g., the floating widget auto-captures the current path; on admin tabs it detects the generic `/admin` since `usePathname()` doesn't include query params).
-- Sidebar pages pull labels from `nav.*` translations (single source of truth); extra pages (Profile, Settings, generic Admin) use `bugs.pages.*`.
-
-**DB migration:** `Documentation/migrations/bug_reports_v3.sql` — adds `slug` column and populates it for the 5 seeded categories.
-
-**Files changed:**
-
-- `lib/types/domain.ts`: `BugReportCategory` gains `slug: string | null`.
-- `app/bugs/bugs-types.ts`: `BugReportListItem` and `BugReportDetail` gain `category_slug`.
-- `app/api/bugs/route.ts`, `app/api/bugs/[id]/route.ts`: Return `category_slug` from joined data.
-- `app/api/bugs/categories/route.ts`: Return `slug` in GET/POST/PATCH responses.
-- `app/bugs/bugs-form.tsx`: Page dropdown with `SITE_PAGES` constant, `RadixSelect` + conditional custom input.
-- `app/bugs/bugs-list.tsx`, `bugs-detail.tsx`, `bugs-admin-controls.tsx`: `translateCategory()` helper for i18n display.
-- `messages/en.json`, `messages/de.json`: New `bugs.categories.*` section; `bugs.pages.*` reduced to form strings + 3 extra pages (Profile, Settings, Admin) — sidebar pages now share `nav.*` labels.
-
----
-
-## 2026-02-15 — Enhancement: Bug Reports list redesign + pagination
-
-**List layout overhaul:**
-
-- Each report is now a distinct card (`.bugs-report-card`) instead of a row inside a single card.
-- Cards show status/priority badges, a truncated description preview (120 chars), reporter name, date, category, comment count, and screenshot count.
-- Toolbar (filters + search + sort) is its own separate card above the report cards.
-- Search field is constrained to 260px max-width and grouped on the same row as the sort dropdown.
-- Filter dropdowns (status, priority, category) are on their own row above search/sort.
-
-**Pagination:**
-
-- Integrated existing `usePagination` hook + `PaginationBar` component into the list.
-- Default page size: 15 reports. Compact pagination bar with 15/30/50 page size options.
-- Toolbar always visible even when results are empty (empty state handled inside `BugsList`).
-
-**Files changed:**
-
-- `app/bugs/bugs-list.tsx`: Rewrote layout — card grid, search+sort row, pagination.
-- `app/bugs/bugs-client.tsx`: Removed `isEmpty`/`emptyMessage` from `DataState`; now passed into `BugsList`.
-- `app/styles/bugs.css`: New classes for `.bugs-list-wrapper`, `.bugs-toolbar-card`, `.bugs-search-row`, `.bugs-search-field`, `.bugs-report-grid`, `.bugs-report-card`, `.bugs-card-*`, `.bugs-empty-state`. Removed old `.bugs-list-item*` and `.bugs-sort-group` rules. Updated responsive rules.
-
----
-
-## 2026-02-15 — Enhancement: Guest role + rank
-
-**Guest role promoted to member-level permissions:**
-The "guest" role now has the same permissions as "member" (article, forum, messages, data view, bugs). Previously guests could only edit their own profile. Guest is now selectable in the admin user role dropdown with localized labels (EN: "Guest", DE: "Gast").
-
-**Guest rank added:**
-New "guest" rank (EN: "Guest", DE: "Gast") added below soldier in the rank hierarchy. On the members page, guests appear as the last category. When an admin creates a game account for a user with the "guest" role, the rank defaults to "guest". Badge color: purple (`#9a8ec2`).
-
-**Changes:**
-
-- `lib/permissions.ts`: Guest permission set matches member.
-- `app/admin/admin-types.ts`: Guest added to `roleOptions`, `rankOptions`, `RANK_LABELS`, and `LOCALIZED_ROLE_LABELS`.
-- `app/admin/tabs/users-tab.tsx`: Default rank set to "guest" when creating a game account for a guest-role user.
-- `app/members/members-client.tsx`: Guest rank color added; sort order automatic via `rankOptions` index.
-- `lib/permissions.test.ts`, `app/admin/admin-types.test.ts`: Tests updated.
-- **Migration:** `Documentation/migrations/guest_role_permissions.sql` — updates `has_permission()` SQL function. Also syncs `bug:create`/`bug:comment` into all non-admin roles.
-
----
-
-## 2026-02-15 — Enhancement: Bug Reports edit/delete + admin email notifications
-
-**Report edit/delete:**
-
-- Reports can be edited (title, description, category, page URL) by the author or admins. Edit switches to form view with pre-filled data (like forum post editing).
-- Reports can be deleted by the author or admins. Uses `ConfirmModal` with danger variant.
-- `DELETE /api/bugs/[id]` route added. Cascades to comments and screenshots.
-- `PATCH /api/bugs/[id]` extended: reporters can now update title, category, and page URL (previously only description).
-- `bugReportUpdateSchema` extended with `title` and `page_url` fields.
-
-**Comment edit/delete:**
-
-- Inline edit/delete on comments (same pattern as forum comments) for authors and admins.
-- New `PATCH` and `DELETE` routes at `/api/bugs/[id]/comments/[commentId]`.
-- `BugReportComment` type gains `updated_at` field; "(edited)" indicator shown on modified comments.
-- `useBugComments` hook now exposes `editComment` and `deleteComment`.
-
-**Larger text areas:**
-
-- Bug report description: 8 rows (was 6); compact widget: 5 rows (was 4).
-- Comment textarea: 5 rows (was 3).
-
-**Admin email notifications:**
-
-- Admins (owner/admin/moderator/editor) can opt in to receive an email when a new bug report is submitted.
-- New `bugs_email_enabled` column on `user_notification_settings` (default: `false`).
-- Toggle added to the Settings page notification section.
-- Email sent via Resend API (no npm dependency — raw `fetch`). Requires `RESEND_API_KEY` and `RESEND_FROM_EMAIL` env vars; silently skipped if not configured.
-- HTML email template with dark theme, report details, and direct link.
-- Email logic is fire-and-forget; failures are logged but never block the request.
-
-**Migration:** `Documentation/migrations/bug_reports_v2.sql` — adds `updated_at` to comments, `bugs_email_enabled` to settings, plus RLS policies for comment/report edit and delete.
-
----
-
-## 2026-02-15 — Fix: Project-wide CSS browser compatibility audit
-
-Audited all 9 feature CSS files for five classes of cross-browser issues. Fixed 17 issues across 7 files.
-
-**Messages reply area cutoff (root cause):**
-
-- Reply form clipped or invisible in thread panel. Flexbox `min-height: auto` default prevented `.messages-thread-list` from shrinking, pushing `.messages-reply-form` outside the `overflow: hidden` boundary.
-- Added `flex-shrink: 0` to `.messages-reply-form` so it always keeps its full height.
-- Mobile (< 900px): removed shared `max-height`, gave each panel its own constraint. Media query placed at end of file to avoid cascade override by base rules.
-
-**Flex shrinking (`min-height: 0`):**
-
-- `layout.css`: `.nav` in sidebar.
-- `components.css`: `.notification-bell__list`.
-- `messages.css`: `.messages-list-panel`, `.messages-conversation-list`, `.messages-thread-panel`, `.messages-thread-list`.
-
-**Non-standard `word-break: break-word` → `overflow-wrap: break-word`:**
-
-- `forum.css`: `.forum-detail-content`, `.forum-comment-text`; removed redundant `word-break` from `.forum-md`.
-- `messages.css`: `.messages-email-body`.
-
-**Border shift (content jump on selection):**
-
-- `tables.css`: added transparent `border-left: 3px` to shared `.table header, .table .row` rule so `.row.selected` and `.row.is-shadow` don't shift content and header/row columns stay aligned.
-- `components.css`: `.notification-bell__item` for `.unread` state.
-- `messages.css`: `.messages-conversation-item` for `.active` state.
-
-**Hover-only elements invisible on touch (`@media (hover: none)`):**
-
-- `events.css`: `.upcoming-event-actions`.
-- `components.css`: `.notification-bell__delete`.
-- `design-system.css`: `.editable-text-pencil`, `.editable-list-drag-handle`, `.editable-list-actions`.
-- `messages.css`: `.messages-list-action-btn`.
-
-**Missing `-webkit-appearance: none` prefix:**
-
-- `components.css`: global `select` rule.
-- `layout.css`: `.sidebar-clan-select select`.
-- `messages.css`: `.messages-checkbox`.
-
----
-
-## 2026-02-15 — Enhancement: Bug Reports page layout & filters
-
-- Added hero banner (gold dragon) and restored `AuthActions` (profile widget + notification bell) in the top bar — page now matches the standard template used by all other sections.
-- Moved "New Report" and "Back to list" buttons from the top bar into the content area (top-left), freeing the top bar for navigation controls.
-- Added priority filter dropdown alongside existing status and category filters.
-- Added sort dropdown (newest, oldest, title A–Z, priority highest, status) — client-side sorting via `useMemo`.
-- Added `BugSortOption` type and extended `BugListFilter` with `priority` and `sort` fields.
-- Sort group floats right on desktop, goes full-width on mobile.
-- Full i18n: added `heroTitle`, `heroSubtitle`, `priority.all`, and `sort.*` keys in EN + DE.
-
----
-
-## 2026-02-15 — Feature: Bug Report / Ticket System
-
-- Added complete bug reporting system with dedicated `/bugs` page and sidebar navigation link.
-- Users can submit reports with title, description, category, page URL, and up to 5 screenshots.
-- All tickets visible to all authenticated users (transparent tracking).
-- Simple workflow: Open → Resolved → Closed, with admin-only priority (low/medium/high/critical).
-- Threaded comments for back-and-forth between reporters and admins.
-- Admin-managed categories with CRUD (default: Bug, Feature Request, UI Issue, Data Problem, Other).
-- Floating quick-report widget on every page — auto-captures current page URL, doesn't show on `/bugs`.
-- Admin controls inline on the bugs page (status, priority, category changes) for content managers.
-- Screenshot upload via drag-and-drop with preview thumbnails and lightbox viewer.
-- New DB tables: `bug_reports`, `bug_report_categories`, `bug_report_comments`, `bug_report_screenshots`.
-- New Supabase Storage bucket: `bug-screenshots`.
-- Full i18n support (English + German).
-- New permissions: `bug:create`, `bug:comment` (member+), admin wildcard covers `bug:manage`.
-
----
-
-## 2026-02-14 — Fix: Event cards always show original author
-
-- Event cards (day panel, upcoming sidebar, past list) now always display the original author via `createdBy` label instead of misleadingly showing "Edited by {author}" when the event was modified. Events lack an `updated_by` column, so the previous "Edited by" label incorrectly implied the original author was the editor.
-- Added a generic "(edited)" indicator when `updated_at !== created_at` to preserve the edit signal without misattributing it.
-- Added `edited`/`bearbeitet` i18n key to the events namespace in both locale files.
-
----
-
-## 2026-02-14 — Performance audit & fixes (85 → 89)
-
-- Removed redundant `<link rel="preload">` tags from root layout for images that already use `next/image` with `priority` (prevented double downloads of raw + optimized assets).
-- Added `sizes` attribute to small icon images on auth pages and dashboard (`batler_icons_star_4/5.png`) to prevent oversized file serving.
-- Added explicit `loading="lazy"` to footer divider image.
-- Improved `--color-text-muted` contrast from `#8a7b65` to `#9d8d76` (WCAG AA compliance on dark card backgrounds).
-- Removed auth-gated pages (`/forum`, `/events`, `/analytics`) from sitemap — they redirect unauthenticated crawlers to `/home`, causing duplicate titles and uncrawlable entries.
-
----
-
-## 2026-02-14 — Best practices audit & improvements
-
-- Made browser Supabase client an explicit module-level singleton (`lib/supabase/browser-client.ts`).
-- Parallelized two independent DB queries in `GET /api/messages/archive` with `Promise.all` (was sequential).
-- Decoupled `forum-utils.ts` from browser client import — `resolveAuthorNames` now accepts generic `SupabaseClient`.
-- Added route-level `loading.tsx` + `error.tsx` for 6 secondary routes: `home`, `about`, `contact`, `privacy-policy`, `members`, `settings`.
-
----
-
-## 2026-02-14 — Test coverage audit & bug fixes
-
-- Fixed RLS silent delete gap: 7 client-side delete operations now chain `.select("id")` and verify `data.length`.
-- Data import `COMMIT_ROW_SCHEMA` now uses `dateStringSchema` (YYYY-MM-DD regex).
-- 68 new unit tests (528 → 596), 13 new API tests (49 → 62), 16 new E2E tests.
-
----
-
-## 2026-02-14 — Second-pass code review (8 bug fixes)
-
-- Fixed `handleVotePost` failing on deep-linked posts (searched empty `posts` list).
-- Fixed event highlight not expanding when clicking upcoming sidebar item.
-- Fixed wrong toast key in `handleMarkNotificationRead`.
-- Fixed silent error handling in forum edit, news fan-out, data import rule loading, game account default.
-- Added `isSubmitting` guard to forgot-password page.
-- Fixed wrong i18n keys in settings and members page.
-
----
-
-## 2026-02-14 — Systematic code review (9 phases)
-
-- Replaced ~40 hardcoded strings with `useTranslations()`.
-- Replaced all 6 `window.confirm` calls with `ConfirmModal`.
-- Replaced unsafe `as unknown as Array<…>` casts with typed interfaces.
-- Added `response.ok` checks to ~10 fetch calls in messaging.
-- Extracted inline helpers outside components for performance.
-- Added `useEffect` cleanup for `setTimeout` in 3 components.
-- Created centralized `lib/public-paths.ts`.
-- Fixed duplicate dashboard/home icon.
-
----
-
-## 2026-02-14 — E2E test fixes
-
-- Fixed Flatpickr `setDate` race condition (polls for `_flatpickr` instance).
-- Fixed post-submit verification (uses `page.reload()` instead of client-side state).
-- Replaced all `networkidle` waits with `domcontentloaded` + element waits.
-- Fixed banner preset filename typo (`exhange` not `exchange`).
-
----
-
-## 2026-02-14 — Code review fixes (6 issues)
-
-- Created dedicated `/api/admin/resend-invite` endpoint (was broken, sent wrong payload to create-user).
-- Added DOMPurify sanitization for `dangerouslySetInnerHTML` in design-system.
-- Escaped LIKE wildcards in display name uniqueness check.
-- Filtered null `user_id` values in clans-tab assign modal.
-- Added `aria-label` to language selector radio buttons.
-- Surfaced `loadClans` error in `use-data-table.ts`.
-
----
-
-## 2026-02-14 — Fix: Admin pages not redirecting unauthenticated users
-
-- Removed `/admin` from `isPublicPath()`. Created `isClanExemptPath()` for clan-gate bypass.
-
----
-
-## 2026-02-14 — Feature: Notifications tab on Messages page
-
-- Fourth tab (Notifications) with unread badge, per-item delete, delete-all.
-- Bell footer links to `/messages?tab=notifications`.
-- Query parameter routing for all tabs.
-
----
-
-## 2026-02-14 — Feature: Split banner for two-event calendar days
-
-- Calendar days with exactly two banner events show a top/bottom vertical split.
-
----
-
-## 2026-02-14 — Fix: Admin Users tab showing only 25 users
-
-- Removed hard `.limit(25)` that silently truncated the user list.
-
----
-
-## 2026-02-14 — Fix & Feature: Notification improvements
-
-- Shadow members now receive notifications (removed `.eq("is_shadow", false)` filter).
-- Fan-out skips notification creation for test users.
-- Added delete single notification and delete-all endpoints.
-
----
-
-## 2026-02-13 — Playwright test suite fix (17 failures → 0)
-
-- Fixed `.content-inner` strict mode violations (`.first()` on all 14 files).
-- Updated drifted UI selectors across 10+ test files.
-- Added `KNOWN_A11Y_EXCLUSIONS` for genuine nested-interactive patterns.
-- Replaced `networkidle` with `domcontentloaded` + element waits.
-
----
-
-## 2026-02-13 — Feature: Message archive
-
-- Gmail-style archive for inbox and sent. Third "Archive" tab with combined list.
-- Batch archive/unarchive via multi-select. Reversible via unarchive.
-- Migrations: `messages_archive.sql`.
-
----
-
-## 2026-02-13 — Feature: Message delete from inbox/outbox
-
-- Per-row trash icon + multi-select batch delete with confirmation modal.
-- Inbox: soft-deletes `message_recipients`. Sent: sets `sender_deleted_at`.
-- Migration: `messages_sender_delete.sql`.
-
----
-
-## 2026-02-13 — Dashboard deep-links & forum navigation fix
-
-- Dashboard items link to `/news?article=<id>`, `/events?date=…&event=<id>`, `/forum?post=<id>`.
-- Fixed forum deep-link trapping users in thread view (decoupled effect from view state).
-
----
-
-## 2026-02-13 — Code review & hardening (11 phases)
-
-Key improvements across all phases:
-
-- **Security**: Escaped LIKE wildcards, replaced raw `error.message` leakage, added `requireAuth()` to design-system GETs, DOMPurify for `dangerouslySetInnerHTML`.
-- **Error handling**: Toast feedback on 8+ silent Supabase operations. Replaced `console.error` with `captureApiError` (Sentry) in 17 routes. Fixed 13 empty catch blocks.
-- **Performance**: Service-role client singleton. Parallelized queries in 4 components. Extracted `useNews`, `useChartsData`, `useDashboardData` hooks.
-- **Decomposition**: Split 5 oversized components (data-import, data-table, messages, events, forum) into hook + subcomponents. Created `PageShell`, `ConfirmModal`, `FormModal` shared components.
-- **API hardening**: Added Zod validation to 8 routes. Created `apiError()` and `parseJsonBody()` helpers. Fixed auth ordering.
-- **CSS**: Split `globals.css` (7455L) into 10 modular files under `app/styles/`. Replaced 294 raw `rgba()` values with CSS variables.
-- **Testing**: Added 194 unit tests across 8 files. Created `captureApiError` logger for Sentry.
-- **Error boundaries**: Added `app/global-error.tsx`, auth loading skeleton.
-
----
-
-## 2026-02-13 — Forum thread auto-linking
-
-- Creating events/announcements auto-creates linked forum threads.
-- Bidirectional edit/delete sync via `SECURITY DEFINER` DB triggers.
-- Deep-link `/forum?post=<id>` opens post directly.
-- Migration: `forum_thread_linking.sql`.
-
----
-
-## 2026-02-13 — Forum comment/reply markdown toolbar
-
-- Unified contextual comment/reply form with full markdown toolbar.
-- "Replying to [username]" indicator. Form hidden by default, shown on click.
-
----
-
-## 2026-02-13 — E2E test suite stabilization
-
-- Fixed `ClanAccessGate` locale reload (replaced `window.location.reload()` with `router.refresh()`).
-- Increased `relaxedLimiter` from 60 → 120 req/min for parallel test load.
-- Result: 372 passed, 0 failed.
-
----
-
-## 2026-02-13 — Project-wide optimization audit
-
-- **Race condition fix**: Added `AbortController` to message loading functions.
-- **Path traversal fix**: Zod UUID validation on preview-upload `element_id`.
-- **Try-catch**: Added to 8 API route handlers.
-- **Rate limiting**: Added to 5 public GET endpoints.
-- **Parallelized queries**: members, clans-tab, admin-context, create-user.
-- **Dead code**: Deleted 12 unused redesign variant directories.
-- **New tests**: 55 unit tests across 3 schema test files, 12 E2E API tests.
-
----
-
-## 2026-02-13 — UI polish: buttons, filters, event edit indicator
-
-- "Edited by" indicator on events (calendar, sidebar, past list).
-- Button style overhaul (tighter padding, refined gradients).
-- Announcements filters moved to top, collapsed by default.
-
----
-
-## 2026-02-13 — Code quality: CSS variables, component extraction
-
-- Replaced 294 raw `rgba()` values with CSS custom properties.
-- Extracted `DayPanelEventCard`, `UpcomingEventCard`, `NewsForm` as memoized components.
-
----
-
-## 2026-02-12 — Messaging system audit & refactor
-
-- **Critical**: Fixed rate limiter sharing a single global store across all instances.
-- Replaced ~100 lines of duplicate markdown editor code with shared `MarkdownEditor`.
-- Profile map computed once via `useMemo` (was merging on every call).
-- Rate limiter tests expanded (5 → 12).
-
----
-
-## 2026-02-12 — Email model messages redesign
-
-- Rewrote messaging from flat model to `messages` + `message_recipients`.
-- Gmail-style threading via `thread_id`/`parent_id`.
-- Broadcasts: one message + N recipients.
-- Migration: `messages_v2.sql`.
-
----
-
-## 2026-02-12 — Redundancy reduction (7 phases)
-
-Eliminated ~1,230 lines of duplicate code across 50+ files:
-
-- Created `requireAuth()`, `useSupabase()`, `DataState`, `ConfirmModal`, `FormModal`, `useRuleProcessing`.
-- Moved `usePagination`/`useSortable` to `lib/hooks/`, `PaginationBar`/`SortableColumnHeader` to `app/components/`.
-- Extended `domain.ts` with shared types. Created `lib/constants.ts`.
-
----
-
-## 2026-02-11 — Project audit & test coverage
-
-- Added Vitest (52 unit tests), Zod validation on 4 API routes.
-- 12 new Playwright API tests.
-- Website audit score: 43 → **84/100 (B)**.
-- Security: rate limiting, Zod, Turnstile CAPTCHA, Sentry, CSP headers.
+- Vitest (52 unit tests), Zod validation on 4 API routes, 12 Playwright API tests.
+- Security: rate limiting, Turnstile CAPTCHA, Sentry, CSP headers.
 - Legal: Impressum, cookie consent, GDPR privacy policy.
 
----
+### Fixed
 
-## 2026-02-11 — Notable bug fixes
-
-- Dashboard widgets: live data from `/api/analytics`.
-- Member directory: `/members` page.
-- Author FK constraints enabling PostgREST joins.
-- Events RLS updated to `has_permission()`.
-- Clan management init/refresh/race-condition fixes.
-- Modal positioning fix (CSS transform containing block).
+- Dashboard widgets with live data, member directory, events RLS, clan management race conditions.
 
 ---
 
-## 2026-02-10 — Shared components & unified markdown
+## 2026-02-10
 
-- Unified markdown system: 3 sanitizers → 1, 2 renderers → 1, 2 toolbars → 1.
+### Changed
+
+- Unified markdown system (3 sanitizers → 1, 2 renderers → 1, 2 toolbars → 1).
 - Shared `BannerPicker` (51 presets + upload) and `MarkdownEditor`.
-- Button/label standardization ("Registrieren"/"Register", "Einloggen"/"Sign In").
 
 ---
 
-## 2026-02-09 — Roles & permissions refactor
+## 2026-02-09
 
-- Dropped 6 unused tables and `profiles.is_admin`.
-- New `lib/permissions.ts` with static role→permission map.
-- New `has_permission()` SQL function mirroring TypeScript map.
-- Migration: `roles_permissions_cleanup.sql`.
+### Changed
 
----
+- Roles & permissions refactor: dropped 6 unused tables, new `lib/permissions.ts` with static role→permission map, `has_permission()` SQL function.
 
-## 2026-02-09 — Playwright test suite
+### Added
 
-- ~250 E2E tests across 27 spec files with pre-authenticated storageState.
+- Playwright test suite (~250 E2E tests across 27 spec files).
 
 ---
 
-## 2026-02-07 — CMS refactoring
+## 2026-02-07
 
-- Inline-editable content via `site_content` + `site_list_items` tables.
-- `useSiteContent(page)` hook. 40 Playwright tests.
+### Added
 
----
-
-## 2026-02-07 — Forum system
-
-- Reddit-style forum with categories, posts, threaded comments, voting, markdown.
+- CMS system: inline-editable content via `site_content` + `site_list_items` tables.
+- Forum system: categories, posts, threaded comments, voting, markdown.
 
 ---
 
-## Earlier — Foundation
+## Earlier
 
-- App scaffold with Next.js App Router + "Fortress Sanctum" design system.
+- App scaffold: Next.js App Router + "Fortress Sanctum" design system.
 - Supabase Auth, profile/settings, game account approval, admin panel.
-- Data import, chest database, events calendar, announcements, analytics.
-- Notification system, clan context, Design System Asset Manager.
+- Events calendar, announcements, notification system, clan context.

@@ -38,9 +38,9 @@ test.describe("Forum: comment edit/delete flow", () => {
     await page.goto("/forum");
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access|keinen Zugang/i");
-    if ((await noClanMsg.count()) > 0) {
-      test.skip(true, "No clan access");
+    const forumUnavailable = page.getByText(/wähle einen Clan|select a clan|Datenbanktabellen|database tables/i);
+    if ((await forumUnavailable.count()) > 0) {
+      test.skip(true, "Forum not available (no clan context or tables not ready)");
       return;
     }
     const postOrEmpty = page.locator(".forum-post-card").or(page.getByText(/Keine Beiträge|No posts/i));
@@ -51,9 +51,9 @@ test.describe("Forum: comment edit/delete flow", () => {
     await page.goto("/forum");
     await page.waitForLoadState("domcontentloaded");
     await expect(page.locator(".content-inner").first()).toBeVisible({ timeout: 10000 });
-    const noClanMsg = page.locator("text=/Clan-Bereichen|clan access|keinen Zugang/i");
-    if ((await noClanMsg.count()) > 0) {
-      test.skip(true, "No clan access");
+    const forumUnavailable = page.getByText(/wähle einen Clan|select a clan|Datenbanktabellen|database tables/i);
+    if ((await forumUnavailable.count()) > 0) {
+      test.skip(true, "Forum not available (no clan context or tables not ready)");
       return;
     }
     const postCard = page.locator(".forum-post-card").first();

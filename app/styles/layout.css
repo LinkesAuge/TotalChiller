@@ -90,14 +90,6 @@
   text-shadow: 0 0 12px var(--color-gold-glow);
 }
 
-.sidebar-subtitle {
-  font-size: 0.65rem;
-  color: var(--color-text-2);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .sidebar-divider {
   padding: 2px 6px;
   display: flex;
@@ -686,7 +678,7 @@
 }
 
 .nav-group-divider {
-  margin: 6px 8px;
+  margin: 14px 8px;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--color-edge-glow), transparent);
   display: flex;
@@ -696,7 +688,7 @@
 
 .nav-group-divider__ornament {
   display: block;
-  height: 14px;
+  height: 18px;
   width: auto;
   object-fit: contain;
   opacity: 0.8;
@@ -1003,7 +995,6 @@
     padding: 10px 6px 6px !important;
   }
   .sidebar-title,
-  .sidebar-subtitle,
   .sidebar-toggle span,
   .sidebar .nav-group-title,
   .sidebar .nav-label,

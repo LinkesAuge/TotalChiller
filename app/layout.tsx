@@ -75,12 +75,7 @@ async function RootLayout({ children }: RootLayoutProps): Promise<JSX.Element> {
     <html lang={locale} className={`${cinzel.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
-        {/* Only preload the logo — it uses a raw <picture> element without next/image.
-            Other key images (back_left, components_decor_7, header_3) use next/image
-            with priority, which automatically emits the correct preload for the
-            optimized /_next/image URL. Manual preloads for those would cause
-            double downloads (raw asset + optimized version). */}
-        <link rel="preload" href="/assets/ui/chillerkiller_logo.webp" as="image" type="image/webp" />
+        {/* Logo uses next/image with priority — it auto-emits the correct preload. */}
         {/* JSON-LD structured data — WebSite + Organization */}
         <script
           type="application/ld+json"

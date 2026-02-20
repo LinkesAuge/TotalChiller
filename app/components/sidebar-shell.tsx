@@ -216,20 +216,17 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
           }}
         >
           <Image
-            src="/assets/ui/chillerkiller_logo.png"
+            src="/assets/ui/chillerkiller_logo.webp"
             alt="Chillers & Killers logo"
             className="sidebar-header-logo"
             width={480}
-            height={484}
-            style={{ objectFit: "contain", width: isOpen ? 160 : 36, height: isOpen ? 160 : 36, flexShrink: 0 }}
+            height={480}
+            style={{ objectFit: "contain", width: isOpen ? 180 : 36, height: isOpen ? 180 : 36, flexShrink: 0 }}
             priority
           />
           <div className={`sidebar-header-text${isOpen ? "" : " collapsed"}`}>
-            <div className="sidebar-title" style={{ fontSize: "1.3rem" }}>
+            <div className="sidebar-title" style={{ fontSize: "0.95rem" }}>
               {t("title")}
-            </div>
-            <div className="sidebar-subtitle" style={{ fontSize: "0.8rem" }}>
-              {t("subtitle")}
             </div>
           </div>
         </div>

@@ -287,8 +287,8 @@ function SidebarNav(): JSX.Element {
                       <Image
                         src="/assets/game/decorations/components_title_1.png"
                         alt=""
-                        width={120}
-                        height={14}
+                        width={150}
+                        height={17}
                         className="nav-group-divider__ornament"
                       />
                     )}

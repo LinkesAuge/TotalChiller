@@ -227,3 +227,146 @@ export interface PendingApprovalRow {
   readonly created_at: string;
   readonly profiles: Pick<ProfileSummary, "email" | "username" | "display_name"> | null;
 }
+
+/* ── Data Pipeline ── */
+
+export type SubmissionType = "chests" | "members" | "events";
+export type SubmissionSource = "file_import" | "api_push";
+export type SubmissionStatus = "pending" | "approved" | "rejected" | "partial";
+export type StagedItemStatus = "pending" | "approved" | "rejected" | "auto_matched";
+export type OcrEntityType = "player" | "chest" | "source";
+
+export interface DataSubmission {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly submitted_by: string;
+  readonly game_account_id: string | null;
+  readonly submission_type: SubmissionType;
+  readonly source: SubmissionSource;
+  readonly status: SubmissionStatus;
+  readonly item_count: number;
+  readonly approved_count: number;
+  readonly rejected_count: number;
+  readonly notes: string | null;
+  readonly reviewer_notes: string | null;
+  readonly reviewed_by: string | null;
+  readonly reviewed_at: string | null;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export interface StagedChestEntry {
+  readonly id: string;
+  readonly submission_id: string;
+  readonly chest_name: string;
+  readonly player_name: string;
+  readonly source: string;
+  readonly level: string | null;
+  readonly opened_at: string;
+  readonly matched_game_account_id: string | null;
+  readonly item_status: StagedItemStatus;
+  readonly reviewer_notes: string | null;
+  readonly is_duplicate: boolean;
+  readonly created_at: string;
+}
+
+export interface StagedMemberEntry {
+  readonly id: string;
+  readonly submission_id: string;
+  readonly player_name: string;
+  readonly coordinates: string | null;
+  readonly score: number | null;
+  readonly captured_at: string;
+  readonly matched_game_account_id: string | null;
+  readonly item_status: StagedItemStatus;
+  readonly reviewer_notes: string | null;
+  readonly is_duplicate: boolean;
+  readonly created_at: string;
+}
+
+export interface StagedEventEntry {
+  readonly id: string;
+  readonly submission_id: string;
+  readonly player_name: string;
+  readonly event_points: number;
+  readonly event_name: string | null;
+  readonly captured_at: string;
+  readonly matched_game_account_id: string | null;
+  readonly item_status: StagedItemStatus;
+  readonly reviewer_notes: string | null;
+  readonly is_duplicate: boolean;
+  readonly created_at: string;
+}
+
+export interface ChestEntry {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly submission_id: string | null;
+  readonly game_account_id: string | null;
+  readonly chest_name: string;
+  readonly player_name: string;
+  readonly source: string;
+  readonly level: string | null;
+  readonly opened_at: string;
+  readonly created_at: string;
+}
+
+export interface MemberSnapshot {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly submission_id: string | null;
+  readonly game_account_id: string | null;
+  readonly player_name: string;
+  readonly coordinates: string | null;
+  readonly score: number | null;
+  readonly snapshot_date: string;
+  readonly created_at: string;
+}
+
+export interface EventResult {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly submission_id: string | null;
+  readonly game_account_id: string | null;
+  readonly player_name: string;
+  readonly event_points: number;
+  readonly event_name: string | null;
+  readonly event_date: string;
+  readonly created_at: string;
+}
+
+export interface OcrCorrection {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly entity_type: OcrEntityType;
+  readonly ocr_text: string;
+  readonly corrected_text: string;
+  readonly created_by: string | null;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export interface KnownName {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly entity_type: OcrEntityType;
+  readonly name: string;
+  readonly created_at: string;
+}
+
+/** Summary row for submission list views. */
+export interface SubmissionSummary {
+  readonly id: string;
+  readonly submission_type: SubmissionType;
+  readonly source: SubmissionSource;
+  readonly status: SubmissionStatus;
+  readonly item_count: number;
+  readonly approved_count: number;
+  readonly rejected_count: number;
+  readonly created_at: string;
+  readonly reviewed_at: string | null;
+  readonly submitted_by: {
+    readonly id: string;
+    readonly display_name: string | null;
+  };
+}

@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { NextResponse, type NextRequest } from "next/server";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import createSupabaseServerClient from "../supabase/server-client";
+import { getSupabaseUrl, getSupabaseAnonKey } from "../supabase/config";
 
 /**
  * Result returned by `requireAuth()` on success.
@@ -34,4 +35,44 @@ export async function requireAuth(): Promise<RequireAuthSuccess | RequireAuthFai
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
   return { userId: authData.user.id, supabase };
+}
+
+/**
+ * Like `requireAuth()`, but also accepts `Authorization: Bearer <token>` headers
+ * for desktop/API clients that cannot use cookies.
+ *
+ * Check order:
+ * 1. If an `Authorization: Bearer` header is present, create a Supabase client
+ *    with that token and verify the user.
+ * 2. Otherwise, fall back to the standard cookie-based `requireAuth()`.
+ *
+ * Usage in import API routes:
+ * ```ts
+ * const auth = await requireAuthWithBearer(request);
+ * if (auth.error) return auth.error;
+ * const { userId, supabase } = auth;
+ * ```
+ */
+export async function requireAuthWithBearer(request: NextRequest): Promise<RequireAuthSuccess | RequireAuthFailure> {
+  const authHeader = request.headers.get("Authorization");
+
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    if (!token) {
+      return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+    }
+
+    const supabase = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+    }
+    return { userId: authData.user.id, supabase };
+  }
+
+  return requireAuth();
 }

@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
 import { loadMessageProfilesByIds, mapRecipientsWithProfiles } from "@/lib/messages/profile-utils";
-import { userMatchesBroadcastTargeting } from "@/lib/messages/broadcast-targeting";
 import { apiError, parseJsonBody } from "@/lib/api/validation";
 import { requireAuth } from "../../../../lib/api/require-auth";
 import createSupabaseServiceRoleClient from "../../../../lib/supabase/service-role-client";

@@ -306,6 +306,14 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 | `/api/bugs/[id]/comments/[commentId]` | PATCH, DELETE            | user/admin   | standard/strict  | Edit / Delete comment               |
 | `/api/bugs/categories`                | GET, POST, PATCH, DELETE | user/admin   | standard/strict  | Bug category CRUD                   |
 | `/api/bugs/screenshots`               | POST                     | user         | standard         | Upload screenshot                   |
+| **Data Pipeline / Import**            |                          |              |                  |                                     |
+| `/api/import/config`                  | GET                      | public       | standard         | Supabase URL + anon key discovery   |
+| `/api/import/clans`                   | GET                      | bearer/user  | standard         | User's clans (for ChillerBuddy)     |
+| `/api/import/submit`                  | POST                     | bearer/user  | relaxed          | Ingest ChillerBuddy export JSON     |
+| `/api/import/submissions`             | GET                      | user         | standard         | List submissions (filters + paging) |
+| `/api/import/submissions/[id]`        | GET, DELETE              | user/admin   | standard         | Detail + staged entries / Delete    |
+| `/api/import/submissions/[id]/review` | POST                     | admin/mod    | standard         | Approve/reject staged entries       |
+| `/api/import/validation-lists`        | GET, POST                | bearer/user  | standard         | OCR corrections + known names sync  |
 
 ## 8. Database Table Index
 

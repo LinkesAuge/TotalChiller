@@ -1,21 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import PageShell from "@/app/components/page-shell";
 import DataState from "@/app/components/data-state";
 import RadixSelect from "@/app/components/ui/radix-select";
 import type { SelectOption } from "@/app/components/ui/radix-select";
 import DatePicker from "@/app/components/date-picker";
+import TableScroll from "@/app/components/table-scroll";
 import useClanContext from "@/app/hooks/use-clan-context";
+import { berlinToday, berlinWeekBounds, berlinMonthBounds } from "@/lib/timezone";
 import AnalyticsSubnav from "../analytics-subnav";
 import {
   BarChart,
   Bar,
   AreaChart,
   Area,
-  PieChart,
-  Pie,
   Cell,
   XAxis,
   YAxis,
@@ -31,6 +32,7 @@ interface RankingEntry {
   readonly player_name: string;
   readonly game_account_id: string;
   readonly count: number;
+  readonly chest_breakdown: Record<string, number>;
 }
 
 interface ChartPoint {
@@ -62,34 +64,9 @@ type DatePreset = "today" | "week" | "month" | "custom";
 
 /* ── Helpers ── */
 
-function fmtLocal(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function getWeekBounds(): { from: string; to: string } {
-  const now = new Date();
-  const dow = now.getDay();
-  const diff = dow === 0 ? 6 : dow - 1;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - diff);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return { from: fmtLocal(monday), to: fmtLocal(sunday) };
-}
-
 function getTodayBounds(): { from: string; to: string } {
-  const today = fmtLocal(new Date());
+  const today = berlinToday();
   return { from: today, to: today };
-}
-
-function getMonthBounds(): { from: string; to: string } {
-  const now = new Date();
-  const first = new Date(now.getFullYear(), now.getMonth(), 1);
-  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return { from: fmtLocal(first), to: fmtLocal(last) };
 }
 
 function rankClass(rank: number): string {
@@ -146,7 +123,7 @@ export default function ChestsAnalytics(): JSX.Element {
   const clanContext = useClanContext();
   const clanId = clanContext?.clanId;
 
-  const defaultRange = getWeekBounds();
+  const defaultRange = berlinWeekBounds();
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
   const [dateTo, setDateTo] = useState(defaultRange.to);
   const [activePreset, setActivePreset] = useState<DatePreset>("week");
@@ -224,10 +201,10 @@ export default function ChestsAnalytics(): JSX.Element {
         range = getTodayBounds();
         break;
       case "week":
-        range = getWeekBounds();
+        range = berlinWeekBounds();
         break;
       case "month":
-        range = getMonthBounds();
+        range = berlinMonthBounds();
         break;
       default:
         return;
@@ -267,6 +244,19 @@ export default function ChestsAnalytics(): JSX.Element {
   const totalChests = data?.rankings.reduce((sum, r) => sum + r.count, 0) ?? 0;
   const uniquePlayers = data?.total ?? 0;
   const topPlayer = data?.rankings[0];
+
+  /* ── Collect all unique chest types across all players for table columns ── */
+  const chestTypeColumns = useMemo(() => {
+    if (!data?.rankings) return [];
+    const typeCounts = new Map<string, number>();
+    for (const r of data.rankings) {
+      if (!r.chest_breakdown) continue;
+      for (const [name, count] of Object.entries(r.chest_breakdown)) {
+        typeCounts.set(name, (typeCounts.get(name) ?? 0) + count);
+      }
+    }
+    return [...typeCounts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
+  }, [data?.rankings]);
 
   return (
     <PageShell
@@ -425,6 +415,68 @@ export default function ChestsAnalytics(): JSX.Element {
           </div>
         </div>
 
+        {/* ── Ranking table (star element) ── */}
+        {data && data.rankings.length > 0 && (
+          <div className="analytics-table-section">
+            <div className="analytics-table-section__header">
+              <h4 className="analytics-table-section__title">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 20V10" />
+                  <path d="M18 20V4" />
+                  <path d="M6 20v-4" />
+                </svg>
+                {t("rankingTitle")}
+              </h4>
+              <span className="analytics-table-section__count">
+                {data.total.toLocaleString()} {t("playerColumn")}
+              </span>
+            </div>
+
+            <TableScroll>
+              <div className="table chest-ranking chest-ranking--expanded">
+                <header>
+                  <span>{t("rankColumn")}</span>
+                  <span>{t("playerColumn")}</span>
+                  <span>{t("countColumn")}</span>
+                  {chestTypeColumns.map((ct) => (
+                    <span key={ct} className="chest-type-col" title={ct}>
+                      {ct}
+                    </span>
+                  ))}
+                </header>
+                {data.rankings.map((entry, idx) => (
+                  <div key={entry.game_account_id ?? `unknown-${idx}`} className="row">
+                    <span>
+                      <span className={rankClass(entry.rank)}>{entry.rank}</span>
+                    </span>
+                    <span>
+                      <Link
+                        href={`/analytics/player?name=${encodeURIComponent(entry.player_name)}${entry.game_account_id ? `&ga=${encodeURIComponent(entry.game_account_id)}` : ""}`}
+                        className="player-link"
+                      >
+                        {entry.player_name}
+                      </Link>
+                    </span>
+                    <span>{entry.count.toLocaleString()}</span>
+                    {chestTypeColumns.map((ct) => (
+                      <span key={ct} className="chest-type-col">
+                        {entry.chest_breakdown?.[ct] ?? 0}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </TableScroll>
+          </div>
+        )}
+
         {/* ── Charts ── */}
         {(() => {
           const hasBarData = barChartData.length > 0;
@@ -531,7 +583,6 @@ export default function ChestsAnalytics(): JSX.Element {
               </div>
             );
           }
-
           return (
             <>
               {barChart}
@@ -540,110 +591,95 @@ export default function ChestsAnalytics(): JSX.Element {
           );
         })()}
 
-        {/* ── Chest type distribution ── */}
-        {data && data.chest_type_distribution && data.chest_type_distribution.length > 1 && (
-          <div className="analytics-chart-wrapper">
-            <h4>
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 2a10 10 0 0 1 0 20" />
-                <path d="M12 2v20" />
-              </svg>
-              {t("chartChestTypeDistribution")}
-            </h4>
-            <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-              <ResponsiveContainer width={280} height={280}>
-                <PieChart>
-                  <Pie
-                    data={data.chest_type_distribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={110}
-                    dataKey="count"
-                    nameKey="name"
-                    paddingAngle={2}
-                    stroke="rgba(10, 20, 32, 0.8)"
-                    strokeWidth={2}
-                  >
-                    {data.chest_type_distribution.map((_entry, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+        {/* ── Chest type distribution + source overview ── */}
+        {data &&
+          data.chest_type_distribution &&
+          data.chest_type_distribution.length > 1 &&
+          (() => {
+            const maxCount = Math.max(1, ...data.chest_type_distribution.map((e) => e.count));
+            const topTypes = data.chest_type_distribution.slice(0, 10);
+            return (
+              <div className="analytics-charts-row">
+                <div className="analytics-chart-wrapper">
+                  <h4>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 2a10 10 0 0 1 0 20" />
+                      <path d="M12 2v20" />
+                    </svg>
+                    {t("chartChestTypeDistribution")}
+                  </h4>
+                  <div className="compact-distribution">
+                    {topTypes.map((entry, i) => (
+                      <div key={entry.name} className="compact-distribution-item">
+                        <span className="compact-distribution-item__name" title={entry.name}>
+                          {entry.name}
+                        </span>
+                        <span
+                          className="compact-distribution-item__bar"
+                          style={{
+                            width: `${Math.max(20, (entry.count / maxCount) * 120)}px`,
+                            background: PIE_COLORS[i % PIE_COLORS.length],
+                          }}
+                        />
+                        <span className="compact-distribution-item__count">{entry.count.toLocaleString()}</span>
+                      </div>
                     ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "rgba(10, 20, 32, 0.95)",
-                      border: "1px solid rgba(240, 200, 60, 0.3)",
-                      borderRadius: 6,
-                      color: "#e8dcc8",
-                      fontSize: "0.82rem",
-                      padding: "8px 12px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="pie-legend">
-                {data.chest_type_distribution.map((entry, i) => (
-                  <div key={entry.name} className="pie-legend-item">
-                    <span className="pie-legend-dot" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                    <span className="pie-legend-name">{entry.name}</span>
-                    <span className="pie-legend-count">{entry.count.toLocaleString()}</span>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Ranking table ── */}
-        {data && data.rankings.length > 0 && (
-          <div className="analytics-table-section">
-            <div className="analytics-table-section__header">
-              <h4 className="analytics-table-section__title">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 20V10" />
-                  <path d="M18 20V4" />
-                  <path d="M6 20v-4" />
-                </svg>
-                {t("rankingTitle")}
-              </h4>
-              <span className="analytics-table-section__count">
-                {data.total.toLocaleString()} {t("playerColumn")}
-              </span>
-            </div>
-
-            <div className="table chest-ranking">
-              <header>
-                <span>{t("rankColumn")}</span>
-                <span>{t("playerColumn")}</span>
-                <span>{t("countColumn")}</span>
-              </header>
-              {data.rankings.map((entry, idx) => (
-                <div key={entry.game_account_id ?? `unknown-${idx}`} className="row">
-                  <span>
-                    <span className={rankClass(entry.rank)}>{entry.rank}</span>
-                  </span>
-                  <span>{entry.player_name}</span>
-                  <span>{entry.count.toLocaleString()}</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+                <div className="analytics-chart-wrapper">
+                  <h4>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="12" width="4" height="9" rx="1" />
+                      <rect x="10" y="7" width="4" height="14" rx="1" />
+                      <rect x="17" y="3" width="4" height="18" rx="1" />
+                    </svg>
+                    {t("chartChestTypeBar")}
+                  </h4>
+                  <ResponsiveContainer width="100%" height={Math.max(200, topTypes.length * 28)}>
+                    <BarChart data={topTypes} layout="vertical" margin={{ top: 4, right: 20, bottom: 4, left: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} horizontal={false} />
+                      <XAxis
+                        type="number"
+                        tick={{ fill: CHART_AXIS, fontSize: 11 }}
+                        axisLine={{ stroke: CHART_GRID }}
+                        tickLine={false}
+                        allowDecimals={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={120}
+                        tick={{ fill: CHART_AXIS, fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip contentStyle={ChartTooltipStyle()} cursor={{ fill: "rgba(240, 200, 60, 0.06)" }} />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={16}>
+                        {topTypes.map((_e, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          })()}
       </DataState>
     </PageShell>
   );

@@ -71,6 +71,7 @@ export interface UseEventsDataResult {
   readonly templates: readonly TemplateRow[];
   readonly setTemplates: React.Dispatch<React.SetStateAction<readonly TemplateRow[]>>;
   readonly gameAccounts: readonly GameAccountOption[];
+  readonly eventIdsWithResults: ReadonlySet<string>;
   readonly reloadEvents: () => Promise<void>;
   readonly reloadTemplates: () => Promise<void>;
 }
@@ -96,6 +97,7 @@ export function useEventsData(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [templates, setTemplates] = useState<readonly TemplateRow[]>([]);
   const [gameAccounts, setGameAccounts] = useState<readonly GameAccountOption[]>([]);
+  const [eventIdsWithResults, setEventIdsWithResults] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -152,6 +154,38 @@ export function useEventsData(
     };
   }, [clanId, supabase]);
 
+  const loadResultIds = useCallback(
+    async (signal?: { cancelled: boolean }): Promise<void> => {
+      if (!clanId) {
+        setEventIdsWithResults(new Set());
+        return;
+      }
+      const { data } = await supabase
+        .from("event_results")
+        .select("linked_event_id")
+        .eq("clan_id", clanId)
+        .not("linked_event_id", "is", null)
+        .limit(5000);
+      if (signal?.cancelled) return;
+      if (data) {
+        const ids = new Set<string>();
+        for (const row of data as Array<{ linked_event_id: string }>) {
+          ids.add(row.linked_event_id);
+        }
+        setEventIdsWithResults(ids);
+      }
+    },
+    [clanId, supabase],
+  );
+
+  useEffect(() => {
+    const signal = { cancelled: false };
+    void loadResultIds(signal);
+    return () => {
+      signal.cancelled = true;
+    };
+  }, [loadResultIds]);
+
   useEffect(() => {
     let cancelled = false;
     async function loadGameAccounts(): Promise<void> {
@@ -199,6 +233,7 @@ export function useEventsData(
     }
     const rows = (data ?? []) as Array<Record<string, unknown>>;
     setEvents(rows.map(mapRowToEventRow));
+    void loadResultIds();
   }
 
   async function reloadTemplates(): Promise<void> {
@@ -223,6 +258,7 @@ export function useEventsData(
     templates,
     setTemplates,
     gameAccounts,
+    eventIdsWithResults,
     reloadEvents,
     reloadTemplates,
   };

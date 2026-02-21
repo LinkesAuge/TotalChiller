@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createMockAuth, createUnauthorizedResult, createChainableMock, setChainResult } from "@/test";
+import { createMockAuth, createForbiddenResult, createChainableMock, setChainResult } from "@/test";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/api/require-auth");
+vi.mock("@/lib/api/require-admin");
 vi.mock("@/lib/api/logger", () => ({ captureApiError: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({
   strictLimiter: { check: vi.fn().mockReturnValue(null) },
@@ -15,7 +15,7 @@ vi.mock("@/lib/supabase/service-role-client", () => ({
   default: vi.fn(() => ({ from: mockSvcFrom })),
 }));
 
-import { requireAuth } from "@/lib/api/require-auth";
+import { requireAdmin } from "@/lib/api/require-admin";
 import { POST } from "./route";
 
 const validUuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -40,22 +40,11 @@ describe("POST /api/import/submissions/[id]/review", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuth = createMockAuth();
-    vi.mocked(requireAuth).mockResolvedValue(mockAuth.authResult);
-    mockAuth.mockRpc.mockImplementation((fn: string) => {
-      if (fn === "is_any_admin") return Promise.resolve({ data: true, error: null });
-      if (fn === "has_role") return Promise.resolve({ data: false, error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+    vi.mocked(requireAdmin).mockResolvedValue(mockAuth.authResult);
   });
 
-  it("returns 401 when not authenticated", async () => {
-    vi.mocked(requireAuth).mockResolvedValue(createUnauthorizedResult() as never);
-    const res = await POST(makeRequest({ action: "approve_all" }), makeContext());
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 403 when user is not admin or moderator", async () => {
-    mockAuth.mockRpc.mockResolvedValue({ data: false, error: null });
+  it("returns 403 when not admin", async () => {
+    vi.mocked(requireAdmin).mockResolvedValue(createForbiddenResult() as never);
     const res = await POST(makeRequest({ action: "approve_all" }), makeContext());
     expect(res.status).toBe(403);
   });
@@ -149,53 +138,15 @@ describe("POST /api/import/submissions/[id]/review", () => {
   });
 
   it("returns 500 on unexpected error", async () => {
-    vi.mocked(requireAuth).mockRejectedValue(new Error("boom"));
+    vi.mocked(requireAdmin).mockRejectedValue(new Error("boom"));
     const res = await POST(makeRequest({ action: "approve_all" }), makeContext());
     expect(res.status).toBe(500);
   });
 
-  it("returns 200 when user is moderator but not admin", async () => {
-    mockAuth.mockRpc.mockImplementation((fn: string) => {
-      if (fn === "is_any_admin") return Promise.resolve({ data: false, error: null });
-      if (fn === "has_role") return Promise.resolve({ data: true, error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
-
-    const subGetChain = createChainableMock();
-    setChainResult(subGetChain, {
-      data: { id: validUuid, clan_id: "clan-1", submission_type: "chests", status: "pending" },
-      error: null,
-    });
-
-    const subUpdateChain = createChainableMock();
-    setChainResult(subUpdateChain, { data: null, error: null });
-
-    const stagedUpdateChain = createChainableMock();
-    setChainResult(stagedUpdateChain, { data: null, error: null });
-
-    const stagedCountChain = createChainableMock();
-    setChainResult(stagedCountChain, {
-      data: [{ item_status: "rejected" }, { item_status: "rejected" }],
-      error: null,
-    });
-
-    let dataSubCalls = 0;
-    let stagedCalls = 0;
-
-    mockSvcFrom.mockImplementation((table: string) => {
-      if (table === "data_submissions") {
-        dataSubCalls++;
-        return dataSubCalls === 1 ? subGetChain : subUpdateChain;
-      }
-      if (table === "staged_chest_entries") {
-        stagedCalls++;
-        return stagedCalls === 1 ? stagedUpdateChain : stagedCountChain;
-      }
-      return createChainableMock();
-    });
-
+  it("rejects non-admin (moderator only)", async () => {
+    vi.mocked(requireAdmin).mockResolvedValue(createForbiddenResult() as never);
     const res = await POST(makeRequest({ action: "reject_all" }), makeContext());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
   });
 
   it("approve_all copies items to production and returns approved status", async () => {

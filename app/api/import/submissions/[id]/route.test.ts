@@ -394,25 +394,11 @@ describe("PATCH /api/import/submissions/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuth = createMockAuth();
-    vi.mocked(requireAuth).mockResolvedValue(mockAuth.authResult);
-    mockAuth.mockRpc.mockImplementation((fn: string) => {
-      if (fn === "is_any_admin") return Promise.resolve({ data: true, error: null });
-      if (fn === "has_role") return Promise.resolve({ data: false, error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
+    vi.mocked(requireAdmin).mockResolvedValue(mockAuth.authResult);
   });
 
-  it("returns 401 when not authenticated", async () => {
-    vi.mocked(requireAuth).mockResolvedValue(createUnauthorizedResult() as never);
-    const res = await PATCH(
-      makePatchRequest({ entryId: "550e8400-e29b-41d4-a716-446655440001", matchGameAccountId: null }),
-      makeContext(),
-    );
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 403 when user is neither admin nor moderator", async () => {
-    mockAuth.mockRpc.mockResolvedValue({ data: false, error: null });
+  it("returns 403 when not admin", async () => {
+    vi.mocked(requireAdmin).mockResolvedValue(createForbiddenResult() as never);
     const res = await PATCH(
       makePatchRequest({ entryId: "550e8400-e29b-41d4-a716-446655440001", matchGameAccountId: null }),
       makeContext(),
@@ -687,7 +673,7 @@ describe("PATCH /api/import/submissions/[id]", () => {
   });
 
   it("returns 500 on unexpected error", async () => {
-    vi.mocked(requireAuth).mockRejectedValue(new Error("boom"));
+    vi.mocked(requireAdmin).mockRejectedValue(new Error("boom"));
     const res = await PATCH(
       makePatchRequest({ entryId: "550e8400-e29b-41d4-a716-446655440001", matchGameAccountId: null }),
       makeContext(),
@@ -695,50 +681,8 @@ describe("PATCH /api/import/submissions/[id]", () => {
     expect(res.status).toBe(500);
   });
 
-  it("allows moderator (non-admin) to assign", async () => {
-    mockAuth.mockRpc.mockImplementation((fn: string) => {
-      if (fn === "is_any_admin") return Promise.resolve({ data: false, error: null });
-      if (fn === "has_role") return Promise.resolve({ data: true, error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
-
-    const subChain = createChainableMock();
-    setChainResult(subChain, {
-      data: { id: validUuid, clan_id: "clan-1", submission_type: "events", status: "pending" },
-      error: null,
-    });
-
-    const updateChain = createChainableMock();
-    setChainResult(updateChain, {
-      data: {
-        id: "entry-1",
-        player_name: "P1",
-        item_status: "auto_matched",
-        matched_game_account_id: "ga-1",
-        game_accounts: { id: "ga-1", game_username: "GA1" },
-      },
-      error: null,
-    });
-
-    const countChain = createChainableMock();
-    setChainResult(countChain, { data: null, error: null, count: 1 });
-
-    const subUpdateChain = createChainableMock();
-    setChainResult(subUpdateChain, { data: null, error: null });
-
-    let svcCalls = 0;
-    mockSvcFrom.mockImplementation((table: string) => {
-      if (table === "data_submissions") {
-        svcCalls++;
-        return svcCalls === 1 ? subChain : subUpdateChain;
-      }
-      if (table === "staged_event_entries") {
-        svcCalls++;
-        return svcCalls <= 3 ? updateChain : countChain;
-      }
-      return createChainableMock();
-    });
-
+  it("rejects non-admin (moderator only)", async () => {
+    vi.mocked(requireAdmin).mockResolvedValue(createForbiddenResult() as never);
     const res = await PATCH(
       makePatchRequest({
         entryId: "550e8400-e29b-41d4-a716-446655440001",
@@ -746,7 +690,7 @@ describe("PATCH /api/import/submissions/[id]", () => {
       }),
       makeContext(),
     );
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
   });
 });
 

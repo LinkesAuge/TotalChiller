@@ -64,8 +64,7 @@ describe("POST /api/import/submit", () => {
     vi.mocked(requireAuthWithBearer).mockResolvedValue(mockAuth.authResult);
 
     mockAuth.mockRpc.mockImplementation((fn: string) => {
-      if (fn === "is_clan_member") return Promise.resolve({ data: true, error: null });
-      if (fn === "is_any_admin") return Promise.resolve({ data: false, error: null });
+      if (fn === "is_any_admin") return Promise.resolve({ data: true, error: null });
       return Promise.resolve({ data: null, error: null });
     });
   });
@@ -102,8 +101,11 @@ describe("POST /api/import/submit", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 403 when user is not clan member", async () => {
-    mockAuth.mockRpc.mockResolvedValue({ data: false, error: null });
+  it("returns 403 when user is not admin", async () => {
+    mockAuth.mockRpc.mockImplementation((fn: string) => {
+      if (fn === "is_any_admin") return Promise.resolve({ data: false, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
 
     const res = await POST(makeRequest(makeValidPayload()));
     expect(res.status).toBe(403);
@@ -424,35 +426,15 @@ describe("POST /api/import/submit", () => {
     expect(res.status).toBe(201);
   });
 
-  it("allows non-member admin to submit", async () => {
+  it("rejects non-admin clan member", async () => {
     mockAuth.mockRpc.mockImplementation((fn: string) => {
-      if (fn === "is_clan_member") return Promise.resolve({ data: false, error: null });
-      if (fn === "is_any_admin") return Promise.resolve({ data: true, error: null });
+      if (fn === "is_clan_member") return Promise.resolve({ data: true, error: null });
+      if (fn === "is_any_admin") return Promise.resolve({ data: false, error: null });
       return Promise.resolve({ data: null, error: null });
     });
 
-    const submissionChain = createChainableMock();
-    setChainResult(submissionChain, { data: { id: "sub-1" }, error: null });
-
-    const stagedChain = createChainableMock();
-    setChainResult(stagedChain, { data: null, error: null });
-
-    const membershipChain = createChainableMock();
-    setChainResult(membershipChain, { data: [], error: null });
-
-    const correctionsChain = createChainableMock();
-    setChainResult(correctionsChain, { data: [], error: null });
-
-    mockSvcFrom.mockImplementation((table: string) => {
-      if (table === "data_submissions") return submissionChain;
-      if (table === "staged_chest_entries") return stagedChain;
-      if (table === "game_account_clan_memberships") return membershipChain;
-      if (table === "ocr_corrections") return correctionsChain;
-      return createChainableMock();
-    });
-
     const res = await POST(makeRequest(makeValidPayload()));
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(403);
   });
 
   it("returns 500 when submission insert fails", async () => {

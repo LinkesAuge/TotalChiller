@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import PageShell from "@/app/components/page-shell";
 import DataState from "@/app/components/data-state";
+import DatePicker from "@/app/components/date-picker";
 import useClanContext from "@/app/hooks/use-clan-context";
 import AnalyticsSubnav from "../analytics-subnav";
 import {
@@ -13,6 +15,7 @@ import {
   Area,
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -153,6 +156,8 @@ export default function PowerAnalytics(): JSX.Element {
   const clanContext = useClanContext();
   const clanId = clanContext?.clanId;
 
+  type CompareMode = "week" | "month" | "all_time" | "custom";
+
   const [data, setData] = useState<PowerResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +165,9 @@ export default function PowerAnalytics(): JSX.Element {
   const [playerFilter, setPlayerFilter] = useState("");
   const [debouncedFilter, setDebouncedFilter] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [compareMode, setCompareMode] = useState<CompareMode>("week");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   /* Debounce player search input */
@@ -192,10 +200,11 @@ export default function PowerAnalytics(): JSX.Element {
         clan_id: clanId!,
         page: "1",
         page_size: "10000",
+        compare: compareMode,
       });
-      if (debouncedFilter) {
-        params.set("player", debouncedFilter);
-      }
+      if (debouncedFilter) params.set("player", debouncedFilter);
+      if (compareMode === "custom" && customFrom) params.set("from", customFrom);
+      if (compareMode === "custom" && customTo) params.set("to", customTo);
 
       try {
         const res = await fetch(`/api/analytics/machtpunkte?${params}`);
@@ -213,7 +222,7 @@ export default function PowerAnalytics(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [clanId, debouncedFilter, retryCount]);
+  }, [clanId, debouncedFilter, retryCount, compareMode, customFrom, customTo]);
 
   const standings = data?.standings ?? [];
   const isEmpty = !loading && !error && standings.length === 0;
@@ -348,7 +357,172 @@ export default function PowerAnalytics(): JSX.Element {
           </div>
         )}
 
-        {/* ── Line chart ── */}
+        {/* ── Compare mode + player search ── */}
+        <div className="analytics-filters">
+          <div className="date-presets">
+            {(["week", "month", "all_time", "custom"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={compareMode === mode ? "active" : ""}
+                onClick={() => setCompareMode(mode)}
+              >
+                {t(`compareMode_${mode}`)}
+              </button>
+            ))}
+          </div>
+          {compareMode === "custom" && (
+            <div className="filter-group">
+              <DatePicker value={customFrom} onChange={setCustomFrom} />
+              <span className="filter-label">&ndash;</span>
+              <DatePicker value={customTo} onChange={setCustomTo} />
+            </div>
+          )}
+          <div className="filter-group">
+            <input
+              id="power-player-filter"
+              type="text"
+              value={playerFilter}
+              onChange={(e) => handleFilterChange(e.target.value)}
+              placeholder={t("filterPlayer")}
+              className="date-picker-input"
+            />
+          </div>
+        </div>
+
+        {/* ── Standings table + Top Gainers side by side ── */}
+        {standings.length > 0 &&
+          (() => {
+            const withDelta = standings.filter((s) => s.delta !== null && s.delta !== 0);
+            const sorted = [...withDelta].sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0));
+            const topGainers = sorted
+              .filter((s) => (s.delta ?? 0) > 0)
+              .slice(0, 10)
+              .map((s) => ({ name: s.player_name, delta: s.delta ?? 0 }));
+            const topLosers = sorted
+              .filter((s) => (s.delta ?? 0) < 0)
+              .slice(-5)
+              .map((s) => ({ name: s.player_name, delta: s.delta ?? 0 }));
+            const deltaChartData = [...topGainers, ...topLosers].sort((a, b) => b.delta - a.delta);
+            const hasDeltaChart = deltaChartData.length > 0 && deltaChartData.some((d) => d.delta !== 0);
+
+            return (
+              <div className={hasDeltaChart ? "analytics-split-layout" : ""}>
+                <div className="analytics-table-section">
+                  <div className="analytics-table-section__header">
+                    <h4 className="analytics-table-section__title">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 20V10" />
+                        <path d="M18 20V4" />
+                        <path d="M6 20v-4" />
+                      </svg>
+                      {t("rankingTitle")}
+                    </h4>
+                    <span className="analytics-table-section__count">
+                      {data?.total.toLocaleString()} {t("playerColumn")}
+                    </span>
+                  </div>
+
+                  <div className="table power-ranking">
+                    <header>
+                      <span>{t("rankColumn")}</span>
+                      <span>{t("playerColumn")}</span>
+                      <span>{t("scoreColumn")}</span>
+                      <span>{t("previousColumn")}</span>
+                      <span>{t("deltaColumn")}</span>
+                    </header>
+                    {standings.map((s) => (
+                      <div key={s.game_account_id} className="row">
+                        <span>
+                          <span className={rankClass(s.rank)}>{s.rank}</span>
+                        </span>
+                        <span>
+                          <Link
+                            href={`/analytics/player?name=${encodeURIComponent(s.player_name)}${s.game_account_id ? `&ga=${encodeURIComponent(s.game_account_id)}` : ""}`}
+                            className="player-link"
+                          >
+                            {s.player_name}
+                          </Link>
+                        </span>
+                        <span>{s.score.toLocaleString()}</span>
+                        <span>{s.previous_score !== null ? s.previous_score.toLocaleString() : "—"}</span>
+                        <span>
+                          <DeltaIndicator delta={s.delta} />
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {hasDeltaChart && (
+                  <div className="analytics-chart-wrapper">
+                    <h4>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                        <polyline points="17 6 23 6 23 12" />
+                      </svg>
+                      {t("chartTopGainers")}
+                    </h4>
+                    <ResponsiveContainer width="100%" height={Math.max(300, deltaChartData.length * 28)}>
+                      <BarChart
+                        data={deltaChartData}
+                        layout="vertical"
+                        margin={{ top: 4, right: 20, bottom: 4, left: 10 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 200, 60, 0.1)" horizontal={false} />
+                        <XAxis
+                          type="number"
+                          tick={{ fill: "#b8a888", fontSize: 11 }}
+                          axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                          tickLine={false}
+                          tickFormatter={(v: number) => v.toLocaleString()}
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          width={100}
+                          tick={{ fill: "#b8a888", fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "rgba(10, 20, 32, 0.95)",
+                            border: "1px solid rgba(240, 200, 60, 0.3)",
+                            borderRadius: 6,
+                            color: "#e8dcc8",
+                            fontSize: "0.82rem",
+                            padding: "8px 12px",
+                          }}
+                        />
+                        <Bar dataKey="delta" radius={[0, 4, 4, 0]} barSize={16} name={t("deltaColumn")}>
+                          {deltaChartData.map((entry, i) => (
+                            <Cell key={i} fill={entry.delta >= 0 ? "#4a9960" : "#c94a3a"} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+        {/* ── Charts: Power History (full width) ── */}
         {chartData.length > 0 && (
           <div className="analytics-chart-wrapper">
             <h4>
@@ -392,7 +566,6 @@ export default function PowerAnalytics(): JSX.Element {
           </div>
         )}
 
-        {/* ── Clan total trend + power distribution ── */}
         {data && (
           <div className="analytics-charts-row">
             {data.clan_total_history.length > 1 && (
@@ -497,72 +670,6 @@ export default function PowerAnalytics(): JSX.Element {
                 </ResponsiveContainer>
               </div>
             )}
-          </div>
-        )}
-
-        {/* ── Player search ── */}
-        <div className="analytics-filters">
-          <div className="filter-group">
-            <label className="filter-label" htmlFor="power-player-filter">
-              {t("filterPlayer")}
-            </label>
-            <input
-              id="power-player-filter"
-              type="text"
-              value={playerFilter}
-              onChange={(e) => handleFilterChange(e.target.value)}
-              placeholder={t("filterPlayer")}
-              className="input"
-            />
-          </div>
-        </div>
-
-        {/* ── Standings table ── */}
-        {standings.length > 0 && (
-          <div className="analytics-table-section">
-            <div className="analytics-table-section__header">
-              <h4 className="analytics-table-section__title">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 20V10" />
-                  <path d="M18 20V4" />
-                  <path d="M6 20v-4" />
-                </svg>
-                {t("rankingTitle")}
-              </h4>
-              <span className="analytics-table-section__count">
-                {data?.total.toLocaleString()} {t("playerColumn")}
-              </span>
-            </div>
-
-            <div className="table power-ranking">
-              <header>
-                <span>{t("rankColumn")}</span>
-                <span>{t("playerColumn")}</span>
-                <span>{t("scoreColumn")}</span>
-                <span>{t("previousColumn")}</span>
-                <span>{t("deltaColumn")}</span>
-              </header>
-              {standings.map((s) => (
-                <div key={s.game_account_id} className="row">
-                  <span>
-                    <span className={rankClass(s.rank)}>{s.rank}</span>
-                  </span>
-                  <span>{s.player_name}</span>
-                  <span>{s.score.toLocaleString()}</span>
-                  <span>{s.previous_score !== null ? s.previous_score.toLocaleString() : "—"}</span>
-                  <span>
-                    <DeltaIndicator delta={s.delta} />
-                  </span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </DataState>

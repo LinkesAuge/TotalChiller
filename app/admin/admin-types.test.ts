@@ -268,13 +268,12 @@ describe("resolveSection", () => {
   });
 
   it("returns valid section unchanged", () => {
-    const valid: Array<"clans" | "logs" | "users" | "approvals" | "forum" | "data"> = [
+    const valid: Array<"clans" | "logs" | "users" | "approvals" | "forum"> = [
       "clans",
       "logs",
       "users",
       "approvals",
       "forum",
-      "data",
     ];
     valid.forEach((section) => {
       expect(resolveSection(section)).toBe(section);

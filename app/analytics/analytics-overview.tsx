@@ -20,6 +20,15 @@ interface OverviewStats {
   readonly top_collector_count: number;
   readonly last_event_participation_rate: number;
   readonly chests_daily: readonly { readonly date: string; readonly count: number }[];
+  readonly strongest_player_name: string;
+  readonly strongest_player_score: number;
+  readonly newest_member_name: string;
+  readonly newest_member_date: string;
+  readonly total_chests_all_time: number;
+  readonly power_delta_week: number;
+  readonly avg_chests_per_player: number;
+  readonly most_active_player_name: string;
+  readonly most_active_player_events: number;
 }
 
 export default function AnalyticsOverview(): JSX.Element {
@@ -232,6 +241,146 @@ export default function AnalyticsOverview(): JSX.Element {
                     {chestsWeekDelta}%
                   </span>
                   <span className="analytics-summary-card__detail">{t("overviewSinceLastWeek")}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Clan & member insights row */}
+            <div className="analytics-summary-grid">
+              {stats.strongest_player_name && (
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("overviewStrongestPlayer")}</span>
+                  <span className="analytics-summary-card__value">{stats.strongest_player_name}</span>
+                  <span className="analytics-summary-card__detail">
+                    {stats.strongest_player_score.toLocaleString()} {t("powerPoints")}
+                  </span>
+                </div>
+              )}
+
+              <div className="analytics-summary-card">
+                <div className="analytics-summary-card__icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
+                    <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+                  </svg>
+                </div>
+                <span className="analytics-summary-card__label">{t("overviewTotalChestsAllTime")}</span>
+                <span className="analytics-summary-card__value">{stats.total_chests_all_time.toLocaleString()}</span>
+                <span className="analytics-summary-card__detail">{t("overviewAllTime")}</span>
+              </div>
+
+              {stats.power_delta_week !== 0 && (
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                      <polyline points="17 6 23 6 23 12" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("overviewPowerDelta")}</span>
+                  <span
+                    className="analytics-summary-card__value"
+                    style={{
+                      color: stats.power_delta_week >= 0 ? "var(--color-accent-green)" : "var(--color-accent-red)",
+                    }}
+                  >
+                    {stats.power_delta_week >= 0 ? "+" : ""}
+                    {stats.power_delta_week.toLocaleString()}
+                  </span>
+                  <span className="analytics-summary-card__detail">{t("overviewSinceLastWeek")}</span>
+                </div>
+              )}
+
+              {stats.avg_chests_per_player > 0 && (
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 20V10" />
+                      <path d="M18 20V4" />
+                      <path d="M6 20v-4" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("overviewAvgChestsPerPlayer")}</span>
+                  <span className="analytics-summary-card__value">{stats.avg_chests_per_player.toLocaleString()}</span>
+                  <span className="analytics-summary-card__detail">{t("overviewThisWeek")}</span>
+                </div>
+              )}
+
+              {stats.most_active_player_name && (
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("overviewMostActivePlayer")}</span>
+                  <span className="analytics-summary-card__value">{stats.most_active_player_name}</span>
+                  <span className="analytics-summary-card__detail">
+                    {stats.most_active_player_events} {t("overviewEventsParticipated")}
+                  </span>
+                </div>
+              )}
+
+              {stats.newest_member_name && (
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                      <circle cx="8.5" cy="7" r="4" />
+                      <line x1="20" y1="8" x2="20" y2="14" />
+                      <line x1="23" y1="11" x2="17" y2="11" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("overviewNewestMember")}</span>
+                  <span className="analytics-summary-card__value">{stats.newest_member_name}</span>
+                  <span className="analytics-summary-card__detail">{t("overviewJustJoined")}</span>
                 </div>
               )}
             </div>

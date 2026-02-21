@@ -5,6 +5,7 @@ import { standardLimiter } from "@/lib/rate-limit";
 import { requireAuth } from "@/lib/api/require-auth";
 import { apiError, uuidSchema, escapeLikePattern } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
+import { berlinWeekBounds, toBerlinDate } from "@/lib/timezone";
 
 const MAX_PAGE_SIZE = 10000;
 
@@ -25,22 +26,6 @@ const querySchema = z.object({
   page_size: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),
 });
 
-function getWeekBounds(): { from: string; to: string } {
-  const now = new Date();
-  const day = now.getUTCDay();
-  const diff = day === 0 ? 6 : day - 1;
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() - diff);
-  monday.setUTCHours(0, 0, 0, 0);
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
-  sunday.setUTCHours(23, 59, 59, 999);
-  return {
-    from: monday.toISOString().slice(0, 10),
-    to: sunday.toISOString().slice(0, 10),
-  };
-}
-
 /**
  * GET /api/analytics/chests
  *
@@ -60,7 +45,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!parsed.success) return apiError("Invalid query parameters.", 400);
 
     const { clan_id, player, chest_name, source, page, page_size } = parsed.data;
-    const weekDefaults = getWeekBounds();
+    const weekDefaults = berlinWeekBounds();
     const from = parsed.data.from ?? weekDefaults.from;
     const to = parsed.data.to ?? weekDefaults.to;
 
@@ -101,8 +86,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const entries = rows ?? [];
 
-    // Aggregate rankings by player
-    const playerMap = new Map<string, { count: number; game_account_id: string | null }>();
+    // Aggregate rankings by player with per-chest-type breakdown
+    const playerMap = new Map<
+      string,
+      { count: number; game_account_id: string | null; chest_breakdown: Map<string, number> }
+    >();
     const chestNames = new Set<string>();
     const chestNameCounts = new Map<string, number>();
     const sources = new Set<string>();
@@ -110,18 +98,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     for (const row of entries) {
       const name = row.player_name as string;
+      const cn = row.chest_name as string;
       const existing = playerMap.get(name);
       if (existing) {
         existing.count += 1;
+        existing.chest_breakdown.set(cn, (existing.chest_breakdown.get(cn) ?? 0) + 1);
       } else {
-        playerMap.set(name, { count: 1, game_account_id: row.game_account_id as string | null });
+        const breakdown = new Map<string, number>();
+        breakdown.set(cn, 1);
+        playerMap.set(name, {
+          count: 1,
+          game_account_id: row.game_account_id as string | null,
+          chest_breakdown: breakdown,
+        });
       }
-      const cn = row.chest_name as string;
       chestNames.add(cn);
       chestNameCounts.set(cn, (chestNameCounts.get(cn) ?? 0) + 1);
       sources.add(row.source as string);
 
-      const dateKey = (row.opened_at as string).slice(0, 10);
+      const dateKey = toBerlinDate(row.opened_at as string);
       dateMap.set(dateKey, (dateMap.get(dateKey) ?? 0) + 1);
     }
 
@@ -138,6 +133,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       player_name: name,
       game_account_id: data.game_account_id,
       count: data.count,
+      chest_breakdown: Object.fromEntries(data.chest_breakdown),
     }));
 
     // Chart data: daily counts sorted by date

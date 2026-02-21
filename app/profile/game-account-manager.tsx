@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from "next-intl";
 import IconButton from "../components/ui/icon-button";
 import GameButton from "../components/ui/game-button";
 import type { GameAccountView } from "@/lib/types/domain";
+import { TIMEZONE } from "@/lib/timezone";
 
 interface GameAccountManagerProps {
   readonly initialAccounts: readonly GameAccountView[];
@@ -191,7 +192,7 @@ function GameAccountManager({ initialAccounts, initialDefaultId }: GameAccountMa
                     {isDefault ? <span className="badge success text-[0.75em]">{t("defaultAccount")}</span> : null}
                   </div>
                   <div className="text-muted text-[0.85em]">
-                    {t("requested")} {new Date(account.created_at).toLocaleDateString(locale)}
+                    {t("requested")} {new Date(account.created_at).toLocaleDateString(locale, { timeZone: TIMEZONE })}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

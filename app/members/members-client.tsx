@@ -8,6 +8,7 @@ import { useSupabase } from "../hooks/use-supabase";
 import useClanContext from "../hooks/use-clan-context";
 import { formatRank, formatRole, rankOptions } from "../admin/admin-types";
 import DataState from "../components/data-state";
+import { TIMEZONE } from "@/lib/timezone";
 import SortableColumnHeader from "../components/sortable-column-header";
 import {
   type MemberRow,
@@ -422,7 +423,13 @@ function MembersClient(): JSX.Element {
                       <span className="member-dir-pos-num">{index + 1}</span>
                     </span>
                     <div className="member-dir-identity">
-                      <span className="member-dir-username">{member.gameUsername}</span>
+                      <Link
+                        href={`/analytics/player?name=${encodeURIComponent(member.gameUsername)}${member.gameAccountId ? `&ga=${encodeURIComponent(member.gameAccountId)}` : ""}`}
+                        className="member-dir-username member-dir-username--link"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {member.gameUsername}
+                      </Link>
                       {member.displayName && <span className="member-dir-user">{member.displayName}</span>}
                     </div>
                     <span>
@@ -442,7 +449,9 @@ function MembersClient(): JSX.Element {
                     </span>
                     <span className="text-muted">
                       {member.snapshotDate
-                        ? new Date(member.snapshotDate).toLocaleDateString(locale === "de" ? "de-DE" : "en-US")
+                        ? new Date(member.snapshotDate).toLocaleDateString(locale === "de" ? "de-DE" : "en-US", {
+                            timeZone: TIMEZONE,
+                          })
                         : "—"}
                     </span>
                     <span className="row-caret" aria-hidden="true">

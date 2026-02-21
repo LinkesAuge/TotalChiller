@@ -1,8 +1,11 @@
+import { TIMEZONE } from "@/lib/timezone";
+
 /** Translation function shape expected by `formatTimeAgo`. */
 type TimeAgoTranslator = (key: string, values?: Record<string, number>) => string;
 
 /**
  * Formats a date/time string using the given locale (defaults to "de-DE").
+ * Always uses Europe/Berlin timezone.
  */
 function formatLocalDateTime(value: string, locale: string = "de-DE"): string {
   if (!value) {
@@ -19,6 +22,7 @@ function formatLocalDateTime(value: string, locale: string = "de-DE"): string {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: TIMEZONE,
   });
 }
 
@@ -47,7 +51,7 @@ function formatTimeAgo(dateString: string, t: TimeAgoTranslator, locale: string 
   if (diffDays < 7) {
     return t("daysAgo", { count: diffDays });
   }
-  return new Date(dateString).toLocaleDateString(locale);
+  return new Date(dateString).toLocaleDateString(locale, { timeZone: TIMEZONE });
 }
 
 export { formatLocalDateTime, formatTimeAgo };

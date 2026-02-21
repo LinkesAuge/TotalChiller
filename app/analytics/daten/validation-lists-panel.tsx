@@ -2,9 +2,9 @@
 
 import { type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useSupabase } from "../../hooks/use-supabase";
-import useClanContext from "../../hooks/use-clan-context";
-import DataState from "../../components/data-state";
+import { useSupabase } from "@/app/hooks/use-supabase";
+import useClanContext from "@/app/hooks/use-clan-context";
+import DataState from "@/app/components/data-state";
 
 interface CorrectionEntry {
   id: string;

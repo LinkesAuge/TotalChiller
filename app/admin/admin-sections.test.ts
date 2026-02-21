@@ -9,12 +9,11 @@ describe("ADMIN_SECTIONS", () => {
     expect(keys).toContain("approvals");
     expect(keys).toContain("forum");
     expect(keys).toContain("logs");
-    expect(keys).toContain("data");
     expect(keys).toContain("designSystem");
   });
 
-  it("has 7 sections", () => {
-    expect(ADMIN_SECTIONS).toHaveLength(7);
+  it("has 6 sections", () => {
+    expect(ADMIN_SECTIONS).toHaveLength(6);
   });
 
   it("each section has labelKey and href", () => {

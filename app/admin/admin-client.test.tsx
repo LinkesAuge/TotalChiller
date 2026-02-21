@@ -64,7 +64,7 @@ describe("AdminClient", () => {
   it("renders tab buttons for all admin sections", () => {
     render(<AdminClient />);
     const buttons = screen.getAllByRole("button");
-    expect(buttons.length).toBeGreaterThanOrEqual(7);
+    expect(buttons.length).toBeGreaterThanOrEqual(6);
   });
 
   it("marks the active tab as current", () => {
@@ -165,12 +165,6 @@ describe("AdminClient", () => {
     expect(screen.getByText("forum.subtitle")).toBeInTheDocument();
   });
 
-  it("renders data subtitle when data section is active", () => {
-    mockContextOverride = { activeSection: "data" };
-    render(<AdminClient />);
-    expect(screen.getByText("data.subtitle")).toBeInTheDocument();
-  });
-
   it("marks approvals tab as active when activeSection is approvals", () => {
     mockContextOverride = { activeSection: "approvals" };
     render(<AdminClient />);
@@ -238,10 +232,10 @@ describe("AdminClient", () => {
 
   /* ── All section buttons render ── */
 
-  it("renders exactly 7 tab buttons for all admin sections", () => {
+  it("renders exactly 6 tab buttons for all admin sections", () => {
     render(<AdminClient />);
     const buttons = document.querySelectorAll(".tabs.admin-tabs button.tab");
-    expect(buttons.length).toBe(7);
+    expect(buttons.length).toBe(6);
   });
 
   /* ── Non-active tabs have no aria-current ── */
@@ -250,7 +244,7 @@ describe("AdminClient", () => {
     render(<AdminClient />);
     const buttons = screen.getAllByRole("button");
     const nonActive = buttons.filter((b) => !b.getAttribute("aria-current"));
-    expect(nonActive.length).toBeGreaterThanOrEqual(6);
+    expect(nonActive.length).toBeGreaterThanOrEqual(5);
   });
 
   /* ── Tab icon images present ── */
@@ -258,7 +252,7 @@ describe("AdminClient", () => {
   it("renders tab icons for all sections with icons", () => {
     render(<AdminClient />);
     const images = document.querySelectorAll("img.admin-tab-icon");
-    expect(images.length).toBe(7);
+    expect(images.length).toBe(6);
   });
 
   /* ── designSystem tab calls navigateAdmin (no tab property) ── */

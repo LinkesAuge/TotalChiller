@@ -253,6 +253,19 @@
   white-space: nowrap;
 }
 
+.member-dir-username--link {
+  text-decoration: none;
+  color: var(--color-gold-2);
+  transition:
+    color 0.12s ease,
+    text-shadow 0.12s ease;
+}
+
+.member-dir-username--link:hover {
+  color: var(--color-gold-1);
+  text-shadow: 0 0 8px var(--color-gold-a50);
+}
+
 .member-dir-user {
   font-size: 0.78rem;
   color: var(--color-text-muted);
@@ -611,12 +624,12 @@
 
 /* ─── Submissions list table ─── */
 .table.submissions-list {
-  min-width: 820px;
+  min-width: 960px;
 }
 
 .table.submissions-list header,
 .table.submissions-list .row {
-  grid-template-columns: 80px 100px 62px 72px 1fr 90px 160px;
+  grid-template-columns: 80px 100px 62px 85px 1fr 100px 130px 160px;
   min-width: 0;
   width: auto;
   align-items: center;

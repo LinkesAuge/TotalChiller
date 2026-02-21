@@ -8,6 +8,12 @@
 
 ### Added
 
+- **Event results full list & collapse:** The inline results table (EventLinkedResults) now shows all participants by default instead of only the top 10. A toggle button at the bottom allows collapsing to 10 / expanding back, with chevron animation.
+- **Calendar results indicator:** Calendar cells with events that have linked results show a podium icon inline next to the time label (e.g. "ab 12:00 📊"). Works in both single-event and split-banner modes. The icon:
+  - **Hover:** Shows a preview tooltip with the top 3 ranked players and total participant count (lazy-fetched with client-side cache).
+  - **Click:** Navigates to the day panel, auto-expands the event card, and smooth-scrolls to the results section.
+- **Event results data prefetch:** `useEventsData` now queries `event_results` for distinct `linked_event_id` values, providing a `Set<string>` of event IDs with results for calendar badge rendering. Reloaded alongside events.
+
 - **Enhanced analytics overview:** Summary cards now include average power, week-over-week chests delta (%), top collector name, and last event participation rate. Added sparkline AreaChart showing daily chest collection over the past 7 days.
 - **Enhanced analytics sub-pages:** Chests, events, and Machtpunkte analytics pages received additional chart visualizations and layout refinements.
 - **Extended analytics stats API:** `/api/analytics/stats` now returns `avg_power`, `chests_last_week`, `top_collector_name`, `top_collector_count`, `last_event_participation_rate`, and `chests_daily` (7-day daily counts) alongside the existing summary stats.
@@ -42,6 +48,28 @@
 - **Validation lists batch operations & grouped layout:** Entries are now grouped by entity type (player/chest/source) in a responsive grid. Multi-select checkboxes with select-all per type group. Batch delete (up to 500) and batch entity-type reassignment. Section toggle replaces the flat filter dropdown, showing corrections and known names separately with item counts. Inline editing now covers all fields (OCR text, corrected text, entity type for corrections; name, entity type for known names). API: DELETE and PATCH support `ids` array for batch operations; PATCH accepts partial field updates.
 - **Inline submission actions in list view:** Approve-all, reject-all, and delete buttons directly in each submission row.
 - **Server-busy indicator:** When a review/delete action takes longer than 5 seconds, a hint appears.
+- **Player analytics:** New `/analytics/player` page with searchable player picker grid and individual player profiles. Each profile shows power history (line chart, growth rate, clan rank), chest analysis (weekly/daily trends, type/source pie + bar distribution charts), and event history (scores, statistics, bar chart). New API route `/api/analytics/player` with 5 parallel DB queries.
+- **Analytics overview expansion:** Dashboard now shows 18 KPI cards across 3 rows — primary stats (chests, events, power), secondary insights (strongest player, top collector, participation rate, week-over-week delta), and clan/member insights (newest member, most active player, all-time chests, avg chests per player, power delta). Sparkline AreaChart for daily chest collection.
+- **Analytics sub-page enhancements:**
+  - Chests: dynamic chest type columns in ranking table (`chest_breakdown`), type distribution bar, source distribution chart. Player names link to player profiles.
+  - Events: best performers section with highest single score, participation trend (dual AreaChart), event size comparison (grouped BarChart with dual Y-axes). Player names link to player profiles.
+  - Machtpunkte: top gainers/losers bar chart, clan power trend AreaChart, power distribution BarChart, comparison mode (week/month/custom with DatePicker). Player names link to player profiles.
+- **Analytics stats API expansion:** `/api/analytics/stats` now returns 18 fields including `strongest_player`, `total_chests_all_time`, `power_delta_week`, `avg_chests_per_player`, `most_active_player`, `newest_member`. Uses 10 parallel Supabase queries.
+- **Event calendar results redesign:** Inline event results (shown when expanding a calendar event with linked data) redesigned with card container, date display, participant/points summary stats bar, rank badges (gold/silver/bronze for top 3), grid-based ranking layout (top 10 shown inline), and prominent "View Analytics" button.
+- **Berlin timezone utility:** New `lib/timezone.ts` with centralized Europe/Berlin date helpers (week/month bounds, day ranges, formatting, ISO timestamps for DB filters). All analytics API routes use these for consistent timezone-aware calculations. Handles CET ↔ CEST transitions via the Intl API.
+- **Sidebar analytics sub-navigation:** Analytics section in sidebar now shows expandable sub-items with game-asset icons for all 6 analytics pages (Overview, Chests, Events, Machtpunkte, Player, Data).
+- **Member directory player links:** Game account usernames in the members page now link to `/analytics/player?name=...&ga=...` with gold hover styling.
+
+### Changed
+
+- **Data management moved from admin to analytics:** The "Daten" tab (file import + submission review + validation lists) was relocated from the admin panel to `/analytics/daten`, accessible via the analytics sub-navigation. Import still requires admin role; submission list is visible to all authenticated users.
+- **Analytics sub-navigation expanded:** Now 6 items (Overview, Chests, Events, Machtpunkte, Player, Daten) with icon-only mode on mobile (≤600px).
+- **Merged "Daten importieren" and "Einreichungen" tabs into a single "Daten" tab:** The separate import and submissions admin sections are now one unified tab with a compact inline dropzone next to the filters. Import preview, success, and error feedback render contextually below the filter bar. Uses the chest icon.
+- **Submit endpoint stores reference_date:** All submissions now persist `reference_date` derived from payload or entry timestamps.
+- **Submit endpoint rate limit tightened:** `/api/import/submit` moved from `relaxedLimiter` to `standardLimiter` (30 req/min).
+- **Delete any submission:** Removed the pending-only restriction. Production data preserved via `ON DELETE SET NULL`.
+- **Review route copies linked_event_id:** When approving event submissions, `linked_event_id` propagates to production `event_results`.
+- **ESLint test config:** Added `ignoreRestSiblings: true` to `@typescript-eslint/no-unused-vars` for test files, supporting the destructure-to-discard pattern used in mock prop filtering.
 
 ### Fixed
 
@@ -53,15 +81,6 @@
   - `SortableColumnHeader` mock in users-tab and clans-tab changed from `<th>` to `<span role="columnheader">` (invalid HTML nesting inside `<header>`).
   - Radix `Popover.Content` mock in rank-filter destructures out `sideOffset`/`align`/`avoidCollisions`.
   - `vitest.setup.ts` suppresses non-actionable jsdom warnings (`play()`/`pause()`/`scrollTo()`/`navigation`), async Client Component warnings, and HTML nesting warnings from layout tests.
-
-### Changed
-
-- **Merged "Daten importieren" and "Einreichungen" tabs into a single "Daten" tab:** The separate import and submissions admin sections are now one unified tab with a compact inline dropzone next to the filters. Import preview, success, and error feedback render contextually below the filter bar. Uses the chest icon.
-- **Submit endpoint stores reference_date:** All submissions now persist `reference_date` derived from payload or entry timestamps.
-- **Submit endpoint rate limit tightened:** `/api/import/submit` moved from `relaxedLimiter` to `standardLimiter` (30 req/min).
-- **Delete any submission:** Removed the pending-only restriction. Production data preserved via `ON DELETE SET NULL`.
-- **Review route copies linked_event_id:** When approving event submissions, `linked_event_id` propagates to production `event_results`.
-- **ESLint test config:** Added `ignoreRestSiblings: true` to `@typescript-eslint/no-unused-vars` for test files, supporting the destructure-to-discard pattern used in mock prop filtering.
 
 ---
 

@@ -38,7 +38,7 @@
 ├── app/                    # Next.js App Router
 │   ├── api/                # Server-side API routes (see §7), incl. api/analytics/
 │   ├── admin/              # Admin panel (modular tabs, see §4.9)
-│   ├── analytics/          # Analytics pages with sub-routes (see §4.13)
+│   ├── analytics/          # Analytics hub with sub-routes (see §4.13–4.15)
 │   ├── components/         # Shared UI components (see §5)
 │   ├── hooks/              # App-level hooks/providers (auth, dashboard, supabase, clan-context)
 │   ├── styles/             # CSS modules (theme, layout, components, feature CSS)
@@ -56,7 +56,8 @@
 │   ├── types/              # Shared types (domain.ts, messages-api.ts)
 │   ├── permissions.ts      # Role → permission map (single source of truth)
 │   ├── rate-limit.ts       # Rate limiter factory
-│   └── date-format.ts      # Date formatting helpers
+│   ├── date-format.ts      # Date formatting helpers
+│   └── timezone.ts         # Europe/Berlin timezone utilities
 ├── test/                   # Vitest unit test infrastructure (mocks, helpers, utils)
 ├── messages/               # i18n translation files (en.json, de.json)
 ├── tests/                  # Playwright E2E specs + auth helpers
@@ -137,16 +138,23 @@ Reddit-style forum with categories, posts, threaded comments, voting, markdown, 
 
 Calendar with day panel, upcoming sidebar, recurring events (single DB row, client-side expansion), multi-day events, banners, pinned events, templates. Deep-link: `/events?date=YYYY-MM-DD&event=<id>`.
 
-| File                                     | Purpose                         |
-| ---------------------------------------- | ------------------------------- |
-| `app/events/events-client.tsx`           | Main events page                |
-| `app/events/use-events.ts`               | State hook (calendar, form)     |
-| `app/events/event-calendar.tsx`          | Monthly calendar grid           |
-| `app/events/day-panel-event-card.tsx`    | Event card in day panel         |
-| `app/events/upcoming-events-sidebar.tsx` | Upcoming events with pagination |
-| `app/events/events-utils.ts`             | Date range, recurrence helpers  |
+When an event has linked analytics data (via `event_results`), the expanded card shows an inline results panel with date, participant/points summary, rank badges (gold/silver/bronze for top 3), and a prominent "View Analytics" button linking to `/analytics/events?event=<id>`. The results table shows all participants by default with a collapse/expand toggle.
 
-**DB tables:** `events`, `event_templates`
+Calendar cells for events with linked results display a **podium icon** next to the time label. Hovering shows a preview tooltip (top 3 players + total count, lazy-fetched with caching). Clicking navigates to the day panel and auto-scrolls to the results section. The `useEventsData` hook prefetches the set of event IDs that have results.
+
+| File                                     | Purpose                                                 |
+| ---------------------------------------- | ------------------------------------------------------- |
+| `app/events/events-client.tsx`           | Main events page                                        |
+| `app/events/events-list.tsx`             | Orchestrates calendar + day panel, passes events state  |
+| `app/events/use-events.ts`               | State hook (calendar, form, results focus)              |
+| `app/events/use-events-data.ts`          | Data hook (events + eventIdsWithResults prefetch)       |
+| `app/events/event-calendar.tsx`          | Monthly calendar grid + results icon + tooltip          |
+| `app/events/day-panel-event-card.tsx`    | Event card in day panel (supports focusResults prop)    |
+| `app/events/event-linked-results.tsx`    | Inline results: full list, collapse toggle, auto-scroll |
+| `app/events/upcoming-events-sidebar.tsx` | Upcoming events with pagination                         |
+| `app/events/events-utils.ts`             | Date range, recurrence helpers                          |
+
+**DB tables:** `events`, `event_templates`, `event_results` (read-only, for linked results display + calendar badge prefetch)
 
 ### 4.5 Announcements (`app/news/`)
 
@@ -200,24 +208,25 @@ Bell icon in header with dropdown. DB-stored, polls every 60s. Fan-out on news/e
 
 Modular tab-based admin. Slim orchestrator (`admin-client.tsx`) with `AdminProvider` context. Each tab lazy-loaded via `next/dynamic`.
 
-| Tab       | File                               | Purpose                                                            |
-| --------- | ---------------------------------- | ------------------------------------------------------------------ |
-| Clans     | `app/admin/tabs/clans-tab.tsx`     | Clan management + game account memberships                         |
-| Users     | `app/admin/tabs/users-tab.tsx`     | User CRUD, game accounts, inline membership editing                |
-| Approvals | `app/admin/tabs/approvals-tab.tsx` | Registration confirmations + game account approvals                |
-| Forum     | `app/admin/tabs/forum-tab.tsx`     | Forum category management                                          |
-| Logs      | `app/admin/tabs/logs-tab.tsx`      | Audit log viewer                                                   |
-| Data      | `app/admin/tabs/data-tab.tsx`      | File import (compact dropzone) + submission review (list + detail) |
+| Tab       | File                               | Purpose                                             |
+| --------- | ---------------------------------- | --------------------------------------------------- |
+| Clans     | `app/admin/tabs/clans-tab.tsx`     | Clan management + game account memberships          |
+| Users     | `app/admin/tabs/users-tab.tsx`     | User CRUD, game accounts, inline membership editing |
+| Approvals | `app/admin/tabs/approvals-tab.tsx` | Registration confirmations + game account approvals |
+| Forum     | `app/admin/tabs/forum-tab.tsx`     | Forum category management                           |
+| Logs      | `app/admin/tabs/logs-tab.tsx`      | Audit log viewer                                    |
 
-**DB tables:** `profiles`, `user_roles`, `game_accounts`, `game_account_clan_memberships`, `clans`, `audit_logs`, `data_submissions`, `staged_*_entries`
+**DB tables:** `profiles`, `user_roles`, `game_accounts`, `game_account_clan_memberships`, `clans`, `audit_logs`
 
 New tabs go in `app/admin/tabs/`, registered in `admin-client.tsx`'s `TAB_MAP`. Shared state lives in `admin-context.tsx`.
 
+> **Note:** The Data management tab was moved from the admin panel to the analytics section at `/analytics/daten` (see §4.15).
+
 ### 4.10 Members (`app/members/`)
 
-Clan member directory. Game accounts sorted by rank. Webmaster/Administrator with no in-game rank show role name as rank substitute.
+Clan member directory. Game accounts sorted by rank. Webmaster/Administrator with no in-game rank show role name as rank substitute. Player usernames link to `/analytics/player?name=...&ga=...` for individual analytics profiles.
 
-**DB tables:** `game_account_clan_memberships`, `game_accounts`, `profiles`
+**DB tables:** `game_account_clan_memberships`, `game_accounts`, `profiles`, `member_snapshots` (for coordinates/power display)
 
 ### 4.11 Dashboard (`app/`)
 
@@ -231,24 +240,52 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 
 ### 4.13 Analytics (`app/analytics/`)
 
-Data analytics with sub-route navigation (overview, chests, events, machtpunkte). Uses Recharts for charts.
+Data analytics hub with sub-route navigation (overview, chests, events, machtpunkte, player, daten). Uses Recharts for all chart visualizations.
 
-| Route                    | Component                | Purpose                                                  |
-| ------------------------ | ------------------------ | -------------------------------------------------------- |
-| `/analytics`             | `analytics-overview.tsx` | Summary cards (chests/week, events tracked, power)       |
-| `/analytics/chests`      | `chests-analytics.tsx`   | Chest rankings with date range, filters, bar/area charts |
-| `/analytics/events`      | `events-analytics.tsx`   | Event list + detail view with participant rankings       |
-| `/analytics/machtpunkte` | `power-analytics.tsx`    | Power standings, delta, line chart history               |
+| Route                    | Component                | Purpose                                                                                                         |
+| ------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `/analytics`             | `analytics-overview.tsx` | Dashboard with 18 KPI cards (3 rows) + sparkline chart                                                          |
+| `/analytics/chests`      | `chests-analytics.tsx`   | Chest rankings with date range, type/source filters, bar/area charts, breakdown by chest type                   |
+| `/analytics/events`      | `events-analytics.tsx`   | Event list with summary stats, best performers, participation trends; detail view with ranking + chart          |
+| `/analytics/machtpunkte` | `power-analytics.tsx`    | Power standings with delta comparison (week/month/custom), gainers/losers chart, power distribution, clan trend |
+| `/analytics/player`      | `player-analytics.tsx`   | Player picker grid + individual player profiles (power history, chest trends, event history)                    |
+| `/analytics/daten`       | `daten-client.tsx`       | Data import, submission review, validation lists (moved from admin panel)                                       |
 
-**Shared:** `analytics-subnav.tsx` (pill-style sub-navigation), `app/styles/analytics.css`.
+**Shared:** `analytics-subnav.tsx` (pill-style sub-navigation with 6 items, icons-only on mobile), `app/styles/analytics.css`.
 
-**Data flow:** Client components fetch from `/api/analytics/*` routes → aggregate from production tables (`chest_entries`, `event_results`, `member_snapshots`). Event calendar links to `/analytics/events?event=<id>` via `event-linked-results.tsx`.
+**Data flow:** Client components fetch from `/api/analytics/*` routes → aggregate from production tables (`chest_entries`, `event_results`, `member_snapshots`). Event calendar links to `/analytics/events?event=<id>` via `event-linked-results.tsx`. Members page links to `/analytics/player?name=...&ga=...` for player profiles.
 
 **DB tables:** `chest_entries`, `event_results`, `member_snapshots`, `game_account_clan_memberships`, `events`
 
-### 4.14 Submission Detail (`app/submissions/[id]/`)
+### 4.14 Player Analytics (`app/analytics/player/`)
 
-Standalone admin-gated page for deep-linking into a specific submission's staged entries. Server component checks `is_any_admin()` and redirects non-admins. Linked from the admin Data tab and used for detailed entry review with bulk/per-item actions.
+Per-player analytics profile with two modes:
+
+- **Player picker:** Searchable grid showing all players with rank, name, score, and delta. Loads from power standings data.
+- **Player detail** (`?name=<name>&ga=<id>`): Three-section profile with power history (line chart, growth rate, clan rank), chest analysis (weekly/daily trends, type/source distribution via pie + bar charts), and event history (scores, statistics, bar chart).
+
+| File                                        | Purpose                       |
+| ------------------------------------------- | ----------------------------- |
+| `app/analytics/player/page.tsx`             | Server component entry point  |
+| `app/analytics/player/player-analytics.tsx` | Client component with full UI |
+
+**API:** `/api/analytics/player` — 5 parallel DB queries (chests, events, snapshots + counts), computes clan rank, trends, distributions.
+
+### 4.15 Data Management (`app/analytics/daten/`)
+
+File import, submission review, and validation list management. Previously in the admin panel, now accessible under the analytics section with its own sub-route. Import requires admin role; submission list is visible to all authenticated users.
+
+| File                                             | Purpose                                          |
+| ------------------------------------------------ | ------------------------------------------------ |
+| `app/analytics/daten/page.tsx`                   | Server component entry point                     |
+| `app/analytics/daten/daten-client.tsx`           | Import + submissions list/detail + event linking |
+| `app/analytics/daten/validation-lists-panel.tsx` | OCR corrections + known names CRUD (admin only)  |
+
+**DB tables:** `data_submissions`, `staged_chest_entries`, `staged_member_entries`, `staged_event_entries`, `ocr_corrections`, `known_names`
+
+### 4.16 Submission Detail (`app/submissions/[id]/`)
+
+Standalone admin-gated page for deep-linking into a specific submission's staged entries. Server component checks `is_any_admin()` and redirects non-admins. Linked from the Data section (`/analytics/daten`) and used for detailed entry review with bulk/per-item actions.
 
 **DB tables:** `data_submissions`, `staged_chest_entries`, `staged_member_entries`, `staged_event_entries`
 
@@ -257,7 +294,7 @@ Standalone admin-gated page for deep-linking into a specific submission's staged
 | Component            | File                         | Purpose                                                                              |
 | -------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
 | SidebarShell         | `sidebar-shell.tsx`          | App chrome (fixed sidebar + content), user menu, mobile flyout                       |
-| SidebarNav           | `sidebar-nav.tsx`            | Main/admin nav groups, active route logic                                            |
+| SidebarNav           | `sidebar-nav.tsx`            | Main/admin nav groups, analytics sub-items, active route logic                       |
 | ClanAccessGate       | `clan-access-gate.tsx`       | Clan membership gate for scoped pages                                                |
 | MarkdownEditor       | `markdown-editor.tsx`        | Write/preview tabs, toolbar, image upload                                            |
 | BannerPicker         | `banner-picker.tsx`          | Game-asset banner presets + custom upload                                            |
@@ -293,59 +330,61 @@ Standalone admin-gated page for deep-linking into a specific submission's staged
 | Error utils         | `supabase/error-utils.ts`         | Classifies Supabase errors → i18n keys                                                 |
 | Auth state          | `hooks/auth-state-context.ts`     | Shared app-wide auth/role context                                                      |
 | User role hook      | `hooks/use-user-role.ts`          | Role/permission helpers for components                                                 |
+| Timezone            | `timezone.ts`                     | Europe/Berlin date helpers (week bounds, day ranges, display formatting)               |
 | Email               | `email/send-email.ts`             | Resend API wrapper (raw fetch, no npm dep)                                             |
 
 ## 7. API Route Index
 
-| Route                                 | Methods                  | Auth         | Rate Limit       | Purpose                                                                |
-| ------------------------------------- | ------------------------ | ------------ | ---------------- | ---------------------------------------------------------------------- |
-| `/api/messages`                       | GET, POST                | user         | standard         | Inbox (dual-path) / Send                                               |
-| `/api/messages/[id]`                  | PATCH, DELETE            | user         | standard         | Mark read / Soft-delete                                                |
-| `/api/messages/sent`                  | GET                      | user         | standard         | Sent messages                                                          |
-| `/api/messages/sent/[id]`             | DELETE                   | user         | standard         | Sender soft-delete                                                     |
-| `/api/messages/thread/[threadId]`     | GET, DELETE              | user         | standard         | Thread + mark-read / Thread delete                                     |
-| `/api/messages/archive`               | GET, POST                | user         | standard         | Archived items / Archive batch                                         |
-| `/api/messages/search-recipients`     | GET                      | user         | standard         | Recipient search                                                       |
-| `/api/notifications`                  | GET                      | user         | relaxed          | User notifications                                                     |
-| `/api/notifications/[id]`             | PATCH, DELETE            | user         | standard         | Mark read / Delete                                                     |
-| `/api/notifications/mark-all-read`    | POST                     | user         | standard         | Mark all read                                                          |
-| `/api/notifications/fan-out`          | POST                     | user         | strict           | Fan-out to clan members                                                |
-| `/api/notifications/delete-all`       | POST                     | user         | standard         | Delete all                                                             |
-| `/api/notification-settings`          | GET, PATCH               | user         | standard         | Notification preferences                                               |
-| `/api/game-accounts`                  | GET, POST, PATCH         | user         | standard         | Game account CRUD                                                      |
-| `/api/site-content`                   | GET, PATCH               | public/admin | relaxed/standard | CMS text content                                                       |
-| `/api/site-list-items`                | GET, PATCH               | public/admin | relaxed/standard | CMS list items                                                         |
-| `/api/auth/forgot-password`           | POST                     | public       | standard         | Password reset email                                                   |
-| `/api/admin/create-user`              | POST                     | admin        | strict           | Invite new user                                                        |
-| `/api/admin/resend-invite`            | POST                     | admin        | strict           | Resend invite email                                                    |
-| `/api/admin/delete-user`              | POST                     | admin        | strict           | Delete user                                                            |
-| `/api/admin/user-lookup`              | POST                     | admin        | strict           | Lookup user by email                                                   |
-| `/api/admin/email-confirmations`      | GET, POST                | admin        | standard/strict  | Email confirmation status / Confirm                                    |
-| `/api/admin/game-account-approvals`   | GET, PATCH               | admin        | strict           | Approval queue                                                         |
-| `/api/admin/forum-categories`         | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                                                    |
-| `/api/design-system/assets`           | GET, PATCH               | admin        | relaxed/standard | Design asset library                                                   |
-| `/api/design-system/ui-elements`      | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory                                                   |
-| `/api/design-system/assignments`      | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments                                                      |
-| `/api/design-system/preview-upload`   | POST                     | admin        | standard         | Screenshot upload                                                      |
-| `/api/bugs`                           | GET, POST                | user         | standard         | Bug report list / Create                                               |
-| `/api/bugs/[id]`                      | GET, PATCH, DELETE       | user/admin   | standard/strict  | Report detail / Update / Delete                                        |
-| `/api/bugs/[id]/comments`             | GET, POST                | user         | standard         | Comments / Add comment                                                 |
-| `/api/bugs/[id]/comments/[commentId]` | PATCH, DELETE            | user/admin   | standard/strict  | Edit / Delete comment                                                  |
-| `/api/bugs/categories`                | GET, POST, PATCH, DELETE | user/admin   | standard/strict  | Bug category CRUD                                                      |
-| `/api/bugs/screenshots`               | POST                     | user         | standard         | Upload screenshot                                                      |
-| **Analytics**                         |                          |              |                  |                                                                        |
-| `/api/analytics/stats`                | GET                      | user         | standard         | Extended dashboard stats (counts, deltas, top collector, daily chart)  |
-| `/api/analytics/chests`               | GET                      | user         | standard         | Chest rankings (date range, filters)                                   |
-| `/api/analytics/events`               | GET                      | user         | standard         | Event list + detail results                                            |
-| `/api/analytics/machtpunkte`          | GET                      | user         | standard         | Power standings + history                                              |
-| **Data Pipeline / Import**            |                          |              |                  |                                                                        |
-| `/api/import/config`                  | GET                      | public       | standard         | Supabase URL + anon key discovery                                      |
-| `/api/import/clans`                   | GET                      | bearer/user  | standard         | User's clans (for ChillerBuddy)                                        |
-| `/api/import/submit`                  | POST                     | bearer/user  | relaxed          | Ingest ChillerBuddy export JSON                                        |
-| `/api/import/submissions`             | GET                      | user         | standard         | List submissions (filters + paging)                                    |
-| `/api/import/submissions/[id]`        | GET, PATCH, DELETE       | user/admin   | standard         | Detail + staged entries / Match edit (cascades to production) / Delete |
-| `/api/import/submissions/[id]/review` | POST                     | admin/mod    | standard         | Approve/reject staged entries                                          |
-| `/api/import/validation-lists`        | GET, POST                | bearer/user  | standard         | OCR corrections + known names sync                                     |
+| Route                                 | Methods                  | Auth         | Rate Limit       | Purpose                                                               |
+| ------------------------------------- | ------------------------ | ------------ | ---------------- | --------------------------------------------------------------------- |
+| `/api/messages`                       | GET, POST                | user         | standard         | Inbox (dual-path) / Send                                              |
+| `/api/messages/[id]`                  | PATCH, DELETE            | user         | standard         | Mark read / Soft-delete                                               |
+| `/api/messages/sent`                  | GET                      | user         | standard         | Sent messages                                                         |
+| `/api/messages/sent/[id]`             | DELETE                   | user         | standard         | Sender soft-delete                                                    |
+| `/api/messages/thread/[threadId]`     | GET, DELETE              | user         | standard         | Thread + mark-read / Thread delete                                    |
+| `/api/messages/archive`               | GET, POST                | user         | standard         | Archived items / Archive batch                                        |
+| `/api/messages/search-recipients`     | GET                      | user         | standard         | Recipient search                                                      |
+| `/api/notifications`                  | GET                      | user         | relaxed          | User notifications                                                    |
+| `/api/notifications/[id]`             | PATCH, DELETE            | user         | standard         | Mark read / Delete                                                    |
+| `/api/notifications/mark-all-read`    | POST                     | user         | standard         | Mark all read                                                         |
+| `/api/notifications/fan-out`          | POST                     | user         | strict           | Fan-out to clan members                                               |
+| `/api/notifications/delete-all`       | POST                     | user         | standard         | Delete all                                                            |
+| `/api/notification-settings`          | GET, PATCH               | user         | standard         | Notification preferences                                              |
+| `/api/game-accounts`                  | GET, POST, PATCH         | user         | standard         | Game account CRUD                                                     |
+| `/api/site-content`                   | GET, PATCH               | public/admin | relaxed/standard | CMS text content                                                      |
+| `/api/site-list-items`                | GET, PATCH               | public/admin | relaxed/standard | CMS list items                                                        |
+| `/api/auth/forgot-password`           | POST                     | public       | standard         | Password reset email                                                  |
+| `/api/admin/create-user`              | POST                     | admin        | strict           | Invite new user                                                       |
+| `/api/admin/resend-invite`            | POST                     | admin        | strict           | Resend invite email                                                   |
+| `/api/admin/delete-user`              | POST                     | admin        | strict           | Delete user                                                           |
+| `/api/admin/user-lookup`              | POST                     | admin        | strict           | Lookup user by email                                                  |
+| `/api/admin/email-confirmations`      | GET, POST                | admin        | standard/strict  | Email confirmation status / Confirm                                   |
+| `/api/admin/game-account-approvals`   | GET, PATCH               | admin        | strict           | Approval queue                                                        |
+| `/api/admin/forum-categories`         | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                                                   |
+| `/api/design-system/assets`           | GET, PATCH               | admin        | relaxed/standard | Design asset library                                                  |
+| `/api/design-system/ui-elements`      | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory                                                  |
+| `/api/design-system/assignments`      | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments                                                     |
+| `/api/design-system/preview-upload`   | POST                     | admin        | standard         | Screenshot upload                                                     |
+| `/api/bugs`                           | GET, POST                | user         | standard         | Bug report list / Create                                              |
+| `/api/bugs/[id]`                      | GET, PATCH, DELETE       | user/admin   | standard/strict  | Report detail / Update / Delete                                       |
+| `/api/bugs/[id]/comments`             | GET, POST                | user         | standard         | Comments / Add comment                                                |
+| `/api/bugs/[id]/comments/[commentId]` | PATCH, DELETE            | user/admin   | standard/strict  | Edit / Delete comment                                                 |
+| `/api/bugs/categories`                | GET, POST, PATCH, DELETE | user/admin   | standard/strict  | Bug category CRUD                                                     |
+| `/api/bugs/screenshots`               | POST                     | user         | standard         | Upload screenshot                                                     |
+| **Analytics**                         |                          |              |                  |                                                                       |
+| `/api/analytics/stats`                | GET                      | user         | standard         | Extended dashboard stats (counts, deltas, top collector, daily chart) |
+| `/api/analytics/chests`               | GET                      | user         | standard         | Chest rankings (date range, filters)                                  |
+| `/api/analytics/events`               | GET                      | user         | standard         | Event list + detail results                                           |
+| `/api/analytics/machtpunkte`          | GET                      | user         | standard         | Power standings + history                                             |
+| `/api/analytics/player`               | GET                      | user         | standard         | Per-player profile (chests, events, power, trends, distributions)     |
+| **Data Pipeline / Import**            |                          |              |                  |                                                                       |
+| `/api/import/config`                  | GET                      | public       | standard         | Supabase URL + anon key discovery                                     |
+| `/api/import/clans`                   | GET                      | bearer/user  | standard         | User's clans (for ChillerBuddy)                                       |
+| `/api/import/submit`                  | POST                     | bearer/admin | relaxed          | Ingest ChillerBuddy export JSON (admin only)                          |
+| `/api/import/submissions`             | GET                      | user         | standard         | List submissions (filters + paging)                                   |
+| `/api/import/submissions/[id]`        | GET, PATCH, DELETE       | user/admin   | standard         | Detail + staged entries / Match edit & delete (admin) / GET (user)    |
+| `/api/import/submissions/[id]/review` | POST                     | admin        | standard         | Approve/reject staged entries (admin only)                            |
+| `/api/import/validation-lists`        | GET, POST                | bearer/user  | standard         | OCR corrections + known names sync                                    |
 
 ## 8. Database Table Index
 
@@ -504,6 +543,8 @@ All sidebar nav items use game-asset PNG icons via `vipIcon` prop on `NavItem`. 
 | `/messages?to=<userId>`              | Pre-fills compose recipient    |
 | `/messages?tab=notifications`        | Opens notifications tab        |
 | `/bugs?report=<id>`                  | Opens specific bug report      |
+| `/analytics/events?event=<id>`       | Opens event detail analytics   |
+| `/analytics/player?name=<n>&ga=<id>` | Opens player analytics profile |
 
 ## 11. Responsive Design
 
@@ -544,6 +585,7 @@ All sidebar/layout responsive rules live in `layout.css`.
 
 - Date pickers display `dd.mm.yyyy`, stored as `YYYY-MM-DD`.
 - Default timestamp display: German format (`dd.MM.yyyy, HH:mm`).
+- All server-side date calculations (week boundaries, day ranges, "today") use Europe/Berlin timezone via `lib/timezone.ts`. DB stores `timestamptz` (UTC); conversion uses the `Intl` API for automatic CET ↔ CEST handling.
 
 ## 13. Environment
 

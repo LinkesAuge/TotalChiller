@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { standardLimiter } from "@/lib/rate-limit";
-import { requireAuth } from "@/lib/api/require-auth";
+import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, parseJsonBody, uuidSchema } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
 import { ReviewRequestSchema, type ReviewItemAction } from "@/lib/api/import-schemas";
@@ -39,17 +39,9 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
   if (blocked) return blocked;
 
   try {
-    const auth = await requireAuth();
+    const auth = await requireAdmin();
     if (auth.error) return auth.error;
     const { userId, supabase } = auth;
-
-    const [adminRes, modRes] = await Promise.all([
-      supabase.rpc("is_any_admin"),
-      supabase.rpc("has_role", { required_roles: ["moderator"] }),
-    ]);
-    if (!adminRes.data && !modRes.data) {
-      return apiError("Forbidden: admin or moderator role required.", 403);
-    }
 
     const { id } = await context.params;
     const idResult = uuidSchema.safeParse(id);
@@ -87,11 +79,14 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       productionRowsCreated = await processItemActions(svc, review.items, sub, stagedTable, productionTable, userId);
     }
 
-    const { data: statusRows } = await svc
-      .from(stagedTable)
-      .select("item_status")
-      .eq("submission_id", sub.id)
-      .limit(10000);
+    const [{ data: statusRows }, { count: matchedTotal }] = await Promise.all([
+      svc.from(stagedTable).select("item_status").eq("submission_id", sub.id).limit(10000),
+      svc
+        .from(stagedTable)
+        .select("id", { count: "exact", head: true })
+        .eq("submission_id", sub.id)
+        .not("matched_game_account_id", "is", null),
+    ]);
 
     const counts = { approved: 0, rejected: 0, pending: 0, auto_matched: 0 };
     for (const row of (statusRows ?? []) as Array<{ item_status: string }>) {
@@ -116,6 +111,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       .update({
         approved_count: counts.approved,
         rejected_count: counts.rejected,
+        matched_count: matchedTotal ?? 0,
         reviewed_by: userId,
         reviewed_at: new Date().toISOString(),
         status: submissionStatus,

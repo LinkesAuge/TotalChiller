@@ -36,6 +36,9 @@ export function EventsList({ eventsState }: EventsListProps): JSX.Element {
     handleTogglePin,
     handleSelectUpcomingEvent,
     highlightEventId,
+    eventIdsWithResults,
+    focusResultsEventId,
+    handleFocusEventResults,
     canManage,
     locale,
     t,
@@ -61,6 +64,8 @@ export function EventsList({ eventsState }: EventsListProps): JSX.Element {
             onMonthShift={shiftCalendarMonth}
             onDateSelect={handleDateSelect}
             onJumpToToday={jumpToToday}
+            eventIdsWithResults={eventIdsWithResults}
+            onFocusEventResults={handleFocusEventResults}
             canManage={canManage}
             locale={locale}
             t={t}
@@ -76,6 +81,7 @@ export function EventsList({ eventsState }: EventsListProps): JSX.Element {
             locale={locale}
             t={t}
             highlightEventId={highlightEventId}
+            focusResultsEventId={focusResultsEventId}
           />
         </div>
 

@@ -162,11 +162,10 @@ async function resolveClanId(
     return apiError("Invalid clan_id format.", 400);
   }
 
-  const { data: isMember } = await supabase.rpc("is_clan_member", { target_clan: clanId });
   const { data: isAdmin } = await supabase.rpc("is_any_admin");
 
-  if (!isMember && !isAdmin) {
-    return apiError("You are not a member of the target clan.", 403);
+  if (!isAdmin) {
+    return apiError("Only administrators can submit data imports.", 403);
   }
 
   return clanId;

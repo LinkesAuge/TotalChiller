@@ -6,6 +6,7 @@ import { standardLimiter } from "@/lib/rate-limit";
 import { requireAuth } from "@/lib/api/require-auth";
 import { apiError, uuidSchema } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
+import { toBerlinDate } from "@/lib/timezone";
 
 const MAX_PAGE_SIZE = 10000;
 
@@ -60,7 +61,7 @@ async function getEventList(
 ): Promise<NextResponse> {
   const { data: rows, error } = await supabase
     .from("event_results")
-    .select("linked_event_id, event_name, event_date, event_points")
+    .select("linked_event_id, event_name, event_date, event_points, player_name, game_account_id")
     .eq("clan_id", clanId)
     .not("linked_event_id", "is", null)
     .limit(10000);
@@ -75,6 +76,8 @@ async function getEventList(
     event_name: string | null;
     event_date: string;
     event_points: number;
+    player_name: string;
+    game_account_id: string | null;
   }>;
 
   // Aggregate by linked_event_id
@@ -134,13 +137,95 @@ async function getEventList(
     .sort((a, b) => a.event_date.localeCompare(b.event_date))
     .map((e) => ({
       event_name: e.event_name.length > 20 ? e.event_name.slice(0, 20) + "…" : e.event_name,
-      date: e.event_date.slice(0, 10),
+      date: toBerlinDate(e.event_date),
       participants: e.participant_count,
       avg_points: e.participant_count > 0 ? Math.round(e.total_points / e.participant_count) : 0,
     }));
 
+  // Latest event full ranking
+  const latestEvent = sorted[0];
+  let latestEventRanking: Array<{
+    rank: number;
+    player_name: string;
+    event_points: number;
+    game_account_id: string | null;
+  }> = [];
+  let latestEventName = "";
+  let latestEventDate = "";
+
+  if (latestEvent) {
+    latestEventName = latestEvent.event_name;
+    latestEventDate = latestEvent.event_date;
+    const latestResults = entries
+      .filter((r) => r.linked_event_id === latestEvent.linked_event_id)
+      .sort((a, b) => (b.event_points ?? 0) - (a.event_points ?? 0));
+    latestEventRanking = latestResults.map((r, i) => ({
+      rank: i + 1,
+      player_name: r.player_name ?? "Unknown",
+      event_points: r.event_points ?? 0,
+      game_account_id: r.game_account_id ?? null,
+    }));
+  }
+
+  // Best performers across all events (top 10 by avg points, min 2 events)
+  const playerStats = new Map<
+    string,
+    { name: string; total_points: number; event_count: number; game_account_id: string | null }
+  >();
+  let highestSingleScore = 0;
+  let highestSingleName = "";
+  let highestSingleEvent = "";
+
+  for (const row of entries) {
+    const name = row.player_name ?? "Unknown";
+    const gaId = row.game_account_id ?? null;
+    const key = gaId ?? name;
+    const pts = row.event_points ?? 0;
+
+    const existing = playerStats.get(key);
+    if (existing) {
+      existing.total_points += pts;
+      existing.event_count += 1;
+    } else {
+      playerStats.set(key, { name, total_points: pts, event_count: 1, game_account_id: gaId });
+    }
+
+    if (pts > highestSingleScore) {
+      highestSingleScore = pts;
+      highestSingleName = name;
+      highestSingleEvent = row.event_name ?? "Event";
+    }
+  }
+
+  const bestPerformers = [...playerStats.values()]
+    .filter((p) => p.event_count >= 2)
+    .map((p) => ({
+      player_name: p.name,
+      game_account_id: p.game_account_id,
+      avg_points: Math.round(p.total_points / p.event_count),
+      event_count: p.event_count,
+      total_points: p.total_points,
+    }))
+    .sort((a, b) => b.avg_points - a.avg_points)
+    .slice(0, 10);
+
   return NextResponse.json({
-    data: { events, participation_trend: participationTrend, total, page, page_size: pageSize },
+    data: {
+      events,
+      participation_trend: participationTrend,
+      total,
+      page,
+      page_size: pageSize,
+      latest_event_ranking: latestEventRanking,
+      latest_event_name: latestEventName,
+      latest_event_date: latestEventDate,
+      best_performers: bestPerformers,
+      highest_single_score: {
+        player_name: highestSingleName,
+        event_name: highestSingleEvent,
+        event_points: highestSingleScore,
+      },
+    },
   });
 }
 

@@ -201,17 +201,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
   if (blocked) return blocked;
 
   try {
-    const auth = await requireAuth();
+    const auth = await requireAdmin();
     if (auth.error) return auth.error;
     const { supabase } = auth;
-
-    const [adminRes, modRes] = await Promise.all([
-      supabase.rpc("is_any_admin"),
-      supabase.rpc("has_role", { required_roles: ["moderator"] }),
-    ]);
-    if (!adminRes.data && !modRes.data) {
-      return apiError("Forbidden: admin or moderator role required.", 403);
-    }
 
     const { id } = await context.params;
     const idParsed = uuidSchema.safeParse(id);
@@ -300,7 +292,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         .from(tableName)
         .select("id", { count: "exact", head: true })
         .eq("submission_id", id)
-        .eq("item_status", "auto_matched");
+        .not("matched_game_account_id", "is", null);
 
       const newMatchedCount = matchedTotal ?? 0;
 

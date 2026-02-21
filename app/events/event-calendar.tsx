@@ -13,6 +13,9 @@ import {
   getShortTimeString,
   sortBannerEvents,
 } from "./events-utils";
+import { TIMEZONE } from "@/lib/timezone";
+import { useSupabase } from "../hooks/use-supabase";
+import useClanContext from "../hooks/use-clan-context";
 import DayPanelEventCard from "./day-panel-event-card";
 
 /** How many event cards to show before requiring "show more". */
@@ -27,6 +30,8 @@ export interface EventCalendarProps {
   readonly onMonthShift: (offset: number) => void;
   readonly onDateSelect: (dayKey: string, day: CalendarDay) => void;
   readonly onJumpToToday: () => void;
+  readonly eventIdsWithResults: ReadonlySet<string>;
+  readonly onFocusEventResults: (eventId: string, dateKey: string) => void;
   readonly canManage: boolean;
   readonly locale: string;
   readonly t: (key: string, values?: Record<string, string>) => string;
@@ -45,6 +50,8 @@ export interface EventDayPanelProps {
   readonly t: (key: string, values?: Record<string, string>) => string;
   /** When set, auto-expand and highlight this event instead of the first one. */
   readonly highlightEventId?: string;
+  /** When set, auto-expand this event and scroll to its results section. */
+  readonly focusResultsEventId?: string;
 }
 
 /* ── Inline SVG icons ── */
@@ -75,7 +82,7 @@ function ChevronIcon({ direction }: { readonly direction: "left" | "right" }): J
 /** Format a date key (YYYY-MM-DD) for display in the calendar toolbar. */
 function formatSelectedDateLabel(dateKey: string, locale: string): string {
   const d = new Date(dateKey + "T00:00:00");
-  return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric", timeZone: TIMEZONE });
 }
 
 /**
@@ -127,6 +134,131 @@ function TooltipSingleEvent({ ev, locale }: { ev: DisplayEvent; locale: string }
   );
 }
 
+/* ── Results preview tooltip (lazy-fetches top 3 on mount) ── */
+
+interface ResultsPreviewData {
+  readonly topPlayers: readonly { player_name: string; event_points: number }[];
+  readonly totalParticipants: number;
+}
+
+function ResultsPreviewTooltip({
+  eventId,
+  eventTitle,
+  position,
+  cache,
+  t,
+}: {
+  readonly eventId: string;
+  readonly eventTitle: string;
+  readonly position: { x: number; y: number };
+  readonly cache: React.MutableRefObject<Map<string, ResultsPreviewData>>;
+  readonly t: (key: string, values?: Record<string, string>) => string;
+}): JSX.Element {
+  const supabase = useSupabase();
+  const clanContext = useClanContext();
+  const clanId = clanContext?.clanId;
+  const [preview, setPreview] = useState<ResultsPreviewData | null>(() => cache.current.get(eventId) ?? null);
+  const [loading, setLoading] = useState(!preview);
+
+  useEffect(() => {
+    if (preview || !clanId) return;
+    let cancelled = false;
+
+    async function fetchPreview(): Promise<void> {
+      const { data, count } = await supabase
+        .from("event_results")
+        .select("player_name, event_points", { count: "exact" })
+        .eq("linked_event_id", eventId)
+        .eq("clan_id", clanId!)
+        .order("event_points", { ascending: false })
+        .limit(3);
+
+      if (cancelled) return;
+      const result: ResultsPreviewData = {
+        topPlayers: (data ?? []) as { player_name: string; event_points: number }[],
+        totalParticipants: count ?? 0,
+      };
+      cache.current.set(eventId, result);
+      setPreview(result);
+      setLoading(false);
+    }
+
+    void fetchPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId, clanId, supabase, preview, cache]);
+
+  return (
+    <div className="calendar-results-tooltip" role="tooltip" style={{ left: position.x, top: position.y }}>
+      <div className="calendar-results-tooltip-inner">
+        <div className="calendar-results-tooltip-title">{eventTitle}</div>
+        {loading ? (
+          <div className="calendar-results-tooltip-loading">{t("loadingResults")}</div>
+        ) : preview && preview.topPlayers.length > 0 ? (
+          <>
+            <div className="calendar-results-tooltip-list">
+              {preview.topPlayers.map((p, i) => (
+                <div key={`${p.player_name}-${i}`} className="calendar-results-tooltip-row">
+                  <span className={`calendar-results-tooltip-rank${i < 3 ? ` top-${i + 1}` : ""}`}>{i + 1}</span>
+                  <span className="calendar-results-tooltip-player">{p.player_name}</span>
+                  <span className="calendar-results-tooltip-points">{p.event_points.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+            {preview.totalParticipants > 3 && (
+              <div className="calendar-results-tooltip-more">
+                {preview.totalParticipants} {t("participants")}
+              </div>
+            )}
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Inline trophy icon rendered next to time labels on cells with results. */
+function ResultsIcon({
+  event,
+  dayKey,
+  t,
+  onFocus,
+  onHoverEnter,
+  onHoverLeave,
+  setResultsTooltip,
+}: {
+  readonly event: DisplayEvent;
+  readonly dayKey: string;
+  readonly t: (key: string, values?: Record<string, string>) => string;
+  readonly onFocus: (eventId: string, dateKey: string) => void;
+  readonly onHoverEnter: (e: React.MouseEvent, eventId: string, eventTitle: string) => void;
+  readonly onHoverLeave: () => void;
+  readonly setResultsTooltip: React.Dispatch<
+    React.SetStateAction<{ eventId: string; eventTitle: string; x: number; y: number } | null>
+  >;
+}): JSX.Element {
+  return (
+    <span
+      className="calendar-results-icon"
+      title={t("resultsAvailable")}
+      onClick={(e) => {
+        e.stopPropagation();
+        setResultsTooltip(null);
+        onFocus(event.id, dayKey);
+      }}
+      onMouseEnter={(e) => onHoverEnter(e, event.id, event.title)}
+      onMouseLeave={onHoverLeave}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <rect x="1" y="14" width="6" height="8" rx="1" />
+        <rect x="9" y="6" width="6" height="16" rx="1" />
+        <rect x="17" y="10" width="6" height="12" rx="1" />
+      </svg>
+    </span>
+  );
+}
+
 /* ── Component ── */
 
 export function EventCalendar({
@@ -138,6 +270,8 @@ export function EventCalendar({
   onMonthShift,
   onDateSelect,
   onJumpToToday,
+  eventIdsWithResults,
+  onFocusEventResults,
   canManage: _canManage,
   locale,
   t,
@@ -147,10 +281,21 @@ export function EventCalendar({
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /* Results preview tooltip state */
+  const [resultsTooltip, setResultsTooltip] = useState<{
+    eventId: string;
+    eventTitle: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const resultsTooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultsCacheRef = useRef<Map<string, ResultsPreviewData>>(new Map());
+
   /* Clear tooltip timeout on unmount to prevent state updates after unmount */
   useEffect(() => {
     return () => {
       if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+      if (resultsTooltipTimeout.current) clearTimeout(resultsTooltipTimeout.current);
     };
   }, []);
 
@@ -169,7 +314,21 @@ export function EventCalendar({
   function handleDayClick(day: CalendarDay): void {
     onDateSelect(day.key, day);
     setTooltipDay(null);
+    setResultsTooltip(null);
   }
+
+  const handleResultsBadgeEnter = useCallback((e: React.MouseEvent, eventId: string, eventTitle: string) => {
+    e.stopPropagation();
+    if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+    if (resultsTooltipTimeout.current) clearTimeout(resultsTooltipTimeout.current);
+    setTooltipDay(null);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setResultsTooltip({ eventId, eventTitle, x: rect.left + rect.width / 2, y: rect.top });
+  }, []);
+
+  const handleResultsBadgeLeave = useCallback(() => {
+    resultsTooltipTimeout.current = setTimeout(() => setResultsTooltip(null), 150);
+  }, []);
 
   return (
     <section className="card event-calendar-card">
@@ -204,7 +363,7 @@ export function EventCalendar({
                   <ChevronIcon direction="left" />
                 </button>
                 <div className="calendar-month-label">
-                  {calendarMonth.toLocaleDateString(locale, { month: "long", year: "numeric" })}
+                  {calendarMonth.toLocaleDateString(locale, { month: "long", year: "numeric", timeZone: TIMEZONE })}
                 </div>
                 <button
                   className="calendar-nav-arrow"
@@ -234,6 +393,7 @@ export function EventCalendar({
                 const primaryEvent = pinnedEvent ?? (hasEvents ? day.events[0] : undefined);
                 const primaryBanner = primaryEvent?.banner_url ?? null;
                 const primaryName = primaryEvent?.title ?? null;
+                const resultsEvent = day.events.find((e) => eventIdsWithResults.has(e.id));
 
                 /* Split banner: exactly 2 events with banners → show both side by side.
                    Left = starts sooner (or ends earlier if same start). */
@@ -291,11 +451,37 @@ export function EventCalendar({
                       <>
                         <span className="calendar-split-info top">
                           <span className="calendar-split-title">{splitLeft.title}</span>
-                          <span className="calendar-split-time">{cellTimeLabel(splitLeft, day.key, locale, t)}</span>
+                          <span className="calendar-split-time">
+                            {cellTimeLabel(splitLeft, day.key, locale, t)}
+                            {eventIdsWithResults.has(splitLeft.id) && (
+                              <ResultsIcon
+                                event={splitLeft}
+                                dayKey={day.key}
+                                t={t}
+                                onFocus={onFocusEventResults}
+                                onHoverEnter={handleResultsBadgeEnter}
+                                onHoverLeave={handleResultsBadgeLeave}
+                                setResultsTooltip={setResultsTooltip}
+                              />
+                            )}
+                          </span>
                         </span>
                         <span className="calendar-split-info bottom">
                           <span className="calendar-split-title">{splitRight.title}</span>
-                          <span className="calendar-split-time">{cellTimeLabel(splitRight, day.key, locale, t)}</span>
+                          <span className="calendar-split-time">
+                            {cellTimeLabel(splitRight, day.key, locale, t)}
+                            {eventIdsWithResults.has(splitRight.id) && (
+                              <ResultsIcon
+                                event={splitRight}
+                                dayKey={day.key}
+                                t={t}
+                                onFocus={onFocusEventResults}
+                                onHoverEnter={handleResultsBadgeEnter}
+                                onHoverLeave={handleResultsBadgeLeave}
+                                setResultsTooltip={setResultsTooltip}
+                              />
+                            )}
+                          </span>
                         </span>
                         {day.events.length > 2 && (
                           <span className="calendar-day-more-label">
@@ -308,7 +494,22 @@ export function EventCalendar({
                         {/* Single event: title + time at bottom of cell */}
                         {primaryEvent && primaryName && <span className="calendar-day-title">{primaryName}</span>}
                         {primaryEvent && (
-                          <span className="calendar-day-time">{cellTimeLabel(primaryEvent, day.key, locale, t)}</span>
+                          <span className="calendar-day-time">
+                            <span className="calendar-day-time-text">
+                              {cellTimeLabel(primaryEvent, day.key, locale, t)}
+                            </span>
+                            {resultsEvent && (
+                              <ResultsIcon
+                                event={resultsEvent}
+                                dayKey={day.key}
+                                t={t}
+                                onFocus={onFocusEventResults}
+                                onHoverEnter={handleResultsBadgeEnter}
+                                onHoverLeave={handleResultsBadgeLeave}
+                                setResultsTooltip={setResultsTooltip}
+                              />
+                            )}
+                          </span>
                         )}
                         {/* "X more…" for 3+ events without split */}
                         {day.events.length > 1 && (
@@ -338,7 +539,7 @@ export function EventCalendar({
         </div>
       </div>
       {/* Hover tooltip — rendered outside calendar-body to avoid position:relative offset */}
-      {tooltipDay && tooltipDay.events.length > 0 && (
+      {tooltipDay && tooltipDay.events.length > 0 && !resultsTooltip && (
         <div
           className="calendar-tooltip"
           role="tooltip"
@@ -367,6 +568,16 @@ export function EventCalendar({
           </div>
         </div>
       )}
+      {/* Results preview tooltip */}
+      {resultsTooltip && (
+        <ResultsPreviewTooltip
+          eventId={resultsTooltip.eventId}
+          eventTitle={resultsTooltip.eventTitle}
+          position={{ x: resultsTooltip.x, y: resultsTooltip.y }}
+          cache={resultsCacheRef}
+          t={t}
+        />
+      )}
     </section>
   );
 }
@@ -386,20 +597,35 @@ export function EventDayPanel({
   locale,
   t,
   highlightEventId,
+  focusResultsEventId,
 }: EventDayPanelProps): JSX.Element {
   const panelRef = useRef<HTMLElement>(null);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(DAY_PANEL_PAGE_SIZE);
+  const [activeFocusResultsId, setActiveFocusResultsId] = useState("");
+  const clearFocusResults = useCallback(() => setActiveFocusResultsId(""), []);
 
   /** Reset visible count and expansion when selected day changes or the same day is re-clicked. */
   useEffect(() => {
-    setVisibleCount(DAY_PANEL_PAGE_SIZE);
     const sorted = sortPinnedFirst(selectedDayEvents);
     /* Prefer the highlighted event (from deep-link) over the first event. */
     const highlightMatch = highlightEventId ? sorted.find((e) => e.id === highlightEventId)?.displayKey : undefined;
     const expandKey = highlightMatch ?? sorted[0]?.displayKey;
     setExpandedKeys(expandKey ? new Set([expandKey]) : new Set());
+
+    /* Ensure the highlighted event is visible (it may be beyond the default page size). */
+    if (highlightMatch) {
+      const idx = sorted.findIndex((e) => e.displayKey === highlightMatch);
+      setVisibleCount((prev) => Math.max(prev, idx + 1, DAY_PANEL_PAGE_SIZE));
+    } else {
+      setVisibleCount(DAY_PANEL_PAGE_SIZE);
+    }
   }, [selectionNonce, selectedDayEvents, highlightEventId]);
+
+  useEffect(() => {
+    if (!focusResultsEventId) return;
+    setActiveFocusResultsId(focusResultsEventId);
+  }, [focusResultsEventId, selectionNonce]);
 
   /** Toggle expand/collapse for a single event card. */
   function toggleExpand(displayKey: string): void {
@@ -440,6 +666,8 @@ export function EventDayPanel({
               canManage={canManage}
               locale={locale}
               t={t}
+              focusResults={activeFocusResultsId === entry.id}
+              onResultsFocused={clearFocusResults}
             />
           ))}
 

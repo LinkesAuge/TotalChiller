@@ -1,13 +1,26 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import PageShell from "@/app/components/page-shell";
 import DataState from "@/app/components/data-state";
 import useClanContext from "@/app/hooks/use-clan-context";
 import AnalyticsSubnav from "../analytics-subnav";
-import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { TIMEZONE } from "@/lib/timezone";
+import {
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 /* ── Types ── */
 
@@ -41,12 +54,31 @@ interface ParticipationTrendEntry {
   readonly avg_points: number;
 }
 
+interface BestPerformer {
+  readonly player_name: string;
+  readonly game_account_id: string | null;
+  readonly avg_points: number;
+  readonly event_count: number;
+  readonly total_points: number;
+}
+
+interface HighestSingleScore {
+  readonly player_name: string;
+  readonly event_name: string;
+  readonly event_points: number;
+}
+
 interface EventListResponse {
   readonly events: EventListItem[];
   readonly participation_trend: ParticipationTrendEntry[];
   readonly total: number;
   readonly page: number;
   readonly page_size: number;
+  readonly latest_event_ranking: RankingEntry[];
+  readonly latest_event_name: string;
+  readonly latest_event_date: string;
+  readonly best_performers: BestPerformer[];
+  readonly highest_single_score: HighestSingleScore;
 }
 
 interface EventDetailResponse {
@@ -216,6 +248,7 @@ export default function EventsAnalytics(): JSX.Element {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
+        timeZone: TIMEZONE,
       });
     } catch {
       return iso;
@@ -377,7 +410,14 @@ export default function EventsAnalytics(): JSX.Element {
                       <span>
                         <span className={rankClass(entry.rank)}>{entry.rank}</span>
                       </span>
-                      <span>{entry.player_name}</span>
+                      <span>
+                        <Link
+                          href={`/analytics/player?name=${encodeURIComponent(entry.player_name)}${entry.game_account_id ? `&ga=${encodeURIComponent(entry.game_account_id)}` : ""}`}
+                          className="player-link"
+                        >
+                          {entry.player_name}
+                        </Link>
+                      </span>
                       <span>{entry.event_points.toLocaleString()}</span>
                     </div>
                   ))}
@@ -494,7 +534,228 @@ export default function EventsAnalytics(): JSX.Element {
                 </div>
               </div>
 
-              {/* Participation trend charts */}
+              {/* ── Latest event: ranking + bar chart side by side ── */}
+              {listData.latest_event_ranking &&
+                listData.latest_event_ranking.length > 0 &&
+                (() => {
+                  const latestBarData = listData.latest_event_ranking.slice(0, 15).map((r) => ({
+                    name: r.player_name,
+                    points: r.event_points,
+                  }));
+                  return (
+                    <div className="analytics-split-layout">
+                      <div className="analytics-table-section">
+                        <div className="analytics-table-section__header">
+                          <h4 className="analytics-table-section__title">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                            {t("latestEventRanking")} — {listData.latest_event_name}
+                          </h4>
+                          <span className="analytics-table-section__count">
+                            {formatDate(listData.latest_event_date)}
+                          </span>
+                        </div>
+
+                        <section className="table event-ranking">
+                          <header>
+                            <span>{t("rankColumn")}</span>
+                            <span>{t("playerColumn")}</span>
+                            <span>{t("pointsColumn")}</span>
+                          </header>
+                          {listData.latest_event_ranking.map((entry, idx) => (
+                            <div className="row" key={entry.game_account_id ?? `lr-${idx}`}>
+                              <span>
+                                <span className={rankClass(entry.rank)}>{entry.rank}</span>
+                              </span>
+                              <span>
+                                <Link
+                                  href={`/analytics/player?name=${encodeURIComponent(entry.player_name)}${entry.game_account_id ? `&ga=${encodeURIComponent(entry.game_account_id)}` : ""}`}
+                                  className="player-link"
+                                >
+                                  {entry.player_name}
+                                </Link>
+                              </span>
+                              <span>{entry.event_points.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </section>
+                      </div>
+
+                      <div className="analytics-chart-wrapper">
+                        <h4>
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="12" width="4" height="9" rx="1" />
+                            <rect x="10" y="7" width="4" height="14" rx="1" />
+                            <rect x="17" y="3" width="4" height="18" rx="1" />
+                          </svg>
+                          {t("chartLatestEventPoints")}
+                        </h4>
+                        <ResponsiveContainer width="100%" height={Math.max(280, latestBarData.length * 28)}>
+                          <BarChart
+                            data={latestBarData}
+                            layout="vertical"
+                            margin={{ top: 4, right: 20, bottom: 4, left: 10 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} horizontal={false} />
+                            <XAxis
+                              type="number"
+                              tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
+                              axisLine={{ stroke: CHART_GRID_COLOR }}
+                              tickLine={false}
+                            />
+                            <YAxis
+                              type="category"
+                              dataKey="name"
+                              width={100}
+                              tick={{ fill: CHART_AXIS_COLOR, fontSize: 10 }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(240, 200, 60, 0.06)" }} />
+                            <Bar dataKey="points" fill={CHART_BAR_COLOR} radius={[0, 4, 4, 0]} barSize={18} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+              {/* ── Best performers: table + total points bar chart ── */}
+              {listData.best_performers &&
+                listData.best_performers.length > 0 &&
+                (() => {
+                  const perfBarData = listData.best_performers.slice(0, 10).map((p) => ({
+                    name: p.player_name,
+                    avg: p.avg_points,
+                  }));
+                  return (
+                    <div className="analytics-split-layout">
+                      <div className="analytics-table-section">
+                        <div className="analytics-table-section__header">
+                          <h4 className="analytics-table-section__title">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M12 20V10" />
+                              <path d="M18 20V4" />
+                              <path d="M6 20v-4" />
+                            </svg>
+                            {t("bestPerformers")}
+                          </h4>
+                          {listData.highest_single_score && listData.highest_single_score.event_points > 0 && (
+                            <span className="analytics-table-section__count">
+                              {t("highestSingleScore")}: {listData.highest_single_score.player_name} (
+                              {listData.highest_single_score.event_points.toLocaleString()} —{" "}
+                              {listData.highest_single_score.event_name})
+                            </span>
+                          )}
+                        </div>
+
+                        <section className="table best-performers">
+                          <header>
+                            <span>{t("playerColumn")}</span>
+                            <span>{t("avgPointsPerEvent")}</span>
+                            <span>{t("totalEvents")}</span>
+                            <span>{t("totalPointsColumn")}</span>
+                          </header>
+                          {listData.best_performers.map((p, idx) => (
+                            <div className="row" key={p.game_account_id ?? `bp-${idx}`}>
+                              <span>
+                                <Link
+                                  href={`/analytics/player?name=${encodeURIComponent(p.player_name)}${p.game_account_id ? `&ga=${encodeURIComponent(p.game_account_id)}` : ""}`}
+                                  className="player-link"
+                                >
+                                  {p.player_name}
+                                </Link>
+                              </span>
+                              <span>{p.avg_points.toLocaleString()}</span>
+                              <span>{p.event_count}</span>
+                              <span>{p.total_points.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </section>
+                      </div>
+
+                      <div className="analytics-chart-wrapper">
+                        <h4>
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                          </svg>
+                          {t("chartTopPerformers")}
+                        </h4>
+                        <ResponsiveContainer width="100%" height={Math.max(280, perfBarData.length * 32)}>
+                          <BarChart
+                            data={perfBarData}
+                            layout="vertical"
+                            margin={{ top: 4, right: 20, bottom: 4, left: 10 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} horizontal={false} />
+                            <XAxis
+                              type="number"
+                              tick={{ fill: CHART_AXIS_COLOR, fontSize: 11 }}
+                              axisLine={{ stroke: CHART_GRID_COLOR }}
+                              tickLine={false}
+                            />
+                            <YAxis
+                              type="category"
+                              dataKey="name"
+                              width={100}
+                              tick={{ fill: CHART_AXIS_COLOR, fontSize: 10 }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: CHART_TOOLTIP_BG,
+                                border: `1px solid ${CHART_TOOLTIP_BORDER}`,
+                                borderRadius: 6,
+                                color: "#e8dcc8",
+                                fontSize: "0.82rem",
+                                padding: "8px 12px",
+                              }}
+                            />
+                            <Bar
+                              dataKey="avg"
+                              fill={CHART_BAR_COLOR}
+                              radius={[0, 4, 4, 0]}
+                              barSize={18}
+                              name={t("avgPointsPerEvent")}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+              {/* ── Participation trend + Avg points charts ── */}
               {listData.participation_trend && listData.participation_trend.length > 1 && (
                 <div className="analytics-charts-row">
                   <div className="analytics-chart-wrapper">
@@ -512,7 +773,7 @@ export default function EventsAnalytics(): JSX.Element {
                       </svg>
                       {t("chartParticipationTrend")}
                     </h4>
-                    <ResponsiveContainer width="100%" height={280}>
+                    <ResponsiveContainer width="100%" height={260}>
                       <AreaChart data={listData.participation_trend} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
                         <defs>
                           <linearGradient id="partGrad" x1="0" y1="0" x2="0" y2="1">
@@ -567,7 +828,7 @@ export default function EventsAnalytics(): JSX.Element {
                       </svg>
                       {t("avgPointsPerEvent")}
                     </h4>
-                    <ResponsiveContainer width="100%" height={280}>
+                    <ResponsiveContainer width="100%" height={260}>
                       <AreaChart data={listData.participation_trend} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
                         <defs>
                           <linearGradient id="avgPtsGrad" x1="0" y1="0" x2="0" y2="1">
@@ -610,6 +871,93 @@ export default function EventsAnalytics(): JSX.Element {
                   </div>
                 </div>
               )}
+
+              {/* ── Event size comparison chart ── */}
+              {listData.events &&
+                listData.events.length > 1 &&
+                (() => {
+                  const eventSizeData = listData.events.slice(0, 15).map((e) => ({
+                    name: e.event_name.length > 16 ? e.event_name.slice(0, 16) + "…" : e.event_name,
+                    participants: e.participant_count,
+                    points: e.total_points,
+                  }));
+                  return (
+                    <div className="analytics-chart-wrapper">
+                      <h4>
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 20V10" />
+                          <path d="M18 20V4" />
+                          <path d="M6 20v-4" />
+                        </svg>
+                        {t("chartEventComparison")}
+                      </h4>
+                      <ResponsiveContainer width="100%" height={280}>
+                        <BarChart data={eventSizeData} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 200, 60, 0.1)" />
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fill: "#b8a888", fontSize: 10 }}
+                            axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                            tickLine={false}
+                            interval={0}
+                            angle={-30}
+                            textAnchor="end"
+                            height={60}
+                          />
+                          <YAxis
+                            yAxisId="left"
+                            tick={{ fill: "#b8a888", fontSize: 11 }}
+                            axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                            tickLine={false}
+                            allowDecimals={false}
+                          />
+                          <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            tick={{ fill: "#b8a888", fontSize: 11 }}
+                            axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                            tickLine={false}
+                            tickFormatter={(v: number) => v.toLocaleString()}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "rgba(10, 20, 32, 0.95)",
+                              border: "1px solid rgba(240, 200, 60, 0.3)",
+                              borderRadius: 6,
+                              color: "#e8dcc8",
+                              fontSize: "0.82rem",
+                              padding: "8px 12px",
+                            }}
+                          />
+                          <Legend wrapperStyle={{ fontSize: "0.78rem", color: "#b8a888" }} />
+                          <Bar
+                            yAxisId="left"
+                            dataKey="participants"
+                            fill="#4a6ea0"
+                            radius={[4, 4, 0, 0]}
+                            maxBarSize={24}
+                            name={t("participantsColumn")}
+                          />
+                          <Bar
+                            yAxisId="right"
+                            dataKey="points"
+                            fill={CHART_BAR_COLOR}
+                            radius={[4, 4, 0, 0]}
+                            maxBarSize={24}
+                            name={t("totalPointsColumn")}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  );
+                })()}
 
               {/* Event list table */}
               <div className="analytics-table-section">

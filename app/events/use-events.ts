@@ -22,6 +22,7 @@ import type {
 } from "./events-types";
 import { expandRecurringEvents, getDateRangeKeys, parseDateKey } from "./events-utils";
 import { toDateString } from "@/lib/dashboard-utils";
+import { TIMEZONE } from "@/lib/timezone";
 
 /**
  * Result of the useEvents hook. Exposes all state, computed data, and handlers
@@ -53,6 +54,8 @@ export interface UseEventsResult {
   readonly todayKey: string;
   readonly dateSelectNonce: number;
   readonly highlightEventId: string;
+  readonly eventIdsWithResults: ReadonlySet<string>;
+  readonly focusResultsEventId: string;
 
   /* ── Upcoming & past ── */
   readonly upcomingEvents: readonly DisplayEvent[];
@@ -160,6 +163,7 @@ export interface UseEventsResult {
   readonly jumpToToday: () => void;
   readonly handleDateSelect: (dayKey: string, day: CalendarDay) => void;
   readonly handleSelectUpcomingEvent: (event: DisplayEvent) => void;
+  readonly handleFocusEventResults: (eventId: string, dateKey: string) => void;
 }
 
 /**
@@ -178,12 +182,8 @@ export function useEvents(): UseEventsResult {
   const { userId: authUserId } = useAuth();
   const currentUserId = authUserId ?? "";
 
-  const { events, setEvents, isLoading, templates, gameAccounts, reloadEvents, reloadTemplates } = useEventsData(
-    supabase,
-    clanContext?.clanId,
-    pushToast,
-    t,
-  );
+  const { events, setEvents, isLoading, templates, gameAccounts, eventIdsWithResults, reloadEvents, reloadTemplates } =
+    useEventsData(supabase, clanContext?.clanId, pushToast, t);
 
   const formState = useEventsForm({
     supabase,
@@ -223,6 +223,7 @@ export function useEvents(): UseEventsResult {
   const [dateSelectNonce, setDateSelectNonce] = useState(0);
   const [upcomingPage, setUpcomingPage] = useState<number>(1);
   const [highlightEventId, setHighlightEventId] = useState<string>(urlEventId);
+  const [focusResultsEventId, setFocusResultsEventId] = useState<string>("");
 
   const expandedEvents: readonly DisplayEvent[] = useMemo(() => {
     const horizon = new Date();
@@ -296,6 +297,7 @@ export function useEvents(): UseEventsResult {
         month: "long",
         day: "numeric",
         year: "numeric",
+        timeZone: TIMEZONE,
       })
     : selectedDateKey;
 
@@ -350,6 +352,22 @@ export function useEvents(): UseEventsResult {
     });
   }, []);
 
+  const handleFocusEventResults = useCallback((eventId: string, dateKey: string): void => {
+    setSelectedDateKey(dateKey);
+    setDateSelectNonce((n) => n + 1);
+    setHighlightEventId(eventId);
+    setFocusResultsEventId(eventId);
+    const d = new Date(dateKey + "T00:00:00");
+    if (!isNaN(d.getTime())) {
+      setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+    }
+    requestAnimationFrame(() => {
+      document.querySelector(".calendar-day-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    // Auto-clear so it doesn't re-trigger on subsequent day selections
+    setTimeout(() => setFocusResultsEventId(""), 0);
+  }, []);
+
   return {
     events,
     setEvents,
@@ -371,6 +389,8 @@ export function useEvents(): UseEventsResult {
     todayKey,
     dateSelectNonce,
     highlightEventId,
+    eventIdsWithResults,
+    focusResultsEventId,
     upcomingEvents,
     pastEvents,
     upcomingPage,
@@ -421,5 +441,6 @@ export function useEvents(): UseEventsResult {
     jumpToToday,
     handleDateSelect,
     handleSelectUpcomingEvent,
+    handleFocusEventResults,
   };
 }

@@ -93,6 +93,9 @@ export interface DayPanelEventCardProps {
   readonly canManage: boolean;
   readonly locale: string;
   readonly t: (key: string, values?: Record<string, string>) => string;
+  /** When true, auto-scroll to the linked results section after it loads. */
+  readonly focusResults?: boolean;
+  readonly onResultsFocused?: () => void;
 }
 
 /* ── Component ── */
@@ -107,6 +110,8 @@ function DayPanelEventCardInner({
   canManage,
   locale,
   t,
+  focusResults,
+  onResultsFocused,
 }: DayPanelEventCardProps): JSX.Element {
   const dp = getDateBadgeParts(entry.starts_at, locale);
 
@@ -346,7 +351,13 @@ function DayPanelEventCardInner({
               <AppMarkdown content={entry.description} />
             </div>
           )}
-          <EventLinkedResults eventId={entry.id} />
+          <EventLinkedResults
+            eventId={entry.id}
+            eventDate={entry.starts_at}
+            locale={locale}
+            autoScrollIntoView={focusResults}
+            onScrollComplete={onResultsFocused}
+          />
           {entry.forum_post_id && (
             <a className="day-panel-discuss-btn" href={`/forum?post=${entry.forum_post_id}`} onClick={stopPropagation}>
               <svg

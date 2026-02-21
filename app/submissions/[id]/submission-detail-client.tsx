@@ -8,6 +8,7 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import DataState from "../../components/data-state";
 import PaginationBar from "../../components/pagination-bar";
 import { usePagination } from "@/lib/hooks/use-pagination";
+import { formatBerlinDate } from "@/lib/timezone";
 
 /* ── Types ── */
 
@@ -203,7 +204,7 @@ function SubmissionDetailClient(): JSX.Element {
         const body = await res.json().catch(() => null);
         throw new Error((body as { error?: string } | null)?.error ?? t("deleteError"));
       }
-      router.push("/admin?tab=data");
+      router.push("/analytics/daten");
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : t("deleteError"));
       setActionLoading(false);
@@ -232,7 +233,7 @@ function SubmissionDetailClient(): JSX.Element {
         <span>{entry.chest_name ?? "—"}</span>
         <span>{entry.source ?? "—"}</span>
         <span>{entry.level ?? "—"}</span>
-        <span>{entry.opened_at ? new Date(entry.opened_at).toLocaleDateString() : "—"}</span>
+        <span>{entry.opened_at ? formatBerlinDate(entry.opened_at) : "—"}</span>
         <span>
           <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
         </span>
@@ -247,7 +248,7 @@ function SubmissionDetailClient(): JSX.Element {
         <span>{entry.player_name}</span>
         <span>{entry.coordinates ?? "—"}</span>
         <span>{entry.score != null ? Number(entry.score).toLocaleString() : "—"}</span>
-        <span>{entry.captured_at ? new Date(entry.captured_at).toLocaleDateString() : "—"}</span>
+        <span>{entry.captured_at ? formatBerlinDate(entry.captured_at) : "—"}</span>
         <span>
           <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
         </span>
@@ -262,7 +263,7 @@ function SubmissionDetailClient(): JSX.Element {
         <span>{entry.player_name}</span>
         <span>{entry.event_name ?? "—"}</span>
         <span>{entry.event_points != null ? Number(entry.event_points).toLocaleString() : "—"}</span>
-        <span>{entry.captured_at ? new Date(entry.captured_at).toLocaleDateString() : "—"}</span>
+        <span>{entry.captured_at ? formatBerlinDate(entry.captured_at) : "—"}</span>
         <span>
           <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
         </span>
@@ -322,7 +323,7 @@ function SubmissionDetailClient(): JSX.Element {
       <button
         type="button"
         className="button"
-        onClick={() => router.push("/admin?tab=data")}
+        onClick={() => router.push("/analytics/daten")}
         style={{ marginBottom: 16 }}
       >
         ← {t("backToList")}
@@ -349,7 +350,7 @@ function SubmissionDetailClient(): JSX.Element {
                   <div className="card-subtitle">
                     {t("submittedBy", { name: submission.profiles?.display_name ?? "—" })}
                     {" · "}
-                    {new Date(submission.created_at).toLocaleDateString()}
+                    {formatBerlinDate(submission.created_at)}
                   </div>
                 </div>
               </div>

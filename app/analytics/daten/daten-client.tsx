@@ -4,15 +4,19 @@ import type { ReactElement } from "react";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import { useSupabase } from "../../hooks/use-supabase";
-import useClanContext from "../../hooks/use-clan-context";
+import { useSupabase } from "@/app/hooks/use-supabase";
+import useClanContext from "@/app/hooks/use-clan-context";
 import { useUserRole } from "@/lib/hooks/use-user-role";
-import DataState from "../../components/data-state";
-import PaginationBar from "../../components/pagination-bar";
-import GameAlert from "../../components/ui/game-alert";
-import RadixSelect, { type SelectOption } from "../../components/ui/radix-select";
+import PageShell from "@/app/components/page-shell";
+import DataState from "@/app/components/data-state";
+import PaginationBar from "@/app/components/pagination-bar";
+import GameAlert from "@/app/components/ui/game-alert";
+import RadixSelect, { type SelectOption } from "@/app/components/ui/radix-select";
 import { usePagination } from "@/lib/hooks/use-pagination";
+import { formatBerlinDate } from "@/lib/timezone";
 import { ImportPayloadSchema, type ImportPayload } from "@/lib/api/import-schemas";
+import { formatLocalDateTime } from "@/lib/date-format";
+import AnalyticsSubnav from "../analytics-subnav";
 
 const ValidationListsPanel = dynamic(() => import("./validation-lists-panel"), { ssr: false });
 
@@ -150,12 +154,29 @@ function statusBadgeClass(status: string): string {
 
 /* ── Component ── */
 
-export default function DataTab(): ReactElement {
+export default function DatenClient(): ReactElement {
+  const tAnalytics = useTranslations("analytics");
+
+  return (
+    <PageShell
+      breadcrumb={tAnalytics("breadcrumb")}
+      title={tAnalytics("dataTitle")}
+      heroTitle={tAnalytics("heroTitle")}
+      heroSubtitle={tAnalytics("heroSubtitle")}
+      bannerSrc="/assets/game/bg/bg_14.jpg"
+    >
+      <AnalyticsSubnav />
+      <DataContent />
+    </PageShell>
+  );
+}
+
+function DataContent(): ReactElement {
   const t = useTranslations("submissions");
   const tImport = useTranslations("import");
   const supabase = useSupabase();
   const clanContext = useClanContext();
-  const { isAdmin, isContentManager, loading: roleLoading } = useUserRole(supabase);
+  const { isAdmin, loading: roleLoading } = useUserRole(supabase);
   const [dataView, setDataView] = useState<"submissions" | "validationLists">("submissions");
 
   /* ── Import state ── */
@@ -662,7 +683,7 @@ export default function DataTab(): ReactElement {
   const eventOptions: SelectOption[] = useMemo(() => {
     const opts: SelectOption[] = [{ value: "", label: t("noLinkedEvent") }];
     for (const evt of clanEvents) {
-      const dateStr = new Date(evt.starts_at).toLocaleDateString();
+      const dateStr = formatBerlinDate(evt.starts_at);
       opts.push({ value: evt.id, label: `${evt.title} (${dateStr})` });
     }
     return opts;
@@ -723,7 +744,7 @@ export default function DataTab(): ReactElement {
     );
   }
 
-  const canAssign = !roleLoading && (isContentManager || isAdmin);
+  const canAssign = !roleLoading && isAdmin;
   const accountOptions: SelectOption[] = useMemo(() => {
     const ga = detail?.clanGameAccounts ?? [];
     return [{ value: "", label: "—" }, ...ga.map((a) => ({ value: a.id, label: a.game_username }))];
@@ -759,7 +780,7 @@ export default function DataTab(): ReactElement {
           <span>{entry.chest_name ?? "—"}</span>
           <span>{entry.source ?? "—"}</span>
           <span>{entry.level ?? "—"}</span>
-          <span>{entry.opened_at ? new Date(entry.opened_at).toLocaleDateString() : "—"}</span>
+          <span>{entry.opened_at ? formatBerlinDate(entry.opened_at) : "—"}</span>
           <span>
             <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
           </span>
@@ -773,7 +794,7 @@ export default function DataTab(): ReactElement {
           <span>{entry.player_name}</span>
           <span>{entry.coordinates ?? "—"}</span>
           <span>{entry.score != null ? Number(entry.score).toLocaleString() : "—"}</span>
-          <span>{entry.captured_at ? new Date(entry.captured_at).toLocaleDateString() : "—"}</span>
+          <span>{entry.captured_at ? formatBerlinDate(entry.captured_at) : "—"}</span>
           <span>
             <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
           </span>
@@ -786,7 +807,7 @@ export default function DataTab(): ReactElement {
         <span>{entry.player_name}</span>
         <span>{entry.event_name ?? "—"}</span>
         <span>{entry.event_points != null ? Number(entry.event_points).toLocaleString() : "—"}</span>
-        <span>{entry.captured_at ? new Date(entry.captured_at).toLocaleDateString() : "—"}</span>
+        <span>{entry.captured_at ? formatBerlinDate(entry.captured_at) : "—"}</span>
         <span>
           <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
         </span>
@@ -943,8 +964,8 @@ export default function DataTab(): ReactElement {
     return null;
   }
 
-  /* ── View toggle ── */
-  const viewToggle = (
+  /* ── View toggle (admin only) ── */
+  const viewToggle = isAdmin ? (
     <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
       <button
         type="button"
@@ -961,9 +982,9 @@ export default function DataTab(): ReactElement {
         {t("tabValidationLists")}
       </button>
     </div>
-  );
+  ) : null;
 
-  if (dataView === "validationLists") {
+  if (isAdmin && dataView === "validationLists") {
     return (
       <div>
         {viewToggle}
@@ -1015,7 +1036,7 @@ export default function DataTab(): ReactElement {
               <div className="card-subtitle">
                 {t("submittedBy", { name: sub.profiles?.display_name ?? "—" })}
                 {" · "}
-                {new Date(sub.created_at).toLocaleDateString()}
+                {formatLocalDateTime(sub.created_at)}
               </div>
             </div>
           </div>
@@ -1034,8 +1055,8 @@ export default function DataTab(): ReactElement {
             </span>
           </div>
 
-          {/* Metadata editing: reference date and event linking */}
-          {canAssign && (
+          {/* Metadata editing: reference date and event linking (admin only) */}
+          {isAdmin && (
             <div
               className="card-body"
               style={{
@@ -1077,7 +1098,7 @@ export default function DataTab(): ReactElement {
               )}
               {sub.submission_type === "chests" && sub.reference_date && (
                 <span className="text-muted">
-                  {t("dataFromDate")}: {new Date(sub.reference_date).toLocaleDateString()}
+                  {t("dataFromDate")}: {formatBerlinDate(sub.reference_date)}
                 </span>
               )}
               {metadataSaving && (
@@ -1091,7 +1112,7 @@ export default function DataTab(): ReactElement {
             </div>
           )}
 
-          {!roleLoading && (isContentManager || isAdmin) && (
+          {!roleLoading && isAdmin && (
             <div
               className="card-body"
               style={{
@@ -1103,7 +1124,7 @@ export default function DataTab(): ReactElement {
                 paddingTop: 12,
               }}
             >
-              {isContentManager && reviewable && (
+              {isAdmin && reviewable && (
                 <>
                   <button
                     type="button"
@@ -1248,49 +1269,57 @@ export default function DataTab(): ReactElement {
           </select>
         </label>
 
-        {/* Compact file drop */}
-        <div
-          role="button"
-          tabIndex={0}
-          style={dropzoneStyle}
-          onDragEnter={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dragCounterRef.current += 1;
-            setIsDragOver(true);
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dragCounterRef.current -= 1;
-            if (dragCounterRef.current <= 0) {
-              dragCounterRef.current = 0;
-              setIsDragOver(false);
-            }
-          }}
-          onDrop={handleDrop}
-          onClick={handleDropzoneClick}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") handleDropzoneClick();
-          }}
-        >
-          <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileInput} style={{ display: "none" }} />
-          {fileName ? (
-            <span style={{ color: "var(--color-text-1)", fontWeight: 500 }}>{fileName}</span>
-          ) : (
-            <span style={{ color: "var(--color-text-3)" }}>{tImport("dropzoneCta")}</span>
-          )}
-          {importState === "submitting" && (
-            <span style={{ color: "var(--color-text-3)", fontStyle: "italic" }}>{tImport("submitting")}</span>
-          )}
-        </div>
+        {/* Compact file drop (admin only) */}
+        {isAdmin && (
+          <div
+            role="button"
+            tabIndex={0}
+            style={dropzoneStyle}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              dragCounterRef.current += 1;
+              setIsDragOver(true);
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              dragCounterRef.current -= 1;
+              if (dragCounterRef.current <= 0) {
+                dragCounterRef.current = 0;
+                setIsDragOver(false);
+              }
+            }}
+            onDrop={handleDrop}
+            onClick={handleDropzoneClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") handleDropzoneClick();
+            }}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileInput}
+              style={{ display: "none" }}
+            />
+            {fileName ? (
+              <span style={{ color: "var(--color-text-1)", fontWeight: 500 }}>{fileName}</span>
+            ) : (
+              <span style={{ color: "var(--color-text-3)" }}>{tImport("dropzoneCta")}</span>
+            )}
+            {importState === "submitting" && (
+              <span style={{ color: "var(--color-text-3)", fontStyle: "italic" }}>{tImport("submitting")}</span>
+            )}
+          </div>
+        )}
       </div>
 
-      {renderImportFeedback()}
+      {isAdmin && renderImportFeedback()}
 
       <DataState
         isLoading={isLoading}
@@ -1309,7 +1338,8 @@ export default function DataTab(): ReactElement {
               <span>{t("colItems")}</span>
               <span>{t("colMatched")}</span>
               <span>{t("colSubmittedBy")}</span>
-              <span>{t("colDate")}</span>
+              <span>{t("colReferenceDate")}</span>
+              <span>{t("colSubmittedAt")}</span>
               <span>{t("colActions")}</span>
             </header>
             {submissions.map((sub) => {
@@ -1339,14 +1369,15 @@ export default function DataTab(): ReactElement {
                   <span>{sub.item_count ?? 0}</span>
                   <span>{sub.matched_count ?? 0}</span>
                   <span>{sub.profiles?.display_name ?? "—"}</span>
-                  <span>{new Date(sub.created_at).toLocaleDateString()}</span>
+                  <span>{sub.reference_date ? formatBerlinDate(sub.reference_date + "T00:00:00") : "—"}</span>
+                  <span>{formatLocalDateTime(sub.created_at)}</span>
                   <span
                     role="group"
                     style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
                   >
-                    {!roleLoading && isContentManager && rowReviewable && (
+                    {!roleLoading && isAdmin && rowReviewable && (
                       <>
                         <button
                           type="button"

@@ -43,7 +43,7 @@ interface NavItem {
   readonly href: string;
   readonly labelKey: string;
   readonly iconKey: string;
-  readonly tab?: "clans" | "users" | "logs" | "approvals" | "forum" | "data";
+  readonly tab?: "clans" | "users" | "logs" | "approvals" | "forum";
   readonly vipIcon?: string;
   /** Render icon at a larger size (for detailed multi-element icons). */
   readonly lgIcon?: boolean;
@@ -78,13 +78,53 @@ const SIDEBAR_ADMIN_META: Record<string, { labelKey: string; iconKey: string; vi
     vipIcon: "/assets/game/icons/clan_emblem_11.png",
     lgIcon: true,
   },
-  data: {
-    labelKey: "data",
-    iconKey: "admin",
-    vipIcon: "/assets/game/icons/icons_chest_1.png",
-    lgIcon: true,
-  },
 };
+
+interface AnalyticsSubItem {
+  readonly href: string;
+  readonly labelKey: string;
+  readonly icon: string;
+  readonly exact: boolean;
+}
+
+const ANALYTICS_SUB_ITEMS: readonly AnalyticsSubItem[] = [
+  {
+    href: "/analytics",
+    labelKey: "analyticsOverview",
+    icon: "/assets/game/icons/icons_card_globe_1.png",
+    exact: true,
+  },
+  {
+    href: "/analytics/chests",
+    labelKey: "analyticsChests",
+    icon: "/assets/game/icons/icons_chest_2.png",
+    exact: false,
+  },
+  {
+    href: "/analytics/events",
+    labelKey: "analyticsEvents",
+    icon: "/assets/game/icons/icons_events_1.png",
+    exact: false,
+  },
+  {
+    href: "/analytics/machtpunkte",
+    labelKey: "analyticsPower",
+    icon: "/assets/game/icons/force_22.png",
+    exact: false,
+  },
+  {
+    href: "/analytics/player",
+    labelKey: "analyticsPlayer",
+    icon: "/assets/game/icons/icons_player_1.png",
+    exact: false,
+  },
+  {
+    href: "/analytics/daten",
+    labelKey: "analyticsData",
+    icon: "/assets/game/icons/icons_chest_1.png",
+    exact: false,
+  },
+];
 
 const HOME_NAV_ITEM: NavItem = {
   href: "/home",
@@ -354,6 +394,24 @@ function SidebarNav(): JSX.Element {
                             })}
                           </div>
                         )}
+                      {/* Analytics sub-items (expanded desktop sidebar only) */}
+                      {item.href === "/analytics" && isOpen && !isCompactViewport && (
+                        <div className="nav-sub-items">
+                          {ANALYTICS_SUB_ITEMS.map((sub) => {
+                            const isSubActive = sub.exact ? pathname === sub.href : pathname.startsWith(sub.href);
+                            return (
+                              <Link
+                                key={sub.href}
+                                href={sub.href}
+                                className={`nav-sub-item${isSubActive ? " active" : ""}`}
+                              >
+                                <Image src={sub.icon} alt="" width={16} height={16} className="nav-sub-icon" />
+                                <span className="nav-sub-label">{t(sub.labelKey)}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

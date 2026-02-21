@@ -1,5 +1,6 @@
 import type { DisplayEvent, EventRow, RecurrenceType } from "./events-types";
 import { toDateString } from "@/lib/dashboard-utils";
+import { TIMEZONE, berlinDateParts } from "@/lib/timezone";
 
 /* ── Date helpers ── */
 
@@ -14,11 +15,12 @@ import { toDateString } from "@/lib/dashboard-utils";
 export function toLocalDateTimeString(input: Date | string): string {
   const d = typeof input === "string" ? new Date(input) : input;
   if (Number.isNaN(d.getTime())) return "";
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
+  const p = berlinDateParts(d);
+  const yyyy = p.year;
+  const mm = String(p.month).padStart(2, "0");
+  const dd = String(p.day).padStart(2, "0");
+  const hh = String(p.hours).padStart(2, "0");
+  const mi = String(p.minutes).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
@@ -50,13 +52,11 @@ export function formatDuration(startsAt: string, endsAt: string): string {
 
 /** Check whether an event spans more than one calendar day. */
 export function isMultiDayEvent(startsAt: string, endsAt: string): boolean {
-  const start = new Date(startsAt);
-  const end = new Date(endsAt);
+  const start = berlinDateParts(startsAt);
+  const end = berlinDateParts(endsAt);
   return (
-    end.getTime() > start.getTime() &&
-    (end.getFullYear() !== start.getFullYear() ||
-      end.getMonth() !== start.getMonth() ||
-      end.getDate() !== start.getDate())
+    new Date(endsAt).getTime() > new Date(startsAt).getTime() &&
+    (end.year !== start.year || end.month !== start.month || end.day !== start.day)
   );
 }
 
@@ -64,8 +64,8 @@ export function isMultiDayEvent(startsAt: string, endsAt: string): boolean {
 export function formatDateRange(startsAt: string, endsAt: string, locale: string): string {
   const start = new Date(startsAt);
   const end = new Date(endsAt);
-  const dateOpts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
-  const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+  const dateOpts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", timeZone: TIMEZONE };
+  const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", timeZone: TIMEZONE };
   const startDate = start.toLocaleDateString(locale, dateOpts);
   const startTime = start.toLocaleTimeString(locale, timeOpts);
   const endDate = end.toLocaleDateString(locale, dateOpts);
@@ -95,8 +95,10 @@ export function getDateRangeKeys(startIso: string, endIso: string): readonly str
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
     return [];
   }
-  const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-  const limit = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  const sp = berlinDateParts(start);
+  const ep = berlinDateParts(end);
+  const cursor = new Date(sp.year, sp.month - 1, sp.day);
+  const limit = new Date(ep.year, ep.month - 1, ep.day);
   const keys: string[] = [];
   let guard = 0;
   while (cursor <= limit && guard < 120) {
@@ -207,15 +209,15 @@ export function sortPinnedFirst<T extends { readonly is_pinned: boolean }>(event
 export function getDateBadgeParts(dateString: string, locale: string): { weekday: string; day: string; month: string } {
   const d = new Date(dateString);
   return {
-    weekday: d.toLocaleDateString(locale, { weekday: "short" }),
-    day: String(d.getDate()),
-    month: d.toLocaleDateString(locale, { month: "short" }),
+    weekday: d.toLocaleDateString(locale, { weekday: "short", timeZone: TIMEZONE }),
+    day: String(berlinDateParts(d).day),
+    month: d.toLocaleDateString(locale, { month: "short", timeZone: TIMEZONE }),
   };
 }
 
 /** Returns a short time string (HH:MM) from a date string. */
 export function getShortTimeString(dateString: string, locale: string): string {
-  return new Date(dateString).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+  return new Date(dateString).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", timeZone: TIMEZONE });
 }
 
 /**

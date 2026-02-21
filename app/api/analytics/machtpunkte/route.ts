@@ -5,6 +5,7 @@ import { standardLimiter } from "@/lib/rate-limit";
 import { requireAuth } from "@/lib/api/require-auth";
 import { apiError, uuidSchema, escapeLikePattern } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
+import { berlinCompareDate, toBerlinDate } from "@/lib/timezone";
 
 const MAX_PAGE_SIZE = 10000;
 
@@ -19,6 +20,7 @@ const querySchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
   player: z.string().max(200).optional(),
+  compare: z.enum(["week", "month", "all_time", "custom"]).default("week"),
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),
 });
@@ -41,7 +43,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const parsed = querySchema.safeParse(rawParams);
     if (!parsed.success) return apiError("Invalid query parameters.", 400);
 
-    const { clan_id, player, page, page_size } = parsed.data;
+    const { clan_id, player, compare, page, page_size } = parsed.data;
 
     const { data: isMember } = await supabase.rpc("is_clan_member", { target_clan: clan_id });
     const { data: isAdmin } = await supabase.rpc("is_any_admin");
@@ -84,6 +86,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       snapshot_date: string;
     }>;
 
+    // Determine compare cutoff date
+    const compareCutoff =
+      compare === "custom" && parsed.data.from
+        ? `${parsed.data.from}T00:00:00.000Z`
+        : compare === "all_time"
+          ? null
+          : berlinCompareDate(compare as "week" | "month");
+
     // Build standings: latest and previous score per game account
     const accountData = new Map<
       string,
@@ -110,10 +120,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           snapshots: [{ date: row.snapshot_date, score }],
         });
       } else {
-        if (existing.previous_score === null) {
-          existing.previous_score = score;
-        }
         existing.snapshots.push({ date: row.snapshot_date, score });
+      }
+    }
+
+    // Calculate previous_score based on compare mode
+    for (const [, data] of accountData) {
+      if (compare === "all_time") {
+        const oldest = data.snapshots[data.snapshots.length - 1];
+        if (oldest && data.snapshots.length > 1) {
+          data.previous_score = oldest.score;
+        }
+      } else if (compareCutoff) {
+        let bestMatch: { date: string; score: number } | null = null;
+        for (const snap of data.snapshots) {
+          if (snap.date <= compareCutoff) {
+            if (!bestMatch || snap.date > bestMatch.date) {
+              bestMatch = snap;
+            }
+          }
+        }
+        data.previous_score = bestMatch?.score ?? null;
+      } else {
+        data.previous_score = data.snapshots.length > 1 ? (data.snapshots[1]?.score ?? null) : null;
       }
     }
 
@@ -169,7 +198,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const dateTotalMap = new Map<string, Map<string, number>>();
     for (const [gaId, data] of accountData) {
       for (const snap of data.snapshots) {
-        const dateKey = snap.date.slice(0, 10);
+        const dateKey = toBerlinDate(snap.date);
         let dateAccounts = dateTotalMap.get(dateKey);
         if (!dateAccounts) {
           dateAccounts = new Map();

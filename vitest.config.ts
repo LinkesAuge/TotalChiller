@@ -24,7 +24,6 @@ export default defineConfig({
         "app/robots.ts",
         "app/sitemap.ts",
       ],
-      all: true,
     },
   },
   resolve: {

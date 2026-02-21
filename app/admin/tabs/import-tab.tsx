@@ -432,7 +432,7 @@ export default function ImportTab(): ReactElement {
             )}
 
             <div style={{ display: "flex", gap: "10px" }}>
-              <button type="button" className="button primary" onClick={() => updateActiveSection("submissions")}>
+              <button type="button" className="button primary" onClick={() => updateActiveSection("data")}>
                 {t("viewSubmissions")}
               </button>
               <button type="button" className="button" onClick={resetForm}>

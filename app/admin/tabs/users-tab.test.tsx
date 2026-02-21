@@ -13,7 +13,7 @@ vi.mock("next-intl", () => ({
 }));
 vi.mock("next/image", () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: ({ fill, priority, unoptimized, ...props }: any) => {
     const React = require("react");
     return React.createElement("img", props);
   },
@@ -169,7 +169,7 @@ vi.mock("@/app/components/sortable-column-header", () => ({
   __esModule: true,
   default: (props: any) => {
     const React = require("react");
-    return React.createElement("th", null, props.label);
+    return React.createElement("span", { role: "columnheader" }, props.label);
   },
 }));
 

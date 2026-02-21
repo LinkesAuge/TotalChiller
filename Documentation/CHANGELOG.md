@@ -46,6 +46,12 @@
 
 - **Test suite TypeScript compliance (Vitest 4):** Fixed ~100 TypeScript errors across 28 test files. Key changes: `vi.fn<Args, Return>` → `vi.fn<FnSignature>` (Vitest 4 API), non-null assertions on `getAllBy*` array access, mock data aligned to updated domain types (`BugReport`, `BugReportCategory`, `ForumCategory`, `InboxThread`), silent `if`-guards replaced with explicit `expect()` assertions, `vi.stubEnv` for `NODE_ENV` mutation.
 - **Forum types:** `ForumPost.updated_at` and `ForumComment.updated_at` corrected from `string` to `string | null` to match database reality. Component code already handled null defensively.
+- **CI unit test OOM crash:** Vitest worker forks ran out of heap memory (4 GB) after processing 221 of 222 test files. Added `NODE_OPTIONS: '--max-old-space-size=4096'` to the CI workflow and configured `poolOptions.forks.memoryLimit: "512MB"` so workers are recycled before memory accumulates.
+- **Test warning cleanup:** Eliminated all stderr warnings from the CI test run:
+  - `next/image` mock across 43 test files and shared mock now filters `fill`, `priority`, `unoptimized` before passing props to `<img>`.
+  - `SortableColumnHeader` mock in users-tab and clans-tab changed from `<th>` to `<span role="columnheader">` (invalid HTML nesting inside `<header>`).
+  - Radix `Popover.Content` mock in rank-filter destructures out `sideOffset`/`align`/`avoidCollisions`.
+  - `vitest.setup.ts` suppresses non-actionable jsdom warnings (`play()`/`pause()`/`scrollTo()`/`navigation`), async Client Component warnings, and HTML nesting warnings from layout tests.
 
 ### Changed
 
@@ -54,6 +60,7 @@
 - **Submit endpoint rate limit tightened:** `/api/import/submit` moved from `relaxedLimiter` to `standardLimiter` (30 req/min).
 - **Delete any submission:** Removed the pending-only restriction. Production data preserved via `ON DELETE SET NULL`.
 - **Review route copies linked_event_id:** When approving event submissions, `linked_event_id` propagates to production `event_results`.
+- **ESLint test config:** Added `ignoreRestSiblings: true` to `@typescript-eslint/no-unused-vars` for test files, supporting the destructure-to-discard pattern used in mock prop filtering.
 
 ---
 

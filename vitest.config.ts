@@ -6,6 +6,12 @@ export default defineConfig({
     include: ["lib/**/*.test.{ts,tsx}", "app/**/*.test.{ts,tsx}"],
     environment: "node",
     setupFiles: ["./test/vitest.setup.ts"],
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        memoryLimit: "512MB",
+      },
+    },
     coverage: {
       provider: "v8",
       include: ["app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],

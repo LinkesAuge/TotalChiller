@@ -31,6 +31,8 @@ jobs:
 
       - name: Unit tests
         run: npm run test:unit
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Build
         run: npm run build

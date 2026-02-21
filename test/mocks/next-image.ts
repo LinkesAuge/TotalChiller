@@ -9,10 +9,24 @@ import { vi } from "vitest";
 export function nextImageMock() {
   return {
     __esModule: true,
-    default: vi.fn(({ src, alt, ...props }: Record<string, unknown>) => {
-      const React = require("react");
-      return React.createElement("img", { src, alt, ...props });
-    }),
+    default: vi.fn(
+      ({
+        src,
+        alt,
+        fill,
+        priority,
+        unoptimized,
+        loader,
+        quality,
+        placeholder,
+        blurDataURL,
+        onLoadingComplete,
+        ...props
+      }: Record<string, unknown>) => {
+        const React = require("react");
+        return React.createElement("img", { src, alt, ...props });
+      },
+    ),
   };
 }
 

@@ -7,7 +7,7 @@ vi.mock("next-intl", () => ({
 }));
 vi.mock("next/image", () => ({
   __esModule: true,
-  default: (props: any) => require("react").createElement("img", props),
+  default: ({ fill, priority, unoptimized, ...props }: any) => require("react").createElement("img", props),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),

@@ -5,7 +5,7 @@ import PageTopBar from "./page-top-bar";
 
 vi.mock("next/image", () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: ({ fill, priority, unoptimized, ...props }: any) => {
     const React = require("react");
     return React.createElement("img", props);
   },

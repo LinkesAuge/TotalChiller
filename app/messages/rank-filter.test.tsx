@@ -26,7 +26,7 @@ vi.mock("@radix-ui/react-popover", () => ({
     const React = require("react");
     return React.createElement("div", null, children);
   },
-  Content: ({ children, ...props }: any) => {
+  Content: ({ children, sideOffset, align, avoidCollisions, ...props }: any) => {
     const React = require("react");
     return React.createElement("div", { role: "dialog", ...props }, children);
   },

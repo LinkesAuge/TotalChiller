@@ -9,7 +9,7 @@ vi.mock("next-intl", () => ({
 }));
 vi.mock("next/image", () => ({
   __esModule: true,
-  default: (props: Record<string, unknown>) => {
+  default: ({ fill, priority, unoptimized, ...props }: Record<string, unknown>) => {
     const React = require("react");
     return React.createElement("img", props);
   },

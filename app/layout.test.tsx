@@ -31,7 +31,7 @@ vi.mock("next-intl", () => ({
 
 vi.mock("next/image", () => ({
   __esModule: true,
-  default: (props: any) => React.createElement("img", { ...props, src: props.src }),
+  default: ({ fill, priority, unoptimized, ...props }: any) => React.createElement("img", { ...props, src: props.src }),
 }));
 vi.mock("next/link", () => ({
   __esModule: true,

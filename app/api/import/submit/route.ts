@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { relaxedLimiter } from "@/lib/rate-limit";
+import { standardLimiter } from "@/lib/rate-limit";
 import { requireAuthWithBearer } from "@/lib/api/require-auth";
 import { apiError, parseJsonBody, uuidSchema } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
@@ -34,7 +34,7 @@ interface GameAccountMatch {
  * and flags potential duplicates.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const blocked = relaxedLimiter.check(request);
+  const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
 
   try {

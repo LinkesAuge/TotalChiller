@@ -121,8 +121,9 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
 }
 
 /**
- * DELETE /api/import/submissions/[id] — Delete a pending submission (admin only).
- * Cascading FKs handle staged entry cleanup.
+ * DELETE /api/import/submissions/[id] — Delete a submission (admin only).
+ * Staged entries are removed via CASCADE FK. Production rows (chest_entries,
+ * member_snapshots, event_results) keep their data — the FK is SET NULL.
  */
 export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
@@ -149,9 +150,6 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
       return apiError("Failed to look up submission.", 500);
     }
     if (!existing) return apiError("Submission not found.", 404);
-    if (existing.status !== "pending") {
-      return apiError("Only pending submissions can be deleted.", 409);
-    }
 
     const { error: deleteError } = await svc.from("data_submissions").delete().eq("id", id);
 

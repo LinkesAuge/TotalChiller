@@ -192,6 +192,12 @@
   transform: none;
 }
 
+.button.compact {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  min-width: 28px;
+}
+
 .button svg {
   display: block;
 }

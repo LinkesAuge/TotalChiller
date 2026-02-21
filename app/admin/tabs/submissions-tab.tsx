@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
 import useClanContext from "../../hooks/use-clan-context";
@@ -137,8 +137,23 @@ export default function SubmissionsTab(): ReactElement {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [slowAction, setSlowAction] = useState(false);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [itemStatusFilter, setItemStatusFilter] = useState<ItemStatusFilter>("");
   const detailPagination = usePagination(detail?.total ?? 0, DETAIL_PER_PAGE);
+
+  useEffect(() => {
+    if (actionLoading) {
+      slowTimerRef.current = setTimeout(() => setSlowAction(true), 5000);
+    } else {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      slowTimerRef.current = null;
+      setSlowAction(false);
+    }
+    return () => {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    };
+  }, [actionLoading]);
 
   /* ── Fetch list ── */
 
@@ -212,14 +227,17 @@ export default function SubmissionsTab(): ReactElement {
     if (selectedId) void fetchDetail();
   }, [fetchDetail, selectedId]);
 
-  /* ── Actions ── */
+  /* ── Actions (shared) ── */
 
-  const handleReview = useCallback(
-    async (action: string) => {
-      if (!selectedId || actionLoading) return;
-      setActionLoading(true);
+  const [busyRowId, setBusyRowId] = useState<string | null>(null);
+
+  const handleReviewById = useCallback(
+    async (targetId: string, action: string) => {
+      if (actionLoading || busyRowId) return;
+      setBusyRowId(targetId);
+      if (targetId === selectedId) setActionLoading(true);
       try {
-        const res = await fetch(`/api/import/submissions/${selectedId}/review`, {
+        const res = await fetch(`/api/import/submissions/${targetId}/review`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
@@ -228,35 +246,63 @@ export default function SubmissionsTab(): ReactElement {
           const body = await res.json().catch(() => null);
           throw new Error((body as { error?: string } | null)?.error ?? t("reviewError"));
         }
-        void fetchDetail();
+        if (targetId === selectedId) void fetchDetail();
         setRetryCount((c) => c + 1);
       } catch (err) {
-        setDetailError(err instanceof Error ? err.message : t("reviewError"));
+        const msg = err instanceof Error ? err.message : t("reviewError");
+        if (targetId === selectedId) setDetailError(msg);
+        else setLoadError(msg);
       } finally {
+        setBusyRowId(null);
         setActionLoading(false);
       }
     },
-    [selectedId, actionLoading, fetchDetail, t],
+    [actionLoading, busyRowId, selectedId, fetchDetail, t],
+  );
+
+  const handleReview = useCallback(
+    async (action: string) => {
+      if (!selectedId) return;
+      await handleReviewById(selectedId, action);
+    },
+    [selectedId, handleReviewById],
+  );
+
+  const handleDeleteById = useCallback(
+    async (targetId: string, status: string) => {
+      if (actionLoading || busyRowId) return;
+      const msg = status !== "pending" && status !== "partial" ? t("deleteConfirmApproved") : t("deleteConfirm");
+      if (!window.confirm(msg)) return;
+      setBusyRowId(targetId);
+      if (targetId === selectedId) setActionLoading(true);
+      try {
+        const res = await fetch(`/api/import/submissions/${targetId}`, { method: "DELETE" });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error((body as { error?: string } | null)?.error ?? t("deleteError"));
+        }
+        if (targetId === selectedId) {
+          setSelectedId(null);
+          setDetail(null);
+        }
+        setRetryCount((c) => c + 1);
+      } catch (err) {
+        const msg2 = err instanceof Error ? err.message : t("deleteError");
+        if (targetId === selectedId) setDetailError(msg2);
+        else setLoadError(msg2);
+      } finally {
+        setBusyRowId(null);
+        setActionLoading(false);
+      }
+    },
+    [actionLoading, busyRowId, selectedId, t],
   );
 
   const handleDelete = useCallback(async () => {
-    if (!selectedId || actionLoading) return;
-    if (!window.confirm(t("deleteConfirm"))) return;
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/import/submissions/${selectedId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error((body as { error?: string } | null)?.error ?? t("deleteError"));
-      }
-      setSelectedId(null);
-      setDetail(null);
-      setRetryCount((c) => c + 1);
-    } catch (err) {
-      setDetailError(err instanceof Error ? err.message : t("deleteError"));
-      setActionLoading(false);
-    }
-  }, [selectedId, actionLoading, t]);
+    if (!selectedId) return;
+    const sub = detail?.submission;
+    await handleDeleteById(selectedId, sub?.status ?? "pending");
+  }, [selectedId, detail, handleDeleteById]);
 
   const handleBack = useCallback(() => {
     setSelectedId(null);
@@ -419,41 +465,51 @@ export default function SubmissionsTab(): ReactElement {
             </span>
           </div>
 
-          {!roleLoading && isContentManager && reviewable && (
+          {!roleLoading && (isContentManager || isAdmin) && (
             <div
               className="card-body"
               style={{
                 display: "flex",
                 gap: 10,
                 flexWrap: "wrap",
+                alignItems: "center",
                 borderTop: "1px solid var(--color-gold-a10)",
                 paddingTop: 12,
               }}
             >
-              <button
-                type="button"
-                className="button primary"
-                disabled={actionLoading}
-                onClick={() => handleReview("approve_all")}
-              >
-                {t("approveAll")}
-              </button>
-              <button
-                type="button"
-                className="button"
-                disabled={actionLoading}
-                onClick={() => handleReview("approve_matched")}
-              >
-                {t("approveMatchedOnly")}
-              </button>
-              <button
-                type="button"
-                className="button danger"
-                disabled={actionLoading}
-                onClick={() => handleReview("reject_all")}
-              >
-                {t("rejectAll")}
-              </button>
+              {isContentManager && reviewable && (
+                <>
+                  <button
+                    type="button"
+                    className="button primary"
+                    disabled={actionLoading}
+                    onClick={() => handleReview("approve_all")}
+                  >
+                    {t("approveAll")}
+                  </button>
+                  <button
+                    type="button"
+                    className="button"
+                    disabled={actionLoading}
+                    onClick={() => handleReview("approve_matched")}
+                  >
+                    {t("approveMatchedOnly")}
+                  </button>
+                  <button
+                    type="button"
+                    className="button danger"
+                    disabled={actionLoading}
+                    onClick={() => handleReview("reject_all")}
+                  >
+                    {t("rejectAll")}
+                  </button>
+                </>
+              )}
+              {slowAction && (
+                <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontStyle: "italic" }}>
+                  {t("serverBusy")}
+                </span>
+              )}
               {isAdmin && (
                 <button
                   type="button"
@@ -465,14 +521,6 @@ export default function SubmissionsTab(): ReactElement {
                   {t("deleteSubmission")}
                 </button>
               )}
-            </div>
-          )}
-
-          {!roleLoading && isAdmin && !reviewable && (
-            <div className="card-body" style={{ borderTop: "1px solid var(--color-gold-a10)", paddingTop: 12 }}>
-              <button type="button" className="button danger" disabled={actionLoading} onClick={handleDelete}>
-                {t("deleteSubmission")}
-              </button>
             </div>
           )}
         </div>
@@ -586,43 +634,84 @@ export default function SubmissionsTab(): ReactElement {
             <span>{t("colDate")}</span>
             <span>{t("colActions")}</span>
           </header>
-          {submissions.map((sub) => (
-            <div
-              key={sub.id}
-              className="row"
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedId(sub.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setSelectedId(sub.id);
-                }
-              }}
-              style={{ cursor: "pointer" }}
-            >
-              <span style={{ textTransform: "capitalize" }}>{sub.submission_type}</span>
-              <span>
-                <span className={statusBadgeClass(sub.status)}>{t(`status_${sub.status}`)}</span>
-              </span>
-              <span>{sub.total_items ?? 0}</span>
-              <span>{sub.matched_count ?? 0}</span>
-              <span>{sub.profiles?.display_name ?? "—"}</span>
-              <span>{new Date(sub.created_at).toLocaleDateString()}</span>
-              <span>
-                <button
-                  type="button"
-                  className="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
+          {submissions.map((sub) => {
+            const rowBusy = busyRowId === sub.id;
+            const anyBusy = !!busyRowId;
+            const rowReviewable = sub.status === "pending" || sub.status === "partial";
+
+            return (
+              <div
+                key={sub.id}
+                className="row"
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedId(sub.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
                     setSelectedId(sub.id);
-                  }}
+                  }
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                <span style={{ textTransform: "capitalize" }}>{sub.submission_type}</span>
+                <span>
+                  <span className={statusBadgeClass(sub.status)}>{t(`status_${sub.status}`)}</span>
+                </span>
+                <span>{sub.total_items ?? 0}</span>
+                <span>{sub.matched_count ?? 0}</span>
+                <span>{sub.profiles?.display_name ?? "—"}</span>
+                <span>{new Date(sub.created_at).toLocaleDateString()}</span>
+                <span
+                  style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
                 >
-                  {t("viewDetail")}
-                </button>
-              </span>
-            </div>
-          ))}
+                  {!roleLoading && isContentManager && rowReviewable && (
+                    <>
+                      <button
+                        type="button"
+                        className="button primary compact"
+                        disabled={anyBusy}
+                        title={t("approveAll")}
+                        onClick={() => handleReviewById(sub.id, "approve_all")}
+                      >
+                        {rowBusy ? "…" : "✓"}
+                      </button>
+                      <button
+                        type="button"
+                        className="button danger compact"
+                        disabled={anyBusy}
+                        title={t("rejectAll")}
+                        onClick={() => handleReviewById(sub.id, "reject_all")}
+                      >
+                        {rowBusy ? "…" : "✗"}
+                      </button>
+                    </>
+                  )}
+                  {!roleLoading && isAdmin && (
+                    <button
+                      type="button"
+                      className="button danger compact"
+                      disabled={anyBusy}
+                      title={t("deleteSubmission")}
+                      onClick={() => handleDeleteById(sub.id, sub.status)}
+                    >
+                      {rowBusy ? "…" : "🗑"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="button compact"
+                    disabled={anyBusy}
+                    onClick={() => setSelectedId(sub.id)}
+                  >
+                    {t("viewDetail")}
+                  </button>
+                </span>
+              </div>
+            );
+          })}
         </section>
         <PaginationBar pagination={listPagination} pageSizeOptions={[20]} idPrefix="submissions" compact />
       </DataState>

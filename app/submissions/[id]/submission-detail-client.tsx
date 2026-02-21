@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
@@ -105,8 +105,23 @@ function SubmissionDetailClient(): JSX.Element {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [actionLoading, setActionLoading] = useState(false);
+  const [slowAction, setSlowAction] = useState(false);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [itemStatusFilter, setItemStatusFilter] = useState<ItemStatusFilter>("");
+
+  useEffect(() => {
+    if (actionLoading) {
+      slowTimerRef.current = setTimeout(() => setSlowAction(true), 5000);
+    } else {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      slowTimerRef.current = null;
+      setSlowAction(false);
+    }
+    return () => {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    };
+  }, [actionLoading]);
 
   const pagination = usePagination(total, PER_PAGE);
 
@@ -176,7 +191,11 @@ function SubmissionDetailClient(): JSX.Element {
 
   const handleDelete = useCallback(async () => {
     if (!id || actionLoading) return;
-    if (!window.confirm(t("deleteConfirm"))) return;
+    const msg =
+      submission && submission.status !== "pending" && submission.status !== "partial"
+        ? t("deleteConfirmApproved")
+        : t("deleteConfirm");
+    if (!window.confirm(msg)) return;
     setActionLoading(true);
     try {
       const res = await fetch(`/api/import/submissions/${id}`, { method: "DELETE" });
@@ -189,7 +208,7 @@ function SubmissionDetailClient(): JSX.Element {
       setLoadError(err instanceof Error ? err.message : t("deleteError"));
       setActionLoading(false);
     }
-  }, [id, actionLoading, router, t]);
+  }, [id, actionLoading, submission, router, t]);
 
   const handleTabChange = useCallback(
     (filter: ItemStatusFilter) => {
@@ -349,64 +368,62 @@ function SubmissionDetailClient(): JSX.Element {
                 </span>
               </div>
 
-              {/* Admin review actions */}
-              {!roleLoading &&
-                isContentManager &&
-                (submission.status === "pending" || submission.status === "partial") && (
-                  <div
-                    className="card-body"
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      flexWrap: "wrap",
-                      borderTop: "1px solid var(--color-gold-a10)",
-                      paddingTop: 12,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="button primary"
-                      disabled={actionLoading}
-                      onClick={() => handleReview("approve_all")}
-                    >
-                      {t("approveAll")}
-                    </button>
-                    <button
-                      type="button"
-                      className="button"
-                      disabled={actionLoading}
-                      onClick={() => handleReview("approve_matched")}
-                    >
-                      {t("approveMatchedOnly")}
-                    </button>
-                    <button
-                      type="button"
-                      className="button danger"
-                      disabled={actionLoading}
-                      onClick={() => handleReview("reject_all")}
-                    >
-                      {t("rejectAll")}
-                    </button>
-                    {isAdmin && (
+              {!roleLoading && (isContentManager || isAdmin) && (
+                <div
+                  className="card-body"
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    borderTop: "1px solid var(--color-gold-a10)",
+                    paddingTop: 12,
+                  }}
+                >
+                  {isContentManager && (submission.status === "pending" || submission.status === "partial") && (
+                    <>
+                      <button
+                        type="button"
+                        className="button primary"
+                        disabled={actionLoading}
+                        onClick={() => handleReview("approve_all")}
+                      >
+                        {t("approveAll")}
+                      </button>
+                      <button
+                        type="button"
+                        className="button"
+                        disabled={actionLoading}
+                        onClick={() => handleReview("approve_matched")}
+                      >
+                        {t("approveMatchedOnly")}
+                      </button>
                       <button
                         type="button"
                         className="button danger"
                         disabled={actionLoading}
-                        onClick={handleDelete}
-                        style={{ marginLeft: "auto" }}
+                        onClick={() => handleReview("reject_all")}
                       >
-                        {t("deleteSubmission")}
+                        {t("rejectAll")}
                       </button>
-                    )}
-                  </div>
-                )}
-
-              {/* Delete button for already-reviewed submissions (admin only) */}
-              {!roleLoading && isAdmin && submission.status !== "pending" && submission.status !== "partial" && (
-                <div className="card-body" style={{ borderTop: "1px solid var(--color-gold-a10)", paddingTop: 12 }}>
-                  <button type="button" className="button danger" disabled={actionLoading} onClick={handleDelete}>
-                    {t("deleteSubmission")}
-                  </button>
+                    </>
+                  )}
+                  {slowAction && (
+                    <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontStyle: "italic" }}>
+                      {t("serverBusy")}
+                    </span>
+                  )}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      className="button danger"
+                      disabled={actionLoading}
+                      onClick={handleDelete}
+                      style={{ marginLeft: "auto" }}
+                    >
+                      {t("deleteSubmission")}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

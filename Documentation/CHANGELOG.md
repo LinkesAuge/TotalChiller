@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-02-21
+
+### Added
+
+- **Inline submission actions in list view:** Approve-all (✓), reject-all (✗), and delete (🗑) buttons directly in each submission row so admins can act without navigating into the detail view.
+- **Server-busy indicator:** When a review/delete action takes longer than 5 seconds, a "Server antwortet langsam…" hint appears so the user knows the click was registered.
+
+### Changed
+
+- **Submit endpoint rate limit tightened:** `/api/import/submit` moved from `relaxedLimiter` (120 req/min) to `standardLimiter` (30 req/min) to prevent ChillerBuddy from flooding the server and starving UI requests.
+- **Delete any submission:** Removed the pending-only restriction on submission deletion. Admins can now delete approved, rejected, or partial submissions. Production data (chest_entries, member_snapshots, event_results) is preserved via `ON DELETE SET NULL`. A separate confirmation dialog warns when deleting already-approved submissions.
+
+---
+
 ## 2026-02-19
 
 ### Fixed

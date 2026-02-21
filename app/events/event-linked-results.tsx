@@ -170,7 +170,13 @@ export default function EventLinkedResults({
           return (
             <div className={`elr-row${rank <= 3 ? " elr-row-top" : ""}`} key={`${r.player_name}-${i}`}>
               <span className={rankClass(rank)}>{rank}</span>
-              <span className="elr-player">{r.player_name}</span>
+              <Link
+                href={`/analytics/player?name=${encodeURIComponent(r.player_name)}${r.game_account_id ? `&ga=${encodeURIComponent(r.game_account_id)}` : ""}`}
+                className="elr-player player-link"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {r.player_name}
+              </Link>
               <span className="elr-points">{r.event_points.toLocaleString()}</span>
             </div>
           );

@@ -5,9 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import PageShell from "@/app/components/page-shell";
 import DataState from "@/app/components/data-state";
-import PaginationBar from "@/app/components/pagination-bar";
 import useClanContext from "@/app/hooks/use-clan-context";
-import { usePagination } from "@/lib/hooks/use-pagination";
 import AnalyticsSubnav from "../analytics-subnav";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -73,6 +71,8 @@ function ChartTooltip({
   label?: string;
 }): JSX.Element | null {
   if (!active || !payload?.length) return null;
+  const first = payload[0];
+  if (!first) return null;
   return (
     <div
       style={{
@@ -85,7 +85,7 @@ function ChartTooltip({
       }}
     >
       <div style={{ fontWeight: 600, marginBottom: 2 }}>{label}</div>
-      <div style={{ color: CHART_BAR_COLOR }}>{payload[0].value.toLocaleString()} pts</div>
+      <div style={{ color: CHART_BAR_COLOR }}>{first.value.toLocaleString()} pts</div>
     </div>
   );
 }
@@ -106,13 +106,11 @@ export default function EventsAnalytics(): JSX.Element {
   const [listData, setListData] = useState<EventListResponse | null>(null);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
-  const listPagination = usePagination(listData?.total ?? 0, 25);
 
   /* ── Detail state ── */
   const [detailData, setDetailData] = useState<EventDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const detailPagination = usePagination(detailData?.total ?? 0, 50);
 
   /* ── Fetch event list ── */
   useEffect(() => {
@@ -126,7 +124,7 @@ export default function EventsAnalytics(): JSX.Element {
 
     async function load(): Promise<void> {
       try {
-        const url = `/api/analytics/events?clan_id=${encodeURIComponent(clanId!)}&page=${listPagination.page}&page_size=${listPagination.pageSize}`;
+        const url = `/api/analytics/events?clan_id=${encodeURIComponent(clanId!)}&page=1&page_size=10000`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`${res.status}`);
         const json = await res.json();
@@ -142,7 +140,7 @@ export default function EventsAnalytics(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [clanId, selectedEventId, listPagination.page, listPagination.pageSize]);
+  }, [clanId, selectedEventId]);
 
   /* ── Fetch event detail ── */
   useEffect(() => {
@@ -157,7 +155,7 @@ export default function EventsAnalytics(): JSX.Element {
 
     async function load(): Promise<void> {
       try {
-        const url = `/api/analytics/events?clan_id=${encodeURIComponent(clanId!)}&event_id=${encodeURIComponent(selectedEventId!)}&page=${detailPagination.page}&page_size=${detailPagination.pageSize}`;
+        const url = `/api/analytics/events?clan_id=${encodeURIComponent(clanId!)}&event_id=${encodeURIComponent(selectedEventId!)}&page=1&page_size=10000`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`${res.status}`);
         const json = await res.json();
@@ -173,7 +171,7 @@ export default function EventsAnalytics(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [clanId, selectedEventId, detailPagination.page, detailPagination.pageSize]);
+  }, [clanId, selectedEventId]);
 
   /* ── Navigation ── */
 
@@ -215,6 +213,16 @@ export default function EventsAnalytics(): JSX.Element {
       return iso;
     }
   }
+
+  /* ── Computed stats ── */
+  const totalParticipants = detailData?.total ?? 0;
+  const totalPoints = detailData?.rankings.reduce((sum, r) => sum + r.event_points, 0) ?? 0;
+  const topScorer = detailData?.rankings[0];
+
+  /* ── List summary stats ── */
+  const listTotalEvents = listData?.total ?? 0;
+  const listTotalParticipants = listData?.events.reduce((sum, e) => sum + e.participant_count, 0) ?? 0;
+  const listTotalPoints = listData?.events.reduce((sum, e) => sum + e.total_points, 0) ?? 0;
 
   /* ── Render ── */
 
@@ -259,10 +267,48 @@ export default function EventsAnalytics(): JSX.Element {
                 <h3>{detailData.event_name}</h3>
               </div>
 
+              {/* Meta stats */}
+              <div className="event-detail-meta">
+                <div className="event-detail-stat">
+                  <span className="event-detail-stat__label">{t("participantsColumn")}</span>
+                  <span className="event-detail-stat__value">{totalParticipants.toLocaleString()}</span>
+                </div>
+                <div className="event-detail-stat">
+                  <span className="event-detail-stat__label">{t("totalPointsColumn")}</span>
+                  <span className="event-detail-stat__value">{totalPoints.toLocaleString()}</span>
+                </div>
+                {topScorer && (
+                  <div className="event-detail-stat">
+                    <span className="event-detail-stat__label">{t("topScorer")}</span>
+                    <span className="event-detail-stat__value">{topScorer.player_name}</span>
+                  </div>
+                )}
+                {detailData.event_meta?.starts_at && (
+                  <div className="event-detail-stat">
+                    <span className="event-detail-stat__label">{t("eventDateColumn")}</span>
+                    <span className="event-detail-stat__value">{formatDate(detailData.event_meta.starts_at)}</span>
+                  </div>
+                )}
+              </div>
+
               {/* Bar chart */}
               {chartData.length > 0 && (
                 <div className="analytics-chart-wrapper">
-                  <h4>{t("chartEventPoints")}</h4>
+                  <h4>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="12" width="4" height="9" rx="1" />
+                      <rect x="10" y="7" width="4" height="14" rx="1" />
+                      <rect x="17" y="3" width="4" height="18" rx="1" />
+                    </svg>
+                    {t("chartEventPoints")}
+                  </h4>
                   <ResponsiveContainer width="100%" height={Math.max(300, chartData.length * 36)}>
                     <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 30, bottom: 4, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} horizontal={false} />
@@ -288,24 +334,45 @@ export default function EventsAnalytics(): JSX.Element {
               )}
 
               {/* Ranking table */}
-              <section className="table event-ranking">
-                <header>
-                  <span>{t("rankColumn")}</span>
-                  <span>{t("playerColumn")}</span>
-                  <span>{t("pointsColumn")}</span>
-                </header>
-                {detailData.rankings.map((entry) => (
-                  <div className="row" key={entry.game_account_id}>
-                    <span>
-                      <span className={rankClass(entry.rank)}>{entry.rank}</span>
-                    </span>
-                    <span>{entry.player_name}</span>
-                    <span>{entry.event_points.toLocaleString()}</span>
-                  </div>
-                ))}
-              </section>
+              <div className="analytics-table-section">
+                <div className="analytics-table-section__header">
+                  <h4 className="analytics-table-section__title">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 20V10" />
+                      <path d="M18 20V4" />
+                      <path d="M6 20v-4" />
+                    </svg>
+                    {t("rankingTitle")}
+                  </h4>
+                  <span className="analytics-table-section__count">
+                    {detailData.total.toLocaleString()} {t("participantsColumn")}
+                  </span>
+                </div>
 
-              <PaginationBar pagination={detailPagination} idPrefix="eventDetail" />
+                <section className="table event-ranking">
+                  <header>
+                    <span>{t("rankColumn")}</span>
+                    <span>{t("playerColumn")}</span>
+                    <span>{t("pointsColumn")}</span>
+                  </header>
+                  {detailData.rankings.map((entry, idx) => (
+                    <div className="row" key={entry.game_account_id ?? `unknown-${idx}`}>
+                      <span>
+                        <span className={rankClass(entry.rank)}>{entry.rank}</span>
+                      </span>
+                      <span>{entry.player_name}</span>
+                      <span>{entry.event_points.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </section>
+              </div>
             </>
           )}
         </DataState>
@@ -319,37 +386,116 @@ export default function EventsAnalytics(): JSX.Element {
         >
           {listData && (
             <>
-              <section className="table event-list">
-                <header>
-                  <span>{t("eventNameColumn")}</span>
-                  <span>{t("eventDateColumn")}</span>
-                  <span>{t("participantsColumn")}</span>
-                  <span>{t("totalPointsColumn")}</span>
-                </header>
-                {listData.events.map((event) => (
-                  <div
-                    className="row"
-                    key={event.linked_event_id}
-                    role="button"
-                    tabIndex={0}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => handleSelectEvent(event.linked_event_id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleSelectEvent(event.linked_event_id);
-                      }
-                    }}
-                  >
-                    <span>{event.event_name}</span>
-                    <span>{formatDate(event.event_date)}</span>
-                    <span>{event.participant_count}</span>
-                    <span>{event.total_points.toLocaleString()}</span>
+              {/* Summary stats */}
+              <div className="analytics-summary-grid">
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
                   </div>
-                ))}
-              </section>
+                  <span className="analytics-summary-card__label">{t("totalEvents")}</span>
+                  <span className="analytics-summary-card__value">{listTotalEvents.toLocaleString()}</span>
+                  <span className="analytics-summary-card__detail">{t("eventsWithResults")}</span>
+                </div>
 
-              <PaginationBar pagination={listPagination} idPrefix="eventList" />
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("totalParticipants")}</span>
+                  <span className="analytics-summary-card__value">{listTotalParticipants.toLocaleString()}</span>
+                  <span className="analytics-summary-card__detail">{t("acrossAllEvents")}</span>
+                </div>
+
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("totalPointsColumn")}</span>
+                  <span className="analytics-summary-card__value">{listTotalPoints.toLocaleString()}</span>
+                  <span className="analytics-summary-card__detail">{t("pointsEarned")}</span>
+                </div>
+              </div>
+
+              {/* Event list table */}
+              <div className="analytics-table-section">
+                <div className="analytics-table-section__header">
+                  <h4 className="analytics-table-section__title">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {t("eventListTitle")}
+                  </h4>
+                  <span className="analytics-table-section__count">
+                    {listData.total.toLocaleString()} {t("eventsTracked")}
+                  </span>
+                </div>
+
+                <section className="table event-list">
+                  <header>
+                    <span>{t("eventNameColumn")}</span>
+                    <span>{t("eventDateColumn")}</span>
+                    <span>{t("participantsColumn")}</span>
+                    <span>{t("totalPointsColumn")}</span>
+                  </header>
+                  {listData.events.map((event) => (
+                    <div
+                      className="row"
+                      key={event.linked_event_id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleSelectEvent(event.linked_event_id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleSelectEvent(event.linked_event_id);
+                        }
+                      }}
+                    >
+                      <span>{event.event_name}</span>
+                      <span>{formatDate(event.event_date)}</span>
+                      <span>{event.participant_count}</span>
+                      <span>{event.total_points.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </section>
+              </div>
             </>
           )}
         </DataState>

@@ -4,9 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useTranslations } from "next-intl";
 import PageShell from "@/app/components/page-shell";
 import DataState from "@/app/components/data-state";
-import PaginationBar from "@/app/components/pagination-bar";
 import useClanContext from "@/app/hooks/use-clan-context";
-import { usePagination } from "@/lib/hooks/use-pagination";
 import AnalyticsSubnav from "../analytics-subnav";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
@@ -57,8 +55,8 @@ const DEBOUNCE_MS = 300;
 
 function DeltaIndicator({ delta }: { delta: number | null }) {
   if (delta === null) return <span className="delta neutral">—</span>;
-  if (delta > 0) return <span className="delta positive">+{delta.toLocaleString()}</span>;
-  if (delta < 0) return <span className="delta negative">{delta.toLocaleString()}</span>;
+  if (delta > 0) return <span className="delta positive">▲ +{delta.toLocaleString()}</span>;
+  if (delta < 0) return <span className="delta negative">▼ {delta.toLocaleString()}</span>;
   return <span className="delta neutral">0</span>;
 }
 
@@ -136,10 +134,7 @@ export default function PowerAnalytics(): JSX.Element {
   const [playerFilter, setPlayerFilter] = useState("");
   const [debouncedFilter, setDebouncedFilter] = useState("");
   const [retryCount, setRetryCount] = useState(0);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
-
-  const pagination = usePagination(data?.total ?? 0, 50);
-  const { page, pageSize, setPage } = pagination;
+  const debounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   /* Debounce player search input */
   function handleFilterChange(value: string) {
@@ -147,7 +142,6 @@ export default function PowerAnalytics(): JSX.Element {
     clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       setDebouncedFilter(value);
-      setPage(1);
     }, DEBOUNCE_MS);
   }
 
@@ -170,8 +164,8 @@ export default function PowerAnalytics(): JSX.Element {
     async function load(): Promise<void> {
       const params = new URLSearchParams({
         clan_id: clanId!,
-        page: String(page),
-        page_size: String(pageSize),
+        page: "1",
+        page_size: "10000",
       });
       if (debouncedFilter) {
         params.set("player", debouncedFilter);
@@ -193,13 +187,18 @@ export default function PowerAnalytics(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [clanId, page, pageSize, debouncedFilter, retryCount]);
+  }, [clanId, debouncedFilter, retryCount]);
 
   const standings = data?.standings ?? [];
   const isEmpty = !loading && !error && standings.length === 0;
   const { data: chartData, players: chartPlayers } = data?.history?.length
     ? buildChartData(data.history)
     : { data: [], players: [] };
+
+  /* Computed stats */
+  const avgScore = standings.length > 0 ? Math.round(standings.reduce((s, r) => s + r.score, 0) / standings.length) : 0;
+  const topPlayer = standings[0];
+  const growingPlayers = standings.filter((s) => s.delta !== null && s.delta > 0).length;
 
   return (
     <PageShell
@@ -218,13 +217,86 @@ export default function PowerAnalytics(): JSX.Element {
         emptyMessage={t("noPowerData")}
         onRetry={() => setRetryCount((c) => c + 1)}
       >
-        {/* ── Clan total card ── */}
+        {/* ── Summary stat cards ── */}
         {data && (
-          <div className="analytics-summary-grid" style={{ marginBottom: 24 }}>
+          <div className="analytics-summary-grid">
             <div className="analytics-summary-card">
+              <div className="analytics-summary-card__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
               <span className="analytics-summary-card__label">{t("clanTotal")}</span>
               <span className="analytics-summary-card__value">{data.clan_total.toLocaleString()}</span>
               <span className="analytics-summary-card__detail">{t("powerTitle")}</span>
+            </div>
+
+            <div className="analytics-summary-card">
+              <div className="analytics-summary-card__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 20V10" />
+                  <path d="M18 20V4" />
+                  <path d="M6 20v-4" />
+                </svg>
+              </div>
+              <span className="analytics-summary-card__label">{t("averageScore")}</span>
+              <span className="analytics-summary-card__value">{avgScore.toLocaleString()}</span>
+              <span className="analytics-summary-card__detail">{t("perPlayer")}</span>
+            </div>
+
+            {topPlayer && (
+              <div className="analytics-summary-card">
+                <div className="analytics-summary-card__icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                </div>
+                <span className="analytics-summary-card__label">{t("strongestPlayer")}</span>
+                <span className="analytics-summary-card__value">{topPlayer.player_name}</span>
+                <span className="analytics-summary-card__detail">
+                  {topPlayer.score.toLocaleString()} {t("powerPoints")}
+                </span>
+              </div>
+            )}
+
+            <div className="analytics-summary-card">
+              <div className="analytics-summary-card__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                  <polyline points="17 6 23 6 23 12" />
+                </svg>
+              </div>
+              <span className="analytics-summary-card__label">{t("growingPlayers")}</span>
+              <span className="analytics-summary-card__value">{growingPlayers}</span>
+              <span className="analytics-summary-card__detail">{t("withPositiveDelta")}</span>
             </div>
           </div>
         )}
@@ -232,8 +304,20 @@ export default function PowerAnalytics(): JSX.Element {
         {/* ── Line chart ── */}
         {chartData.length > 0 && (
           <div className="analytics-chart-wrapper">
-            <h4>{t("chartPowerHistory")}</h4>
-            <ResponsiveContainer width="100%" height={320}>
+            <h4>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              {t("chartPowerHistory")}
+            </h4>
+            <ResponsiveContainer width="100%" height={340}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 200, 60, 0.1)" />
                 <XAxis dataKey="date" tick={{ fill: "#b8a888", fontSize: 12 }} stroke="rgba(240, 200, 60, 0.1)" />
@@ -280,7 +364,28 @@ export default function PowerAnalytics(): JSX.Element {
 
         {/* ── Standings table ── */}
         {standings.length > 0 && (
-          <>
+          <div className="analytics-table-section">
+            <div className="analytics-table-section__header">
+              <h4 className="analytics-table-section__title">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 20V10" />
+                  <path d="M18 20V4" />
+                  <path d="M6 20v-4" />
+                </svg>
+                {t("rankingTitle")}
+              </h4>
+              <span className="analytics-table-section__count">
+                {data?.total.toLocaleString()} {t("playerColumn")}
+              </span>
+            </div>
+
             <div className="table power-ranking">
               <header>
                 <span>{t("rankColumn")}</span>
@@ -303,9 +408,7 @@ export default function PowerAnalytics(): JSX.Element {
                 </div>
               ))}
             </div>
-
-            <PaginationBar pagination={pagination} idPrefix="power" />
-          </>
+          </div>
         )}
       </DataState>
     </PageShell>

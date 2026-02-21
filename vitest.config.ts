@@ -7,12 +7,7 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./test/vitest.setup.ts"],
     pool: "forks",
-    poolOptions: {
-      forks: {
-        maxForks: 3,
-        minForks: 1,
-      },
-    },
+    maxWorkers: 3,
     coverage: {
       provider: "v8",
       include: ["app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],

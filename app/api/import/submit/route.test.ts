@@ -207,7 +207,7 @@ describe("POST /api/import/submit", () => {
     const body = await res.json();
     expect(body.data.submissions[0].autoMatchedCount).toBe(1);
 
-    const insertedRows = stagedChain.insert.mock.calls[0][0];
+    const insertedRows = stagedChain.insert.mock.calls[0]![0];
     expect(insertedRows[0].item_status).toBe("auto_matched");
     expect(insertedRows[0].matched_game_account_id).toBe("ga-1");
   });
@@ -241,7 +241,7 @@ describe("POST /api/import/submit", () => {
     const body = await res.json();
     expect(body.data.submissions[0].autoMatchedCount).toBe(1);
 
-    const insertedRows = stagedChain.insert.mock.calls[0][0];
+    const insertedRows = stagedChain.insert.mock.calls[0]![0];
     expect(insertedRows[0].item_status).toBe("auto_matched");
     expect(insertedRows[0].matched_game_account_id).toBe("ga-1");
   });
@@ -284,7 +284,7 @@ describe("POST /api/import/submit", () => {
     const body = await res.json();
     expect(body.data.submissions[0].autoMatchedCount).toBe(1);
 
-    const insertedRows = stagedChain.insert.mock.calls[0][0];
+    const insertedRows = stagedChain.insert.mock.calls[0]![0];
     expect(insertedRows[0].item_status).toBe("auto_matched");
     expect(insertedRows[0].matched_game_account_id).toBe("ga-1");
   });
@@ -316,7 +316,7 @@ describe("POST /api/import/submit", () => {
     expect(body.data.submissions[0].autoMatchedCount).toBe(0);
     expect(body.data.submissions[0].unmatchedCount).toBe(1);
 
-    const insertedRows = stagedChain.insert.mock.calls[0][0];
+    const insertedRows = stagedChain.insert.mock.calls[0]![0];
     expect(insertedRows[0].item_status).toBe("pending");
     expect(insertedRows[0].matched_game_account_id).toBeNull();
   });
@@ -355,7 +355,7 @@ describe("POST /api/import/submit", () => {
     const res = await POST(req);
     expect(res.status).toBe(201);
 
-    const insertArgs = submissionChain.insert.mock.calls[0][0];
+    const insertArgs = submissionChain.insert.mock.calls[0]![0];
     expect(insertArgs.source).toBe("api_push");
   });
 
@@ -383,7 +383,7 @@ describe("POST /api/import/submit", () => {
     const res = await POST(makeRequest(makeValidPayload()));
     expect(res.status).toBe(201);
 
-    const insertArgs = submissionChain.insert.mock.calls[0][0];
+    const insertArgs = submissionChain.insert.mock.calls[0]![0];
     expect(insertArgs.source).toBe("file_import");
   });
 
@@ -546,10 +546,12 @@ describe("POST /api/import/submit", () => {
     expect(body.data.validationListsUpdated).toBe(true);
 
     expect(knownNamesChain.upsert).toHaveBeenCalled();
-    expect(knownNamesChain.upsert.mock.calls[0][0]).toEqual([{ clan_id: clanUuid, entity_type: "player", name: "P1" }]);
+    expect(knownNamesChain.upsert.mock.calls[0]![0]).toEqual([
+      { clan_id: clanUuid, entity_type: "player", name: "P1" },
+    ]);
 
     expect(correctionsWriteChain.upsert).toHaveBeenCalled();
-    expect(correctionsWriteChain.upsert.mock.calls[0][0]).toEqual([
+    expect(correctionsWriteChain.upsert.mock.calls[0]![0]).toEqual([
       {
         clan_id: clanUuid,
         entity_type: "player",

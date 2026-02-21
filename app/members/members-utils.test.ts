@@ -17,10 +17,14 @@ import {
 function member(overrides: Partial<MemberRow> & { gameUsername: string }): MemberRow {
   return {
     membershipId: `m-${overrides.gameUsername}`,
+    gameAccountId: `ga-${overrides.gameUsername}`,
     displayName: "",
     userId: `u-${overrides.gameUsername}`,
     rank: null,
     role: null,
+    coordinates: null,
+    score: null,
+    snapshotDate: null,
     ...overrides,
   };
 }

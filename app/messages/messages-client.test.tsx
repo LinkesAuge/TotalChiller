@@ -26,13 +26,13 @@ vi.mock("./use-messages", () => ({
   useMessages: (...args: any[]) => mockUseMessages(...args),
 }));
 vi.mock("./messages-inbox", () => ({
-  MessagesInbox: ({ api }: any) => {
+  MessagesInbox: ({ api: _api }: any) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": "messages-inbox" });
   },
 }));
 vi.mock("./messages-thread", () => ({
-  MessagesThread: ({ userId, api }: any) => {
+  MessagesThread: ({ userId: _userId, api: _api }: any) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": "messages-thread" });
   },

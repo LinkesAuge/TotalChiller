@@ -203,7 +203,7 @@ function SubmissionDetailClient(): JSX.Element {
         const body = await res.json().catch(() => null);
         throw new Error((body as { error?: string } | null)?.error ?? t("deleteError"));
       }
-      router.push("/admin?tab=submissions");
+      router.push("/admin?tab=data");
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : t("deleteError"));
       setActionLoading(false);
@@ -322,7 +322,7 @@ function SubmissionDetailClient(): JSX.Element {
       <button
         type="button"
         className="button"
-        onClick={() => router.push("/admin?tab=submissions")}
+        onClick={() => router.push("/admin?tab=data")}
         style={{ marginBottom: 16 }}
       >
         ← {t("backToList")}

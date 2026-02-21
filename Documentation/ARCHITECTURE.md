@@ -197,15 +197,14 @@ Bell icon in header with dropdown. DB-stored, polls every 60s. Fan-out on news/e
 
 Modular tab-based admin. Slim orchestrator (`admin-client.tsx`) with `AdminProvider` context. Each tab lazy-loaded via `next/dynamic`.
 
-| Tab         | File                                 | Purpose                                             |
-| ----------- | ------------------------------------ | --------------------------------------------------- |
-| Clans       | `app/admin/tabs/clans-tab.tsx`       | Clan management + game account memberships          |
-| Users       | `app/admin/tabs/users-tab.tsx`       | User CRUD, game accounts, inline membership editing |
-| Approvals   | `app/admin/tabs/approvals-tab.tsx`   | Registration confirmations + game account approvals |
-| Forum       | `app/admin/tabs/forum-tab.tsx`       | Forum category management                           |
-| Logs        | `app/admin/tabs/logs-tab.tsx`        | Audit log viewer                                    |
-| Import      | `app/admin/tabs/import-tab.tsx`      | ChillerBuddy JSON file import (dropzone + preview)  |
-| Submissions | `app/admin/tabs/submissions-tab.tsx` | Review/approve imported data (inline list + detail) |
+| Tab       | File                               | Purpose                                                            |
+| --------- | ---------------------------------- | ------------------------------------------------------------------ |
+| Clans     | `app/admin/tabs/clans-tab.tsx`     | Clan management + game account memberships                         |
+| Users     | `app/admin/tabs/users-tab.tsx`     | User CRUD, game accounts, inline membership editing                |
+| Approvals | `app/admin/tabs/approvals-tab.tsx` | Registration confirmations + game account approvals                |
+| Forum     | `app/admin/tabs/forum-tab.tsx`     | Forum category management                                          |
+| Logs      | `app/admin/tabs/logs-tab.tsx`      | Audit log viewer                                                   |
+| Data      | `app/admin/tabs/data-tab.tsx`      | File import (compact dropzone) + submission review (list + detail) |
 
 **DB tables:** `profiles`, `user_roles`, `game_accounts`, `game_account_clan_memberships`, `clans`, `audit_logs`, `data_submissions`, `staged_*_entries`
 
@@ -229,7 +228,7 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 
 ### 4.13 Submission Detail (`app/submissions/[id]/`)
 
-Standalone admin-gated page for deep-linking into a specific submission's staged entries. Server component checks `is_any_admin()` and redirects non-admins. Linked from the admin Submissions tab and used for detailed entry review with bulk/per-item actions.
+Standalone admin-gated page for deep-linking into a specific submission's staged entries. Server component checks `is_any_admin()` and redirects non-admins. Linked from the admin Data tab and used for detailed entry review with bulk/per-item actions.
 
 **DB tables:** `data_submissions`, `staged_chest_entries`, `staged_member_entries`, `staged_event_entries`
 

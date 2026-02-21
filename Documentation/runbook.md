@@ -154,5 +154,5 @@ Both scripts are idempotent (upsert on unique keys). Re-run after adding new ass
 | Bug screenshot upload fails                   | Verify `bug-screenshots` storage bucket exists (Supabase → Storage)                               |
 | Radix Select scrollbar missing after upgrade  | Check `!important` overrides in `app/styles/components.css` still counter Radix's injected styles |
 | Bug report categories empty                   | Re-run `bug_reports.sql` migration (seeds 5 defaults)                                             |
-| Import/Submissions tabs not visible           | Admin-only tabs — verify user has owner/admin role in `user_roles`                                |
+| Data tab not visible                          | Admin-only tab — verify user has owner/admin role in `user_roles`                                 |
 | Submission API returns empty list             | Ensure `data_pipeline_*.sql` migrations ran and RLS policies are active                           |

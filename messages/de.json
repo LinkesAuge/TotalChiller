@@ -108,8 +108,7 @@
     "forum": "Forum",
     "forumAdmin": "Forenverwaltung",
     "designSystem": "Design-System",
-    "import": "Daten importieren",
-    "submissions": "Einreichungen",
+    "data": "Daten",
     "bugs": "Fehlerberichte",
     "settings": "Einstellungen"
   },
@@ -939,8 +938,7 @@
       "logs": "Logs",
       "forum": "Forenverwaltung",
       "designSystem": "Design-System",
-      "import": "Daten importieren",
-      "submissions": "Einreichungen"
+      "data": "Daten"
     },
     "common": {
       "search": "Suche",
@@ -1177,13 +1175,9 @@
       "title": "Forum-Verwaltung",
       "subtitle": "Forum-Kategorien erstellen, bearbeiten, sortieren und löschen"
     },
-    "import": {
-      "title": "Daten importieren",
-      "subtitle": "ChillerBuddy-Exportdateien zur Prüfung hochladen"
-    },
-    "submissions": {
-      "title": "Einreichungen",
-      "subtitle": "Importierte Daten prüfen und genehmigen"
+    "data": {
+      "title": "Daten",
+      "subtitle": "Daten importieren, prüfen und genehmigen"
     },
     "forumCategories": {
       "selectClan": "Bitte wähle einen Clan aus, um Forum-Kategorien zu verwalten.",

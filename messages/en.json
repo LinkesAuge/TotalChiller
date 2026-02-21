@@ -108,8 +108,7 @@
     "forum": "Forum",
     "forumAdmin": "Forum Management",
     "designSystem": "Design System",
-    "import": "Import Data",
-    "submissions": "Submissions",
+    "data": "Data",
     "bugs": "Bug Reports",
     "settings": "Settings"
   },
@@ -939,8 +938,7 @@
       "logs": "Logs",
       "forum": "Forum Management",
       "designSystem": "Design System",
-      "import": "Import Data",
-      "submissions": "Submissions"
+      "data": "Data"
     },
     "common": {
       "search": "Search",
@@ -1177,13 +1175,9 @@
       "title": "Forum Management",
       "subtitle": "Create, edit, reorder, and delete forum categories"
     },
-    "import": {
-      "title": "Import Data",
-      "subtitle": "Upload ChillerBuddy export files for review"
-    },
-    "submissions": {
-      "title": "Submissions",
-      "subtitle": "Review and approve imported data submissions"
+    "data": {
+      "title": "Data",
+      "subtitle": "Import, review and approve data submissions"
     },
     "forumCategories": {
       "selectClan": "Please select a clan to manage forum categories.",

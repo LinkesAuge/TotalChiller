@@ -43,7 +43,7 @@ interface NavItem {
   readonly href: string;
   readonly labelKey: string;
   readonly iconKey: string;
-  readonly tab?: "clans" | "users" | "logs" | "approvals" | "forum" | "import" | "submissions";
+  readonly tab?: "clans" | "users" | "logs" | "approvals" | "forum" | "data";
   readonly vipIcon?: string;
   /** Render icon at a larger size (for detailed multi-element icons). */
   readonly lgIcon?: boolean;
@@ -78,16 +78,11 @@ const SIDEBAR_ADMIN_META: Record<string, { labelKey: string; iconKey: string; vi
     vipIcon: "/assets/game/icons/clan_emblem_11.png",
     lgIcon: true,
   },
-  import: {
-    labelKey: "import",
+  data: {
+    labelKey: "data",
     iconKey: "admin",
     vipIcon: "/assets/game/icons/icons_chest_1.png",
     lgIcon: true,
-  },
-  submissions: {
-    labelKey: "submissions",
-    iconKey: "admin",
-    vipIcon: "/assets/game/icons/icons_paper_saved_1.png",
   },
 };
 

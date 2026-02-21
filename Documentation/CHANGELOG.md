@@ -13,6 +13,7 @@
 
 ### Changed
 
+- **Merged "Daten importieren" and "Einreichungen" tabs into a single "Daten" tab:** The separate import and submissions admin sections are now one unified tab with a compact inline dropzone next to the filters. Import preview, success, and error feedback render contextually below the filter bar. Uses the chest icon. Removed the old `import-tab.tsx` / `submissions-tab.tsx` split.
 - **Submit endpoint rate limit tightened:** `/api/import/submit` moved from `relaxedLimiter` (120 req/min) to `standardLimiter` (30 req/min) to prevent ChillerBuddy from flooding the server and starving UI requests.
 - **Delete any submission:** Removed the pending-only restriction on submission deletion. Admins can now delete approved, rejected, or partial submissions. Production data (chest_entries, member_snapshots, event_results) is preserved via `ON DELETE SET NULL`. A separate confirmation dialog warns when deleting already-approved submissions.
 

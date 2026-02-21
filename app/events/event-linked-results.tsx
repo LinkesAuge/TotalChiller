@@ -96,7 +96,7 @@ export default function EventLinkedResults({
   useEffect(() => {
     if (autoScrollIntoView && results && results.length > 0 && sectionRef.current) {
       requestAnimationFrame(() => {
-        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         onScrollComplete?.();
       });
     }

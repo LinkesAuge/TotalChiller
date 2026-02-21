@@ -250,7 +250,7 @@ function ResultsIcon({
       onMouseEnter={(e) => onHoverEnter(e, event.id, event.title)}
       onMouseLeave={onHoverLeave}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <rect x="1" y="14" width="6" height="8" rx="1" />
         <rect x="9" y="6" width="6" height="16" rx="1" />
         <rect x="17" y="10" width="6" height="12" rx="1" />

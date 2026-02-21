@@ -287,8 +287,8 @@ describe("ClansTab", () => {
     mockGameAccountData = [];
     mockGameAccountMembershipData = [];
     mockGameAccountProfileData = [];
-    confirmModalProps = {};
-    formModalProps = {};
+    _confirmModalProps = {};
+    _formModalProps = {};
   });
 
   it("renders without crashing", () => {

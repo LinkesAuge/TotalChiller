@@ -115,7 +115,7 @@ describe("LogsTab", () => {
     mockSelectedClanId = "c1";
     mockRangeResult = { data: [], error: null, count: 0 };
     mockActorResult = { data: [], error: null };
-    paginationRendered = false;
+    _paginationRendered = false;
   });
 
   it("renders without crashing", () => {

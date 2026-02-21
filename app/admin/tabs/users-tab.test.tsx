@@ -243,7 +243,7 @@ describe("UsersTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     confirmModalInstances = [];
-    formModalProps = {};
+    _formModalProps = {};
     mockUserRows = [];
     mockRoleData = [];
     mockGameAccounts = [];

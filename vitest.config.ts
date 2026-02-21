@@ -7,7 +7,12 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./test/vitest.setup.ts"],
     pool: "forks",
-    vmMemoryLimit: "512MB",
+    poolOptions: {
+      forks: {
+        maxForks: 3,
+        minForks: 1,
+      },
+    },
     coverage: {
       provider: "v8",
       include: ["app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],

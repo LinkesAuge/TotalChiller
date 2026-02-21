@@ -400,7 +400,7 @@ describe("AboutClient", () => {
     mockUseSiteContent.mockReturnValue(baseSiteContent({ saveField }));
     render(<AboutClient />);
     const missionTexts = screen.getAllByTestId(/^editable-missionText/);
-    fireEvent.click(missionTexts[0]);
+    fireEvent.click(missionTexts[0]!);
     expect(saveField).toHaveBeenCalledWith("mission", "text", "de-val", "en-val");
   });
 

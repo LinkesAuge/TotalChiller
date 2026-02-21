@@ -140,7 +140,7 @@ describe("ForumCategoryAdmin", () => {
     await waitFor(() => expect(screen.getByText("newCategory")).toBeInTheDocument());
 
     const cancelButtons = screen.getAllByText("cancel");
-    fireEvent.click(cancelButtons[0]);
+    fireEvent.click(cancelButtons[0]!);
     await waitFor(() => {
       expect(screen.queryByText("newCategory")).not.toBeInTheDocument();
     });
@@ -217,7 +217,7 @@ describe("ForumCategoryAdmin", () => {
 
     const editButtons = screen.getAllByLabelText("edit");
     await act(async () => {
-      fireEvent.click(editButtons[0]);
+      fireEvent.click(editButtons[0]!);
     });
 
     expect(screen.getByText("save")).toBeInTheDocument();
@@ -230,7 +230,7 @@ describe("ForumCategoryAdmin", () => {
 
     const editButtons = screen.getAllByLabelText("edit");
     await act(async () => {
-      fireEvent.click(editButtons[0]);
+      fireEvent.click(editButtons[0]!);
     });
 
     await act(async () => {
@@ -244,7 +244,7 @@ describe("ForumCategoryAdmin", () => {
     render(<ForumCategoryAdmin />);
     await waitFor(() => expect(screen.getByText("General")).toBeInTheDocument());
 
-    fireEvent.click(screen.getAllByLabelText("edit")[0]);
+    fireEvent.click(screen.getAllByLabelText("edit")[0]!);
     await waitFor(() => expect(screen.getByText("save")).toBeInTheDocument());
 
     fireEvent.click(screen.getByText("save"));
@@ -268,7 +268,7 @@ describe("ForumCategoryAdmin", () => {
     render(<ForumCategoryAdmin />);
     await waitFor(() => expect(screen.getByText("General")).toBeInTheDocument());
 
-    fireEvent.click(screen.getAllByLabelText("edit")[0]);
+    fireEvent.click(screen.getAllByLabelText("edit")[0]!);
     await waitFor(() => expect(screen.getByText("save")).toBeInTheDocument());
 
     fireEvent.click(screen.getByText("save"));
@@ -286,7 +286,7 @@ describe("ForumCategoryAdmin", () => {
 
     const deleteButtons = screen.getAllByLabelText("delete");
     await act(async () => {
-      fireEvent.click(deleteButtons[0]);
+      fireEvent.click(deleteButtons[0]!);
     });
 
     expect(screen.getByText("confirmDeleteText")).toBeInTheDocument();
@@ -299,7 +299,7 @@ describe("ForumCategoryAdmin", () => {
 
     const deleteButtons = screen.getAllByLabelText("delete");
     await act(async () => {
-      fireEvent.click(deleteButtons[0]);
+      fireEvent.click(deleteButtons[0]!);
     });
 
     const deleteConfirmBtn = screen
@@ -312,7 +312,7 @@ describe("ForumCategoryAdmin", () => {
     render(<ForumCategoryAdmin />);
     await waitFor(() => expect(screen.getByText("General")).toBeInTheDocument());
 
-    fireEvent.click(screen.getAllByLabelText("delete")[0]);
+    fireEvent.click(screen.getAllByLabelText("delete")[0]!);
     await waitFor(() => expect(screen.getByPlaceholderText("DELETE General")).toBeInTheDocument());
 
     fireEvent.change(screen.getByPlaceholderText("DELETE General"), { target: { value: "DELETE General" } });
@@ -322,7 +322,7 @@ describe("ForumCategoryAdmin", () => {
       .filter((el) => el.textContent === "delete" && !(el as HTMLButtonElement).disabled);
     expect(gameButtons.length).toBeGreaterThanOrEqual(1);
 
-    fireEvent.click(gameButtons[0]);
+    fireEvent.click(gameButtons[0]!);
 
     await waitFor(() => {
       const deleteCalls = (globalThis.fetch as any).mock.calls.filter((c: any[]) => c[1]?.method === "DELETE");
@@ -337,7 +337,7 @@ describe("ForumCategoryAdmin", () => {
 
     const deleteButtons = screen.getAllByLabelText("delete");
     await act(async () => {
-      fireEvent.click(deleteButtons[0]);
+      fireEvent.click(deleteButtons[0]!);
     });
 
     expect(screen.getByText("confirmDeleteText")).toBeInTheDocument();

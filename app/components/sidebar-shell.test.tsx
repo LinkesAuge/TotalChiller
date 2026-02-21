@@ -381,7 +381,9 @@ describe("SidebarShell", () => {
     await waitFor(() => {
       expect(screen.getByTestId("clan-change-btn")).toBeTruthy();
     });
-    fireEvent.click(screen.getByTestId("clan-change-btn"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("clan-change-btn"));
+    });
     expect(window.localStorage.setItem).toHaveBeenCalledWith("tc.currentClanId", "clan-2");
     expect(window.localStorage.setItem).toHaveBeenCalledWith("tc.currentGameAccountId", "ga-2");
     expect(mockDispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "clan-context-change" }));
@@ -425,7 +427,9 @@ describe("SidebarShell", () => {
     await waitFor(() => {
       expect(screen.getByText("signOut")).toBeTruthy();
     });
-    fireEvent.mouseDown(document.body);
+    await act(async () => {
+      fireEvent.mouseDown(document.body);
+    });
     await waitFor(() => {
       expect(screen.queryByText("signOut")).toBeNull();
     });
@@ -453,7 +457,9 @@ describe("SidebarShell", () => {
       fireEvent.click(screen.getByText("signOut"));
     });
     expect(mockSignOut).toHaveBeenCalledOnce();
-    expect(window.location.href).toBe("/home");
+    await waitFor(() => {
+      expect(window.location.href).toBe("/home");
+    });
   });
 
   it("renders admin crown icon when isAdmin", async () => {
@@ -565,7 +571,9 @@ describe("SidebarShell", () => {
     });
 
     const expandedButton = screen.getByRole("button", { expanded: true });
-    fireEvent.click(expandedButton);
+    await act(async () => {
+      fireEvent.click(expandedButton);
+    });
     await waitFor(() => {
       expect(screen.queryByText("signOut")).toBeNull();
     });
@@ -610,7 +618,9 @@ describe("SidebarShell", () => {
     await waitFor(() => {
       expect(screen.getByText("profile")).toBeTruthy();
     });
-    fireEvent.click(screen.getByText("profile"));
+    await act(async () => {
+      fireEvent.click(screen.getByText("profile"));
+    });
     await waitFor(() => {
       expect(screen.queryByText("signOut")).toBeNull();
     });

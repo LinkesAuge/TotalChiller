@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "exportedAt": "2026-02-21T14:30:00.000Z",
+  "source": "ChillerBuddy v1.0.0",
+  "clan": {
+    "localClanId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    "name": "Chiller & Killer",
+    "websiteClanId": null
+  },
+  "data": {
+    "chests": [
+      {
+        "chestName": "Army Chest",
+        "playerName": "Strategus",
+        "source": "Clan War",
+        "level": "25",
+        "openedAt": "2026-02-21T14:00:00.000Z"
+      },
+      {
+        "chestName": "Archer Chest",
+        "playerName": "DragonSlayer",
+        "source": "Research Event",
+        "level": "12",
+        "openedAt": "2026-02-21T14:01:00.000Z"
+      },
+      {
+        "chestName": "Cavalry Chest",
+        "playerName": "KnightRider",
+        "source": "Monster Hunt",
+        "level": "18",
+        "openedAt": "2026-02-21T14:02:00.000Z"
+      }
+    ]
+  }
+}

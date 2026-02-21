@@ -10,7 +10,9 @@
 
 **Features:** messaging (private + broadcast), forum, events calendar, announcements, member directory, bug reports, admin panel, CMS-editable public pages, notification system, design system asset manager.
 
-**Removed features:** data import, chest database, validation rules, correction rules, analytics/charts. Tables `chest_entries`, `validation_rules`, `correction_rules`, `scoring_rules` have been dropped.
+**Removed features:** validation rules, correction rules, scoring rules, analytics/charts. Legacy tables `validation_rules`, `correction_rules`, `scoring_rules` have been dropped.
+
+**Data pipeline (new):** ChillerBuddy desktop app exports OCR-extracted game data (chests, members, events) as JSON. The website accepts this via file import or API push, stages it for review, and promotes approved data to production tables. Validation/correction lists sync bidirectionally. See `Documentation/ChillerBuddy/2026-02-21-data-pipeline-overview.md` for the full design.
 
 ## 2. Tech Stack
 
@@ -338,6 +340,18 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 | `bug_report_categories`         | Admin-managed bug report categories                             |
 | `bug_report_comments`           | Comments on bug reports                                         |
 | `bug_report_screenshots`        | Screenshot metadata for bug reports                             |
+| **Data Pipeline (staging)**     |                                                                 |
+| `data_submissions`              | Import batch envelope (per type: chests/members/events)         |
+| `staged_chest_entries`          | Pending chest records awaiting review                           |
+| `staged_member_entries`         | Pending member snapshot records awaiting review                 |
+| `staged_event_entries`          | Pending event result records awaiting review                    |
+| **Data Pipeline (production)**  |                                                                 |
+| `chest_entries`                 | Approved chest data (rebuilt, replaces dropped legacy table)    |
+| `member_snapshots`              | Approved member power snapshots                                 |
+| `event_results`                 | Approved event ranking results                                  |
+| **Data Pipeline (validation)**  |                                                                 |
+| `ocr_corrections`               | OCR text corrections per clan (player/chest/source)             |
+| `known_names`                   | Confirmed-correct names per clan (player/chest/source)          |
 
 ## 9. Conventions & Patterns
 

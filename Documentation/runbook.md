@@ -50,6 +50,10 @@ bug_reports.sql
 bug_reports_v2.sql
 bug_reports_v3.sql
 drop_chest_data_tables.sql
+data_pipeline_staging.sql
+data_pipeline_production.sql
+data_pipeline_validation.sql
+data_pipeline_rls.sql
 ```
 
 Legacy only (do not run on fresh setup): `messages.sql` (pre-v2 single-table model).

@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "exportedAt": "2026-02-21T15:00:00.000Z",
+  "source": "ChillerBuddy v1.0.0",
+  "clan": {
+    "localClanId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    "name": "Chiller & Killer",
+    "websiteClanId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+  },
+  "data": {
+    "chests": [
+      {
+        "chestName": "Army Chest",
+        "playerName": "Strategus",
+        "source": "Clan War",
+        "level": "25",
+        "openedAt": "2026-02-21T14:00:00.000Z"
+      },
+      {
+        "chestName": "Elegant Chest",
+        "playerName": "König",
+        "source": "Level 25 Crypt",
+        "level": "25",
+        "openedAt": "2026-02-21T14:01:00.000Z"
+      }
+    ],
+    "members": [
+      {
+        "playerName": "Strategus",
+        "coordinates": "K:98 X:666 Y:852",
+        "score": 15000000,
+        "capturedAt": "2026-02-21T14:30:00.000Z"
+      },
+      {
+        "playerName": "DragonSlayer",
+        "coordinates": "K:98 X:200 Y:300",
+        "score": 8500000,
+        "capturedAt": "2026-02-21T14:30:00.000Z"
+      },
+      {
+        "playerName": "KnightRider",
+        "coordinates": "K:98 X:400 Y:600",
+        "score": 5200000,
+        "capturedAt": "2026-02-21T14:30:00.000Z"
+      }
+    ],
+    "events": [
+      {
+        "playerName": "Strategus",
+        "eventPoints": 42000,
+        "eventName": "Dragon Hunt",
+        "capturedAt": "2026-02-21T14:45:00.000Z"
+      },
+      {
+        "playerName": "DragonSlayer",
+        "eventPoints": 38500,
+        "eventName": "Dragon Hunt",
+        "capturedAt": "2026-02-21T14:45:00.000Z"
+      }
+    ]
+  },
+  "validationLists": {
+    "knownPlayerNames": ["Strategus", "DragonSlayer", "KnightRider", "König"],
+    "knownChestNames": ["Army Chest", "Archer Chest", "Cavalry Chest", "Elegant Chest"],
+    "knownSources": ["Clan War", "Research Event", "Monster Hunt", "Level 25 Crypt"],
+    "corrections": {
+      "player": {
+        "Stratequs": "Strategus",
+        "DraqonSlayer": "DragonSlayer",
+        "Koenig": "König"
+      },
+      "chest": {
+        "Arny Chest": "Army Chest",
+        "Eleqant Chest": "Elegant Chest"
+      },
+      "source": {
+        "Clan Warr": "Clan War"
+      }
+    }
+  }
+}

@@ -33,14 +33,12 @@ interface ChainableMock {
   then: ReturnType<typeof vi.fn>;
 }
 
-const DEFAULT_RESULT: MockResult = { data: null, error: null };
-
 /**
  * Creates a chainable Supabase query builder mock.
  * Every method returns `this` (for chaining) except terminal methods
  * (`single`, `maybeSingle`, `then`) which resolve to `result`.
  */
-export function createChainableMock(result: MockResult = DEFAULT_RESULT): ChainableMock {
+export function createChainableMock(result: MockResult = { data: null, error: null }): ChainableMock {
   const chain: ChainableMock = {} as ChainableMock;
 
   const chainMethods = [
@@ -82,10 +80,8 @@ export function createChainableMock(result: MockResult = DEFAULT_RESULT): Chaina
     onrejected?: ((reason: unknown) => unknown) | null,
   ) => Promise.resolve(result).then(onfulfilled, onrejected);
 
-  chain.then = vi.fn().mockImplementation(thenImpl);
-
   Object.defineProperty(chain, "then", {
-    value: chain.then,
+    value: vi.fn().mockImplementation(thenImpl),
     writable: true,
     enumerable: false,
     configurable: true,

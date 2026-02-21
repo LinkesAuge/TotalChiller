@@ -8,6 +8,8 @@
 
 ### Added
 
+- **Comprehensive unit test suite:** 222 test files with 3393 tests covering API routes, hooks, components, pages, and utilities. ~73% statement coverage (up from ~4%). Includes reusable test infrastructure (`test/`) with shared mocks for Supabase (chainable query builder), next/headers, next/navigation, next-intl, Sentry, and rate-limit.
+- `npm run test:unit:coverage` script for coverage reports.
 - **Data pipeline enhancement:** Complete date-tracking and event-linking system for data submissions.
   - `reference_date` column on `data_submissions` tracks what day the data represents (derived from entries or set explicitly).
   - `linked_event_id` on submissions and `event_results` links event data to calendar events.

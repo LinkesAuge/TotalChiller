@@ -5,7 +5,6 @@ import type { Role } from "@/lib/permissions";
 
 interface TestProviderOptions {
   authState?: Partial<AuthStateContextValue>;
-  locale?: string;
 }
 
 const DEFAULT_AUTH_STATE: AuthStateContextValue = {
@@ -41,9 +40,9 @@ export function renderWithProviders(
   ui: ReactElement,
   options: TestProviderOptions & Omit<RenderOptions, "wrapper"> = {},
 ): RenderResult {
-  const { authState, locale, ...renderOptions } = options;
+  const { authState, ...renderOptions } = options;
   return render(ui, {
-    wrapper: createWrapper({ authState, locale }),
+    wrapper: createWrapper({ authState }),
     ...renderOptions,
   });
 }

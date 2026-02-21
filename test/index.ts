@@ -14,9 +14,12 @@ export {
   routerMock,
   searchParamsMock,
   redirectMock,
+  notFoundMock,
   setSearchParam,
   clearSearchParams,
   setPathname,
+  resetRouterMock,
+  resetRedirectMock,
 } from "./mocks/next-navigation";
 export { nextIntlMock, nextIntlServerMock } from "./mocks/next-intl";
 export { nextImageMock, nextLinkMock } from "./mocks/next-image";

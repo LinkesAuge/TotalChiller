@@ -18,7 +18,7 @@ export function nextIntlMock() {
   return {
     useTranslations: vi.fn(() => createMockT()),
     useLocale: vi.fn(() => "de"),
-    useNow: vi.fn(() => new Date()),
+    useNow: vi.fn(() => new Date("2025-01-01T12:00:00Z")),
     useTimeZone: vi.fn(() => "Europe/Berlin"),
     useFormatter: vi.fn(() => ({
       number: (n: number) => String(n),
@@ -40,7 +40,7 @@ export function nextIntlServerMock() {
     getTranslations: vi.fn().mockResolvedValue(createMockT()),
     getLocale: vi.fn().mockResolvedValue("de"),
     getMessages: vi.fn().mockResolvedValue({}),
-    getNow: vi.fn().mockResolvedValue(new Date()),
+    getNow: vi.fn().mockResolvedValue(new Date("2025-01-01T12:00:00Z")),
     getTimeZone: vi.fn().mockResolvedValue("Europe/Berlin"),
   };
 }

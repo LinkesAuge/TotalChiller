@@ -95,10 +95,24 @@ Email templates (dual-theme: Outlook light + modern dark) are documented in `sup
 ### Unit Tests (Vitest)
 
 ```bash
-npm run test:unit                        # Run all
+npm run test:unit                        # Run all (222 test files, ~3400 tests)
 npm run test:unit:watch                  # Watch mode
+npm run test:unit:coverage               # Run with coverage report
 npx vitest run lib/permissions.test.ts   # Specific file
 ```
+
+**Test infrastructure** lives in `test/`:
+
+- `test/mocks/` — reusable mocks (Supabase, next/headers, next/navigation, next-intl, Sentry, rate-limit)
+- `test/helpers.ts` — `createTestRequest()`, `parseResponse()` for API route testing
+- `test/utils.tsx` — `renderWithProviders()` for component testing with auth context
+- `test/index.ts` — barrel export for all utilities
+
+**Writing new tests:**
+
+- API routes: use `createMockAuth()` + `vi.mock("@/lib/api/require-auth")`, mock Supabase queries with `createChainableMock()` + `setChainResult()`
+- Components (`.test.tsx`): add `// @vitest-environment jsdom` at top of file, mock `next-intl`, `next/image`, `next/navigation` using shared mocks from `@/test`
+- Always wrap state-changing user interactions in `await act(async () => { ... })` and verify with `waitFor()`
 
 ### E2E Tests (Playwright)
 

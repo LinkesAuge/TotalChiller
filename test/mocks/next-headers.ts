@@ -4,8 +4,12 @@ const mockCookieStore = new Map<string, { name: string; value: string }>();
 
 export const cookiesMock = {
   get: vi.fn((name: string) => mockCookieStore.get(name)),
-  set: vi.fn((options: { name: string; value: string }) => {
-    mockCookieStore.set(options.name, options);
+  set: vi.fn((nameOrOptions: string | { name: string; value: string }, value?: string) => {
+    if (typeof nameOrOptions === "string") {
+      mockCookieStore.set(nameOrOptions, { name: nameOrOptions, value: value ?? "" });
+    } else {
+      mockCookieStore.set(nameOrOptions.name, nameOrOptions);
+    }
   }),
   getAll: vi.fn(() => Array.from(mockCookieStore.values())),
   has: vi.fn((name: string) => mockCookieStore.has(name)),

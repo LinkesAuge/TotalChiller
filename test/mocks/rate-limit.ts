@@ -9,11 +9,10 @@ import { vi } from "vitest";
  * ```
  */
 export function rateLimitMock() {
-  const noopLimiter = { check: vi.fn().mockReturnValue(null) };
   return {
-    createRateLimiter: vi.fn(() => noopLimiter),
-    strictLimiter: noopLimiter,
-    standardLimiter: noopLimiter,
-    relaxedLimiter: noopLimiter,
+    createRateLimiter: vi.fn(() => ({ check: vi.fn().mockReturnValue(null) })),
+    strictLimiter: { check: vi.fn().mockReturnValue(null) },
+    standardLimiter: { check: vi.fn().mockReturnValue(null) },
+    relaxedLimiter: { check: vi.fn().mockReturnValue(null) },
   };
 }

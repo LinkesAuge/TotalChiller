@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { computeHotRank } from "./forum-utils";
+import { computeHotRank, resolveAuthorNames } from "./forum-utils";
 
 /* ------------------------------------------------------------------ */
 /*  computeHotRank                                                     */
@@ -124,5 +124,90 @@ describe("computeHotRank", () => {
       const expected = magnitude - ageHours / 6;
       expect(actual).toBeCloseTo(expected, 5);
     });
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  resolveAuthorNames                                                 */
+/* ------------------------------------------------------------------ */
+
+describe("resolveAuthorNames", () => {
+  it("returns empty map for empty userIds array", async () => {
+    const mockSupabase: any = {};
+    const result = await resolveAuthorNames(mockSupabase, []);
+    expect(result).toEqual({});
+  });
+
+  it("returns empty map when all userIds are falsy", async () => {
+    const mockSupabase: any = {};
+    const result = await resolveAuthorNames(mockSupabase, ["", "", ""]);
+    expect(result).toEqual({});
+  });
+
+  it("deduplicates userIds before querying", async () => {
+    const inFn = vi.fn().mockResolvedValue({
+      data: [{ id: "u1", display_name: "Alice", username: "alice" }],
+    });
+    const mockSupabase: any = {
+      from: () => ({ select: () => ({ in: inFn }) }),
+    };
+    await resolveAuthorNames(mockSupabase, ["u1", "u1", "u1"]);
+    expect(inFn).toHaveBeenCalledWith("id", ["u1"]);
+  });
+
+  it("maps display_name when available", async () => {
+    const inFn = vi.fn().mockResolvedValue({
+      data: [
+        { id: "u1", display_name: "Alice", username: "alice" },
+        { id: "u2", display_name: "Bob", username: "bob" },
+      ],
+    });
+    const mockSupabase: any = {
+      from: () => ({ select: () => ({ in: inFn }) }),
+    };
+    const result = await resolveAuthorNames(mockSupabase, ["u1", "u2"]);
+    expect(result).toEqual({ u1: "Alice", u2: "Bob" });
+  });
+
+  it("falls back to username when display_name is empty", async () => {
+    const inFn = vi.fn().mockResolvedValue({
+      data: [{ id: "u1", display_name: "", username: "alice" }],
+    });
+    const mockSupabase: any = {
+      from: () => ({ select: () => ({ in: inFn }) }),
+    };
+    const result = await resolveAuthorNames(mockSupabase, ["u1"]);
+    expect(result).toEqual({ u1: "alice" });
+  });
+
+  it("falls back to 'Unknown' when both display_name and username are empty", async () => {
+    const inFn = vi.fn().mockResolvedValue({
+      data: [{ id: "u1", display_name: "", username: "" }],
+    });
+    const mockSupabase: any = {
+      from: () => ({ select: () => ({ in: inFn }) }),
+    };
+    const result = await resolveAuthorNames(mockSupabase, ["u1"]);
+    expect(result).toEqual({ u1: "Unknown" });
+  });
+
+  it("returns empty map when data is null", async () => {
+    const inFn = vi.fn().mockResolvedValue({ data: null });
+    const mockSupabase: any = {
+      from: () => ({ select: () => ({ in: inFn }) }),
+    };
+    const result = await resolveAuthorNames(mockSupabase, ["u1"]);
+    expect(result).toEqual({});
+  });
+
+  it("filters out falsy ids before querying", async () => {
+    const inFn = vi.fn().mockResolvedValue({
+      data: [{ id: "u1", display_name: "Alice", username: "alice" }],
+    });
+    const mockSupabase: any = {
+      from: () => ({ select: () => ({ in: inFn }) }),
+    };
+    await resolveAuthorNames(mockSupabase, ["", "u1", ""]);
+    expect(inFn).toHaveBeenCalledWith("id", ["u1"]);
   });
 });

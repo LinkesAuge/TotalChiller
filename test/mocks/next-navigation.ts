@@ -9,17 +9,26 @@ export const routerMock = {
   prefetch: vi.fn(),
 };
 
+export function resetRouterMock(): void {
+  routerMock.push.mockReset();
+  routerMock.replace.mockReset();
+  routerMock.refresh.mockReset();
+  routerMock.back.mockReset();
+  routerMock.forward.mockReset();
+  routerMock.prefetch.mockReset();
+}
+
 const searchParamsStore = new URLSearchParams();
 
 export const searchParamsMock = {
-  get: (key: string) => searchParamsStore.get(key),
-  getAll: (key: string) => searchParamsStore.getAll(key),
-  has: (key: string) => searchParamsStore.has(key),
-  toString: () => searchParamsStore.toString(),
-  entries: () => searchParamsStore.entries(),
-  forEach: (cb: (value: string, key: string) => void) => searchParamsStore.forEach(cb),
-  keys: () => searchParamsStore.keys(),
-  values: () => searchParamsStore.values(),
+  get: vi.fn((key: string) => searchParamsStore.get(key)),
+  getAll: vi.fn((key: string) => searchParamsStore.getAll(key)),
+  has: vi.fn((key: string) => searchParamsStore.has(key)),
+  toString: vi.fn(() => searchParamsStore.toString()),
+  entries: vi.fn(() => searchParamsStore.entries()),
+  forEach: vi.fn((cb: (value: string, key: string) => void) => searchParamsStore.forEach(cb)),
+  keys: vi.fn(() => searchParamsStore.keys()),
+  values: vi.fn(() => searchParamsStore.values()),
 };
 
 export function setSearchParam(key: string, value: string): void {
@@ -39,6 +48,12 @@ export function setPathname(path: string): void {
 }
 
 export const redirectMock = vi.fn();
+export const notFoundMock = vi.fn();
+
+export function resetRedirectMock(): void {
+  redirectMock.mockReset();
+  notFoundMock.mockReset();
+}
 
 /**
  * Usage:
@@ -53,6 +68,6 @@ export function nextNavigationMock() {
     usePathname: () => currentPathname,
     useParams: () => ({}),
     redirect: redirectMock,
-    notFound: vi.fn(),
+    notFound: notFoundMock,
   };
 }

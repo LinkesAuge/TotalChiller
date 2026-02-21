@@ -20,6 +20,8 @@ output/
 squirrel.toml
 test-results/
 playwright-report/
+coverage/
+coverage-out/
 
 # Design system preview screenshots (uploaded at runtime)
 public/design-system-previews/

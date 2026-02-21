@@ -55,6 +55,7 @@
 │   ├── permissions.ts      # Role → permission map (single source of truth)
 │   ├── rate-limit.ts       # Rate limiter factory
 │   └── date-format.ts      # Date formatting helpers
+├── test/                   # Vitest unit test infrastructure (mocks, helpers, utils)
 ├── messages/               # i18n translation files (en.json, de.json)
 ├── tests/                  # Playwright E2E specs + auth helpers
 ├── scripts/                # Utility scripts (asset scanner, UI scanner)
@@ -418,9 +419,20 @@ Standalone admin-gated page for deep-linking into a specific submission's staged
 
 ### Testing
 
-- **Unit:** Vitest. Colocated as `*.test.ts` in `lib/` and `app/`. Run: `npm run test:unit`.
+- **Unit:** Vitest 4 with `@vitest/coverage-v8`. Colocated as `*.test.ts` / `*.test.tsx` alongside source files in `lib/` and `app/`. Run: `npm run test:unit`. Coverage: `npm run test:unit:coverage`.
 - **E2E:** Playwright. Files in `tests/`. Run: `npx playwright test`. Projects: chromium, firefox, webkit, mobile-chrome.
-- 6 test roles: owner, admin, moderator, editor, member, guest. Pre-authenticated via `storageState`.
+- **Test infrastructure** (`test/`):
+  - `vitest.setup.ts` — global setup (jest-dom matchers, cleanup, mock state reset).
+  - `test/mocks/` — shared mocks for Supabase (chainable query builder), `next/headers`, `next/navigation`, `next-intl`, `next/image`, `next/link`, Sentry, rate-limit.
+  - `test/helpers.ts` — `createTestRequest()` for `NextRequest`, `parseResponse()` for `NextResponse`.
+  - `test/utils.tsx` — `renderWithProviders()` wraps components in `AuthStateContext`.
+  - `test/index.ts` — barrel export for all mocks and utilities.
+- **Environment:** Default `node`; `.test.tsx` files use `// @vitest-environment jsdom` per-file directive.
+- **Mocking patterns:**
+  - API routes: mock `requireAuth`/`requireAdmin` via `vi.mock()` + `createMockAuth()`, mock Supabase queries via `createChainableMock()` + `setChainResult()`.
+  - Client components: mock `next-intl` (translations return keys), `next/image` (renders `<img>`), `next/navigation` (stable `routerMock`/`searchParamsMock`), `useSupabase`, `useAuth`, `useUserRole`.
+  - Always wrap state-changing clicks in `await act(async () => { ... })` and verify results with `waitFor()`.
+- 6 E2E test roles: owner, admin, moderator, editor, member, guest. Pre-authenticated via `storageState`.
 - All `.content-inner` locators use `.first()` (pages render 2+ instances via `PageShell`).
 - Use `domcontentloaded` + explicit element waits (never `waitForLoadState("networkidle")` — persistent Supabase connections prevent resolution).
 - Use `tests/helpers/wait-for-clan-access.ts` for assertions that depend on `ClanAccessGate`.

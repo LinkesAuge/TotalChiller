@@ -39,7 +39,7 @@ const MOCK_ASSET = {
   created_at: "2024-01-01",
 };
 
-const MOCK_ASSET_2 = {
+const _MOCK_ASSET_2 = {
   id: "a-2",
   filename: "icon.png",
   original_path: "/assets/icon.png",

@@ -218,7 +218,7 @@ describe("useBugComments", () => {
   });
 
   it("reloads comments when reportId changes", async () => {
-    const fetchSpy = vi.fn().mockImplementation((url: string) => {
+    const fetchSpy = vi.fn().mockImplementation((_url: string) => {
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ data: [MOCK_COMMENT] }),

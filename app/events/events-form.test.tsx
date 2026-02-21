@@ -6,7 +6,7 @@ import { EventsForm } from "./events-form";
 vi.mock("next/dynamic", () => ({
   __esModule: true,
   default: () => {
-    const Component = (props: any) => {
+    const Component = (_props: any) => {
       const React = require("react");
       return React.createElement("div", { "data-testid": "event-form" });
     };

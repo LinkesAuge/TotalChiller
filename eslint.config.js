@@ -55,6 +55,17 @@ module.exports = [
     },
   },
   {
+    /* Test files legitimately use `any` for mocks and loose typing for unused mock params. */
+    files: ["**/*.test.{ts,tsx}", "test/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_|^Mock|^mock", caughtErrorsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  {
     /* Tooling scripts intentionally print progress/output to console. */
     files: ["scripts/**/*.{js,mjs,ts}", "output/playwright/**/*.{js,mjs,ts}"],
     rules: {

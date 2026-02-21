@@ -467,6 +467,12 @@ describe("PATCH /api/import/submissions/[id]", () => {
       error: null,
     });
 
+    const currentEntryChain = createChainableMock();
+    setChainResult(currentEntryChain, {
+      data: { item_status: "pending", player_name: "TestPlayer" },
+      error: null,
+    });
+
     const updateChain = createChainableMock();
     setChainResult(updateChain, {
       data: {
@@ -494,7 +500,9 @@ describe("PATCH /api/import/submissions/[id]", () => {
       }
       if (table === "staged_chest_entries") {
         stagedCalls++;
-        return stagedCalls === 1 ? updateChain : countChain;
+        if (stagedCalls === 1) return currentEntryChain;
+        if (stagedCalls === 2) return updateChain;
+        return countChain;
       }
       return createChainableMock();
     });
@@ -652,12 +660,22 @@ describe("PATCH /api/import/submissions/[id]", () => {
       error: null,
     });
 
+    const currentEntryChain = createChainableMock();
+    setChainResult(currentEntryChain, {
+      data: { item_status: "pending", player_name: "TestPlayer" },
+      error: null,
+    });
+
     const updateChain = createChainableMock();
     setChainResult(updateChain, { data: null, error: { message: "DB error" } });
 
+    let stagedCalls = 0;
     mockSvcFrom.mockImplementation((table: string) => {
       if (table === "data_submissions") return subChain;
-      if (table === "staged_chest_entries") return updateChain;
+      if (table === "staged_chest_entries") {
+        stagedCalls++;
+        return stagedCalls === 1 ? currentEntryChain : updateChain;
+      }
       return createChainableMock();
     });
 

@@ -26,9 +26,9 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("next/dynamic", () => ({
   __esModule: true,
-  default: (loader: any) => {
+  default: (_loader: any) => {
     const React = require("react");
-    const Component = (props: any) => React.createElement("div", { "data-testid": "dynamic-component" });
+    const Component = (_props: any) => React.createElement("div", { "data-testid": "dynamic-component" });
     Component.displayName = "DynamicComponent";
     return Component;
   },
@@ -69,7 +69,7 @@ vi.mock("./use-forum", () => ({
 
 vi.mock("./forum-post-list", () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (_props: any) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": "forum-post-list" });
   },

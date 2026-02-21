@@ -26,7 +26,7 @@ vi.mock("next/dynamic", () => ({
 }));
 vi.mock("@/lib/markdown/app-markdown-toolbar", () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (_props: any) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": "md-toolbar" });
   },

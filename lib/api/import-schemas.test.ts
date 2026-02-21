@@ -338,12 +338,12 @@ describe("SubmissionDetailQuerySchema", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.page).toBe(1);
-      expect(result.data.per_page).toBe(50);
+      expect(result.data.per_page).toBe(250);
     }
   });
 
-  it("rejects per_page above 200", () => {
-    const result = SubmissionDetailQuerySchema.safeParse({ per_page: "300" });
+  it("rejects per_page above 500", () => {
+    const result = SubmissionDetailQuerySchema.safeParse({ per_page: "600" });
     expect(result.success).toBe(false);
   });
 

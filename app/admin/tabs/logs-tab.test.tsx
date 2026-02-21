@@ -69,12 +69,12 @@ vi.mock("../../../lib/date-format", () => ({
   formatLocalDateTime: (iso: string) => iso,
 }));
 
-let mockSearchOnChange: ((val: string) => void) | null = null;
+let _mockSearchOnChange: ((val: string) => void) | null = null;
 vi.mock("../../components/ui/search-input", () => ({
   __esModule: true,
   default: (props: any) => {
     const React = require("react");
-    if (props.id === "auditSearch") mockSearchOnChange = props.onChange;
+    if (props.id === "auditSearch") _mockSearchOnChange = props.onChange;
     return React.createElement("input", {
       "data-testid": props.id || "search",
       value: props.value,
@@ -97,12 +97,12 @@ vi.mock("../../components/ui/labeled-select", () => ({
   },
 }));
 
-let paginationRendered = false;
+let _paginationRendered = false;
 vi.mock("@/app/components/pagination-bar", () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (_props: any) => {
     const React = require("react");
-    paginationRendered = true;
+    _paginationRendered = true;
     return React.createElement("div", { "data-testid": "pagination-bar" });
   },
 }));

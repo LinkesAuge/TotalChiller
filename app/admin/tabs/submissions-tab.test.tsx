@@ -839,7 +839,7 @@ describe("SubmissionsTab", () => {
 
   it("shows serverBusy indicator after slow timer fires", async () => {
     vi.useFakeTimers();
-    const slowFetch = vi.fn().mockImplementation((url: string, opts?: any) => {
+    const slowFetch = vi.fn().mockImplementation((url: string, _opts?: any) => {
       if (url.includes("/review")) {
         return new Promise(() => {});
       }
@@ -870,7 +870,7 @@ describe("SubmissionsTab", () => {
   /* ── Additional coverage: detail loading onRetry ── */
 
   it("retries detail fetch from loading state retry button", async () => {
-    let resolveDetail: any;
+    let _resolveDetail: any;
     globalThis.fetch = vi.fn().mockImplementation((url: string) => {
       if (/\/api\/import\/submissions\/s\w+\?/.test(url)) {
         return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Detail err" }) });

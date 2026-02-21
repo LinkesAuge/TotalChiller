@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuthResult } from "@/lib/api/require-auth";
 import { createMockSupabase } from "./supabase";
 

@@ -13,7 +13,7 @@ vi.mock("@/lib/supabase/config", () => ({
   getSupabaseAnonKey: vi.fn().mockReturnValue("test-anon-key"),
 }));
 
-import { getSupabaseUrl, getSupabaseAnonKey } from "@/lib/supabase/config";
+import { getSupabaseUrl } from "@/lib/supabase/config";
 import { GET } from "./route";
 
 function makeRequest(): NextRequest {

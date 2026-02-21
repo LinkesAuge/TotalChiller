@@ -45,7 +45,7 @@ vi.mock("./sidebar-nav", () => ({
 }));
 vi.mock("./language-selector", () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (_props: any) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": "language-selector" }, "LangSelector");
   },

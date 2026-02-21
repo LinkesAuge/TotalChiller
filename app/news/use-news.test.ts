@@ -84,8 +84,8 @@ describe("useNews", () => {
     vi.clearAllMocks();
     mockSupabase = createMockSupabase();
 
-    const articlesChain = createChainableMock({ data: [MOCK_ARTICLE], error: null, count: 1 });
-    const tagsChain = createChainableMock({ data: [{ tags: ["news", "update"] }], error: null });
+    const _articlesChain = createChainableMock({ data: [MOCK_ARTICLE], error: null, count: 1 });
+    const _tagsChain = createChainableMock({ data: [{ tags: ["news", "update"] }], error: null });
 
     mockSupabase.mockFrom.mockImplementation((table: string) => {
       if (table === "articles") {

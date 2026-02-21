@@ -23,7 +23,7 @@ vi.mock("../components/ui/radix-select", () => ({
 }));
 vi.mock("../components/banner-picker", () => ({
   __esModule: true,
-  default: ({ onChange, value, onUpload, isUploading }: any) => {
+  default: ({ onChange, _value, _onUpload, isUploading }: any) => {
     const React = require("react");
     return React.createElement(
       "div",

@@ -146,7 +146,7 @@ async function resolveClanId(
   payload: ImportPayload,
   request: NextRequest,
   supabase: SupabaseClient,
-  userId: string,
+  _userId: string,
 ): Promise<string | NextResponse> {
   let clanId = payload.clan.websiteClanId ?? null;
 

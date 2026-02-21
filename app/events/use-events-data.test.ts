@@ -66,12 +66,12 @@ describe("useEventsData", () => {
     const templatesChain = createChainableMock({ data: [], error: null });
     const gameAccountsChain = createChainableMock({ data: [], error: null });
 
-    let callCount = 0;
+    let _callCount = 0;
     mockSupabase.mockFrom.mockImplementation((table: string) => {
       if (table === "events") return eventsChain;
       if (table === "event_templates") return templatesChain;
       if (table === "game_account_clan_memberships") return gameAccountsChain;
-      callCount++;
+      _callCount++;
       return createChainableMock();
     });
 

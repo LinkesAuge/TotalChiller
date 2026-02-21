@@ -7,8 +7,8 @@ vi.mock("next-intl", () => ({
 }));
 vi.mock("next/dynamic", () => ({
   __esModule: true,
-  default: (loader: any) => {
-    const Component = (props: any) => {
+  default: (_loader: any) => {
+    const Component = (_props: any) => {
       const React = require("react");
       return React.createElement("div", { "data-testid": "dynamic-component" });
     };

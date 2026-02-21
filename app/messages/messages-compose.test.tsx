@@ -44,7 +44,7 @@ vi.mock("../components/ui/game-button", () => ({
 }));
 
 vi.mock("./rank-filter", () => ({
-  RankFilter: (props: any) => {
+  RankFilter: (_props: any) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": "rank-filter" });
   },

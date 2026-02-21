@@ -173,12 +173,12 @@ vi.mock("@/app/components/sortable-column-header", () => ({
   },
 }));
 
-let formModalProps: any = {};
+let _formModalProps: any = {};
 vi.mock("@/app/components/form-modal", () => ({
   __esModule: true,
   default: (props: any) => {
     const React = require("react");
-    formModalProps = props;
+    _formModalProps = props;
     if (!props.isOpen) return null;
     return React.createElement(
       "div",

@@ -13,7 +13,7 @@ vi.mock("next/image", () => ({
 
 vi.mock("next/dynamic", () => ({
   __esModule: true,
-  default: (loader: any) => {
+  default: (_loader: any) => {
     const Component = (props: any) => {
       const React = require("react");
       return React.createElement("div", { "data-testid": "dynamic-component" }, props.content || "dynamic");

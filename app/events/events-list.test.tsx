@@ -3,18 +3,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 vi.mock("./event-calendar", () => ({
-  EventCalendar: (props: any) => {
+  EventCalendar: (_props: any) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": "calendar" });
   },
-  EventDayPanel: (props: any) => {
+  EventDayPanel: (_props: any) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": "day-panel" });
   },
 }));
 
 vi.mock("./upcoming-events-sidebar", () => ({
-  UpcomingEventsSidebar: (props: any) => {
+  UpcomingEventsSidebar: (_props: any) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": "sidebar" });
   },

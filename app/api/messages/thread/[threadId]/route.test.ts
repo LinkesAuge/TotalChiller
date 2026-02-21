@@ -361,7 +361,7 @@ describe("GET /api/messages/thread/[threadId]", () => {
     const readsChain = createChainableMock();
     setChainResult(readsChain, { data: [{ message_id: validUuid }], error: null });
 
-    const upsertChain = createChainableMock({ data: null, error: null });
+    const _upsertChain = createChainableMock({ data: null, error: null });
 
     mockSvcFrom.mockImplementation((table: string) => {
       if (table === "messages") return msgsChain;

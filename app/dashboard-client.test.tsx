@@ -132,7 +132,7 @@ describe("DashboardClient", () => {
   it("renders view all links for announcements and events", () => {
     render(<DashboardClient />);
     const viewAllLinks = screen.getAllByText(/viewAll/);
-    expect(viewAllLinks.length).toBe(2);
+    expect(viewAllLinks.length).toBe(3);
   });
 
   it("renders stat cards with placeholder values", () => {
@@ -143,11 +143,11 @@ describe("DashboardClient", () => {
     expect(screen.getByText("statActivityLabel")).toBeInTheDocument();
   });
 
-  it("renders progress bars in week highlights", () => {
+  it("renders analytics quick links in week highlights", () => {
     render(<DashboardClient />);
-    expect(screen.getByText("progressEventsLabel")).toBeInTheDocument();
-    expect(screen.getByText("progressActivityLabel")).toBeInTheDocument();
-    expect(screen.getByText("progressGrowthLabel")).toBeInTheDocument();
+    expect(screen.getByText("chestsRankingLink")).toBeInTheDocument();
+    expect(screen.getByText("eventResultsLink")).toBeInTheDocument();
+    expect(screen.getByText("powerRankingLink")).toBeInTheDocument();
   });
 
   it("renders announcements error state", () => {
@@ -335,7 +335,8 @@ describe("DashboardClient", () => {
     const { container } = render(<DashboardClient />);
     expect(screen.getByText("First")).toBeInTheDocument();
     expect(screen.getByText("Second")).toBeInTheDocument();
-    const dividers = container.querySelectorAll(".gold-divider");
+    const announcementSection = container.querySelector(".col-span-2 .card-body");
+    const dividers = announcementSection!.querySelectorAll(".gold-divider");
     expect(dividers.length).toBe(1);
   });
 
@@ -385,8 +386,9 @@ describe("DashboardClient", () => {
     });
   });
 
-  it("renders stats coming soon text", () => {
+  it("renders stat card labels", () => {
     render(<DashboardClient />);
-    expect(screen.getByText("statsComingSoon")).toBeInTheDocument();
+    expect(screen.getByText("statAvgPowerLabel")).toBeInTheDocument();
+    expect(screen.getByText("statTopCollectorLabel")).toBeInTheDocument();
   });
 });

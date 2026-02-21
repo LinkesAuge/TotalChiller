@@ -73,12 +73,12 @@ vi.mock("../../components/table-scroll", () => ({
   },
 }));
 
-let confirmModalProps: any = {};
+let _confirmModalProps: any = {};
 vi.mock("@/app/components/confirm-modal", () => ({
   __esModule: true,
   default: (props: any) => {
     const React = require("react");
-    confirmModalProps = props;
+    _confirmModalProps = props;
     if (!props.isOpen) return null;
     return React.createElement(
       "div",

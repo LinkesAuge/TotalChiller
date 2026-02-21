@@ -40,24 +40,26 @@ export default function AudioPlayer({ src, autoPlay = true }: AudioPlayerProps) 
       if (startedRef.current || !audioRef.current) return;
       startedRef.current = true;
       cleanupInteractionListeners();
-      audioRef.current
-        .play()
-        .then(() => setPlaying(true))
-        .catch(() => {});
+      const p = audioRef.current.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => setPlaying(true)).catch(() => {});
+      }
     };
 
     if (autoPlay) {
-      audio
-        .play()
-        .then(() => {
-          startedRef.current = true;
-          setPlaying(true);
-        })
-        .catch(() => {
-          document.addEventListener("click", handleFirstInteraction);
-          document.addEventListener("keydown", handleFirstInteraction);
-          document.addEventListener("scroll", handleFirstInteraction);
-        });
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.then === "function") {
+        playPromise
+          .then(() => {
+            startedRef.current = true;
+            setPlaying(true);
+          })
+          .catch(() => {
+            document.addEventListener("click", handleFirstInteraction);
+            document.addEventListener("keydown", handleFirstInteraction);
+            document.addEventListener("scroll", handleFirstInteraction);
+          });
+      }
     }
 
     return () => {
@@ -85,10 +87,10 @@ export default function AudioPlayer({ src, autoPlay = true }: AudioPlayerProps) 
       setPlaying(false);
     } else {
       if (audio.ended) audio.currentTime = 0;
-      audio
-        .play()
-        .then(() => setPlaying(true))
-        .catch(() => {});
+      const p = audio.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => setPlaying(true)).catch(() => {});
+      }
     }
   };
 
@@ -108,6 +110,7 @@ export default function AudioPlayer({ src, autoPlay = true }: AudioPlayerProps) 
   };
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- hover reveal for volume slider, not a click target
     <div className="audio-player" onMouseEnter={() => setShowVolume(true)} onMouseLeave={() => setShowVolume(false)}>
       <div className={`audio-player-glow ${playing && !muted ? "active" : ""}`} />
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createMockSupabase, createChainableMock, setChainResult } from "@/test/mocks/supabase";
+import { createMockSupabase, createChainableMock } from "@/test/mocks/supabase";
 import {
   resolveBroadcastRecipients,
   loadUserBroadcastContext,

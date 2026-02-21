@@ -657,7 +657,7 @@ export default function DataTab(): ReactElement {
       }
     }
     void loadEvents();
-  }, [detail, clanContext?.clanId, supabase]);
+  }, [detail, clanContext, supabase]);
 
   const eventOptions: SelectOption[] = useMemo(() => {
     const opts: SelectOption[] = [{ value: "", label: t("noLinkedEvent") }];
@@ -1341,6 +1341,7 @@ export default function DataTab(): ReactElement {
                   <span>{sub.profiles?.display_name ?? "—"}</span>
                   <span>{new Date(sub.created_at).toLocaleDateString()}</span>
                   <span
+                    role="group"
                     style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}

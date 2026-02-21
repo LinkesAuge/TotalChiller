@@ -10,7 +10,7 @@ vi.mock("next/dynamic", () => ({
   __esModule: true,
   default: () => {
     const React = require("react");
-    return ({ userId, api }: any) => React.createElement("div", { "data-testid": "messages-compose" });
+    return ({ _userId, _api }: any) => React.createElement("div", { "data-testid": "messages-compose" });
   },
 }));
 vi.mock("../components/ui/game-button", () => ({

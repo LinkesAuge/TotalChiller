@@ -233,12 +233,12 @@ vi.mock("../components/danger-confirm-modal", () => ({
   },
 }));
 
-let confirmModalProps: any = {};
+let _confirmModalProps: any = {};
 vi.mock("@/app/components/confirm-modal", () => ({
   __esModule: true,
   default: (props: any) => {
     const React = require("react");
-    confirmModalProps = props;
+    _confirmModalProps = props;
     if (!props.isOpen) return null;
     return React.createElement(
       "div",
@@ -249,12 +249,12 @@ vi.mock("@/app/components/confirm-modal", () => ({
   },
 }));
 
-let formModalProps: any = {};
+let _formModalProps: any = {};
 vi.mock("@/app/components/form-modal", () => ({
   __esModule: true,
   default: (props: any) => {
     const React = require("react");
-    formModalProps = props;
+    _formModalProps = props;
     if (!props.isOpen) return null;
     return React.createElement(
       "div",

@@ -224,10 +224,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 /* ── DELETE /api/import/validation-lists ── */
 
-const DeleteSchema = z.object({
-  table: z.enum(["ocr_corrections", "known_names"]),
-  id: z.string().uuid(),
-});
+const DeleteSchema = z
+  .object({
+    table: z.enum(["ocr_corrections", "known_names"]),
+    id: z.string().uuid().optional(),
+    ids: z.array(z.string().uuid()).min(1).max(500).optional(),
+  })
+  .refine((d) => d.id || d.ids, { message: "Either id or ids must be provided." });
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
@@ -243,16 +246,17 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     const parsed = await parseJsonBody(request, DeleteSchema);
     if (parsed.error) return parsed.error;
-    const { table, id } = parsed.data;
+    const body = parsed.data;
 
     const svc = createSupabaseServiceRoleClient();
-    const { error } = await svc.from(table).delete().eq("id", id);
+    const idsToDelete = body.ids ?? (body.id ? [body.id] : []);
+    const { error } = await svc.from(body.table).delete().in("id", idsToDelete);
     if (error) {
       captureApiError("DELETE /api/import/validation-lists", error);
-      return apiError("Failed to delete entry.", 500);
+      return apiError("Failed to delete entries.", 500);
     }
 
-    return NextResponse.json({ data: { deleted: true } });
+    return NextResponse.json({ data: { deleted: idsToDelete.length } });
   } catch (err) {
     captureApiError("DELETE /api/import/validation-lists", err);
     return apiError("Internal server error.", 500);
@@ -261,19 +265,30 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
 /* ── PATCH /api/import/validation-lists ── */
 
+const entityTypeEnum = z.enum(["player", "chest", "source"]);
+
 const PatchCorrectionSchema = z.object({
   table: z.literal("ocr_corrections"),
   id: z.string().uuid(),
-  corrected_text: z.string().min(1),
+  corrected_text: z.string().min(1).optional(),
+  ocr_text: z.string().min(1).optional(),
+  entity_type: entityTypeEnum.optional(),
 });
 
 const PatchKnownNameSchema = z.object({
   table: z.literal("known_names"),
   id: z.string().uuid(),
-  name: z.string().min(1),
+  name: z.string().min(1).optional(),
+  entity_type: entityTypeEnum.optional(),
 });
 
-const PatchSchema = z.union([PatchCorrectionSchema, PatchKnownNameSchema]);
+const PatchBatchTypeSchema = z.object({
+  table: z.enum(["ocr_corrections", "known_names"]),
+  ids: z.array(z.string().uuid()).min(1).max(500),
+  entity_type: entityTypeEnum,
+});
+
+const PatchSchema = z.union([PatchCorrectionSchema, PatchKnownNameSchema, PatchBatchTypeSchema]);
 
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
@@ -293,17 +308,32 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     const svc = createSupabaseServiceRoleClient();
 
+    if ("ids" in body && body.ids) {
+      const { error } = await svc.from(body.table).update({ entity_type: body.entity_type }).in("id", body.ids);
+      if (error) {
+        captureApiError("PATCH /api/import/validation-lists (batch)", error);
+        return apiError("Failed to update entries.", 500);
+      }
+      return NextResponse.json({ data: { updated: body.ids.length } });
+    }
+
     if (body.table === "ocr_corrections") {
-      const { error } = await svc
-        .from("ocr_corrections")
-        .update({ corrected_text: body.corrected_text })
-        .eq("id", body.id);
+      const updates: Record<string, string> = {};
+      if (body.corrected_text) updates.corrected_text = body.corrected_text;
+      if (body.ocr_text) updates.ocr_text = body.ocr_text;
+      if (body.entity_type) updates.entity_type = body.entity_type;
+      if (Object.keys(updates).length === 0) return apiError("No fields to update.", 400);
+      const { error } = await svc.from("ocr_corrections").update(updates).eq("id", body.id);
       if (error) {
         captureApiError("PATCH /api/import/validation-lists (correction)", error);
         return apiError("Failed to update correction.", 500);
       }
     } else {
-      const { error } = await svc.from("known_names").update({ name: body.name }).eq("id", body.id);
+      const updates: Record<string, string> = {};
+      if (body.name) updates.name = body.name;
+      if (body.entity_type) updates.entity_type = body.entity_type;
+      if (Object.keys(updates).length === 0) return apiError("No fields to update.", 400);
+      const { error } = await svc.from("known_names").update(updates).eq("id", body.id);
       if (error) {
         captureApiError("PATCH /api/import/validation-lists (known_name)", error);
         return apiError("Failed to update known name.", 500);

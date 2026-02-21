@@ -762,11 +762,16 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "confirmDelete": "Diesen Eintrag wirklich löschen?",
+    "confirmBatchDelete": "{count, plural, one {# Eintrag} other {# Einträge}} wirklich löschen?",
     "deleteError": "Eintrag konnte nicht gelöscht werden.",
     "saveError": "Eintrag konnte nicht gespeichert werden.",
     "ocrTextPlaceholder": "OCR-Text…",
     "correctedTextPlaceholder": "Korrigierter Text…",
-    "namePlaceholder": "Name…"
+    "namePlaceholder": "Name…",
+    "selectAll": "Alle auswählen",
+    "selectedCount": "{count, plural, one {# ausgewählt} other {# ausgewählt}}",
+    "changeTypeTo": "Typ ändern zu",
+    "deleteSelected": "Ausgewählte löschen"
   },
   "analytics": {
     "breadcrumb": "[THC] Chiller & Killer \u2022 Analysen",

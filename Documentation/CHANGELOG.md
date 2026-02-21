@@ -39,6 +39,7 @@
   - PATCH cascades to production tables when submission is already approved.
 - **Event results in calendar:** Expanding a calendar event now shows linked event results (player leaderboard) fetched from `event_results`.
 - **Validation lists admin UI:** New "Validierungslisten" sub-tab in the Data section. Full CRUD for OCR corrections and known names with inline editing, type filtering, and add/delete buttons. New DELETE and PATCH endpoints on `/api/import/validation-lists`.
+- **Validation lists batch operations & grouped layout:** Entries are now grouped by entity type (player/chest/source) in a responsive grid. Multi-select checkboxes with select-all per type group. Batch delete (up to 500) and batch entity-type reassignment. Section toggle replaces the flat filter dropdown, showing corrections and known names separately with item counts. Inline editing now covers all fields (OCR text, corrected text, entity type for corrections; name, entity type for known names). API: DELETE and PATCH support `ids` array for batch operations; PATCH accepts partial field updates.
 - **Inline submission actions in list view:** Approve-all, reject-all, and delete buttons directly in each submission row.
 - **Server-busy indicator:** When a review/delete action takes longer than 5 seconds, a hint appears.
 

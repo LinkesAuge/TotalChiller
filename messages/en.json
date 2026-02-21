@@ -762,11 +762,16 @@
     "save": "Save",
     "cancel": "Cancel",
     "confirmDelete": "Really delete this entry?",
+    "confirmBatchDelete": "Really delete {count, plural, one {# entry} other {# entries}}?",
     "deleteError": "Failed to delete entry.",
     "saveError": "Failed to save entry.",
     "ocrTextPlaceholder": "OCR text…",
     "correctedTextPlaceholder": "Corrected text…",
-    "namePlaceholder": "Name…"
+    "namePlaceholder": "Name…",
+    "selectAll": "Select all",
+    "selectedCount": "{count, plural, one {# selected} other {# selected}}",
+    "changeTypeTo": "Change type to",
+    "deleteSelected": "Delete selected"
   },
   "analytics": {
     "breadcrumb": "[THC] Chiller & Killer \u2022 Analytics",

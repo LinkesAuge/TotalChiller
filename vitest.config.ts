@@ -11,11 +11,6 @@ export default defineConfig({
     pool: "forks",
     maxWorkers: isCI ? 1 : 3,
     fileParallelism: !isCI,
-    poolOptions: {
-      forks: {
-        memoryLimit: isCI ? "512MB" : undefined,
-      },
-    },
     coverage: {
       provider: "v8",
       include: ["app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],

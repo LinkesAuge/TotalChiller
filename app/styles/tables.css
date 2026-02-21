@@ -579,6 +579,32 @@
   box-shadow: 0 0 6px var(--color-gold-glow);
 }
 
+/* ─── Submissions list table ─── */
+.table.submissions-list {
+  min-width: 780px;
+}
+
+.table.submissions-list header,
+.table.submissions-list .row {
+  grid-template-columns: 0.8fr 0.8fr 0.6fr 0.6fr 1fr 0.8fr auto;
+  min-width: 0;
+  width: auto;
+  align-items: center;
+}
+
+/* ─── Submissions detail table (staged entries) ─── */
+.table.submissions-detail {
+  min-width: 720px;
+}
+
+.table.submissions-detail header,
+.table.submissions-detail .row {
+  grid-template-columns: 1.2fr 1fr 0.7fr 0.6fr 0.8fr 0.8fr 1fr;
+  min-width: 0;
+  width: auto;
+  align-items: center;
+}
+
 /* ─── Tables mobile: allow wrapping in member table action lists ─── */
 @media (max-width: 900px) {
   .table.members .list.inline {

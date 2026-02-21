@@ -85,7 +85,7 @@ export interface AuditLogRow {
   readonly created_at: string;
 }
 
-export type AdminSection = "clans" | "logs" | "users" | "approvals" | "forum";
+export type AdminSection = "clans" | "logs" | "users" | "approvals" | "forum" | "import" | "submissions";
 
 /* ── Constants ── */
 
@@ -166,6 +166,6 @@ export function normalizeMembershipRows(
 
 export function resolveSection(raw: string | null): AdminSection {
   if (!raw) return "clans";
-  const valid: readonly AdminSection[] = ["clans", "logs", "users", "approvals", "forum"];
+  const valid: readonly AdminSection[] = ["clans", "logs", "users", "approvals", "forum", "import", "submissions"];
   return valid.includes(raw as AdminSection) ? (raw as AdminSection) : "clans";
 }

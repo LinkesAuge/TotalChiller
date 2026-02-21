@@ -12,6 +12,7 @@ export type PageSkeletonVariant =
   | "detail"
   | "article"
   | "auth"
+  | "form"
   | "messages"
   | "admin";
 
@@ -138,6 +139,15 @@ function renderSurfaceSkeleton(variant: PageSkeletonVariant): JSX.Element {
           <div className="mx-auto w-full max-w-xl">
             <Skeleton className="h-[420px] rounded-lg" />
           </div>
+        </>
+      );
+    case "form":
+      return (
+        <>
+          <TopChromeSkeleton />
+          <Skeleton className="h-[180px] rounded-lg" />
+          <Skeleton className="h-[240px] rounded-lg" />
+          <Skeleton className="h-10 w-40 rounded-lg" />
         </>
       );
     case "messages":

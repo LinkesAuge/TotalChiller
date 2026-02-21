@@ -58,6 +58,7 @@ export default function ImportTab(): ReactElement {
   const { updateActiveSection } = useAdminContext();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [payload, setPayload] = useState<ImportPayload | null>(null);
@@ -114,6 +115,7 @@ export default function ImportTab(): ReactElement {
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      dragCounterRef.current = 0;
       setIsDragOver(false);
       const file = e.dataTransfer.files[0];
       if (file) processFile(file);
@@ -226,13 +228,22 @@ export default function ImportTab(): ReactElement {
             onDragEnter={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              dragCounterRef.current += 1;
               setIsDragOver(true);
             }}
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();
             }}
-            onDragLeave={() => setIsDragOver(false)}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              dragCounterRef.current -= 1;
+              if (dragCounterRef.current <= 0) {
+                dragCounterRef.current = 0;
+                setIsDragOver(false);
+              }
+            }}
             onDrop={handleDrop}
             onClick={handleClick}
             onKeyDown={(e) => {

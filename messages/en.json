@@ -467,7 +467,7 @@
     "colScore": "Score",
     "colEventName": "Event",
     "colPoints": "Points",
-    "colMatchedAccount": "Matched Account",
+    "colMatchedAccount": "Matched Player",
     "itemStatus_pending": "Pending",
     "itemStatus_auto_matched": "Auto-Matched",
     "itemStatus_approved": "Approved",

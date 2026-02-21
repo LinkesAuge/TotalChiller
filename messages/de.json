@@ -467,7 +467,7 @@
     "colScore": "Punkte",
     "colEventName": "Ereignis",
     "colPoints": "Punkte",
-    "colMatchedAccount": "Zugeordnetes Konto",
+    "colMatchedAccount": "Zugeordneter Spieler",
     "itemStatus_pending": "Ausstehend",
     "itemStatus_auto_matched": "Automatisch zugeordnet",
     "itemStatus_approved": "Genehmigt",

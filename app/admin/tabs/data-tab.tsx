@@ -60,6 +60,11 @@ interface StagedEntry {
   readonly event_points?: number | string | null;
 }
 
+interface ClanGameAccount {
+  readonly id: string;
+  readonly game_username: string;
+}
+
 interface DetailResponse {
   readonly submission: SubmissionRow;
   readonly items: readonly StagedEntry[];
@@ -67,6 +72,7 @@ interface DetailResponse {
   readonly page: number;
   readonly perPage: number;
   readonly statusCounts: Record<string, number>;
+  readonly clanGameAccounts: readonly ClanGameAccount[];
 }
 
 interface SubmissionResultItem {
@@ -467,6 +473,33 @@ export default function DataTab(): ReactElement {
     await handleDeleteById(selectedId, sub?.status ?? "pending");
   }, [selectedId, detail, handleDeleteById]);
 
+  const [assigningEntryId, setAssigningEntryId] = useState<string | null>(null);
+
+  const handleAssignPlayer = useCallback(
+    async (entryId: string, gameAccountId: string | null) => {
+      if (!selectedId) return;
+      setAssigningEntryId(entryId);
+      try {
+        const res = await fetch(`/api/import/submissions/${selectedId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entryId, matchGameAccountId: gameAccountId || null }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error((body as { error?: string } | null)?.error ?? t("reviewError"));
+        }
+        void fetchDetail();
+        setRetryCount((c) => c + 1);
+      } catch (err) {
+        setDetailError(err instanceof Error ? err.message : t("reviewError"));
+      } finally {
+        setAssigningEntryId(null);
+      }
+    },
+    [selectedId, fetchDetail, t],
+  );
+
   const handleBack = useCallback(() => {
     setSelectedId(null);
     setDetail(null);
@@ -521,6 +554,35 @@ export default function DataTab(): ReactElement {
     );
   }
 
+  const canAssign = !roleLoading && (isContentManager || isAdmin);
+  const accounts = detail?.clanGameAccounts ?? [];
+
+  function renderMatchCell(entry: StagedEntry): ReactElement {
+    const editable = canAssign && (entry.item_status === "pending" || entry.item_status === "auto_matched");
+    if (!editable) {
+      return <span>{entry.game_accounts?.game_username ?? "—"}</span>;
+    }
+
+    const busy = assigningEntryId === entry.id;
+    return (
+      <span>
+        <select
+          value={entry.game_accounts?.id ?? ""}
+          disabled={busy}
+          onChange={(e) => handleAssignPlayer(entry.id, e.target.value || null)}
+          style={{ maxWidth: "100%" }}
+        >
+          <option value="">{busy ? "…" : "—"}</option>
+          {accounts.map((ga) => (
+            <option key={ga.id} value={ga.id}>
+              {ga.game_username}
+            </option>
+          ))}
+        </select>
+      </span>
+    );
+  }
+
   function renderRow(entry: StagedEntry, type: string): ReactElement {
     if (type === "chests") {
       return (
@@ -533,7 +595,7 @@ export default function DataTab(): ReactElement {
           <span>
             <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
           </span>
-          <span>{entry.game_accounts?.game_username ?? "—"}</span>
+          {renderMatchCell(entry)}
         </>
       );
     }
@@ -547,7 +609,7 @@ export default function DataTab(): ReactElement {
           <span>
             <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
           </span>
-          <span>{entry.game_accounts?.game_username ?? "—"}</span>
+          {renderMatchCell(entry)}
         </>
       );
     }
@@ -560,7 +622,7 @@ export default function DataTab(): ReactElement {
         <span>
           <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
         </span>
-        <span>{entry.game_accounts?.game_username ?? "—"}</span>
+        {renderMatchCell(entry)}
       </>
     );
   }
@@ -946,95 +1008,97 @@ export default function DataTab(): ReactElement {
         emptyMessage={t("noSubmissions")}
         emptySubtitle={t("noSubmissionsHint")}
       >
-        <section className="table submissions-list">
-          <header>
-            <span>{t("colType")}</span>
-            <span>{t("colStatus")}</span>
-            <span>{t("colItems")}</span>
-            <span>{t("colMatched")}</span>
-            <span>{t("colSubmittedBy")}</span>
-            <span>{t("colDate")}</span>
-            <span>{t("colActions")}</span>
-          </header>
-          {submissions.map((sub) => {
-            const rowBusy = busyRowId === sub.id;
-            const anyBusy = !!busyRowId;
-            const rowReviewable = sub.status === "pending" || sub.status === "partial";
+        <div className="table-scroll">
+          <section className="table submissions-list">
+            <header>
+              <span>{t("colType")}</span>
+              <span>{t("colStatus")}</span>
+              <span>{t("colItems")}</span>
+              <span>{t("colMatched")}</span>
+              <span>{t("colSubmittedBy")}</span>
+              <span>{t("colDate")}</span>
+              <span>{t("colActions")}</span>
+            </header>
+            {submissions.map((sub) => {
+              const rowBusy = busyRowId === sub.id;
+              const anyBusy = !!busyRowId;
+              const rowReviewable = sub.status === "pending" || sub.status === "partial";
 
-            return (
-              <div
-                key={sub.id}
-                className="row"
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelectedId(sub.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setSelectedId(sub.id);
-                  }
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <span style={{ textTransform: "capitalize" }}>{sub.submission_type}</span>
-                <span>
-                  <span className={statusBadgeClass(sub.status)}>{t(`status_${sub.status}`)}</span>
-                </span>
-                <span>{sub.item_count ?? 0}</span>
-                <span>{sub.matched_count ?? 0}</span>
-                <span>{sub.profiles?.display_name ?? "—"}</span>
-                <span>{new Date(sub.created_at).toLocaleDateString()}</span>
-                <span
-                  style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
+              return (
+                <div
+                  key={sub.id}
+                  className="row"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedId(sub.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedId(sub.id);
+                    }
+                  }}
+                  style={{ cursor: "pointer" }}
                 >
-                  {!roleLoading && isContentManager && rowReviewable && (
-                    <>
-                      <button
-                        type="button"
-                        className="button primary compact"
-                        disabled={anyBusy}
-                        title={t("approveAll")}
-                        onClick={() => handleReviewById(sub.id, "approve_all")}
-                      >
-                        {rowBusy ? "…" : "✓"}
-                      </button>
+                  <span style={{ textTransform: "capitalize" }}>{sub.submission_type}</span>
+                  <span>
+                    <span className={statusBadgeClass(sub.status)}>{t(`status_${sub.status}`)}</span>
+                  </span>
+                  <span>{sub.item_count ?? 0}</span>
+                  <span>{sub.matched_count ?? 0}</span>
+                  <span>{sub.profiles?.display_name ?? "—"}</span>
+                  <span>{new Date(sub.created_at).toLocaleDateString()}</span>
+                  <span
+                    style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    {!roleLoading && isContentManager && rowReviewable && (
+                      <>
+                        <button
+                          type="button"
+                          className="button primary compact"
+                          disabled={anyBusy}
+                          title={t("approveAll")}
+                          onClick={() => handleReviewById(sub.id, "approve_all")}
+                        >
+                          {rowBusy ? "…" : "✓"}
+                        </button>
+                        <button
+                          type="button"
+                          className="button danger compact"
+                          disabled={anyBusy}
+                          title={t("rejectAll")}
+                          onClick={() => handleReviewById(sub.id, "reject_all")}
+                        >
+                          {rowBusy ? "…" : "✗"}
+                        </button>
+                      </>
+                    )}
+                    {!roleLoading && isAdmin && (
                       <button
                         type="button"
                         className="button danger compact"
                         disabled={anyBusy}
-                        title={t("rejectAll")}
-                        onClick={() => handleReviewById(sub.id, "reject_all")}
+                        title={t("deleteSubmission")}
+                        onClick={() => handleDeleteById(sub.id, sub.status)}
                       >
-                        {rowBusy ? "…" : "✗"}
+                        {rowBusy ? "…" : "🗑"}
                       </button>
-                    </>
-                  )}
-                  {!roleLoading && isAdmin && (
+                    )}
                     <button
                       type="button"
-                      className="button danger compact"
+                      className="button compact"
                       disabled={anyBusy}
-                      title={t("deleteSubmission")}
-                      onClick={() => handleDeleteById(sub.id, sub.status)}
+                      onClick={() => setSelectedId(sub.id)}
                     >
-                      {rowBusy ? "…" : "🗑"}
+                      {t("viewDetail")}
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    className="button compact"
-                    disabled={anyBusy}
-                    onClick={() => setSelectedId(sub.id)}
-                  >
-                    {t("viewDetail")}
-                  </button>
-                </span>
-              </div>
-            );
-          })}
-        </section>
+                  </span>
+                </div>
+              );
+            })}
+          </section>
+        </div>
         <PaginationBar pagination={listPagination} pageSizeOptions={[20]} idPrefix="submissions" compact />
       </DataState>
     </div>

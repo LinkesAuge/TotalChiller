@@ -3,7 +3,8 @@ import type { NextRequest } from "next/server";
 import { standardLimiter } from "@/lib/rate-limit";
 import { requireAuth } from "@/lib/api/require-auth";
 import { requireAdmin } from "@/lib/api/require-admin";
-import { apiError, uuidSchema } from "@/lib/api/validation";
+import { z } from "zod";
+import { apiError, uuidSchema, parseJsonBody } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
 import { SubmissionDetailQuerySchema } from "@/lib/api/import-schemas";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
@@ -104,6 +105,22 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
       statusCounts[s] = (statusCounts[s] ?? 0) + 1;
     }
 
+    const clanId = submissionRaw.clan_id as string;
+    const svc = createSupabaseServiceRoleClient();
+    const { data: membershipRows } = await svc
+      .from("game_account_clan_memberships")
+      .select("game_accounts!inner(id, game_username)")
+      .eq("clan_id", clanId)
+      .eq("is_active", true);
+
+    const clanGameAccounts: Array<{ id: string; game_username: string }> = [];
+    if (membershipRows) {
+      for (const row of membershipRows as unknown as Array<{ game_accounts: { id: string; game_username: string } }>) {
+        clanGameAccounts.push(row.game_accounts);
+      }
+      clanGameAccounts.sort((a, b) => a.game_username.localeCompare(b.game_username));
+    }
+
     return NextResponse.json({
       data: {
         submission,
@@ -112,6 +129,7 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
         page,
         perPage,
         statusCounts,
+        clanGameAccounts,
       },
     });
   } catch (err) {
@@ -161,6 +179,92 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
     return NextResponse.json({ data: { deleted: true } });
   } catch (err) {
     captureApiError("DELETE /api/import/submissions/[id]", err);
+    return apiError("Internal server error.", 500);
+  }
+}
+
+/**
+ * PATCH /api/import/submissions/[id] — Assign a game account to a staged entry.
+ * Sets matched_game_account_id and changes item_status from "pending" to "auto_matched".
+ * Pass matchGameAccountId: null to clear an assignment.
+ */
+
+const AssignEntrySchema = z.object({
+  entryId: z.string().uuid(),
+  matchGameAccountId: z.string().uuid().nullable(),
+});
+
+export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
+
+  try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { supabase } = auth;
+
+    const [adminRes, modRes] = await Promise.all([
+      supabase.rpc("is_any_admin"),
+      supabase.rpc("has_role", { required_roles: ["moderator"] }),
+    ]);
+    if (!adminRes.data && !modRes.data) {
+      return apiError("Forbidden: admin or moderator role required.", 403);
+    }
+
+    const { id } = await context.params;
+    const idParsed = uuidSchema.safeParse(id);
+    if (!idParsed.success) return apiError("Invalid submission ID.", 400);
+
+    const body = await parseJsonBody(request, AssignEntrySchema);
+    if (body.error) return body.error;
+    const { entryId, matchGameAccountId } = body.data;
+
+    const svc = createSupabaseServiceRoleClient();
+
+    const { data: submission, error: subErr } = await svc
+      .from("data_submissions")
+      .select("id, submission_type, status")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (subErr || !submission) return apiError("Submission not found.", 404);
+
+    const tableName = STAGED_TABLES[submission.submission_type as string];
+    if (!tableName) return apiError("Unknown submission type.", 500);
+
+    const newStatus = matchGameAccountId ? "auto_matched" : "pending";
+
+    const { data: updated, error: updateErr } = await svc
+      .from(tableName)
+      .update({
+        matched_game_account_id: matchGameAccountId,
+        item_status: newStatus,
+      })
+      .eq("id", entryId)
+      .eq("submission_id", id)
+      .select("id, item_status, matched_game_account_id")
+      .maybeSingle();
+
+    if (updateErr) {
+      captureApiError("PATCH /api/import/submissions/[id] assign", updateErr);
+      return apiError("Failed to update entry.", 500);
+    }
+    if (!updated) return apiError("Entry not found in this submission.", 404);
+
+    const { count: matchedTotal } = await svc
+      .from(tableName)
+      .select("id", { count: "exact", head: true })
+      .eq("submission_id", id)
+      .eq("item_status", "auto_matched");
+
+    await svc
+      .from("data_submissions")
+      .update({ matched_count: matchedTotal ?? 0 })
+      .eq("id", id);
+
+    return NextResponse.json({ data: updated });
+  } catch (err) {
+    captureApiError("PATCH /api/import/submissions/[id]", err);
     return apiError("Internal server error.", 500);
   }
 }

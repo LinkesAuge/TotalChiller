@@ -581,12 +581,12 @@
 
 /* ─── Submissions list table ─── */
 .table.submissions-list {
-  min-width: 780px;
+  min-width: 820px;
 }
 
 .table.submissions-list header,
 .table.submissions-list .row {
-  grid-template-columns: 0.8fr 0.9fr 0.5fr 0.6fr 1fr 0.7fr 180px;
+  grid-template-columns: 80px 100px 62px 72px 1fr 90px 160px;
   min-width: 0;
   width: auto;
   align-items: center;

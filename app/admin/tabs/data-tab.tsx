@@ -570,7 +570,6 @@ export default function DataTab(): ReactElement {
           value={entry.game_accounts?.id ?? ""}
           disabled={busy}
           onChange={(e) => handleAssignPlayer(entry.id, e.target.value || null)}
-          style={{ maxWidth: "100%" }}
         >
           <option value="">{busy ? "…" : "—"}</option>
           {accounts.map((ga) => (

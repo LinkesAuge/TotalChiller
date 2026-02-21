@@ -18,13 +18,18 @@ export function createTestRequest(
     fullUrl.searchParams.set(key, value);
   }
 
-  const init: RequestInit & { headers: Record<string, string> } = {
+  const defaultHeaders: Record<string, string> = {
+    "x-real-ip": "127.0.0.1",
+    ...headers,
+  };
+
+  if (method !== "GET" && method !== "HEAD") {
+    defaultHeaders["Content-Type"] ??= "application/json";
+  }
+
+  const init: { method: string; headers: Record<string, string>; body?: string } = {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "x-real-ip": "127.0.0.1",
-      ...headers,
-    },
+    headers: defaultHeaders,
   };
 
   if (body !== undefined && method !== "GET" && method !== "HEAD") {

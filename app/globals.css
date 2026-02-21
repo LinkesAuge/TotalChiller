@@ -33,3 +33,6 @@
 
 /* Feature: Analytics (sub-nav, charts, filters, ranking tables) */
 @import "./styles/analytics.css";
+
+/* Feature: Audio Player (floating ambient music control) */
+@import "./styles/audio-player.css";

@@ -1,0 +1,215 @@
+/* Audio Player — floating ambient music control */
+.audio-player {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-edge);
+  background: linear-gradient(135deg, rgba(18, 39, 58, 0.92), rgba(8, 13, 20, 0.96));
+  backdrop-filter: blur(16px);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px rgba(240, 200, 60, 0.08);
+  transition: var(--transition-base);
+}
+
+.audio-player:hover {
+  border-color: var(--color-edge-glow);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 24px rgba(240, 200, 60, 0.15);
+}
+
+/* Ambient glow behind the player when active */
+.audio-player-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle, rgba(240, 200, 60, 0.12) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+
+.audio-player-glow.active {
+  opacity: 1;
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Control buttons */
+.audio-player-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-gold-2);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.audio-player-btn:hover {
+  background: var(--color-gold-a12);
+  color: var(--color-gold-3);
+  transform: scale(1.1);
+}
+
+.audio-player-btn:active {
+  transform: scale(0.95);
+}
+
+.audio-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Volume slider */
+.audio-volume-slider {
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  transition:
+    max-width 0.3s ease,
+    opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.audio-volume-slider.visible {
+  max-width: 90px;
+  opacity: 1;
+}
+
+.audio-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-gold) 0%, var(--color-gold-a20) 100%);
+  outline: none;
+  cursor: pointer;
+}
+
+.audio-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  border: 2px solid var(--color-gold-3);
+  box-shadow: 0 0 8px rgba(240, 200, 60, 0.4);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.audio-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 14px rgba(240, 200, 60, 0.6);
+}
+
+.audio-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  border: 2px solid var(--color-gold-3);
+  box-shadow: 0 0 8px rgba(240, 200, 60, 0.4);
+  cursor: pointer;
+}
+
+/* Animated sound bars */
+.audio-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 18px;
+  margin-left: 4px;
+  padding-right: 2px;
+}
+
+.audio-bars span {
+  display: block;
+  width: 3px;
+  border-radius: 1px;
+  background: linear-gradient(0deg, var(--color-gold), var(--color-gold-3));
+  animation: bar-bounce 1.2s ease-in-out infinite;
+}
+
+.audio-bars span:nth-child(1) {
+  height: 6px;
+  animation-delay: 0s;
+}
+.audio-bars span:nth-child(2) {
+  height: 12px;
+  animation-delay: 0.15s;
+}
+.audio-bars span:nth-child(3) {
+  height: 8px;
+  animation-delay: 0.3s;
+}
+.audio-bars span:nth-child(4) {
+  height: 14px;
+  animation-delay: 0.45s;
+}
+
+@keyframes bar-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Responsive — slightly smaller on mobile */
+@media (max-width: 640px) {
+  .audio-player {
+    bottom: 16px;
+    right: 16px;
+    padding: 4px 8px;
+    gap: 2px;
+  }
+
+  .audio-player-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .audio-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .audio-volume-slider.visible {
+    max-width: 60px;
+  }
+
+  .audio-range {
+    width: 52px;
+  }
+}

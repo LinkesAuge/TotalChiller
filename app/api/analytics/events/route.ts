@@ -7,7 +7,7 @@ import { requireAuth } from "@/lib/api/require-auth";
 import { apiError, uuidSchema } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
 
-const MAX_PAGE_SIZE = 100;
+const MAX_PAGE_SIZE = 10000;
 
 const querySchema = z.object({
   clan_id: uuidSchema,

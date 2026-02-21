@@ -376,7 +376,7 @@ describe("ApprovalsTab", () => {
     await waitFor(() => {
       const confirmBtns = screen.queryAllByText("users.confirmUser");
       if (confirmBtns.length > 0) {
-        fireEvent.click(confirmBtns[0]);
+        fireEvent.click(confirmBtns[0]!);
       }
     });
   });
@@ -406,7 +406,7 @@ describe("ApprovalsTab", () => {
     await waitFor(() => {
       const btns = screen.queryAllByText("users.confirmUser");
       if (btns.length > 0) {
-        fireEvent.click(btns[0]);
+        fireEvent.click(btns[0]!);
       }
     });
   });
@@ -516,7 +516,7 @@ describe("ApprovalsTab", () => {
     await waitFor(() => {
       const confirmAllBtns = screen.queryAllByText("approvals.confirmAll");
       if (confirmAllBtns.length > 0) {
-        fireEvent.click(confirmAllBtns[0]);
+        fireEvent.click(confirmAllBtns[0]!);
       }
     });
 
@@ -559,7 +559,7 @@ describe("ApprovalsTab", () => {
     await waitFor(() => {
       const confirmAllBtns = screen.queryAllByText("approvals.confirmAll");
       if (confirmAllBtns.length > 0) {
-        fireEvent.click(confirmAllBtns[0]);
+        fireEvent.click(confirmAllBtns[0]!);
       }
     });
 
@@ -644,7 +644,7 @@ describe("ApprovalsTab", () => {
 
     await act(async () => {
       const btns = screen.queryAllByText("users.confirmUser");
-      fireEvent.click(btns[0]);
+      fireEvent.click(btns[0]!);
     });
 
     await waitFor(() => {

@@ -54,19 +54,15 @@ function defaultFromImpl(table: string) {
   chain.single = vi.fn().mockResolvedValue({ data: { id: "new-clan" }, error: null });
   if (table === "game_account_clan_memberships") {
     chain.order = vi.fn().mockResolvedValue({ data: mockMembershipData, error: null });
-    chain.in = vi
-      .fn()
-      .mockResolvedValue({
-        data: mockGameAccountMembershipData.length > 0 ? mockGameAccountMembershipData : mockMembershipData,
-        error: null,
-      });
+    chain.in = vi.fn().mockResolvedValue({
+      data: mockGameAccountMembershipData.length > 0 ? mockGameAccountMembershipData : mockMembershipData,
+      error: null,
+    });
   } else if (table === "profiles") {
-    chain.in = vi
-      .fn()
-      .mockResolvedValue({
-        data: mockGameAccountProfileData.length > 0 ? mockGameAccountProfileData : mockProfileData,
-        error: null,
-      });
+    chain.in = vi.fn().mockResolvedValue({
+      data: mockGameAccountProfileData.length > 0 ? mockGameAccountProfileData : mockProfileData,
+      error: null,
+    });
   } else if (table === "user_roles") {
     chain.in = vi.fn().mockResolvedValue({ data: mockRoleData, error: null });
   } else if (table === "game_accounts") {
@@ -1253,7 +1249,7 @@ describe("ClansTab", () => {
 
     const rankSelects = screen.getAllByTestId("common.rank");
     expect(rankSelects.length).toBeGreaterThanOrEqual(1);
-    const memberRankSelect = rankSelects[rankSelects.length - 1];
+    const memberRankSelect = rankSelects[rankSelects.length - 1]!;
     await act(async () => {
       fireEvent.change(memberRankSelect, { target: { value: "officer" } });
     });
@@ -1279,7 +1275,7 @@ describe("ClansTab", () => {
     await waitFor(() => expect(screen.getByText("StatusPlayer")).toBeInTheDocument());
 
     const statusSelects = screen.getAllByTestId("common.status");
-    const memberStatusSelect = statusSelects[statusSelects.length - 1];
+    const memberStatusSelect = statusSelects[statusSelects.length - 1]!;
     await act(async () => {
       fireEvent.change(memberStatusSelect, { target: { value: "false" } });
     });
@@ -1305,7 +1301,7 @@ describe("ClansTab", () => {
     await waitFor(() => expect(screen.getByText("ClanChangePlayer")).toBeInTheDocument());
 
     const clanSelects = screen.getAllByTestId("common.clan");
-    const memberClanSelect = clanSelects[clanSelects.length - 1];
+    const memberClanSelect = clanSelects[clanSelects.length - 1]!;
     await act(async () => {
       fireEvent.change(memberClanSelect, { target: { value: "c2" } });
     });
@@ -1355,7 +1351,7 @@ describe("ClansTab", () => {
     await waitFor(() => expect(screen.getByText("SavePlayer")).toBeInTheDocument());
 
     const rankSelects = screen.getAllByTestId("common.rank");
-    const memberRank = rankSelects[rankSelects.length - 1];
+    const memberRank = rankSelects[rankSelects.length - 1]!;
     await act(async () => {
       fireEvent.change(memberRank, { target: { value: "officer" } });
     });
@@ -1660,7 +1656,7 @@ describe("ClansTab", () => {
     await waitFor(() => expect(screen.getByText("CancelAllPlayer")).toBeInTheDocument());
 
     const rankSelects = screen.getAllByTestId("common.rank");
-    const memberRank = rankSelects[rankSelects.length - 1];
+    const memberRank = rankSelects[rankSelects.length - 1]!;
     await act(async () => {
       fireEvent.change(memberRank, { target: { value: "officer" } });
     });

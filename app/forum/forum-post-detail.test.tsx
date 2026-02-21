@@ -73,10 +73,13 @@ const basePost: ForumPost = {
   is_pinned: false,
   is_locked: false,
   source_type: null,
-} as ForumPost;
+  source_id: null,
+};
 
 const baseComment: ForumComment = {
   id: "c1",
+  post_id: "p1",
+  parent_comment_id: null,
   content: "A comment",
   author_id: "u3",
   authorName: "Commenter",
@@ -85,7 +88,7 @@ const baseComment: ForumComment = {
   score: 1,
   userVote: 0,
   replies: [],
-} as ForumComment;
+};
 
 function makeBaseProps(overrides: any = {}) {
   return {
@@ -245,14 +248,14 @@ describe("ForumPostDetail", () => {
   it("calls onVotePost when upvote is clicked", () => {
     const onVotePost = vi.fn();
     render(<ForumPostDetail {...makeBaseProps({ onVotePost })} />);
-    fireEvent.click(screen.getAllByLabelText("upvote")[0]);
+    fireEvent.click(screen.getAllByLabelText("upvote")[0]!);
     expect(onVotePost).toHaveBeenCalledWith("p1", 1);
   });
 
   it("calls onVotePost when downvote is clicked", () => {
     const onVotePost = vi.fn();
     render(<ForumPostDetail {...makeBaseProps({ onVotePost })} />);
-    fireEvent.click(screen.getAllByLabelText("downvote")[0]);
+    fireEvent.click(screen.getAllByLabelText("downvote")[0]!);
     expect(onVotePost).toHaveBeenCalledWith("p1", -1);
   });
 
@@ -382,6 +385,8 @@ describe("ForumPostDetail", () => {
       replies: [
         {
           id: "r1",
+          post_id: "p1",
+          parent_comment_id: "c1",
           content: "A reply",
           author_id: "u4",
           authorName: "Replier",
@@ -390,7 +395,7 @@ describe("ForumPostDetail", () => {
           score: 0,
           userVote: 0,
           replies: [],
-        } as ForumComment,
+        },
       ],
     };
     render(<ForumPostDetail {...makeBaseProps({ comments: [commentWithReply] })} />);
@@ -481,7 +486,7 @@ describe("ForumPostDetail", () => {
     const onVoteComment = vi.fn();
     render(<ForumPostDetail {...makeBaseProps({ comments: [baseComment], onVoteComment })} />);
     const upvotes = screen.getAllByLabelText("upvote");
-    fireEvent.click(upvotes[upvotes.length - 1]);
+    fireEvent.click(upvotes[upvotes.length - 1]!);
     expect(onVoteComment).toHaveBeenCalledWith("c1", 1);
   });
 
@@ -489,7 +494,7 @@ describe("ForumPostDetail", () => {
     const onVoteComment = vi.fn();
     render(<ForumPostDetail {...makeBaseProps({ comments: [baseComment], onVoteComment })} />);
     const downvotes = screen.getAllByLabelText("downvote");
-    fireEvent.click(downvotes[downvotes.length - 1]);
+    fireEvent.click(downvotes[downvotes.length - 1]!);
     expect(onVoteComment).toHaveBeenCalledWith("c1", -1);
   });
 
@@ -589,7 +594,7 @@ describe("ForumPostDetail", () => {
     fireEvent.click(screen.getByText("deleteComment"));
     expect(screen.getByText("deleteCommentConfirm")).toBeInTheDocument();
     const cancelBtns = screen.getAllByText("cancel");
-    fireEvent.click(cancelBtns[cancelBtns.length - 1]);
+    fireEvent.click(cancelBtns[cancelBtns.length - 1]!);
     expect(screen.queryByText("deleteCommentConfirm")).not.toBeInTheDocument();
   });
 

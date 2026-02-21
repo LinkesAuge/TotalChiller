@@ -18,6 +18,7 @@ const defaultProps = {
   cancelLabel: "Cancel",
   onSubmit: vi.fn(),
   onCancel: vi.fn(),
+  children: null as React.ReactNode,
 };
 
 beforeEach(() => {

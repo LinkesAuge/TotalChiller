@@ -251,7 +251,7 @@ describe("useNews", () => {
       return createChainableMock({
         data: null,
         error: { message: "DB error", code: "500", details: "", hint: "" },
-        count: null,
+        count: undefined,
       });
     });
 

@@ -475,6 +475,43 @@
   color: var(--color-gold-2);
 }
 
+/* ── Pie chart legend ── */
+.pie-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.pie-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.pie-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pie-legend-name {
+  color: var(--color-text-2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pie-legend-count {
+  color: var(--color-gold-2);
+  font-weight: 600;
+  font-family: var(--font-heading);
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .analytics-subnav {

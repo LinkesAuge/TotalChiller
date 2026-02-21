@@ -100,7 +100,7 @@ describe("GET /api/design-system/ui-elements", () => {
   });
 
   it("returns 500 when DB query fails", async () => {
-    const chain = createChainableMock({ data: null, error: { message: "DB error" }, count: null });
+    const chain = createChainableMock({ data: null, error: { message: "DB error" }, count: undefined });
     mockFrom.mockReturnValue(chain);
 
     const req = createTestRequest("/api/design-system/ui-elements");

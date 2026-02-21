@@ -42,7 +42,7 @@ vi.mock("@/lib/sanitize-html", () => ({
   sanitizeHtml: (html: string) => html,
 }));
 
-const MOCK_ELEMENT_CSS = {
+const MOCK_ELEMENT_CSS: any = {
   id: "el-1",
   name: "Primary Button",
   description: "Main CTA button",
@@ -58,7 +58,7 @@ const MOCK_ELEMENT_CSS = {
   created_at: "2024-01-01",
 };
 
-const MOCK_ELEMENT_ASSET = {
+const MOCK_ELEMENT_ASSET: any = {
   id: "el-2",
   name: "Hero Banner",
   description: null,
@@ -74,7 +74,7 @@ const MOCK_ELEMENT_ASSET = {
   created_at: "2024-01-02",
 };
 
-const MOCK_ELEMENT_COMPOSITE = {
+const MOCK_ELEMENT_COMPOSITE: any = {
   id: "el-3",
   name: "Card Layout",
   description: null,

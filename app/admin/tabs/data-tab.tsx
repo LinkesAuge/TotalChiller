@@ -524,6 +524,9 @@ export default function DataTab(): ReactElement {
       if (!selectedId) return;
       setAssigningEntryId(entryId);
       try {
+        const targetEntry = detail?.items.find((i) => i.id === entryId);
+        const wasApproved = targetEntry?.item_status === "approved";
+
         const res = await fetch(`/api/import/submissions/${selectedId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -549,21 +552,25 @@ export default function DataTab(): ReactElement {
         };
         const entry = json.data;
 
-        setDetail((prev) => {
-          if (!prev) return prev;
-          const updatedItems = prev.items.map((item) =>
-            item.id === entry.id
-              ? { ...item, item_status: entry.item_status, game_accounts: entry.game_accounts }
-              : item,
-          );
-          const oldStatus = prev.items.find((i) => i.id === entry.id)?.item_status;
-          const newCounts = { ...prev.statusCounts };
-          if (oldStatus && oldStatus !== entry.item_status) {
-            newCounts[oldStatus] = Math.max(0, (newCounts[oldStatus] ?? 0) - 1);
-            newCounts[entry.item_status] = (newCounts[entry.item_status] ?? 0) + 1;
-          }
-          return { ...prev, items: updatedItems, statusCounts: newCounts };
-        });
+        if (wasApproved) {
+          void fetchDetail();
+        } else {
+          setDetail((prev) => {
+            if (!prev) return prev;
+            const updatedItems = prev.items.map((item) =>
+              item.id === entry.id
+                ? { ...item, item_status: entry.item_status, game_accounts: entry.game_accounts }
+                : item,
+            );
+            const oldStatus = prev.items.find((i) => i.id === entry.id)?.item_status;
+            const newCounts = { ...prev.statusCounts };
+            if (oldStatus && oldStatus !== entry.item_status) {
+              newCounts[oldStatus] = Math.max(0, (newCounts[oldStatus] ?? 0) - 1);
+              newCounts[entry.item_status] = (newCounts[entry.item_status] ?? 0) + 1;
+            }
+            return { ...prev, items: updatedItems, statusCounts: newCounts };
+          });
+        }
 
         setSubmissions((prev) =>
           prev.map((sub) => (sub.id === selectedId ? { ...sub, matched_count: entry.matchedCount } : sub)),
@@ -574,7 +581,7 @@ export default function DataTab(): ReactElement {
         setAssigningEntryId(null);
       }
     },
-    [selectedId, t],
+    [selectedId, detail?.items, fetchDetail, t],
   );
 
   /* ── Metadata editing handlers ── */
@@ -723,8 +730,7 @@ export default function DataTab(): ReactElement {
   }, [detail?.clanGameAccounts]);
 
   function renderMatchCell(entry: StagedEntry): ReactElement {
-    const editable = canAssign && (entry.item_status === "pending" || entry.item_status === "auto_matched");
-    if (!editable) {
+    if (!canAssign) {
       return <span>{entry.game_accounts?.game_username ?? "—"}</span>;
     }
 

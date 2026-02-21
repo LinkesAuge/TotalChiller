@@ -335,13 +335,13 @@ describe("SubmissionsTab", () => {
 
   it("changes status filter and resets page", async () => {
     await renderAndWaitForList();
-    fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "approved" } });
+    fireEvent.change(screen.getAllByRole("combobox")[0]!, { target: { value: "approved" } });
     expect(mockListSetPage).toHaveBeenCalledWith(1);
   });
 
   it("changes type filter and resets page", async () => {
     await renderAndWaitForList();
-    fireEvent.change(screen.getAllByRole("combobox")[1], { target: { value: "chests" } });
+    fireEvent.change(screen.getAllByRole("combobox")[1]!, { target: { value: "chests" } });
     expect(mockListSetPage).toHaveBeenCalledWith(1);
   });
 
@@ -505,7 +505,7 @@ describe("SubmissionsTab", () => {
   });
 
   it("applies warning badge for partial status in list", async () => {
-    globalThis.fetch = listFetch([{ ...SUBS[0], status: "partial" }], 1);
+    globalThis.fetch = listFetch([{ ...SUBS[0]!, status: "partial" }], 1);
     await renderAndWaitForList();
     expect(screen.getByText("status_partial").className).toBe("badge warning");
   });
@@ -620,14 +620,15 @@ describe("SubmissionsTab", () => {
     await renderAndOpenDetail(DETAIL_CHESTS);
     const tabCounts = document.querySelectorAll(".tab-count");
     expect(tabCounts.length).toBe(5);
-    expect(tabCounts[0].textContent).toBe("2");
+    expect(tabCounts[0]!.textContent).toBe("2");
   });
 
   it("switches item status filter on tab click", async () => {
     await renderAndOpenDetail(DETAIL_CHESTS);
     const tabs = document.querySelectorAll(".tab");
+    expect(tabs.length).toBeGreaterThanOrEqual(2);
     await act(async () => {
-      fireEvent.click(tabs[1]);
+      fireEvent.click(tabs[1]!);
     });
     expect(mockDetailSetPage).toHaveBeenCalledWith(1);
   });
@@ -654,7 +655,7 @@ describe("SubmissionsTab", () => {
     globalThis.fetch = f;
     await renderAndWaitForList();
     await act(async () => {
-      fireEvent.click(screen.getAllByTitle("approveAll")[0]);
+      fireEvent.click(screen.getAllByTitle("approveAll")[0]!);
     });
     await waitFor(() => {
       expect(f.mock.calls.some((c: any[]) => typeof c[0] === "string" && c[0].includes("/review"))).toBe(true);
@@ -666,7 +667,7 @@ describe("SubmissionsTab", () => {
     globalThis.fetch = f;
     await renderAndWaitForList();
     await act(async () => {
-      fireEvent.click(screen.getAllByTitle("rejectAll")[0]);
+      fireEvent.click(screen.getAllByTitle("rejectAll")[0]!);
     });
     await waitFor(() => {
       expect(f.mock.calls.some((c: any[]) => typeof c[0] === "string" && c[0].includes("/review"))).toBe(true);
@@ -678,7 +679,7 @@ describe("SubmissionsTab", () => {
     globalThis.fetch = f;
     await renderAndWaitForList();
     await act(async () => {
-      fireEvent.click(screen.getAllByTitle("deleteSubmission")[0]);
+      fireEvent.click(screen.getAllByTitle("deleteSubmission")[0]!);
     });
     await waitFor(() => {
       expect(f.mock.calls.some((c: any[]) => c[1]?.method === "DELETE")).toBe(true);
@@ -687,10 +688,10 @@ describe("SubmissionsTab", () => {
 
   it("uses deleteConfirmApproved for non-pending delete", async () => {
     globalThis.confirm = vi.fn(() => false);
-    globalThis.fetch = listFetch([{ ...SUBS[1], status: "approved" }], 1);
+    globalThis.fetch = listFetch([{ ...SUBS[1]!, status: "approved" }], 1);
     await renderAndWaitForList();
     await act(async () => {
-      fireEvent.click(screen.getAllByTitle("deleteSubmission")[0]);
+      fireEvent.click(screen.getAllByTitle("deleteSubmission")[0]!);
     });
     expect(globalThis.confirm).toHaveBeenCalledWith("deleteConfirmApproved");
   });
@@ -756,7 +757,7 @@ describe("SubmissionsTab", () => {
     render(<SubmissionsTab />);
     await waitFor(() => expect(screen.getAllByTitle("deleteSubmission").length).toBeGreaterThanOrEqual(1));
     await act(async () => {
-      fireEvent.click(screen.getAllByTitle("deleteSubmission")[0]);
+      fireEvent.click(screen.getAllByTitle("deleteSubmission")[0]!);
     });
     await waitFor(() => expect(screen.getByText("Del fail")).toBeInTheDocument());
   });
@@ -804,7 +805,7 @@ describe("SubmissionsTab", () => {
     await waitFor(() => {
       const reviewCalls = f.mock.calls.filter((c: any[]) => typeof c[0] === "string" && c[0].includes("/review"));
       expect(reviewCalls.length).toBeGreaterThanOrEqual(1);
-      const body = JSON.parse(reviewCalls[0][1]?.body);
+      const body = JSON.parse(reviewCalls[0]![1]?.body);
       expect(body.action).toBe("approve_matched");
     });
   });
@@ -816,7 +817,7 @@ describe("SubmissionsTab", () => {
     render(<SubmissionsTab />);
     await waitFor(() => expect(screen.getAllByText("viewDetail").length).toBe(2));
     await act(async () => {
-      fireEvent.click(screen.getAllByText("viewDetail")[0]);
+      fireEvent.click(screen.getAllByText("viewDetail")[0]!);
     });
     await waitFor(() => expect(screen.getByText(/backToList/)).toBeInTheDocument());
   });
@@ -827,7 +828,7 @@ describe("SubmissionsTab", () => {
     globalThis.fetch = detailFetch(DETAIL_CHESTS);
     render(<SubmissionsTab />);
     await waitFor(() => expect(screen.getAllByText("viewDetail").length).toBe(2));
-    const viewBtn = screen.getAllByText("viewDetail")[0];
+    const viewBtn = screen.getAllByText("viewDetail")[0]!;
     await act(async () => {
       fireEvent.click(viewBtn);
     });

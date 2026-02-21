@@ -325,7 +325,7 @@ describe("NotificationBell", () => {
       fireEvent.click(screen.getByText("New Message"));
     });
     const patchCalls = mockFetch.mock.calls.filter(
-      ([url, opts]: [string, any]) =>
+      ([url, opts]: any[]) =>
         typeof url === "string" && url.includes("/api/notifications/n-1") && opts?.method === "PATCH",
     );
     expect(patchCalls).toHaveLength(0);

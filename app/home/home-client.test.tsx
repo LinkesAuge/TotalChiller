@@ -267,9 +267,9 @@ describe("HomeClient", () => {
     );
     render(<HomeClient />);
     const lists = screen.getAllByTestId("editable-list");
-    expect(lists[0].dataset.itemcount).toBe("1");
-    expect(lists[1].dataset.itemcount).toBe("1");
-    expect(lists[2].dataset.itemcount).toBe("1");
+    expect(lists[0]!.dataset.itemcount).toBe("1");
+    expect(lists[1]!.dataset.itemcount).toBe("1");
+    expect(lists[2]!.dataset.itemcount).toBe("1");
   });
 
   it("passes empty lists when no list items exist", () => {
@@ -420,15 +420,15 @@ describe("HomeClient", () => {
     render(<HomeClient />);
     const addButtons = screen.getAllByTestId("list-add-btn");
 
-    fireEvent.click(addButtons[0]);
+    fireEvent.click(addButtons[0]!);
     expect(addListItem).toHaveBeenCalledWith("whyJoin", "de", "en", "extra");
     addListItem.mockClear();
 
-    fireEvent.click(addButtons[1]);
+    fireEvent.click(addButtons[1]!);
     expect(addListItem).toHaveBeenCalledWith("publicNews", "de", "en", "extra");
     addListItem.mockClear();
 
-    fireEvent.click(addButtons[2]);
+    fireEvent.click(addButtons[2]!);
     expect(addListItem).toHaveBeenCalledWith("contact", "de", "en", "extra");
   });
 

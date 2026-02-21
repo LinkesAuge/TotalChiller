@@ -8,6 +8,11 @@
 
 ### Added
 
+- **Enhanced analytics overview:** Summary cards now include average power, week-over-week chests delta (%), top collector name, and last event participation rate. Added sparkline AreaChart showing daily chest collection over the past 7 days.
+- **Enhanced analytics sub-pages:** Chests, events, and Machtpunkte analytics pages received additional chart visualizations and layout refinements.
+- **Extended analytics stats API:** `/api/analytics/stats` now returns `avg_power`, `chests_last_week`, `top_collector_name`, `top_collector_count`, `last_event_participation_rate`, and `chests_daily` (7-day daily counts) alongside the existing summary stats.
+- **Dashboard stat enhancements:** Dashboard quick stats section now shows average power and top chest collector cards. Sparkline AreaChart for weekly chest activity added below stat cards.
+- **Submission match propagation:** PATCH on `/api/import/submissions/[id]` now preserves approved/rejected item status when re-matching game accounts. Approved entries cascade game_account_id changes to production tables (`chest_entries`, `member_snapshots`, `event_results`).
 - **Analytics feature:** Full analytics system with 3 sub-pages and 4 API routes.
   - `/analytics` overview with summary cards (chests this week, events tracked, clan power).
   - `/analytics/chests` — chest collection rankings with date range presets (today/week/month/custom), player search, chest type and source filters, bar chart + area trend chart. Pagination and sorting.
@@ -36,6 +41,11 @@
 - **Validation lists admin UI:** New "Validierungslisten" sub-tab in the Data section. Full CRUD for OCR corrections and known names with inline editing, type filtering, and add/delete buttons. New DELETE and PATCH endpoints on `/api/import/validation-lists`.
 - **Inline submission actions in list view:** Approve-all, reject-all, and delete buttons directly in each submission row.
 - **Server-busy indicator:** When a review/delete action takes longer than 5 seconds, a hint appears.
+
+### Fixed
+
+- **Test suite TypeScript compliance (Vitest 4):** Fixed ~100 TypeScript errors across 28 test files. Key changes: `vi.fn<Args, Return>` → `vi.fn<FnSignature>` (Vitest 4 API), non-null assertions on `getAllBy*` array access, mock data aligned to updated domain types (`BugReport`, `BugReportCategory`, `ForumCategory`, `InboxThread`), silent `if`-guards replaced with explicit `expect()` assertions, `vi.stubEnv` for `NODE_ENV` mutation.
+- **Forum types:** `ForumPost.updated_at` and `ForumComment.updated_at` corrected from `string` to `string | null` to match database reality. Component code already handled null defensively.
 
 ### Changed
 

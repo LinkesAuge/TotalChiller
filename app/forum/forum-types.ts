@@ -11,7 +11,7 @@ export interface ForumPost {
   readonly score: number;
   readonly comment_count: number;
   readonly created_at: string;
-  readonly updated_at: string;
+  readonly updated_at: string | null;
   readonly source_type: "event" | "announcement" | null;
   readonly source_id: string | null;
   /* resolved client-side */
@@ -29,7 +29,7 @@ export interface ForumComment {
   readonly content: string;
   readonly score: number;
   readonly created_at: string;
-  readonly updated_at: string;
+  readonly updated_at: string | null;
   readonly authorName?: string;
   readonly userVote?: number;
   readonly replies?: ForumComment[];

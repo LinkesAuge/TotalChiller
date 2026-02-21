@@ -89,7 +89,7 @@ describe("GET /api/import/submissions", () => {
 
   it("returns 500 when query fails", async () => {
     const errorChain = createChainableMock();
-    setChainResult(errorChain, { data: null, error: { message: "DB error" }, count: null });
+    setChainResult(errorChain, { data: null, error: { message: "DB error" }, count: undefined });
 
     mockAuth.mockFrom.mockReturnValue(errorChain);
 

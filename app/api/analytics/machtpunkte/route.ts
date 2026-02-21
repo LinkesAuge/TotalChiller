@@ -165,11 +165,56 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     history.sort((a, b) => a.date.localeCompare(b.date));
 
+    // Clan total power trend: aggregate total power per snapshot date
+    const dateTotalMap = new Map<string, Map<string, number>>();
+    for (const [gaId, data] of accountData) {
+      for (const snap of data.snapshots) {
+        const dateKey = snap.date.slice(0, 10);
+        let dateAccounts = dateTotalMap.get(dateKey);
+        if (!dateAccounts) {
+          dateAccounts = new Map();
+          dateTotalMap.set(dateKey, dateAccounts);
+        }
+        const existing = dateAccounts.get(gaId);
+        if (!existing || snap.score > existing) {
+          dateAccounts.set(gaId, snap.score);
+        }
+      }
+    }
+    const clanTotalHistory = [...dateTotalMap.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, accounts]) => {
+        let total_power = 0;
+        for (const score of accounts.values()) total_power += score;
+        return { date, total_power, player_count: accounts.size };
+      });
+
+    // Power distribution: bucket players into ranges for histogram
+    const scores = sorted.map(([, data]) => data.latest_score);
+    let powerDistribution: Array<{ range: string; count: number }> = [];
+    if (scores.length > 0) {
+      const maxScore = Math.max(...scores);
+      const bucketSize = maxScore > 0 ? Math.ceil(maxScore / 8) : 1;
+      const bucketMap = new Map<number, number>();
+      for (const score of scores) {
+        const bucketStart = Math.floor(score / bucketSize) * bucketSize;
+        bucketMap.set(bucketStart, (bucketMap.get(bucketStart) ?? 0) + 1);
+      }
+      powerDistribution = [...bucketMap.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([bucketStart, count]) => ({
+          range: `${(bucketStart / 1000).toFixed(0)}k–${((bucketStart + bucketSize) / 1000).toFixed(0)}k`,
+          count,
+        }));
+    }
+
     return NextResponse.json({
       data: {
         standings,
         history,
         clan_total: clanTotal,
+        clan_total_history: clanTotalHistory,
+        power_distribution: powerDistribution,
         total,
         page,
         page_size,

@@ -129,7 +129,19 @@ async function getEventList(
   const offset = (page - 1) * pageSize;
   const events = sorted.slice(offset, offset + pageSize);
 
-  return NextResponse.json({ data: { events, total, page, page_size: pageSize } });
+  // Participation trend: chronological participant count per event
+  const participationTrend = [...sorted]
+    .sort((a, b) => a.event_date.localeCompare(b.event_date))
+    .map((e) => ({
+      event_name: e.event_name.length > 20 ? e.event_name.slice(0, 20) + "…" : e.event_name,
+      date: e.event_date.slice(0, 10),
+      participants: e.participant_count,
+      avg_points: e.participant_count > 0 ? Math.round(e.total_points / e.participant_count) : 0,
+    }));
+
+  return NextResponse.json({
+    data: { events, participation_trend: participationTrend, total, page, page_size: pageSize },
+  });
 }
 
 async function getEventDetail(

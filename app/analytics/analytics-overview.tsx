@@ -1,18 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import PageShell from "@/app/components/page-shell";
 import DataState from "@/app/components/data-state";
 import useClanContext from "@/app/hooks/use-clan-context";
 import AnalyticsSubnav from "./analytics-subnav";
+import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
 interface OverviewStats {
   readonly members_count: number;
   readonly total_power: number;
+  readonly avg_power: number;
   readonly chests_this_week: number;
+  readonly chests_last_week: number;
   readonly events_with_results: number;
+  readonly top_collector_name: string;
+  readonly top_collector_count: number;
+  readonly last_event_participation_rate: number;
+  readonly chests_daily: readonly { readonly date: string; readonly count: number }[];
 }
 
 export default function AnalyticsOverview(): JSX.Element {
@@ -52,6 +59,11 @@ export default function AnalyticsOverview(): JSX.Element {
     };
   }, [clanId]);
 
+  const chestsWeekDelta = useMemo(() => {
+    if (!stats || stats.chests_last_week === 0) return 0;
+    return Math.round(((stats.chests_this_week - stats.chests_last_week) / stats.chests_last_week) * 100);
+  }, [stats]);
+
   return (
     <PageShell
       breadcrumb={t("breadcrumb")}
@@ -70,64 +82,199 @@ export default function AnalyticsOverview(): JSX.Element {
         emptyNode={<div className="py-8 text-sm text-text-muted text-center">{t("noData")}</div>}
       >
         {stats && (
-          <div className="analytics-summary-grid">
-            <Link href="/analytics/chests" className="analytics-summary-card">
-              <div className="analytics-summary-card__icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
-                  <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
-                </svg>
-              </div>
-              <span className="analytics-summary-card__label">{t("chestsThisWeek")}</span>
-              <span className="analytics-summary-card__value">{stats.chests_this_week.toLocaleString()}</span>
-              <span className="analytics-summary-card__detail">{t("chestsDetail")}</span>
-            </Link>
+          <>
+            {/* Primary stat cards */}
+            <div className="analytics-summary-grid">
+              <Link href="/analytics/chests" className="analytics-summary-card">
+                <div className="analytics-summary-card__icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
+                    <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+                  </svg>
+                </div>
+                <span className="analytics-summary-card__label">{t("chestsThisWeek")}</span>
+                <span className="analytics-summary-card__value">{stats.chests_this_week.toLocaleString()}</span>
+                <span className="analytics-summary-card__detail">{t("chestsDetail")}</span>
+              </Link>
 
-            <Link href="/analytics/events" className="analytics-summary-card">
-              <div className="analytics-summary-card__icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <span className="analytics-summary-card__label">{t("eventsTracked")}</span>
-              <span className="analytics-summary-card__value">{stats.events_with_results.toLocaleString()}</span>
-              <span className="analytics-summary-card__detail">{t("eventsDetail")}</span>
-            </Link>
+              <Link href="/analytics/events" className="analytics-summary-card">
+                <div className="analytics-summary-card__icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span className="analytics-summary-card__label">{t("eventsTracked")}</span>
+                <span className="analytics-summary-card__value">{stats.events_with_results.toLocaleString()}</span>
+                <span className="analytics-summary-card__detail">{t("eventsDetail")}</span>
+              </Link>
 
-            <Link href="/analytics/machtpunkte" className="analytics-summary-card">
-              <div className="analytics-summary-card__icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+              <Link href="/analytics/machtpunkte" className="analytics-summary-card">
+                <div className="analytics-summary-card__icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <span className="analytics-summary-card__label">{t("clanPower")}</span>
+                <span className="analytics-summary-card__value">{stats.total_power.toLocaleString()}</span>
+                <span className="analytics-summary-card__detail">
+                  {t("membersCount", { count: stats.members_count })}
+                </span>
+              </Link>
+            </div>
+
+            {/* Secondary insights row */}
+            <div className="analytics-summary-grid">
+              <div className="analytics-summary-card">
+                <div className="analytics-summary-card__icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <span className="analytics-summary-card__label">{t("overviewAvgPower")}</span>
+                <span className="analytics-summary-card__value">{stats.avg_power.toLocaleString()}</span>
+                <span className="analytics-summary-card__detail">{t("overviewPerPlayer")}</span>
               </div>
-              <span className="analytics-summary-card__label">{t("clanPower")}</span>
-              <span className="analytics-summary-card__value">{stats.total_power.toLocaleString()}</span>
-              <span className="analytics-summary-card__detail">
-                {t("membersCount", { count: stats.members_count })}
-              </span>
-            </Link>
-          </div>
+
+              {stats.top_collector_name && (
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("overviewTopCollector")}</span>
+                  <span className="analytics-summary-card__value">{stats.top_collector_name}</span>
+                  <span className="analytics-summary-card__detail">
+                    {stats.top_collector_count.toLocaleString()} {t("chests")}
+                  </span>
+                </div>
+              )}
+
+              {stats.last_event_participation_rate > 0 && (
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("overviewParticipation")}</span>
+                  <span className="analytics-summary-card__value">{stats.last_event_participation_rate}%</span>
+                  <span className="analytics-summary-card__detail">{t("ofMembers")}</span>
+                </div>
+              )}
+
+              {stats.chests_last_week > 0 && (
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
+                      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("overviewChestsWeekCompare")}</span>
+                  <span
+                    className="analytics-summary-card__value"
+                    style={{ color: chestsWeekDelta >= 0 ? "var(--color-accent-green)" : "var(--color-accent-red)" }}
+                  >
+                    {chestsWeekDelta >= 0 ? "+" : ""}
+                    {chestsWeekDelta}%
+                  </span>
+                  <span className="analytics-summary-card__detail">{t("overviewSinceLastWeek")}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Weekly chest activity sparkline */}
+            {stats.chests_daily && stats.chests_daily.length > 0 && (
+              <div className="analytics-chart-wrapper">
+                <h4>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                  {t("overviewChestsDaily")}
+                </h4>
+                <ResponsiveContainer width="100%" height={180}>
+                  <AreaChart
+                    data={stats.chests_daily as { date: string; count: number }[]}
+                    margin={{ top: 4, right: 12, bottom: 4, left: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="overviewChestGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#c9a34a" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#c9a34a" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#c9a34a"
+                      strokeWidth={2}
+                      fill="url(#overviewChestGrad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </>
         )}
       </DataState>
     </PageShell>

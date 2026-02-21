@@ -8,6 +8,7 @@ import { useDashboardData } from "./hooks/use-dashboard-data";
 import { formatRelativeTime, toDateString } from "../lib/dashboard-utils";
 import useClanContext from "./hooks/use-clan-context";
 import DataState from "./components/data-state";
+import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
 /* ── Constants ── */
 
@@ -50,21 +51,24 @@ const DEFAULT_TAG_COLOR = "#4a6ea0";
 
 /* ── Sub-Components ── */
 
-/** Single stat card with game icon, value, and label. */
+/** Single stat card with game icon, value, label, and optional detail. */
 function DashboardStatCard({
   icon,
   label,
   value,
+  detail,
 }: {
   readonly icon: string;
   readonly label: string;
   readonly value: string;
+  readonly detail?: string;
 }): JSX.Element {
   return (
     <div className="dashboard-stat-card">
       <Image src={icon} alt="" width={28} height={28} className="dashboard-stat-card__icon" />
       <span className="dashboard-stat-card__value">{value}</span>
       <span className="dashboard-stat-card__label">{label}</span>
+      {detail && <span className="dashboard-stat-card__detail">{detail}</span>}
     </div>
   );
 }
@@ -88,6 +92,11 @@ function DashboardClient(): JSX.Element {
     announcementsError,
     eventsError,
   } = useDashboardData({ clanId: clanContext?.clanId });
+
+  const chestsWeekDelta = useMemo(() => {
+    if (!stats || stats.chests_last_week === 0) return 0;
+    return Math.round(((stats.chests_this_week - stats.chests_last_week) / stats.chests_last_week) * 100);
+  }, [stats]);
 
   /* ── Tag color helper ── */
   const tagColorMap = useMemo(() => {
@@ -232,7 +241,51 @@ function DashboardClient(): JSX.Element {
               label={t("statActivityLabel")}
               value={isLoadingStats ? "…" : (stats?.chests_this_week.toLocaleString() ?? "—")}
             />
+            <DashboardStatCard
+              icon="/assets/game/icons/icons_power.png"
+              label={t("statAvgPowerLabel")}
+              value={isLoadingStats ? "…" : (stats?.avg_power.toLocaleString() ?? "—")}
+            />
+            {stats?.top_collector_name ? (
+              <DashboardStatCard
+                icon="/assets/game/icons/icons_chest_1.png"
+                label={t("statTopCollectorLabel")}
+                value={stats.top_collector_name}
+                detail={t("chestsCollected", { count: stats.top_collector_count })}
+              />
+            ) : (
+              <DashboardStatCard
+                icon="/assets/game/icons/icons_chest_1.png"
+                label={t("statTopCollectorLabel")}
+                value={isLoadingStats ? "…" : "—"}
+              />
+            )}
           </div>
+          {!isLoadingStats && stats?.chests_daily && stats.chests_daily.length > 0 && (
+            <div className="dashboard-sparkline-section">
+              <div className="dashboard-sparkline-header">
+                <span className="dashboard-sparkline-label">{t("statActivityLabel")}</span>
+                {stats.chests_last_week > 0 && (
+                  <span className={`dashboard-sparkline-compare ${chestsWeekDelta >= 0 ? "positive" : "negative"}`}>
+                    {chestsWeekDelta >= 0 ? "▲" : "▼"} {Math.abs(chestsWeekDelta)}% {t("vsLastWeek")}
+                  </span>
+                )}
+              </div>
+              <div className="dashboard-sparkline">
+                <ResponsiveContainer width="100%" height={60}>
+                  <AreaChart data={stats.chests_daily as { date: string; count: number }[]}>
+                    <defs>
+                      <linearGradient id="dashSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#c9a34a" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#c9a34a" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <Area type="monotone" dataKey="count" stroke="#c9a34a" strokeWidth={2} fill="url(#dashSparkGrad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ── Events (real data with FK join) ── */}

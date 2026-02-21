@@ -106,7 +106,7 @@ describe("DayPanelEventCard", () => {
     render(<DayPanelEventCard {...makeProps({ entry: makeEvent({ banner_url: "/banner.png" }) })} />);
     const imgs = screen.getAllByRole("img");
     expect(imgs.length).toBeGreaterThanOrEqual(1);
-    expect(imgs[0].getAttribute("src")).toBe("/banner.png");
+    expect(imgs[0]!.getAttribute("src")).toBe("/banner.png");
   });
 
   it("shows banner when banner_url is set (expanded)", () => {

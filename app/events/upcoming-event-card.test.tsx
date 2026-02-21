@@ -83,7 +83,7 @@ describe("UpcomingEventCard", () => {
     render(<UpcomingEventCard {...makeProps({ entry: makeEvent({ banner_url: "/banner.png" }) })} />);
     const imgs = screen.getAllByRole("img");
     expect(imgs.length).toBeGreaterThanOrEqual(1);
-    expect(imgs[0].getAttribute("src")).toBe("/banner.png");
+    expect(imgs[0]!.getAttribute("src")).toBe("/banner.png");
   });
 
   it("shows recurrence label when recurrence_type !== 'none'", () => {

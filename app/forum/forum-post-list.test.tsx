@@ -210,7 +210,7 @@ describe("ForumPostList", () => {
   it("marks 'all' pill as active when no category is selected", () => {
     const { container } = render(<ForumPostList {...makeBaseProps()} />);
     const pills = container.querySelectorAll(".forum-cat-pill");
-    expect(pills[0].classList.contains("active")).toBe(true);
+    expect(pills[0]!.classList.contains("active")).toBe(true);
   });
 
   it("marks selected category pill as active", () => {
@@ -218,7 +218,7 @@ describe("ForumPostList", () => {
     const pills = container.querySelectorAll(".forum-cat-pill");
     const helpPill = Array.from(pills).find((p) => p.textContent === "Help");
     expect(helpPill?.classList.contains("active")).toBe(true);
-    expect(pills[0].classList.contains("active")).toBe(false);
+    expect(pills[0]!.classList.contains("active")).toBe(false);
   });
 
   // ── Post cards ──
@@ -278,14 +278,14 @@ describe("ForumPostList", () => {
   it("calls onVotePost with upvote when up arrow is clicked", () => {
     const onVotePost = vi.fn();
     render(<ForumPostList {...makeBaseProps({ posts: [samplePost], onVotePost })} />);
-    fireEvent.click(screen.getAllByLabelText("upvote")[0]);
+    fireEvent.click(screen.getAllByLabelText("upvote")[0]!);
     expect(onVotePost).toHaveBeenCalledWith("p1", 1);
   });
 
   it("calls onVotePost with downvote when down arrow is clicked", () => {
     const onVotePost = vi.fn();
     render(<ForumPostList {...makeBaseProps({ posts: [samplePost], onVotePost })} />);
-    fireEvent.click(screen.getAllByLabelText("downvote")[0]);
+    fireEvent.click(screen.getAllByLabelText("downvote")[0]!);
     expect(onVotePost).toHaveBeenCalledWith("p1", -1);
   });
 
@@ -293,7 +293,7 @@ describe("ForumPostList", () => {
     const onPostClick = vi.fn();
     const onVotePost = vi.fn();
     render(<ForumPostList {...makeBaseProps({ posts: [samplePost], onPostClick, onVotePost })} />);
-    fireEvent.click(screen.getAllByLabelText("upvote")[0]);
+    fireEvent.click(screen.getAllByLabelText("upvote")[0]!);
     expect(onVotePost).toHaveBeenCalled();
     expect(onPostClick).not.toHaveBeenCalled();
   });

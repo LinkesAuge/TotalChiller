@@ -54,13 +54,12 @@ describe("GameIcon", () => {
   });
 
   it("logs a warning in development for unknown icon names", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     render(<GameIcon name="nonexistent" />);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("nonexistent"));
     warnSpy.mockRestore();
-    process.env.NODE_ENV = originalEnv;
+    vi.unstubAllEnvs();
   });
 
   it("uses empty alt by default (decorative icon)", () => {

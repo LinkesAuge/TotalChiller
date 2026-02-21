@@ -63,7 +63,7 @@ describe("RankFilter", () => {
     const onRanksChange = vi.fn();
     render(<RankFilter {...defaultProps} onRanksChange={onRanksChange} />);
     const checkboxes = screen.getAllByRole("checkbox");
-    fireEvent.click(checkboxes[0]);
+    fireEvent.click(checkboxes[0]!);
     expect(onRanksChange).toHaveBeenCalledWith(["leader"]);
   });
 
@@ -118,7 +118,7 @@ describe("RankFilter", () => {
     render(<RankFilter {...defaultProps} onIncludeWebmasterChange={onIncludeWebmasterChange} />);
     const checkboxes = screen.getAllByRole("checkbox");
     const webmasterCheckbox = checkboxes[checkboxes.length - 1];
-    fireEvent.click(webmasterCheckbox);
+    fireEvent.click(webmasterCheckbox!);
     expect(onIncludeWebmasterChange).toHaveBeenCalledWith(true);
   });
 });

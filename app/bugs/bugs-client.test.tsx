@@ -19,7 +19,7 @@ vi.mock("next/dynamic", () => {
     __esModule: true,
     default: (loader: () => Promise<any>) => {
       function DynamicWrapper(props: any) {
-        const [Comp, setComp] = React.useState<any>(null);
+        const [Comp, setComp] = React.useState(null);
         React.useEffect(() => {
           let cancelled = false;
           loader().then((mod: any) => {

@@ -192,6 +192,6 @@ describe("useDashboardData", () => {
       expect(result.current.isLoadingAnnouncements).toBe(false);
     });
 
-    expect(result.current.announcements[0].author_name).toBe("fallback_user");
+    expect(result.current.announcements[0]!.author_name).toBe("fallback_user");
   });
 });

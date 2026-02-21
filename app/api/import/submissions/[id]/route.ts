@@ -18,6 +18,12 @@ const STAGED_TABLES: Record<string, string> = {
   events: "staged_event_entries",
 };
 
+const PRODUCTION_TABLES: Record<string, string> = {
+  chests: "chest_entries",
+  members: "member_snapshots",
+  events: "event_results",
+};
+
 /**
  * GET /api/import/submissions/[id] — Submission detail with paginated staged entries.
  */
@@ -234,7 +240,18 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       const tableName = STAGED_TABLES[subType];
       if (!tableName) return apiError("Unknown submission type.", 500);
 
-      const newStatus = patch.matchGameAccountId ? "auto_matched" : "pending";
+      const { data: currentEntry, error: currentErr } = await svc
+        .from(tableName)
+        .select("item_status, player_name")
+        .eq("id", patch.entryId)
+        .eq("submission_id", id)
+        .maybeSingle();
+
+      if (currentErr || !currentEntry) return apiError("Entry not found in this submission.", 404);
+
+      const prevStatus = currentEntry.item_status as string;
+      const preserveStatus = prevStatus === "approved" || prevStatus === "rejected";
+      const newStatus = preserveStatus ? prevStatus : patch.matchGameAccountId ? "auto_matched" : "pending";
 
       const { data: updated, error: updateErr } = await svc
         .from(tableName)
@@ -254,6 +271,30 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         return apiError("Failed to update entry.", 500);
       }
       if (!updated) return apiError("Entry not found in this submission.", 404);
+
+      if (prevStatus === "approved") {
+        const productionTable = PRODUCTION_TABLES[subType];
+        if (productionTable) {
+          const { error: prodErr } = await svc
+            .from(productionTable)
+            .update({ game_account_id: patch.matchGameAccountId })
+            .eq("submission_id", id)
+            .eq("player_name", currentEntry.player_name as string);
+
+          if (prodErr) {
+            captureApiError("PATCH /api/import/submissions/[id] production propagation", prodErr);
+            return apiError("Staged entry updated but production sync failed.", 500);
+          }
+
+          await svc
+            .from(tableName)
+            .update({ matched_game_account_id: patch.matchGameAccountId })
+            .eq("submission_id", id)
+            .eq("player_name", currentEntry.player_name as string)
+            .eq("item_status", "approved")
+            .neq("id", patch.entryId);
+        }
+      }
 
       const { count: matchedTotal } = await svc
         .from(tableName)

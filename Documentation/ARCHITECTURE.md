@@ -221,7 +221,7 @@ Clan member directory. Game accounts sorted by rank. Webmaster/Administrator wit
 
 ### 4.11 Dashboard (`app/`)
 
-Landing page after login. Shows announcements, upcoming events, quick stats (real data from analytics API), and analytics quick links. Stat cards show member count, clan power, events with results, and chests this week from `/api/analytics/stats`.
+Landing page after login. Shows announcements, upcoming events, quick stats (real data from analytics API), and analytics quick links. Stat cards show member count, clan power, average power, events with results, chests this week (with week-over-week delta), and top collector from `/api/analytics/stats`. Includes a sparkline AreaChart for daily chest activity.
 
 ### 4.12 Design System (`app/design-system/`)
 
@@ -297,55 +297,55 @@ Standalone admin-gated page for deep-linking into a specific submission's staged
 
 ## 7. API Route Index
 
-| Route                                 | Methods                  | Auth         | Rate Limit       | Purpose                              |
-| ------------------------------------- | ------------------------ | ------------ | ---------------- | ------------------------------------ |
-| `/api/messages`                       | GET, POST                | user         | standard         | Inbox (dual-path) / Send             |
-| `/api/messages/[id]`                  | PATCH, DELETE            | user         | standard         | Mark read / Soft-delete              |
-| `/api/messages/sent`                  | GET                      | user         | standard         | Sent messages                        |
-| `/api/messages/sent/[id]`             | DELETE                   | user         | standard         | Sender soft-delete                   |
-| `/api/messages/thread/[threadId]`     | GET, DELETE              | user         | standard         | Thread + mark-read / Thread delete   |
-| `/api/messages/archive`               | GET, POST                | user         | standard         | Archived items / Archive batch       |
-| `/api/messages/search-recipients`     | GET                      | user         | standard         | Recipient search                     |
-| `/api/notifications`                  | GET                      | user         | relaxed          | User notifications                   |
-| `/api/notifications/[id]`             | PATCH, DELETE            | user         | standard         | Mark read / Delete                   |
-| `/api/notifications/mark-all-read`    | POST                     | user         | standard         | Mark all read                        |
-| `/api/notifications/fan-out`          | POST                     | user         | strict           | Fan-out to clan members              |
-| `/api/notifications/delete-all`       | POST                     | user         | standard         | Delete all                           |
-| `/api/notification-settings`          | GET, PATCH               | user         | standard         | Notification preferences             |
-| `/api/game-accounts`                  | GET, POST, PATCH         | user         | standard         | Game account CRUD                    |
-| `/api/site-content`                   | GET, PATCH               | public/admin | relaxed/standard | CMS text content                     |
-| `/api/site-list-items`                | GET, PATCH               | public/admin | relaxed/standard | CMS list items                       |
-| `/api/auth/forgot-password`           | POST                     | public       | standard         | Password reset email                 |
-| `/api/admin/create-user`              | POST                     | admin        | strict           | Invite new user                      |
-| `/api/admin/resend-invite`            | POST                     | admin        | strict           | Resend invite email                  |
-| `/api/admin/delete-user`              | POST                     | admin        | strict           | Delete user                          |
-| `/api/admin/user-lookup`              | POST                     | admin        | strict           | Lookup user by email                 |
-| `/api/admin/email-confirmations`      | GET, POST                | admin        | standard/strict  | Email confirmation status / Confirm  |
-| `/api/admin/game-account-approvals`   | GET, PATCH               | admin        | strict           | Approval queue                       |
-| `/api/admin/forum-categories`         | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                  |
-| `/api/design-system/assets`           | GET, PATCH               | admin        | relaxed/standard | Design asset library                 |
-| `/api/design-system/ui-elements`      | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory                 |
-| `/api/design-system/assignments`      | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments                    |
-| `/api/design-system/preview-upload`   | POST                     | admin        | standard         | Screenshot upload                    |
-| `/api/bugs`                           | GET, POST                | user         | standard         | Bug report list / Create             |
-| `/api/bugs/[id]`                      | GET, PATCH, DELETE       | user/admin   | standard/strict  | Report detail / Update / Delete      |
-| `/api/bugs/[id]/comments`             | GET, POST                | user         | standard         | Comments / Add comment               |
-| `/api/bugs/[id]/comments/[commentId]` | PATCH, DELETE            | user/admin   | standard/strict  | Edit / Delete comment                |
-| `/api/bugs/categories`                | GET, POST, PATCH, DELETE | user/admin   | standard/strict  | Bug category CRUD                    |
-| `/api/bugs/screenshots`               | POST                     | user         | standard         | Upload screenshot                    |
-| **Analytics**                         |                          |              |                  |                                      |
-| `/api/analytics/stats`                | GET                      | user         | standard         | Dashboard quick stats                |
-| `/api/analytics/chests`               | GET                      | user         | standard         | Chest rankings (date range, filters) |
-| `/api/analytics/events`               | GET                      | user         | standard         | Event list + detail results          |
-| `/api/analytics/machtpunkte`          | GET                      | user         | standard         | Power standings + history            |
-| **Data Pipeline / Import**            |                          |              |                  |                                      |
-| `/api/import/config`                  | GET                      | public       | standard         | Supabase URL + anon key discovery    |
-| `/api/import/clans`                   | GET                      | bearer/user  | standard         | User's clans (for ChillerBuddy)      |
-| `/api/import/submit`                  | POST                     | bearer/user  | relaxed          | Ingest ChillerBuddy export JSON      |
-| `/api/import/submissions`             | GET                      | user         | standard         | List submissions (filters + paging)  |
-| `/api/import/submissions/[id]`        | GET, DELETE              | user/admin   | standard         | Detail + staged entries / Delete     |
-| `/api/import/submissions/[id]/review` | POST                     | admin/mod    | standard         | Approve/reject staged entries        |
-| `/api/import/validation-lists`        | GET, POST                | bearer/user  | standard         | OCR corrections + known names sync   |
+| Route                                 | Methods                  | Auth         | Rate Limit       | Purpose                                                                |
+| ------------------------------------- | ------------------------ | ------------ | ---------------- | ---------------------------------------------------------------------- |
+| `/api/messages`                       | GET, POST                | user         | standard         | Inbox (dual-path) / Send                                               |
+| `/api/messages/[id]`                  | PATCH, DELETE            | user         | standard         | Mark read / Soft-delete                                                |
+| `/api/messages/sent`                  | GET                      | user         | standard         | Sent messages                                                          |
+| `/api/messages/sent/[id]`             | DELETE                   | user         | standard         | Sender soft-delete                                                     |
+| `/api/messages/thread/[threadId]`     | GET, DELETE              | user         | standard         | Thread + mark-read / Thread delete                                     |
+| `/api/messages/archive`               | GET, POST                | user         | standard         | Archived items / Archive batch                                         |
+| `/api/messages/search-recipients`     | GET                      | user         | standard         | Recipient search                                                       |
+| `/api/notifications`                  | GET                      | user         | relaxed          | User notifications                                                     |
+| `/api/notifications/[id]`             | PATCH, DELETE            | user         | standard         | Mark read / Delete                                                     |
+| `/api/notifications/mark-all-read`    | POST                     | user         | standard         | Mark all read                                                          |
+| `/api/notifications/fan-out`          | POST                     | user         | strict           | Fan-out to clan members                                                |
+| `/api/notifications/delete-all`       | POST                     | user         | standard         | Delete all                                                             |
+| `/api/notification-settings`          | GET, PATCH               | user         | standard         | Notification preferences                                               |
+| `/api/game-accounts`                  | GET, POST, PATCH         | user         | standard         | Game account CRUD                                                      |
+| `/api/site-content`                   | GET, PATCH               | public/admin | relaxed/standard | CMS text content                                                       |
+| `/api/site-list-items`                | GET, PATCH               | public/admin | relaxed/standard | CMS list items                                                         |
+| `/api/auth/forgot-password`           | POST                     | public       | standard         | Password reset email                                                   |
+| `/api/admin/create-user`              | POST                     | admin        | strict           | Invite new user                                                        |
+| `/api/admin/resend-invite`            | POST                     | admin        | strict           | Resend invite email                                                    |
+| `/api/admin/delete-user`              | POST                     | admin        | strict           | Delete user                                                            |
+| `/api/admin/user-lookup`              | POST                     | admin        | strict           | Lookup user by email                                                   |
+| `/api/admin/email-confirmations`      | GET, POST                | admin        | standard/strict  | Email confirmation status / Confirm                                    |
+| `/api/admin/game-account-approvals`   | GET, PATCH               | admin        | strict           | Approval queue                                                         |
+| `/api/admin/forum-categories`         | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                                                    |
+| `/api/design-system/assets`           | GET, PATCH               | admin        | relaxed/standard | Design asset library                                                   |
+| `/api/design-system/ui-elements`      | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory                                                   |
+| `/api/design-system/assignments`      | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments                                                      |
+| `/api/design-system/preview-upload`   | POST                     | admin        | standard         | Screenshot upload                                                      |
+| `/api/bugs`                           | GET, POST                | user         | standard         | Bug report list / Create                                               |
+| `/api/bugs/[id]`                      | GET, PATCH, DELETE       | user/admin   | standard/strict  | Report detail / Update / Delete                                        |
+| `/api/bugs/[id]/comments`             | GET, POST                | user         | standard         | Comments / Add comment                                                 |
+| `/api/bugs/[id]/comments/[commentId]` | PATCH, DELETE            | user/admin   | standard/strict  | Edit / Delete comment                                                  |
+| `/api/bugs/categories`                | GET, POST, PATCH, DELETE | user/admin   | standard/strict  | Bug category CRUD                                                      |
+| `/api/bugs/screenshots`               | POST                     | user         | standard         | Upload screenshot                                                      |
+| **Analytics**                         |                          |              |                  |                                                                        |
+| `/api/analytics/stats`                | GET                      | user         | standard         | Extended dashboard stats (counts, deltas, top collector, daily chart)  |
+| `/api/analytics/chests`               | GET                      | user         | standard         | Chest rankings (date range, filters)                                   |
+| `/api/analytics/events`               | GET                      | user         | standard         | Event list + detail results                                            |
+| `/api/analytics/machtpunkte`          | GET                      | user         | standard         | Power standings + history                                              |
+| **Data Pipeline / Import**            |                          |              |                  |                                                                        |
+| `/api/import/config`                  | GET                      | public       | standard         | Supabase URL + anon key discovery                                      |
+| `/api/import/clans`                   | GET                      | bearer/user  | standard         | User's clans (for ChillerBuddy)                                        |
+| `/api/import/submit`                  | POST                     | bearer/user  | relaxed          | Ingest ChillerBuddy export JSON                                        |
+| `/api/import/submissions`             | GET                      | user         | standard         | List submissions (filters + paging)                                    |
+| `/api/import/submissions/[id]`        | GET, PATCH, DELETE       | user/admin   | standard         | Detail + staged entries / Match edit (cascades to production) / Delete |
+| `/api/import/submissions/[id]/review` | POST                     | admin/mod    | standard         | Approve/reject staged entries                                          |
+| `/api/import/validation-lists`        | GET, POST                | bearer/user  | standard         | OCR corrections + known names sync                                     |
 
 ## 8. Database Table Index
 

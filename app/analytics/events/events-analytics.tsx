@@ -7,7 +7,7 @@ import PageShell from "@/app/components/page-shell";
 import DataState from "@/app/components/data-state";
 import useClanContext from "@/app/hooks/use-clan-context";
 import AnalyticsSubnav from "../analytics-subnav";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 /* ── Types ── */
 
@@ -34,8 +34,16 @@ interface RankingEntry {
   readonly game_account_id: string;
 }
 
+interface ParticipationTrendEntry {
+  readonly event_name: string;
+  readonly date: string;
+  readonly participants: number;
+  readonly avg_points: number;
+}
+
 interface EventListResponse {
   readonly events: EventListItem[];
+  readonly participation_trend: ParticipationTrendEntry[];
   readonly total: number;
   readonly page: number;
   readonly page_size: number;
@@ -223,6 +231,8 @@ export default function EventsAnalytics(): JSX.Element {
   const listTotalEvents = listData?.total ?? 0;
   const listTotalParticipants = listData?.events.reduce((sum, e) => sum + e.participant_count, 0) ?? 0;
   const listTotalPoints = listData?.events.reduce((sum, e) => sum + e.total_points, 0) ?? 0;
+  const avgParticipants = listTotalEvents > 0 ? Math.round(listTotalParticipants / listTotalEvents) : 0;
+  const avgPointsPerEvent = listTotalEvents > 0 ? Math.round(listTotalPoints / listTotalEvents) : 0;
 
   /* ── Render ── */
 
@@ -444,7 +454,162 @@ export default function EventsAnalytics(): JSX.Element {
                   <span className="analytics-summary-card__value">{listTotalPoints.toLocaleString()}</span>
                   <span className="analytics-summary-card__detail">{t("pointsEarned")}</span>
                 </div>
+
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 20V10" />
+                      <path d="M18 20V4" />
+                      <path d="M6 20v-4" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("avgParticipants")}</span>
+                  <span className="analytics-summary-card__value">{avgParticipants.toLocaleString()}</span>
+                  <span className="analytics-summary-card__detail">{t("perEvent")}</span>
+                </div>
+
+                <div className="analytics-summary-card">
+                  <div className="analytics-summary-card__icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    </svg>
+                  </div>
+                  <span className="analytics-summary-card__label">{t("avgPointsPerEvent")}</span>
+                  <span className="analytics-summary-card__value">{avgPointsPerEvent.toLocaleString()}</span>
+                  <span className="analytics-summary-card__detail">{t("perEvent")}</span>
+                </div>
               </div>
+
+              {/* Participation trend charts */}
+              {listData.participation_trend && listData.participation_trend.length > 1 && (
+                <div className="analytics-charts-row">
+                  <div className="analytics-chart-wrapper">
+                    <h4>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                      </svg>
+                      {t("chartParticipationTrend")}
+                    </h4>
+                    <ResponsiveContainer width="100%" height={280}>
+                      <AreaChart data={listData.participation_trend} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
+                        <defs>
+                          <linearGradient id="partGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#4a6ea0" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#4a6ea0" stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 200, 60, 0.1)" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fill: "#b8a888", fontSize: 11 }}
+                          axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fill: "#b8a888", fontSize: 11 }}
+                          axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                          tickLine={false}
+                          allowDecimals={false}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "rgba(10, 20, 32, 0.95)",
+                            border: "1px solid rgba(240, 200, 60, 0.3)",
+                            borderRadius: 6,
+                            color: "#e8dcc8",
+                            fontSize: "0.82rem",
+                            padding: "8px 12px",
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="participants"
+                          stroke="#4a6ea0"
+                          strokeWidth={2}
+                          fill="url(#partGrad)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="analytics-chart-wrapper">
+                    <h4>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                      {t("avgPointsPerEvent")}
+                    </h4>
+                    <ResponsiveContainer width="100%" height={280}>
+                      <AreaChart data={listData.participation_trend} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
+                        <defs>
+                          <linearGradient id="avgPtsGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#c9a34a" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#c9a34a" stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 200, 60, 0.1)" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fill: "#b8a888", fontSize: 11 }}
+                          axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fill: "#b8a888", fontSize: 11 }}
+                          axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                          tickLine={false}
+                          tickFormatter={(v: number) => v.toLocaleString()}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "rgba(10, 20, 32, 0.95)",
+                            border: "1px solid rgba(240, 200, 60, 0.3)",
+                            borderRadius: 6,
+                            color: "#e8dcc8",
+                            fontSize: "0.82rem",
+                            padding: "8px 12px",
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="avg_points"
+                          stroke="#c9a34a"
+                          strokeWidth={2}
+                          fill="url(#avgPtsGrad)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
 
               {/* Event list table */}
               <div className="analytics-table-section">

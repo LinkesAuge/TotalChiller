@@ -67,7 +67,7 @@ vi.mock("../../components/ui/game-alert", () => ({
 }));
 
 const mockSafeParse = vi.hoisted(() =>
-  vi.fn<[], { success: boolean; data?: any; error?: { issues: { path: string[]; message: string }[] } }>(() => ({
+  vi.fn<() => { success: boolean; data?: any; error?: { issues: { path: string[]; message: string }[] } }>(() => ({
     success: false,
     error: { issues: [] },
   })),

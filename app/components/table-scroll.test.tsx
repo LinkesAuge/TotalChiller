@@ -155,7 +155,7 @@ describe("TableScroll", () => {
     Object.defineProperty(bottomScroll, "clientWidth", { value: 500, configurable: true });
 
     if (resizeCb) {
-      resizeCb([], {} as ResizeObserver);
+      (resizeCb as ResizeObserverCallback)([], {} as ResizeObserver);
     }
 
     const topScroll = container.querySelector(".top-scroll");

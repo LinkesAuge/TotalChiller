@@ -23,16 +23,16 @@ function createFileEvent(file: File | null): ChangeEvent<HTMLInputElement> {
 describe("useBannerUpload", () => {
   let mockSupabase: ReturnType<typeof createMockSupabase>["supabase"];
   let mockStorage: ReturnType<typeof createMockSupabase>["mockStorage"];
-  let onSuccess: ReturnType<typeof vi.fn>;
-  let onError: ReturnType<typeof vi.fn>;
+  let onSuccess: ReturnType<typeof vi.fn<(publicUrl: string) => void>>;
+  let onError: ReturnType<typeof vi.fn<(message: string) => void>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     const mock = createMockSupabase();
     mockSupabase = mock.supabase;
     mockStorage = mock.mockStorage;
-    onSuccess = vi.fn();
-    onError = vi.fn();
+    onSuccess = vi.fn<(publicUrl: string) => void>();
+    onError = vi.fn<(message: string) => void>();
   });
 
   it("starts with isBannerUploading false", () => {

@@ -26,10 +26,12 @@ const MOCK_REPORT: BugReportListItem = {
   status: "open",
   priority: "high",
   page_url: "/test",
-  reported_by: "user-1",
+  reporter_id: "user-1",
   category_id: "cat-1",
   created_at: "2026-01-15T10:00:00Z",
-  updated_at: null,
+  updated_at: "2026-01-15T10:00:00Z",
+  resolved_at: null,
+  closed_at: null,
   category_name: "UI",
   category_slug: "ui",
   reporter: { username: "testuser", display_name: "Test User" },
@@ -41,7 +43,8 @@ const MOCK_CATEGORY: BugReportCategory = {
   id: "cat-1",
   name: "UI",
   slug: "ui",
-  description: "UI bugs",
+  sort_order: 1,
+  created_at: "2026-01-01T00:00:00Z",
 };
 
 describe("useBugs", () => {

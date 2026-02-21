@@ -488,11 +488,10 @@ describe("UsersTab", () => {
     await waitFor(() => expect(screen.getByText("u10@test.com")).toBeInTheDocument());
 
     const editableButtons = screen.getAllByText("ten").filter((el) => el.classList.contains("editable-button"));
-    if (editableButtons.length > 0) {
-      await act(async () => {
-        fireEvent.click(editableButtons[0]);
-      });
-    }
+    expect(editableButtons.length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(editableButtons[0]!);
+    });
   });
 
   /* ── Resend invite ── */
@@ -1221,20 +1220,18 @@ describe("UsersTab", () => {
     await waitFor(() => expect(screen.getByText("u50@test.com")).toBeInTheDocument());
 
     const editableBtns = screen.getAllByText("OldName").filter((el) => el.classList.contains("editable-button"));
-    if (editableBtns.length > 0) {
-      await act(async () => {
-        fireEvent.click(editableBtns[0]);
-      });
-    }
+    expect(editableBtns.length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(editableBtns[0]!);
+    });
 
     const inputs = document.querySelectorAll("input.editable-field");
     const displayNameInput = Array.from(inputs).find((input) => (input as HTMLInputElement).value === "OldName") as
       | HTMLInputElement
       | undefined;
 
-    if (displayNameInput) {
-      fireEvent.change(displayNameInput, { target: { value: "NewDisplayName" } });
-    }
+    expect(displayNameInput).toBeDefined();
+    fireEvent.change(displayNameInput!, { target: { value: "NewDisplayName" } });
 
     await act(async () => {
       fireEvent.click(screen.getByLabelText("common.saveChanges"));
@@ -1257,20 +1254,18 @@ describe("UsersTab", () => {
     await waitFor(() => expect(screen.getByText("u51@test.com")).toBeInTheDocument());
 
     const editableBtns = screen.getAllByText("fiftyone").filter((el) => el.classList.contains("editable-button"));
-    if (editableBtns.length > 0) {
-      await act(async () => {
-        fireEvent.click(editableBtns[0]);
-      });
-    }
+    expect(editableBtns.length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(editableBtns[0]!);
+    });
 
     const inputs = document.querySelectorAll("input.editable-field");
     const usernameInput = Array.from(inputs).find((input) => (input as HTMLInputElement).value === "fiftyone") as
       | HTMLInputElement
       | undefined;
 
-    if (usernameInput) {
-      fireEvent.change(usernameInput, { target: { value: "newusername" } });
-    }
+    expect(usernameInput).toBeDefined();
+    fireEvent.change(usernameInput!, { target: { value: "newusername" } });
 
     await act(async () => {
       fireEvent.click(screen.getByLabelText("common.saveChanges"));
@@ -1386,7 +1381,7 @@ describe("UsersTab", () => {
     await waitFor(() => expect(screen.getByText("u55@test.com")).toBeInTheDocument());
 
     const deleteButtons = screen.getAllByLabelText("users.deleteUser");
-    const targetBtn = deleteButtons[deleteButtons.length - 1];
+    const targetBtn = deleteButtons[deleteButtons.length - 1]!;
     await act(async () => {
       fireEvent.click(targetBtn);
     });
@@ -1411,7 +1406,7 @@ describe("UsersTab", () => {
     await waitFor(() => expect(screen.getByText("u56@test.com")).toBeInTheDocument());
 
     const deleteButtons = screen.getAllByLabelText("users.deleteUser");
-    const targetBtn = deleteButtons[deleteButtons.length - 1];
+    const targetBtn = deleteButtons[deleteButtons.length - 1]!;
     await act(async () => {
       fireEvent.click(targetBtn);
     });
@@ -1659,20 +1654,18 @@ describe("UsersTab", () => {
     await waitFor(() => expect(screen.getByText("u64@test.com")).toBeInTheDocument());
 
     const editableBtns = screen.getAllByText("sixtyfour").filter((el) => el.classList.contains("editable-button"));
-    if (editableBtns.length > 0) {
-      await act(async () => {
-        fireEvent.click(editableBtns[0]);
-      });
-    }
+    expect(editableBtns.length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(editableBtns[0]!);
+    });
 
     const inputs = document.querySelectorAll("input.editable-field");
     const usernameInput = Array.from(inputs).find((input) => (input as HTMLInputElement).value === "sixtyfour") as
       | HTMLInputElement
       | undefined;
 
-    if (usernameInput) {
-      fireEvent.change(usernameInput, { target: { value: "changed" } });
-    }
+    expect(usernameInput).toBeDefined();
+    fireEvent.change(usernameInput!, { target: { value: "changed" } });
 
     const cancelAllBtn = screen.getByText("common.cancelAll");
     await act(async () => {
@@ -1854,20 +1847,18 @@ describe("UsersTab", () => {
     await waitFor(() => expect(screen.getByText("u70@test.com")).toBeInTheDocument());
 
     const editableBtns = screen.getAllByText("seventy").filter((el) => el.classList.contains("editable-button"));
-    if (editableBtns.length > 0) {
-      await act(async () => {
-        fireEvent.click(editableBtns[0]);
-      });
-    }
+    expect(editableBtns.length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(editableBtns[0]!);
+    });
 
     const inputs = document.querySelectorAll("input.editable-field");
     const usernameInput = Array.from(inputs).find((input) => (input as HTMLInputElement).value === "seventy") as
       | HTMLInputElement
       | undefined;
 
-    if (usernameInput) {
-      fireEvent.change(usernameInput, { target: { value: "newname" } });
-    }
+    expect(usernameInput).toBeDefined();
+    fireEvent.change(usernameInput!, { target: { value: "newname" } });
 
     const saveAllBtn = screen.getByText("common.saveAll");
     await act(async () => {
@@ -1919,11 +1910,10 @@ describe("UsersTab", () => {
     await waitFor(() => expect(screen.getByText("u72@test.com")).toBeInTheDocument());
 
     const editableBtns = screen.getAllByText("seventytwo").filter((el) => el.classList.contains("editable-button"));
-    if (editableBtns.length > 0) {
-      await act(async () => {
-        fireEvent.click(editableBtns[0]);
-      });
-    }
+    expect(editableBtns.length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(editableBtns[0]!);
+    });
 
     await act(async () => {
       fireEvent.click(screen.getByLabelText("common.cancelChanges"));
@@ -1966,17 +1956,15 @@ describe("UsersTab", () => {
     });
 
     const editableBtns73 = screen.getAllByText("seventythree").filter((el) => el.classList.contains("editable-button"));
-    if (editableBtns73.length > 0) {
-      await act(async () => {
-        fireEvent.click(editableBtns73[0]);
-      });
-    }
+    expect(editableBtns73.length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(editableBtns73[0]!);
+    });
 
     const row74 = screen.getByText("u74@test.com").closest("[role='button']");
-    if (row74) {
-      await act(async () => {
-        fireEvent.click(row74);
-      });
-    }
+    expect(row74).not.toBeNull();
+    await act(async () => {
+      fireEvent.click(row74!);
+    });
   });
 });

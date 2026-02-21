@@ -181,15 +181,15 @@ describe("ForumPostForm", () => {
   it("marks write tab as active when not in preview mode", () => {
     const { container } = render(<ForumPostForm {...makeBaseProps()} />);
     const writeTabs = container.querySelectorAll(".forum-editor-tab");
-    expect(writeTabs[0].classList.contains("active")).toBe(true);
-    expect(writeTabs[1].classList.contains("active")).toBe(false);
+    expect(writeTabs[0]!.classList.contains("active")).toBe(true);
+    expect(writeTabs[1]!.classList.contains("active")).toBe(false);
   });
 
   it("marks preview tab as active when in preview mode", () => {
     const { container } = render(<ForumPostForm {...makeBaseProps({ isPreviewMode: true, formContent: "x" })} />);
     const tabs = container.querySelectorAll(".forum-editor-tab");
-    expect(tabs[0].classList.contains("active")).toBe(false);
-    expect(tabs[1].classList.contains("active")).toBe(true);
+    expect(tabs[0]!.classList.contains("active")).toBe(false);
+    expect(tabs[1]!.classList.contains("active")).toBe(true);
   });
 
   // ── Content area ──

@@ -59,9 +59,9 @@ describe("DesignSystemClient", () => {
     const user = userEvent.setup();
     render(<DesignSystemClient />);
     const buttons = screen.getAllByRole("button");
-    await user.click(buttons[1]);
-    expect(buttons[1].className).toContain("active");
-    expect(buttons[0].className).not.toContain("active");
+    await user.click(buttons[1]!);
+    expect(buttons[1]!.className).toContain("active");
+    expect(buttons[0]!.className).not.toContain("active");
   });
 
   it("switches to third tab on click", async () => {
@@ -69,10 +69,10 @@ describe("DesignSystemClient", () => {
     const user = userEvent.setup();
     render(<DesignSystemClient />);
     const buttons = screen.getAllByRole("button");
-    await user.click(buttons[2]);
-    expect(buttons[2].className).toContain("active");
-    expect(buttons[0].className).not.toContain("active");
-    expect(buttons[1].className).not.toContain("active");
+    await user.click(buttons[2]!);
+    expect(buttons[2]!.className).toContain("active");
+    expect(buttons[0]!.className).not.toContain("active");
+    expect(buttons[1]!.className).not.toContain("active");
   });
 
   it("switches back to first tab after switching away", async () => {
@@ -80,11 +80,11 @@ describe("DesignSystemClient", () => {
     const user = userEvent.setup();
     render(<DesignSystemClient />);
     const buttons = screen.getAllByRole("button");
-    await user.click(buttons[1]);
-    expect(buttons[1].className).toContain("active");
-    await user.click(buttons[0]);
-    expect(buttons[0].className).toContain("active");
-    expect(buttons[1].className).not.toContain("active");
+    await user.click(buttons[1]!);
+    expect(buttons[1]!.className).toContain("active");
+    await user.click(buttons[0]!);
+    expect(buttons[0]!.className).toContain("active");
+    expect(buttons[1]!.className).not.toContain("active");
   });
 
   it("renders tab descriptions as title attributes", () => {
@@ -106,7 +106,7 @@ describe("DesignSystemClient", () => {
     const { default: userEvent } = await import("@testing-library/user-event");
     const user = userEvent.setup();
     render(<DesignSystemClient />);
-    await user.click(screen.getAllByRole("button")[2]);
+    await user.click(screen.getAllByRole("button")[2]!);
     expect(screen.getByTestId("mock-tab")).toBeInTheDocument();
   });
 });

@@ -9,7 +9,20 @@ import type { SelectOption } from "@/app/components/ui/radix-select";
 import DatePicker from "@/app/components/date-picker";
 import useClanContext from "@/app/hooks/use-clan-context";
 import AnalyticsSubnav from "../analytics-subnav";
-import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import {
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
 /* ── Types ── */
 
@@ -30,9 +43,15 @@ interface ChestsFilters {
   readonly sources: string[];
 }
 
+interface ChestTypeEntry {
+  readonly name: string;
+  readonly count: number;
+}
+
 interface ChestsPayload {
   readonly rankings: RankingEntry[];
   readonly chart_data: ChartPoint[];
+  readonly chest_type_distribution: ChestTypeEntry[];
   readonly filters: ChestsFilters;
   readonly total: number;
   readonly page: number;
@@ -85,6 +104,7 @@ function rankClass(rank: number): string {
 const CHART_GOLD = "#c9a34a";
 const CHART_GRID = "rgba(240, 200, 60, 0.1)";
 const CHART_AXIS = "#b8a888";
+const PIE_COLORS = ["#c9a34a", "#4a6ea0", "#4a9960", "#c94a3a", "#8a6ea0", "#e4c778", "#6fd68c", "#8ab4e0"];
 
 function ChartTooltipStyle(): React.CSSProperties {
   return {
@@ -519,6 +539,68 @@ export default function ChestsAnalytics(): JSX.Element {
             </>
           );
         })()}
+
+        {/* ── Chest type distribution ── */}
+        {data && data.chest_type_distribution && data.chest_type_distribution.length > 1 && (
+          <div className="analytics-chart-wrapper">
+            <h4>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a10 10 0 0 1 0 20" />
+                <path d="M12 2v20" />
+              </svg>
+              {t("chartChestTypeDistribution")}
+            </h4>
+            <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+              <ResponsiveContainer width={280} height={280}>
+                <PieChart>
+                  <Pie
+                    data={data.chest_type_distribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={110}
+                    dataKey="count"
+                    nameKey="name"
+                    paddingAngle={2}
+                    stroke="rgba(10, 20, 32, 0.8)"
+                    strokeWidth={2}
+                  >
+                    {data.chest_type_distribution.map((_entry, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "rgba(10, 20, 32, 0.95)",
+                      border: "1px solid rgba(240, 200, 60, 0.3)",
+                      borderRadius: 6,
+                      color: "#e8dcc8",
+                      fontSize: "0.82rem",
+                      padding: "8px 12px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pie-legend">
+                {data.chest_type_distribution.map((entry, i) => (
+                  <div key={entry.name} className="pie-legend-item">
+                    <span className="pie-legend-dot" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    <span className="pie-legend-name">{entry.name}</span>
+                    <span className="pie-legend-count">{entry.count.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Ranking table ── */}
         {data && data.rankings.length > 0 && (

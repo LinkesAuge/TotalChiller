@@ -38,8 +38,14 @@ export interface UseDashboardDataParams {
 export interface DashboardStats {
   readonly members_count: number;
   readonly total_power: number;
+  readonly avg_power: number;
   readonly chests_this_week: number;
+  readonly chests_last_week: number;
   readonly events_with_results: number;
+  readonly top_collector_name: string;
+  readonly top_collector_count: number;
+  readonly last_event_participation_rate: number;
+  readonly chests_daily: readonly { readonly date: string; readonly count: number }[];
 }
 
 export interface UseDashboardDataResult {

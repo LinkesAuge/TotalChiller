@@ -36,23 +36,37 @@ import type { InboxThread, SentMessage } from "@/lib/types/domain";
 
 const MOCK_INBOX_THREAD: InboxThread = {
   thread_id: "thread-1",
-  subject: "Test Thread",
-  last_message_content: "Latest message",
-  last_message_at: "2026-01-15T10:00:00Z",
+  latest_message: {
+    id: "msg-latest-1",
+    sender_id: "user-2",
+    subject: null,
+    content: "Latest message",
+    message_type: "private",
+    thread_id: "thread-1",
+    parent_id: null,
+    created_at: "2026-01-15T10:00:00Z",
+  },
   unread_count: 2,
   message_type: "private",
-  partner_id: "user-2",
+  sender_id: "user-2",
   message_count: 3,
 };
 
 const MOCK_INBOX_THREAD_2: InboxThread = {
   thread_id: "thread-2",
-  subject: "Another Thread",
-  last_message_content: "Hello",
-  last_message_at: "2026-01-16T10:00:00Z",
+  latest_message: {
+    id: "msg-latest-2",
+    sender_id: "user-3",
+    subject: null,
+    content: "Hello",
+    message_type: "private",
+    thread_id: "thread-2",
+    parent_id: null,
+    created_at: "2026-01-16T10:00:00Z",
+  },
   unread_count: 0,
   message_type: "private",
-  partner_id: "user-3",
+  sender_id: "user-3",
   message_count: 1,
 };
 

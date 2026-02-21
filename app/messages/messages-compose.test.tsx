@@ -189,7 +189,7 @@ describe("MessagesCompose", () => {
     });
     render(<MessagesCompose userId="u1" api={api} />);
     const removeButtons = screen.getAllByRole("button", { name: "removeRecipient" });
-    fireEvent.click(removeButtons[0]);
+    fireEvent.click(removeButtons[0]!);
     expect(removeRecipient).toHaveBeenCalledWith("r1");
   });
 });

@@ -13,7 +13,7 @@ import type { BugCommentWithAuthor } from "./bugs-types";
 
 const MOCK_COMMENT: BugCommentWithAuthor = {
   id: "comment-1",
-  bug_report_id: "bug-1",
+  report_id: "bug-1",
   content: "This is a comment",
   created_at: "2026-01-15T10:00:00Z",
   updated_at: null,

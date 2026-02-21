@@ -31,20 +31,20 @@ describe("captureApiError", () => {
 
   it("wraps non-Error values in a new Error for Sentry", () => {
     captureApiError("DELETE /api/item", "string error");
-    const sentryArg = mockCaptureException.mock.calls[0][0];
+    const sentryArg = mockCaptureException.mock.calls[0]![0];
     expect(sentryArg).toBeInstanceOf(Error);
     expect((sentryArg as Error).message).toBe("string error");
   });
 
   it("wraps numeric errors", () => {
     captureApiError("PATCH /api/x", 404);
-    const sentryArg = mockCaptureException.mock.calls[0][0];
+    const sentryArg = mockCaptureException.mock.calls[0]![0];
     expect((sentryArg as Error).message).toBe("404");
   });
 
   it("wraps null/undefined errors", () => {
     captureApiError("PUT /api/y", null);
-    const sentryArg = mockCaptureException.mock.calls[0][0];
+    const sentryArg = mockCaptureException.mock.calls[0]![0];
     expect((sentryArg as Error).message).toBe("null");
   });
 });

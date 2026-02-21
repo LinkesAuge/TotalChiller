@@ -2918,6 +2918,54 @@ input[type="checkbox"]:disabled {
   letter-spacing: 0.06em;
 }
 
+.dashboard-stat-card__detail {
+  font-size: 0.65rem;
+  color: var(--color-text-2);
+  opacity: 0.8;
+}
+
+/* ─── Dashboard Sparkline Section ─── */
+.dashboard-sparkline-section {
+  padding: 0 16px 14px;
+}
+
+.dashboard-sparkline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  margin-bottom: 4px;
+}
+
+.dashboard-sparkline-label {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dashboard-sparkline-compare {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.dashboard-sparkline-compare.positive {
+  color: var(--color-accent-green);
+  background: rgba(74, 153, 96, 0.12);
+}
+
+.dashboard-sparkline-compare.negative {
+  color: var(--color-accent-red);
+  background: rgba(201, 74, 58, 0.12);
+}
+
+.dashboard-sparkline {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
 /* Unread dot */
 .unread-dot {
   width: 5px;

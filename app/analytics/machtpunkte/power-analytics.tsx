@@ -6,7 +6,20 @@ import PageShell from "@/app/components/page-shell";
 import DataState from "@/app/components/data-state";
 import useClanContext from "@/app/hooks/use-clan-context";
 import AnalyticsSubnav from "../analytics-subnav";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 /* ─── Types ─── */
 
@@ -25,10 +38,23 @@ interface HistoryEntry {
   readonly score: number;
 }
 
+interface ClanTotalHistoryEntry {
+  readonly date: string;
+  readonly total_power: number;
+  readonly player_count: number;
+}
+
+interface PowerDistributionEntry {
+  readonly range: string;
+  readonly count: number;
+}
+
 interface PowerResponse {
   readonly standings: Standing[];
   readonly history: HistoryEntry[];
   readonly clan_total: number;
+  readonly clan_total_history: ClanTotalHistoryEntry[];
+  readonly power_distribution: PowerDistributionEntry[];
   readonly total: number;
   readonly page: number;
   readonly page_size: number;
@@ -199,6 +225,7 @@ export default function PowerAnalytics(): JSX.Element {
   const avgScore = standings.length > 0 ? Math.round(standings.reduce((s, r) => s + r.score, 0) / standings.length) : 0;
   const topPlayer = standings[0];
   const growingPlayers = standings.filter((s) => s.delta !== null && s.delta > 0).length;
+  const medianScore = standings.length > 0 ? (standings[Math.floor(standings.length / 2)]?.score ?? 0) : 0;
 
   return (
     <PageShell
@@ -290,6 +317,26 @@ export default function PowerAnalytics(): JSX.Element {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
+                  <path d="M12 20V10" />
+                  <path d="M18 20V4" />
+                  <path d="M6 20v-4" />
+                </svg>
+              </div>
+              <span className="analytics-summary-card__label">{t("medianScore")}</span>
+              <span className="analytics-summary-card__value">{medianScore.toLocaleString()}</span>
+              <span className="analytics-summary-card__detail">{t("medianDetail")}</span>
+            </div>
+
+            <div className="analytics-summary-card">
+              <div className="analytics-summary-card__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                   <polyline points="17 6 23 6 23 12" />
                 </svg>
@@ -342,6 +389,114 @@ export default function PowerAnalytics(): JSX.Element {
                 ))}
               </LineChart>
             </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* ── Clan total trend + power distribution ── */}
+        {data && (
+          <div className="analytics-charts-row">
+            {data.clan_total_history.length > 1 && (
+              <div className="analytics-chart-wrapper">
+                <h4>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                    <polyline points="17 6 23 6 23 12" />
+                  </svg>
+                  {t("chartClanPowerTrend")}
+                </h4>
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={data.clan_total_history} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
+                    <defs>
+                      <linearGradient id="clanPowerGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#4a9960" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#4a9960" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 200, 60, 0.1)" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: "#b8a888", fontSize: 11 }}
+                      axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fill: "#b8a888", fontSize: 11 }}
+                      axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                      tickLine={false}
+                      tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
+                      width={60}
+                    />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="total_power"
+                      stroke="#4a9960"
+                      strokeWidth={2}
+                      fill="url(#clanPowerGrad)"
+                      name={t("clanTotal")}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            {data.power_distribution.length > 1 && (
+              <div className="analytics-chart-wrapper">
+                <h4>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="12" width="4" height="9" rx="1" />
+                    <rect x="10" y="7" width="4" height="14" rx="1" />
+                    <rect x="17" y="3" width="4" height="18" rx="1" />
+                  </svg>
+                  {t("chartPowerDistribution")}
+                </h4>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={data.power_distribution} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 200, 60, 0.1)" />
+                    <XAxis
+                      dataKey="range"
+                      tick={{ fill: "#b8a888", fontSize: 10 }}
+                      axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                      tickLine={false}
+                      interval={0}
+                      angle={-25}
+                      textAnchor="end"
+                      height={50}
+                    />
+                    <YAxis
+                      tick={{ fill: "#b8a888", fontSize: 11 }}
+                      axisLine={{ stroke: "rgba(240, 200, 60, 0.1)" }}
+                      tickLine={false}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(10, 20, 32, 0.95)",
+                        border: "1px solid rgba(240, 200, 60, 0.3)",
+                        borderRadius: 6,
+                        color: "#e8dcc8",
+                        fontSize: "0.82rem",
+                        padding: "8px 12px",
+                      }}
+                    />
+                    <Bar dataKey="count" fill="#8a6ea0" radius={[4, 4, 0, 0]} maxBarSize={36} name={t("players")} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         )}
 

@@ -56,7 +56,8 @@ vi.mock("./forum-utils", () => ({
 }));
 
 import { useForum } from "./use-forum";
-import type { ForumPost, ForumComment, ForumCategory } from "./forum-types";
+import type { ForumPost, ForumComment } from "./forum-types";
+import type { ForumCategory } from "@/lib/types/domain";
 
 const MOCK_CATEGORY: ForumCategory = {
   id: "cat-1",
@@ -64,6 +65,7 @@ const MOCK_CATEGORY: ForumCategory = {
   name: "General",
   slug: "general",
   description: "General discussion",
+  icon: null,
   sort_order: 0,
 };
 
@@ -73,6 +75,7 @@ const MOCK_CATEGORY_2: ForumCategory = {
   name: "Announcements",
   slug: "announcements",
   description: "Announcements",
+  icon: null,
   sort_order: 1,
 };
 

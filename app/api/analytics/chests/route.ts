@@ -66,7 +66,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (from > to) {
       return NextResponse.json({
-        data: { rankings: [], chart_data: [], filters: { chest_names: [], sources: [] }, total: 0 },
+        data: {
+          rankings: [],
+          chart_data: [],
+          chest_type_distribution: [],
+          filters: { chest_names: [], sources: [] },
+          total: 0,
+        },
       });
     }
 
@@ -98,6 +104,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Aggregate rankings by player
     const playerMap = new Map<string, { count: number; game_account_id: string | null }>();
     const chestNames = new Set<string>();
+    const chestNameCounts = new Map<string, number>();
     const sources = new Set<string>();
     const dateMap = new Map<string, number>();
 
@@ -109,7 +116,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       } else {
         playerMap.set(name, { count: 1, game_account_id: row.game_account_id as string | null });
       }
-      chestNames.add(row.chest_name as string);
+      const cn = row.chest_name as string;
+      chestNames.add(cn);
+      chestNameCounts.set(cn, (chestNameCounts.get(cn) ?? 0) + 1);
       sources.add(row.source as string);
 
       const dateKey = (row.opened_at as string).slice(0, 10);
@@ -136,10 +145,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, count]) => ({ date, count }));
 
+    // Chest type distribution (sorted by count desc)
+    const chestTypeDistribution = [...chestNameCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+
     return NextResponse.json({
       data: {
         rankings,
         chart_data: chartData,
+        chest_type_distribution: chestTypeDistribution,
         filters: {
           chest_names: [...chestNames].sort(),
           sources: [...sources].sort(),

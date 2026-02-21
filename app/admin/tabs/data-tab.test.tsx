@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("next-intl", () => ({
@@ -9,7 +9,7 @@ vi.mock("next-intl", () => ({
 }));
 vi.mock("next/image", () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (props: Record<string, unknown>) => {
     const React = require("react");
     return React.createElement("img", props);
   },
@@ -21,12 +21,12 @@ vi.mock("next/navigation", () => ({
 }));
 
 function createSupabaseQueryChain(result = { data: [], error: null }) {
-  const chain: any = {};
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   const methods = ["select", "eq", "neq", "order", "limit", "not", "in", "range", "single", "maybeSingle"];
   for (const m of methods) {
     chain[m] = vi.fn(() => chain);
   }
-  chain.then = vi.fn((resolve: any) => Promise.resolve(result).then(resolve));
+  chain.then = vi.fn((resolve?: ((v: unknown) => unknown) | null) => Promise.resolve(result).then(resolve));
   Object.defineProperty(chain, "then", { enumerable: false, writable: true, configurable: true, value: chain.then });
   return chain;
 }
@@ -60,7 +60,19 @@ vi.mock("@/lib/hooks/use-pagination", () => ({
 
 vi.mock("../../components/data-state", () => ({
   __esModule: true,
-  default: ({ children, isLoading, isEmpty, emptyMessage, loadingMessage }: any) => {
+  default: ({
+    children,
+    isLoading,
+    isEmpty,
+    emptyMessage,
+    loadingMessage,
+  }: {
+    children?: React.ReactNode;
+    isLoading?: boolean;
+    isEmpty?: boolean;
+    emptyMessage?: string;
+    loadingMessage?: string;
+  }) => {
     const React = require("react");
     if (isLoading) return React.createElement("div", { "data-testid": "loading" }, loadingMessage || "Loading...");
     if (isEmpty) return React.createElement("div", { "data-testid": "empty" }, emptyMessage || "Empty");
@@ -75,7 +87,7 @@ vi.mock("../../components/pagination-bar", () => ({
 
 vi.mock("../../components/ui/game-alert", () => ({
   __esModule: true,
-  default: ({ children, title, variant }: any) => {
+  default: ({ children, title, variant }: { children?: React.ReactNode; title?: string; variant?: string }) => {
     const React = require("react");
     return React.createElement("div", { "data-testid": `alert-${variant}`, role: "alert" }, [
       React.createElement("strong", { key: "t" }, title),
@@ -86,24 +98,38 @@ vi.mock("../../components/ui/game-alert", () => ({
 
 vi.mock("../../components/ui/radix-select", () => ({
   __esModule: true,
-  default: ({ value, onValueChange, options, disabled, placeholder }: any) => {
+  default: ({
+    value,
+    onValueChange,
+    options,
+    disabled,
+    placeholder,
+  }: {
+    value?: string;
+    onValueChange?: (v: string) => void;
+    options?: { value: string; label: string }[];
+    disabled?: boolean;
+    placeholder?: string;
+  }) => {
     const React = require("react");
     return React.createElement(
       "select",
       {
         value: value ?? "",
         disabled,
-        onChange: (e: any) => onValueChange(e.target.value),
+        onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onValueChange?.(e.target.value),
         "aria-label": placeholder,
       },
-      (options ?? []).map((opt: any) => React.createElement("option", { key: opt.value, value: opt.value }, opt.label)),
+      (options ?? []).map((opt: { value: string; label: string }) =>
+        React.createElement("option", { key: opt.value, value: opt.value }, opt.label),
+      ),
     );
   },
 }));
 
 vi.mock("@/lib/api/import-schemas", () => ({
   ImportPayloadSchema: {
-    safeParse: vi.fn((data: any) => {
+    safeParse: vi.fn((data: Record<string, unknown>) => {
       if (data?.version === 1 && data?.data) return { success: true, data };
       return { success: false, error: { issues: [{ path: ["root"], message: "invalid" }] } };
     }),
@@ -143,8 +169,11 @@ describe("DataTab", () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
-    vi.mocked(useTranslations).mockImplementation((() => vi.fn((key: string) => key)) as any);
-    vi.mocked(useUserRole).mockReturnValue({ isAdmin: true, isContentManager: true, loading: false } as any);
+    vi.mocked(useTranslations).mockImplementation((() =>
+      vi.fn((key: string) => key)) as unknown as typeof useTranslations);
+    vi.mocked(useUserRole).mockReturnValue({ isAdmin: true, isContentManager: true, loading: false } as ReturnType<
+      typeof useUserRole
+    >);
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: () =>
@@ -366,7 +395,7 @@ describe("DataTab", () => {
       isAdmin: false,
       isContentManager: false,
       loading: false,
-    } as any);
+    } as ReturnType<typeof useUserRole>);
 
     render(<DataTab />);
     await waitFor(() => {

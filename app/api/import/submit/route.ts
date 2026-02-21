@@ -244,6 +244,8 @@ async function processChests(
     throw new Error(`Failed to insert staged entries: ${insertErr.message}`);
   }
 
+  await svc.from("data_submissions").update({ matched_count: autoMatchedCount }).eq("id", submissionId);
+
   return {
     id: submissionId,
     type: "chests",
@@ -300,6 +302,8 @@ async function processMembers(
     throw new Error(`Failed to insert staged entries: ${insertErr.message}`);
   }
 
+  await svc.from("data_submissions").update({ matched_count: autoMatchedCount }).eq("id", submissionId);
+
   return {
     id: submissionId,
     type: "members",
@@ -355,6 +359,8 @@ async function processEvents(
   if (insertErr) {
     throw new Error(`Failed to insert staged entries: ${insertErr.message}`);
   }
+
+  await svc.from("data_submissions").update({ matched_count: autoMatchedCount }).eq("id", submissionId);
 
   return {
     id: submissionId,

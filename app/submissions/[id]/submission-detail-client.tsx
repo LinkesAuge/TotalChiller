@@ -25,7 +25,7 @@ interface Submission {
   readonly id: string;
   readonly submission_type: string;
   readonly status: string;
-  readonly total_items: number | null;
+  readonly item_count: number | null;
   readonly matched_count: number | null;
   readonly approved_count: number | null;
   readonly rejected_count: number | null;
@@ -355,7 +355,7 @@ function SubmissionDetailClient(): JSX.Element {
               </div>
               <div className="card-body" style={{ display: "flex", gap: 24, flexWrap: "wrap", fontSize: "0.85rem" }}>
                 <span>
-                  {t("totalItems")}: <strong>{submission.total_items ?? 0}</strong>
+                  {t("totalItems")}: <strong>{submission.item_count ?? 0}</strong>
                 </span>
                 <span>
                   {t("matchedItems")}: <strong>{submission.matched_count ?? 0}</strong>

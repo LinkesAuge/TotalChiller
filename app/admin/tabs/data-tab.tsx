@@ -28,7 +28,7 @@ interface SubmissionRow {
   readonly id: string;
   readonly submission_type: string;
   readonly status: string;
-  readonly total_items: number | null;
+  readonly item_count: number | null;
   readonly matched_count: number | null;
   readonly approved_count: number | null;
   readonly rejected_count: number | null;
@@ -734,7 +734,7 @@ export default function DataTab(): ReactElement {
           </div>
           <div className="card-body" style={{ display: "flex", gap: 24, flexWrap: "wrap", fontSize: "0.85rem" }}>
             <span>
-              {t("totalItems")}: <strong>{sub.total_items ?? 0}</strong>
+              {t("totalItems")}: <strong>{sub.item_count ?? 0}</strong>
             </span>
             <span>
               {t("matchedItems")}: <strong>{sub.matched_count ?? 0}</strong>
@@ -980,7 +980,7 @@ export default function DataTab(): ReactElement {
                 <span>
                   <span className={statusBadgeClass(sub.status)}>{t(`status_${sub.status}`)}</span>
                 </span>
-                <span>{sub.total_items ?? 0}</span>
+                <span>{sub.item_count ?? 0}</span>
                 <span>{sub.matched_count ?? 0}</span>
                 <span>{sub.profiles?.display_name ?? "—"}</span>
                 <span>{new Date(sub.created_at).toLocaleDateString()}</span>

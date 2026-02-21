@@ -317,23 +317,25 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ data: { updated: body.ids.length } });
     }
 
-    if (body.table === "ocr_corrections") {
+    const item = body as z.infer<typeof PatchCorrectionSchema> | z.infer<typeof PatchKnownNameSchema>;
+
+    if (item.table === "ocr_corrections") {
       const updates: Record<string, string> = {};
-      if (body.corrected_text) updates.corrected_text = body.corrected_text;
-      if (body.ocr_text) updates.ocr_text = body.ocr_text;
-      if (body.entity_type) updates.entity_type = body.entity_type;
+      if (item.corrected_text) updates.corrected_text = item.corrected_text;
+      if (item.ocr_text) updates.ocr_text = item.ocr_text;
+      if (item.entity_type) updates.entity_type = item.entity_type;
       if (Object.keys(updates).length === 0) return apiError("No fields to update.", 400);
-      const { error } = await svc.from("ocr_corrections").update(updates).eq("id", body.id);
+      const { error } = await svc.from("ocr_corrections").update(updates).eq("id", item.id);
       if (error) {
         captureApiError("PATCH /api/import/validation-lists (correction)", error);
         return apiError("Failed to update correction.", 500);
       }
     } else {
       const updates: Record<string, string> = {};
-      if (body.name) updates.name = body.name;
-      if (body.entity_type) updates.entity_type = body.entity_type;
+      if (item.name) updates.name = item.name;
+      if (item.entity_type) updates.entity_type = item.entity_type;
       if (Object.keys(updates).length === 0) return apiError("No fields to update.", 400);
-      const { error } = await svc.from("known_names").update(updates).eq("id", body.id);
+      const { error } = await svc.from("known_names").update(updates).eq("id", item.id);
       if (error) {
         captureApiError("PATCH /api/import/validation-lists (known_name)", error);
         return apiError("Failed to update known name.", 500);

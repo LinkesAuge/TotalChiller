@@ -28,6 +28,8 @@ interface EventListItem {
   readonly linked_event_id: string;
   readonly event_name: string;
   readonly event_date: string;
+  readonly starts_at: string | null;
+  readonly ends_at: string | null;
   readonly participant_count: number;
   readonly total_points: number;
 }
@@ -36,8 +38,8 @@ interface EventMeta {
   readonly id: string;
   readonly title: string;
   readonly description: string | null;
-  readonly starts_at: string;
-  readonly ends_at: string;
+  readonly starts_at: string | null;
+  readonly ends_at: string | null;
 }
 
 interface RankingEntry {
@@ -77,6 +79,8 @@ interface EventListResponse {
   readonly latest_event_ranking: RankingEntry[];
   readonly latest_event_name: string;
   readonly latest_event_date: string;
+  readonly latest_event_starts_at: string;
+  readonly latest_event_ends_at: string;
   readonly best_performers: BestPerformer[];
   readonly highest_single_score: HighestSingleScore;
 }
@@ -241,10 +245,12 @@ export default function EventsAnalytics(): JSX.Element {
       points: r.event_points,
     })) ?? [];
 
-  /* ── Format date ── */
+  /* ── Format date / date range ── */
+  const localeTag = locale === "de" ? "de-DE" : "en-GB";
+
   function formatDate(iso: string): string {
     try {
-      return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
+      return new Date(iso).toLocaleDateString(localeTag, {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -253,6 +259,16 @@ export default function EventsAnalytics(): JSX.Element {
     } catch {
       return iso;
     }
+  }
+
+  function formatDateRangeShort(startsAt: string | null, endsAt: string | null, fallbackDate?: string): string {
+    const start = startsAt || fallbackDate;
+    if (!start) return "—";
+    const startStr = formatDate(start);
+    if (!endsAt) return startStr;
+    const endStr = formatDate(endsAt);
+    if (startStr === endStr) return startStr;
+    return `${startStr} – ${endStr}`;
   }
 
   /* ── Computed stats ── */
@@ -329,7 +345,9 @@ export default function EventsAnalytics(): JSX.Element {
                 {detailData.event_meta?.starts_at && (
                   <div className="event-detail-stat">
                     <span className="event-detail-stat__label">{t("eventDateColumn")}</span>
-                    <span className="event-detail-stat__value">{formatDate(detailData.event_meta.starts_at)}</span>
+                    <span className="event-detail-stat__value">
+                      {formatDateRangeShort(detailData.event_meta.starts_at, detailData.event_meta.ends_at)}
+                    </span>
                   </div>
                 )}
               </div>
@@ -560,7 +578,11 @@ export default function EventsAnalytics(): JSX.Element {
                             {t("latestEventRanking")} — {listData.latest_event_name}
                           </h4>
                           <span className="analytics-table-section__count">
-                            {formatDate(listData.latest_event_date)}
+                            {formatDateRangeShort(
+                              listData.latest_event_starts_at,
+                              listData.latest_event_ends_at,
+                              listData.latest_event_date,
+                            )}
                           </span>
                         </div>
 
@@ -1002,7 +1024,7 @@ export default function EventsAnalytics(): JSX.Element {
                       }}
                     >
                       <span>{event.event_name}</span>
-                      <span>{formatDate(event.event_date)}</span>
+                      <span>{formatDateRangeShort(event.starts_at, event.ends_at, event.event_date)}</span>
                       <span>{event.participant_count}</span>
                       <span>{event.total_points.toLocaleString()}</span>
                     </div>

@@ -624,15 +624,26 @@
 
 /* ─── Submissions list table ─── */
 .table.submissions-list {
-  min-width: 960px;
+  min-width: 1140px;
 }
 
 .table.submissions-list header,
 .table.submissions-list .row {
-  grid-template-columns: 80px 100px 62px 85px 1fr 100px 130px 160px;
+  grid-template-columns: 72px 106px 58px 78px 1fr 92px 190px 132px 148px;
   min-width: 0;
   width: auto;
   align-items: center;
+}
+
+.table.submissions-list .row > span:nth-child(2) {
+  overflow: visible;
+}
+
+.table.submissions-list .row > span:not(:nth-child(2)),
+.table.submissions-list header > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── Submissions detail table (staged entries) ─── */

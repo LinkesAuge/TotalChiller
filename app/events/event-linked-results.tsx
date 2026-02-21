@@ -16,6 +16,7 @@ interface EventResult {
 interface EventLinkedResultsProps {
   readonly eventId: string;
   readonly eventDate?: string | null;
+  readonly eventEndDate?: string | null;
   readonly locale?: string;
   readonly autoScrollIntoView?: boolean;
   readonly onScrollComplete?: () => void;
@@ -36,6 +37,14 @@ function formatEventDate(iso: string, locale: string): string {
   }
 }
 
+function formatEventDateRange(startIso: string, endIso: string | null | undefined, locale: string): string {
+  const startStr = formatEventDate(startIso, locale);
+  if (!endIso) return startStr;
+  const endStr = formatEventDate(endIso, locale);
+  if (startStr === endStr) return startStr;
+  return `${startStr} – ${endStr}`;
+}
+
 function rankClass(rank: number): string {
   if (rank === 1) return "elr-rank top-1";
   if (rank === 2) return "elr-rank top-2";
@@ -46,6 +55,7 @@ function rankClass(rank: number): string {
 export default function EventLinkedResults({
   eventId,
   eventDate,
+  eventEndDate,
   locale = "de",
   autoScrollIntoView,
   onScrollComplete,
@@ -145,7 +155,7 @@ export default function EventLinkedResults({
             >
               <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            {formatEventDate(eventDate, locale)}
+            {formatEventDateRange(eventDate, eventEndDate, locale)}
           </span>
         )}
       </div>

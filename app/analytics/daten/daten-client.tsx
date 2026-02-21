@@ -43,6 +43,8 @@ interface SubmissionRow {
   readonly created_at: string;
   readonly reference_date: string | null;
   readonly linked_event_id: string | null;
+  readonly event_starts_at: string | null;
+  readonly event_ends_at: string | null;
   readonly profiles: SubmissionProfile | null;
 }
 
@@ -150,6 +152,15 @@ function statusBadgeClass(status: string): string {
     default:
       return "badge info";
   }
+}
+
+function formatEventDateRange(startsAt: string | null, endsAt: string | null): string {
+  if (!startsAt) return "—";
+  const startStr = formatBerlinDate(startsAt);
+  if (!endsAt) return startStr;
+  const endStr = formatBerlinDate(endsAt);
+  if (startStr === endStr) return startStr;
+  return `${startStr} – ${endStr}`;
 }
 
 /* ── Component ── */
@@ -1339,6 +1350,7 @@ function DataContent(): ReactElement {
               <span>{t("colMatched")}</span>
               <span>{t("colSubmittedBy")}</span>
               <span>{t("colReferenceDate")}</span>
+              <span>{t("colEventDate")}</span>
               <span>{t("colSubmittedAt")}</span>
               <span>{t("colActions")}</span>
             </header>
@@ -1370,6 +1382,7 @@ function DataContent(): ReactElement {
                   <span>{sub.matched_count ?? 0}</span>
                   <span>{sub.profiles?.display_name ?? "—"}</span>
                   <span>{sub.reference_date ? formatBerlinDate(sub.reference_date + "T00:00:00") : "—"}</span>
+                  <span>{formatEventDateRange(sub.event_starts_at, sub.event_ends_at)}</span>
                   <span>{formatLocalDateTime(sub.created_at)}</span>
                   <span
                     role="group"

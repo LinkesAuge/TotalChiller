@@ -8,6 +8,20 @@
 
 ### Added
 
+- **Event date ranges everywhere:** All places that previously showed only a single event date now display the full date range (`starts_at` – `ends_at`) when the event spans multiple days.
+  - **Analytics event list table:** "Datum" column shows date range (e.g. "18.02.2026 – 20.02.2026") instead of a single date.
+  - **Analytics event detail view:** Meta stats section shows full date range.
+  - **Analytics latest event ranking header:** Shows date range.
+  - **Event linked results (inline):** Date badge shows range; new `eventEndDate` prop on `EventLinkedResults`.
+  - **Submissions table (Daten/Einreichungen):** New "Event-Datum" column shows the date range of the linked calendar event. API enriches submissions with `event_starts_at` / `event_ends_at` from the events table.
+  - Single-day events still display only one date; the range only appears when start and end fall on different days.
+- **Events analytics API date enrichment:** `/api/analytics/events` now returns `starts_at`, `ends_at` per event list item, and `latest_event_starts_at` / `latest_event_ends_at` for the latest event section.
+- **Submissions API event date enrichment:** `/api/import/submissions` now returns `event_starts_at` and `event_ends_at` for submissions linked to a calendar event.
+
+### Fixed
+
+- **Matched count backfill migration:** `data_pipeline_matched_count.sql` now uses `matched_game_account_id IS NOT NULL` instead of `item_status = 'auto_matched'` for accurate counts, since approved entries lose the auto_matched status but retain the account link.
+
 - **Event results full list & collapse:** The inline results table (EventLinkedResults) now shows all participants by default instead of only the top 10. A toggle button at the bottom allows collapsing to 10 / expanding back, with chevron animation.
 - **Calendar results indicator:** Calendar cells with events that have linked results show a podium icon inline next to the time label (e.g. "ab 12:00 📊"). Works in both single-event and split-banner modes. The icon:
   - **Hover:** Shows a preview tooltip with the top 3 ranked players and total participant count (lazy-fetched with client-side cache).

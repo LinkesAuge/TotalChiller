@@ -354,6 +354,7 @@ function DayPanelEventCardInner({
           <EventLinkedResults
             eventId={entry.id}
             eventDate={entry.starts_at}
+            eventEndDate={entry.ends_at}
             locale={locale}
             autoScrollIntoView={focusResults}
             onScrollComplete={onResultsFocused}

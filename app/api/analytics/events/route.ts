@@ -107,25 +107,38 @@ async function getEventList(
     }
   }
 
-  // Also try to get event titles from the events table for linked events
+  // Also try to get event titles + date range from the events table for linked events
   const eventIds = [...eventMap.keys()];
-  let eventTitles = new Map<string, string>();
+  let eventDetails = new Map<string, { title: string; starts_at: string; ends_at: string }>();
   if (eventIds.length > 0) {
-    const { data: eventsData } = await supabase.from("events").select("id, title").in("id", eventIds);
+    const { data: eventsData } = await supabase
+      .from("events")
+      .select("id, title, starts_at, ends_at")
+      .in("id", eventIds);
 
     if (eventsData) {
-      eventTitles = new Map((eventsData as Array<{ id: string; title: string }>).map((e) => [e.id, e.title]));
+      eventDetails = new Map(
+        (eventsData as Array<{ id: string; title: string; starts_at: string; ends_at: string }>).map((e) => [
+          e.id,
+          { title: e.title, starts_at: e.starts_at, ends_at: e.ends_at },
+        ]),
+      );
     }
   }
 
   const sorted = [...eventMap.entries()]
-    .map(([id, data]) => ({
-      linked_event_id: id,
-      event_name: eventTitles.get(id) ?? data.event_name ?? "Unknown Event",
-      event_date: data.event_date,
-      participant_count: data.participant_count,
-      total_points: data.total_points,
-    }))
+    .map(([id, data]) => {
+      const detail = eventDetails.get(id);
+      return {
+        linked_event_id: id,
+        event_name: detail?.title ?? data.event_name ?? "Unknown Event",
+        event_date: data.event_date,
+        starts_at: detail?.starts_at ?? null,
+        ends_at: detail?.ends_at ?? null,
+        participant_count: data.participant_count,
+        total_points: data.total_points,
+      };
+    })
     .sort((a, b) => b.event_date.localeCompare(a.event_date));
 
   const total = sorted.length;
@@ -153,9 +166,14 @@ async function getEventList(
   let latestEventName = "";
   let latestEventDate = "";
 
+  let latestEventStartsAt = "";
+  let latestEventEndsAt = "";
+
   if (latestEvent) {
     latestEventName = latestEvent.event_name;
     latestEventDate = latestEvent.event_date;
+    latestEventStartsAt = latestEvent.starts_at ?? "";
+    latestEventEndsAt = latestEvent.ends_at ?? "";
     const latestResults = entries
       .filter((r) => r.linked_event_id === latestEvent.linked_event_id)
       .sort((a, b) => (b.event_points ?? 0) - (a.event_points ?? 0));
@@ -219,6 +237,8 @@ async function getEventList(
       latest_event_ranking: latestEventRanking,
       latest_event_name: latestEventName,
       latest_event_date: latestEventDate,
+      latest_event_starts_at: latestEventStartsAt,
+      latest_event_ends_at: latestEventEndsAt,
       best_performers: bestPerformers,
       highest_single_score: {
         player_name: highestSingleName,

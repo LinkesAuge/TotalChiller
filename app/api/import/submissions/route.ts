@@ -61,9 +61,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }
     }
 
+    const linkedEventIds = [...new Set((submissions ?? []).map((s) => s.linked_event_id).filter(Boolean))] as string[];
+    let eventDateMap: Record<string, { starts_at: string; ends_at: string }> = {};
+    if (linkedEventIds.length > 0) {
+      const { data: events } = await supabase.from("events").select("id, starts_at, ends_at").in("id", linkedEventIds);
+      if (events) {
+        for (const e of events) {
+          eventDateMap[e.id] = { starts_at: e.starts_at, ends_at: e.ends_at };
+        }
+      }
+    }
+
     const enriched = (submissions ?? []).map((s) => ({
       ...s,
       profiles: profileMap[s.submitted_by] ?? null,
+      event_starts_at: s.linked_event_id ? (eventDateMap[s.linked_event_id]?.starts_at ?? null) : null,
+      event_ends_at: s.linked_event_id ? (eventDateMap[s.linked_event_id]?.ends_at ?? null) : null,
     }));
 
     return NextResponse.json({

@@ -109,6 +109,7 @@ export const SubmissionPatchSchema = z
     linkedEventId: z.string().uuid().nullable().optional(),
     entryId: z.string().uuid().optional(),
     matchGameAccountId: z.string().uuid().nullable().optional(),
+    saveCorrection: z.boolean().optional(),
   })
   .refine(
     (d) =>
@@ -132,6 +133,6 @@ export const SubmissionsQuerySchema = z.object({
 
 export const SubmissionDetailQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  per_page: z.coerce.number().int().positive().max(200).default(50),
+  per_page: z.coerce.number().int().positive().max(500).default(250),
   item_status: z.enum(["pending", "approved", "rejected", "auto_matched"]).optional(),
 });

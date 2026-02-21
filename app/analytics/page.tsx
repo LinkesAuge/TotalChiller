@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AnalyticsPlaceholder from "./analytics-placeholder";
+import AnalyticsOverview from "./analytics-overview";
 
 export const metadata: Metadata = {
   title: "Analytics",
@@ -7,8 +7,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/analytics" },
 };
 
-function AnalyticsPage(): JSX.Element {
-  return <AnalyticsPlaceholder />;
+export default function AnalyticsPage(): JSX.Element {
+  return <AnalyticsOverview />;
 }
-
-export default AnalyticsPage;

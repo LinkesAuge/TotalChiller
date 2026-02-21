@@ -35,11 +35,20 @@ export interface UseDashboardDataParams {
   readonly clanId: string | undefined;
 }
 
+export interface DashboardStats {
+  readonly members_count: number;
+  readonly total_power: number;
+  readonly chests_this_week: number;
+  readonly events_with_results: number;
+}
+
 export interface UseDashboardDataResult {
   readonly announcements: readonly ArticleSummary[];
   readonly events: readonly EventSummary[];
+  readonly stats: DashboardStats | null;
   readonly isLoadingAnnouncements: boolean;
   readonly isLoadingEvents: boolean;
+  readonly isLoadingStats: boolean;
   readonly announcementsError: string | null;
   readonly eventsError: string | null;
 }
@@ -58,6 +67,9 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
   const [events, setEvents] = useState<readonly EventSummary[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState<boolean>(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
+
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState<boolean>(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,11 +154,41 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
     };
   }, [clanId, supabase]);
 
+  useEffect(() => {
+    if (!clanId) {
+      setStats(null);
+      setIsLoadingStats(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingStats(true);
+
+    async function loadStats(): Promise<void> {
+      try {
+        const res = await fetch(`/api/analytics/stats?clan_id=${encodeURIComponent(clanId!)}`);
+        if (!res.ok) throw new Error(`${res.status}`);
+        const json = await res.json();
+        if (!cancelled) setStats(json.data as DashboardStats);
+      } catch {
+        // Stats are non-critical; silently fall back to null
+      } finally {
+        if (!cancelled) setIsLoadingStats(false);
+      }
+    }
+
+    void loadStats();
+    return () => {
+      cancelled = true;
+    };
+  }, [clanId]);
+
   return {
     announcements,
     events,
+    stats,
     isLoadingAnnouncements,
     isLoadingEvents,
+    isLoadingStats,
     announcementsError,
     eventsError,
   };

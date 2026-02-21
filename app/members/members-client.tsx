@@ -8,10 +8,13 @@ import { useSupabase } from "../hooks/use-supabase";
 import useClanContext from "../hooks/use-clan-context";
 import { formatRank, formatRole, rankOptions } from "../admin/admin-types";
 import DataState from "../components/data-state";
+import SortableColumnHeader from "../components/sortable-column-header";
 import {
   type MemberRow,
   NOTABLE_ROLES,
   RANK_SUBSTITUTE_ROLES,
+  RANK_ORDER,
+  ROLE_SUBSTITUTE_ORDER,
   getRoleColor,
   getRankColor,
   buildMessageLink,
@@ -22,6 +25,10 @@ import {
 /* ── Rank indicator assets ── */
 
 const RANK_ICON = "/assets/game/icons/icons_rang_over.png";
+
+/* ── Sort keys ── */
+
+type MemberSortKey = "gameAccount" | "rank" | "coordinates" | "score" | "lastUpdated";
 
 /* ── Types ── */
 
@@ -203,6 +210,66 @@ function MembersClient(): JSX.Element {
   /** Role-based substitute counts (Webmaster/Administrator with no in-game rank). */
   const roleSubstituteCounts = useMemo(() => countRoleSubstitutes(members), [members]);
 
+  /* ── Sort state ── */
+  const [sortKey, setSortKey] = useState<MemberSortKey>("rank");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = useCallback(
+    (key: MemberSortKey) => {
+      setSortDir((prev) => (sortKey === key ? (prev === "asc" ? "desc" : "asc") : "asc"));
+      setSortKey(key);
+    },
+    [sortKey],
+  );
+
+  const sortedMembers = useMemo(() => {
+    const sorted = [...members];
+    const dir = sortDir === "asc" ? 1 : -1;
+
+    sorted.sort((a, b) => {
+      switch (sortKey) {
+        case "gameAccount":
+          return dir * a.gameUsername.localeCompare(b.gameUsername);
+        case "rank": {
+          const aOrder = a.rank
+            ? (RANK_ORDER[a.rank] ?? 99)
+            : a.role && ROLE_SUBSTITUTE_ORDER[a.role] != null
+              ? ROLE_SUBSTITUTE_ORDER[a.role]!
+              : 99;
+          const bOrder = b.rank
+            ? (RANK_ORDER[b.rank] ?? 99)
+            : b.role && ROLE_SUBSTITUTE_ORDER[b.role] != null
+              ? ROLE_SUBSTITUTE_ORDER[b.role]!
+              : 99;
+          const diff = aOrder - bOrder;
+          if (diff !== 0) return dir * diff;
+          return a.gameUsername.localeCompare(b.gameUsername);
+        }
+        case "coordinates": {
+          if (!a.coordinates && !b.coordinates) return 0;
+          if (!a.coordinates) return 1;
+          if (!b.coordinates) return -1;
+          return dir * a.coordinates.localeCompare(b.coordinates);
+        }
+        case "score": {
+          if (a.score == null && b.score == null) return 0;
+          if (a.score == null) return 1;
+          if (b.score == null) return -1;
+          return dir * (a.score - b.score);
+        }
+        case "lastUpdated": {
+          if (!a.snapshotDate && !b.snapshotDate) return 0;
+          if (!a.snapshotDate) return 1;
+          if (!b.snapshotDate) return -1;
+          return dir * a.snapshotDate.localeCompare(b.snapshotDate);
+        }
+        default:
+          return 0;
+      }
+    });
+    return sorted;
+  }, [members, sortKey, sortDir]);
+
   /* ── No clan selected ── */
   if (!clanContext?.clanId && !isLoading) {
     return (
@@ -283,17 +350,51 @@ function MembersClient(): JSX.Element {
           <section className="table member-dir">
             <header>
               <span>#</span>
-              <span>{t("gameAccount")}</span>
-              <span>{t("coordinates")}</span>
-              <span>{t("score")}</span>
-              <span>{t("rank")}</span>
-              <span>{t("lastUpdated")}</span>
+              <SortableColumnHeader<MemberSortKey>
+                label={t("gameAccount")}
+                sortKey="gameAccount"
+                activeSortKey={sortKey}
+                direction={sortDir}
+                onToggle={toggleSort}
+                variant="triangle"
+              />
+              <SortableColumnHeader<MemberSortKey>
+                label={t("rank")}
+                sortKey="rank"
+                activeSortKey={sortKey}
+                direction={sortDir}
+                onToggle={toggleSort}
+                variant="triangle"
+              />
+              <SortableColumnHeader<MemberSortKey>
+                label={t("coordinates")}
+                sortKey="coordinates"
+                activeSortKey={sortKey}
+                direction={sortDir}
+                onToggle={toggleSort}
+                variant="triangle"
+              />
+              <SortableColumnHeader<MemberSortKey>
+                label={t("score")}
+                sortKey="score"
+                activeSortKey={sortKey}
+                direction={sortDir}
+                onToggle={toggleSort}
+                variant="triangle"
+              />
+              <SortableColumnHeader<MemberSortKey>
+                label={t("lastUpdated")}
+                sortKey="lastUpdated"
+                activeSortKey={sortKey}
+                direction={sortDir}
+                onToggle={toggleSort}
+                variant="triangle"
+              />
               <span />
             </header>
-            {members.map((member, index) => {
+            {sortedMembers.map((member, index) => {
               const isExpanded = expandedIds.includes(member.membershipId);
               const role = member.role;
-              /* If rank is null and user is owner/admin, show role name instead */
               const useRoleAsRank = !member.rank && !!role && RANK_SUBSTITUTE_ROLES.has(role);
               const displayRankLabel = useRoleAsRank
                 ? formatRole(role, locale)
@@ -324,8 +425,6 @@ function MembersClient(): JSX.Element {
                       <span className="member-dir-username">{member.gameUsername}</span>
                       {member.displayName && <span className="member-dir-user">{member.displayName}</span>}
                     </div>
-                    <span className="text-muted">{member.coordinates ?? "—"}</span>
-                    <span>{member.score != null ? member.score.toLocaleString() : "—"}</span>
                     <span>
                       <span
                         className="badge member-dir-rank"
@@ -336,6 +435,10 @@ function MembersClient(): JSX.Element {
                       >
                         {displayRankLabel}
                       </span>
+                    </span>
+                    <span className="text-muted">{member.coordinates ?? "—"}</span>
+                    <span className="member-dir-score">
+                      {member.score != null ? member.score.toLocaleString() : "—"}
                     </span>
                     <span className="text-muted">
                       {member.snapshotDate

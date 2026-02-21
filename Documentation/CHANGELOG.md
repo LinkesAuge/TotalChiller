@@ -8,6 +8,18 @@
 
 ### Added
 
+- **Analytics feature:** Full analytics system with 3 sub-pages and 4 API routes.
+  - `/analytics` overview with summary cards (chests this week, events tracked, clan power).
+  - `/analytics/chests` — chest collection rankings with date range presets (today/week/month/custom), player search, chest type and source filters, bar chart + area trend chart. Pagination and sorting.
+  - `/analytics/events` — event list showing all events with results data; detail view with participant rankings and horizontal bar chart. Linked from the event calendar via "View full results" button.
+  - `/analytics/machtpunkte` — power score standings with delta (change since previous snapshot), line chart showing top 10 players over time, clan total card. Player search with debounce.
+  - Sub-navigation bar across all analytics pages (Overview / Truhen / Events / Machtpunkte).
+  - 4 new API routes: `/api/analytics/stats`, `/api/analytics/chests`, `/api/analytics/events`, `/api/analytics/machtpunkte`. All authenticated with clan membership checks, Zod query param validation, pagination, and rate limiting.
+  - Recharts charting library added for bar, area, and line charts. Charts styled with Sanctum theme tokens.
+  - `app/styles/analytics.css` — sub-nav, filter bars, chart containers, summary cards, ranking table variants, rank badges (gold/silver/bronze for top 3), delta indicators, responsive breakpoints.
+  - ~55 new translation keys in both `de.json` and `en.json`.
+- **Dashboard live stats:** Quick Stats card now shows real data (member count, clan power, events with results, chests this week) fetched from `/api/analytics/stats`. Week Highlights section replaced with analytics quick links (Chest Rankings, Event Results, Power Scores) with live counts.
+- **Event results linking:** "View full results" link on the event calendar's inline results section navigates to `/analytics/events?event=<id>`.
 - **Comprehensive unit test suite:** 222 test files with 3393 tests covering API routes, hooks, components, pages, and utilities. ~73% statement coverage (up from ~4%). Includes reusable test infrastructure (`test/`) with shared mocks for Supabase (chainable query builder), next/headers, next/navigation, next-intl, Sentry, and rate-limit.
 - `npm run test:unit:coverage` script for coverage reports.
 - **Data pipeline enhancement:** Complete date-tracking and event-linking system for data submissions.

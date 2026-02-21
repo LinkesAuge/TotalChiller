@@ -244,7 +244,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         })
         .eq("id", patch.entryId)
         .eq("submission_id", id)
-        .select("id, item_status, matched_game_account_id")
+        .select(
+          "id, player_name, item_status, matched_game_account_id, game_accounts:matched_game_account_id(id, game_username)",
+        )
         .maybeSingle();
 
       if (updateErr) {
@@ -259,12 +261,34 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         .eq("submission_id", id)
         .eq("item_status", "auto_matched");
 
-      await svc
-        .from("data_submissions")
-        .update({ matched_count: matchedTotal ?? 0 })
-        .eq("id", id);
+      const newMatchedCount = matchedTotal ?? 0;
 
-      return NextResponse.json({ data: updated });
+      await svc.from("data_submissions").update({ matched_count: newMatchedCount }).eq("id", id);
+
+      if (patch.saveCorrection && patch.matchGameAccountId && updated.player_name) {
+        const raw = updated.game_accounts as unknown;
+        const gameAccount = Array.isArray(raw)
+          ? (raw[0] as { id: string; game_username: string } | undefined)
+          : (raw as { id: string; game_username: string } | null);
+        if (gameAccount) {
+          await svc.from("ocr_corrections").upsert(
+            {
+              clan_id: clanId,
+              entity_type: "player",
+              ocr_text: updated.player_name,
+              corrected_text: gameAccount.game_username,
+            },
+            { onConflict: "clan_id,entity_type,ocr_text" },
+          );
+        }
+      }
+
+      return NextResponse.json({
+        data: {
+          ...updated,
+          matchedCount: newMatchedCount,
+        },
+      });
     }
 
     /* ── 2. Metadata updates ── */

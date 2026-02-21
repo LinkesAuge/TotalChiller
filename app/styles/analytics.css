@@ -1,0 +1,317 @@
+/* Feature: Analytics — sub-nav, charts, filter bars, ranking tables */
+
+/* ── Sub-navigation ── */
+.analytics-subnav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  margin-bottom: 20px;
+  background: var(--color-overlay-dark);
+  border: 1px solid var(--color-gold-a15);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.analytics-subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-2);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.analytics-subnav a:hover {
+  color: var(--color-gold-2);
+  background: var(--color-gold-a08);
+}
+
+.analytics-subnav a.active {
+  color: var(--color-gold-2);
+  background: var(--color-gold-a15);
+  border: 1px solid var(--color-gold-a25);
+  font-weight: 600;
+}
+
+.analytics-subnav a svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Filter bar ── */
+.analytics-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.analytics-filters .filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.analytics-filters .filter-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* Quick-preset pills for date range */
+.date-presets {
+  display: flex;
+  gap: 4px;
+}
+
+.date-presets button {
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-gold-a15);
+  background: transparent;
+  color: var(--color-text-2);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.date-presets button:hover {
+  color: var(--color-gold-2);
+  background: var(--color-gold-a08);
+  border-color: var(--color-gold-a25);
+}
+
+.date-presets button.active {
+  color: var(--color-gold-2);
+  background: var(--color-gold-a15);
+  border-color: var(--color-gold-a35);
+  font-weight: 600;
+}
+
+/* ── Chart containers ── */
+.analytics-chart-wrapper {
+  width: 100%;
+  background: linear-gradient(180deg, rgba(16, 30, 46, 0.6), rgba(10, 20, 32, 0.7));
+  border: 1px solid var(--color-gold-a15);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.analytics-chart-wrapper h4 {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  color: var(--color-gold-2);
+  margin-bottom: 12px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Summary cards grid ── */
+.analytics-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.analytics-summary-card {
+  background: linear-gradient(180deg, rgba(16, 30, 46, 0.85), rgba(10, 20, 32, 0.9));
+  border: 1px solid var(--color-gold-a20);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  text-decoration: none;
+  color: inherit;
+}
+
+.analytics-summary-card:hover {
+  border-color: var(--color-gold-a35);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 0 1px var(--color-gold-a08);
+}
+
+.analytics-summary-card__label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.analytics-summary-card__value {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  color: var(--color-gold-2);
+  line-height: 1.2;
+}
+
+.analytics-summary-card__detail {
+  font-size: 0.78rem;
+  color: var(--color-text-2);
+}
+
+.analytics-summary-card__sparkline {
+  height: 40px;
+  margin-top: 4px;
+}
+
+/* ── Ranking table variants ── */
+.table.chest-ranking {
+  grid-template-columns: 50px 1fr 120px 100px;
+}
+
+.table.event-ranking {
+  grid-template-columns: 50px 1fr 140px;
+}
+
+.table.event-list {
+  grid-template-columns: 1fr 140px 100px 120px;
+}
+
+.table.power-ranking {
+  grid-template-columns: 50px 1fr 140px 140px 120px;
+}
+
+/* Rank position badge (gold hex for top 3) */
+.rank-position {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text-2);
+  background: var(--color-gold-a08);
+  border: 1px solid var(--color-gold-a15);
+}
+
+.rank-position.top-1 {
+  background: linear-gradient(135deg, #c9a34a, #e4c778);
+  color: #1a1408;
+  border-color: #e4c778;
+  box-shadow: 0 0 8px rgba(228, 199, 120, 0.4);
+}
+
+.rank-position.top-2 {
+  background: linear-gradient(135deg, #8a9bae, #b0c4de);
+  color: #1a1a2e;
+  border-color: #b0c4de;
+  box-shadow: 0 0 8px rgba(176, 196, 222, 0.3);
+}
+
+.rank-position.top-3 {
+  background: linear-gradient(135deg, #a0724a, #c49a6c);
+  color: #1a1408;
+  border-color: #c49a6c;
+  box-shadow: 0 0 8px rgba(196, 154, 108, 0.3);
+}
+
+/* Delta indicator (positive/negative change) */
+.delta {
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.delta.positive {
+  color: var(--color-accent-green);
+}
+
+.delta.negative {
+  color: var(--color-accent-red);
+}
+
+.delta.neutral {
+  color: var(--color-text-muted);
+}
+
+/* ── Event detail header ── */
+.event-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.event-detail-header .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: var(--color-text-2);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.event-detail-header .back-link:hover {
+  color: var(--color-gold-2);
+}
+
+.event-detail-header h3 {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--color-gold-2);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .analytics-subnav {
+    gap: 2px;
+    padding: 4px 6px;
+  }
+  .analytics-subnav a {
+    padding: 6px 10px;
+    font-size: 0.76rem;
+  }
+  .analytics-summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .table.chest-ranking {
+    grid-template-columns: 40px 1fr 80px 70px;
+  }
+  .table.event-ranking {
+    grid-template-columns: 40px 1fr 100px;
+  }
+  .table.event-list {
+    grid-template-columns: 1fr 100px 80px 90px;
+  }
+  .table.power-ranking {
+    grid-template-columns: 40px 1fr 100px 100px 80px;
+  }
+  .analytics-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 600px) {
+  .analytics-subnav a span.subnav-label {
+    display: none;
+  }
+  .analytics-subnav a svg {
+    width: 18px;
+    height: 18px;
+  }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../hooks/use-supabase";
 import useClanContext from "../hooks/use-clan-context";
@@ -35,6 +36,7 @@ export default function EventLinkedResults({ eventId }: EventLinkedResultsProps)
     }
 
     let cancelled = false;
+    setLoading(true);
 
     async function load(): Promise<void> {
       const { data, error } = await supabase
@@ -85,6 +87,15 @@ export default function EventLinkedResults({ eventId }: EventLinkedResultsProps)
             ))}
           </tbody>
         </table>
+      </div>
+      <div style={{ marginTop: 8, textAlign: "right" }}>
+        <Link
+          href={`/analytics/events?event=${encodeURIComponent(eventId)}`}
+          className="text-[0.78rem] text-gold-2 no-underline"
+          style={{ opacity: 0.85 }}
+        >
+          {t("viewFullResults")}
+        </Link>
       </div>
     </div>
   );

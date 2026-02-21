@@ -74,7 +74,7 @@ type ItemStatusFilter = "" | "pending" | "auto_matched" | "approved" | "rejected
 /* ── Constants ── */
 
 const LIST_PER_PAGE = 20;
-const DETAIL_PER_PAGE = 50;
+const DETAIL_PER_PAGE = 250;
 
 const STATUS_OPTIONS: readonly { value: StatusFilter; labelKey: string }[] = [
   { value: "", labelKey: "filterAll" },
@@ -205,7 +205,7 @@ export default function SubmissionsTab(): ReactElement {
     try {
       const params = new URLSearchParams({
         page: String(detailPagination.page),
-        per_page: String(DETAIL_PER_PAGE),
+        per_page: String(detailPagination.pageSize),
       });
       if (itemStatusFilter) params.set("item_status", itemStatusFilter);
 
@@ -221,7 +221,7 @@ export default function SubmissionsTab(): ReactElement {
     } finally {
       setDetailLoading(false);
     }
-  }, [selectedId, detailPagination.page, itemStatusFilter, t]);
+  }, [selectedId, detailPagination.page, detailPagination.pageSize, itemStatusFilter, t]);
 
   useEffect(() => {
     if (selectedId) void fetchDetail();
@@ -543,6 +543,8 @@ export default function SubmissionsTab(): ReactElement {
         </div>
 
         {/* Staged entries table */}
+        <PaginationBar pagination={detailPagination} pageSizeOptions={[50, 100, 250, 500]} idPrefix="detail" />
+
         <DataState
           isLoading={detailLoading}
           error={detailError}
@@ -558,7 +560,12 @@ export default function SubmissionsTab(): ReactElement {
               </div>
             ))}
           </section>
-          <PaginationBar pagination={detailPagination} pageSizeOptions={[50]} idPrefix="detail" compact />
+          <PaginationBar
+            pagination={detailPagination}
+            pageSizeOptions={[50, 100, 250, 500]}
+            idPrefix="detail-bottom"
+            compact
+          />
         </DataState>
       </div>
     );

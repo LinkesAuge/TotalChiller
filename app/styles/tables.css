@@ -168,17 +168,18 @@
 
 /* Member directory (public member list) */
 .table.member-dir {
-  min-width: 760px;
+  min-width: 800px;
 }
 
 .table.member-dir header,
 .table.member-dir .row {
-  grid-template-columns: 56px 1.2fr 0.8fr 0.7fr 120px 100px 28px;
+  grid-template-columns: 56px 1.2fr 120px minmax(120px, 1fr) 0.8fr 100px 28px;
+  gap: 14px;
   align-items: center;
 }
 
 .table.member-dir .row {
-  padding: 6px 18px;
+  padding: 9px 18px;
   cursor: pointer;
 }
 
@@ -190,6 +191,30 @@
 .table.member-dir header {
   padding: 8px 18px;
   cursor: default;
+}
+
+.member-dir-score {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Right-align Rang, Koordinaten, Machtpunkte, Letztes Update (columns 3–6) */
+.table.member-dir header > :nth-child(n + 3):nth-child(-n + 6) {
+  text-align: right;
+}
+
+.table.member-dir header > :nth-child(n + 3):nth-child(-n + 6) .table-sort-button {
+  justify-content: flex-end;
+}
+
+.table.member-dir .row > :nth-child(3) {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.table.member-dir .row > :nth-child(4),
+.table.member-dir .row > :nth-child(6) {
+  text-align: right;
 }
 
 .table.member-dir .row.subrow {
@@ -374,11 +399,12 @@
 @media (max-width: 768px) {
   .table.member-dir header,
   .table.member-dir .row {
-    grid-template-columns: 40px 1.2fr 0.8fr 0.7fr 100px 90px 24px;
+    grid-template-columns: 40px 1.2fr 100px minmax(100px, 1fr) 0.7fr 90px 24px;
+    gap: 10px;
   }
 
   .table.member-dir .row {
-    padding: 5px 10px;
+    padding: 7px 10px;
   }
 
   .table.member-dir header {

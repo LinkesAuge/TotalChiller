@@ -109,7 +109,7 @@ type ItemStatusFilter = "" | "pending" | "auto_matched" | "approved" | "rejected
 /* ── Constants ── */
 
 const LIST_PER_PAGE = 20;
-const DETAIL_PER_PAGE = 50;
+const DETAIL_PER_PAGE = 250;
 
 const STATUS_OPTIONS: readonly { value: StatusFilter; labelKey: string }[] = [
   { value: "", labelKey: "filterAll" },
@@ -418,7 +418,7 @@ export default function DataTab(): ReactElement {
     try {
       const params = new URLSearchParams({
         page: String(detailPagination.page),
-        per_page: String(DETAIL_PER_PAGE),
+        per_page: String(detailPagination.pageSize),
       });
       if (itemStatusFilter) params.set("item_status", itemStatusFilter);
 
@@ -434,7 +434,7 @@ export default function DataTab(): ReactElement {
     } finally {
       setDetailLoading(false);
     }
-  }, [selectedId, detailPagination.page, itemStatusFilter, t]);
+  }, [selectedId, detailPagination.page, detailPagination.pageSize, itemStatusFilter, t]);
 
   useEffect(() => {
     if (selectedId) void fetchDetail();
@@ -527,21 +527,54 @@ export default function DataTab(): ReactElement {
         const res = await fetch(`/api/import/submissions/${selectedId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entryId, matchGameAccountId: gameAccountId || null }),
+          body: JSON.stringify({
+            entryId,
+            matchGameAccountId: gameAccountId || null,
+            saveCorrection: !!gameAccountId,
+          }),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => null);
           throw new Error((body as { error?: string } | null)?.error ?? t("reviewError"));
         }
-        void fetchDetail();
-        setRetryCount((c) => c + 1);
+        const json = (await res.json()) as {
+          data: {
+            id: string;
+            player_name: string;
+            item_status: string;
+            matched_game_account_id: string | null;
+            game_accounts: MatchedAccount | null;
+            matchedCount: number;
+          };
+        };
+        const entry = json.data;
+
+        setDetail((prev) => {
+          if (!prev) return prev;
+          const updatedItems = prev.items.map((item) =>
+            item.id === entry.id
+              ? { ...item, item_status: entry.item_status, game_accounts: entry.game_accounts }
+              : item,
+          );
+          const oldStatus = prev.items.find((i) => i.id === entry.id)?.item_status;
+          const newCounts = { ...prev.statusCounts };
+          if (oldStatus && oldStatus !== entry.item_status) {
+            newCounts[oldStatus] = Math.max(0, (newCounts[oldStatus] ?? 0) - 1);
+            newCounts[entry.item_status] = (newCounts[entry.item_status] ?? 0) + 1;
+          }
+          return { ...prev, items: updatedItems, statusCounts: newCounts };
+        });
+
+        setSubmissions((prev) =>
+          prev.map((sub) => (sub.id === selectedId ? { ...sub, matched_count: entry.matchedCount } : sub)),
+        );
       } catch (err) {
         setDetailError(err instanceof Error ? err.message : t("reviewError"));
       } finally {
         setAssigningEntryId(null);
       }
     },
-    [selectedId, fetchDetail, t],
+    [selectedId, t],
   );
 
   /* ── Metadata editing handlers ── */
@@ -1128,6 +1161,8 @@ export default function DataTab(): ReactElement {
           ))}
         </div>
 
+        <PaginationBar pagination={detailPagination} pageSizeOptions={[50, 100, 250, 500]} idPrefix="detail" />
+
         <DataState
           isLoading={detailLoading}
           error={detailError}
@@ -1143,7 +1178,12 @@ export default function DataTab(): ReactElement {
               </div>
             ))}
           </section>
-          <PaginationBar pagination={detailPagination} pageSizeOptions={[50]} idPrefix="detail" compact />
+          <PaginationBar
+            pagination={detailPagination}
+            pageSizeOptions={[50, 100, 250, 500]}
+            idPrefix="detail-bottom"
+            compact
+          />
         </DataState>
       </div>
     );

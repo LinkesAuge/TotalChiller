@@ -69,31 +69,6 @@ function DashboardStatCard({
   );
 }
 
-/** Progress bar row using the game progress bar styles. */
-function DashboardProgressRow({
-  label,
-  percent,
-  colorVariant = "gold",
-}: {
-  readonly label: string;
-  readonly percent: number;
-  readonly colorVariant?: "gold" | "green" | "blue";
-}): JSX.Element {
-  const fillClass = colorVariant === "gold" ? "" : `game-pbar__fill--${colorVariant}`;
-  return (
-    <div>
-      <div className="flex justify-between text-[0.72rem] mb-1">
-        <span className="text-text-2">{label}</span>
-        <span className="text-gold-2">{percent}%</span>
-      </div>
-      <div className="game-pbar">
-        <div className={`game-pbar__fill ${fillClass}`.trim()} style={{ width: `${percent}%` }} />
-        <span className="game-pbar__text">{percent}%</span>
-      </div>
-    </div>
-  );
-}
-
 /* ── Component ── */
 
 /**
@@ -103,8 +78,16 @@ function DashboardClient(): JSX.Element {
   const t = useTranslations("dashboard");
   const clanContext = useClanContext();
 
-  const { announcements, events, isLoadingAnnouncements, isLoadingEvents, announcementsError, eventsError } =
-    useDashboardData({ clanId: clanContext?.clanId });
+  const {
+    announcements,
+    events,
+    stats,
+    isLoadingAnnouncements,
+    isLoadingEvents,
+    isLoadingStats,
+    announcementsError,
+    eventsError,
+  } = useDashboardData({ clanId: clanContext?.clanId });
 
   /* ── Tag color helper ── */
   const tagColorMap = useMemo(() => {
@@ -210,7 +193,7 @@ function DashboardClient(): JSX.Element {
           </div>
         </section>
 
-        {/* ── Quick Stats — placeholder with game stat icons ── */}
+        {/* ── Quick Stats — live data from analytics API ── */}
         <section className="card col-span-2">
           <div className="tooltip-head">
             <Image
@@ -223,17 +206,32 @@ function DashboardClient(): JSX.Element {
             <div className="tooltip-head-inner">
               <Image src="/assets/vip/batler_icons_stat_armor.png" alt="" width={18} height={18} />
               <h3 className="card-title">{t("quickStatsTitle")}</h3>
+              <Link href="/analytics" className="ml-auto text-[0.65rem] text-gold no-underline">
+                {t("viewAll")} →
+              </Link>
             </div>
           </div>
           <div className="dashboard-stats-grid">
-            <DashboardStatCard icon="/assets/game/icons/icons_player_5.png" label={t("statMembersLabel")} value="—" />
-            <DashboardStatCard icon="/assets/game/icons/icons_power.png" label={t("statPowerLabel")} value="—" />
+            <DashboardStatCard
+              icon="/assets/game/icons/icons_player_5.png"
+              label={t("statMembersLabel")}
+              value={isLoadingStats ? "…" : (stats?.members_count.toLocaleString() ?? "—")}
+            />
+            <DashboardStatCard
+              icon="/assets/game/icons/icons_power.png"
+              label={t("statPowerLabel")}
+              value={isLoadingStats ? "…" : (stats?.total_power.toLocaleString() ?? "—")}
+            />
             <DashboardStatCard
               icon="/assets/game/icons/icons_main_menu_daily_1.png"
               label={t("statEventsLabel")}
-              value="—"
+              value={isLoadingStats ? "…" : (stats?.events_with_results.toLocaleString() ?? "—")}
             />
-            <DashboardStatCard icon="/assets/game/icons/icons_star_up_2.png" label={t("statActivityLabel")} value="—" />
+            <DashboardStatCard
+              icon="/assets/game/icons/icons_star_up_2.png"
+              label={t("statActivityLabel")}
+              value={isLoadingStats ? "…" : (stats?.chests_this_week.toLocaleString() ?? "—")}
+            />
           </div>
         </section>
 
@@ -311,7 +309,7 @@ function DashboardClient(): JSX.Element {
           </div>
         </section>
 
-        {/* ── Week Highlights — placeholder with game progress bars ── */}
+        {/* ── Analytics Quick Links ── */}
         <section className="card">
           <div className="tooltip-head">
             <Image
@@ -326,13 +324,30 @@ function DashboardClient(): JSX.Element {
               <h3 className="card-title">{t("weekHighlightsTitle")}</h3>
             </div>
           </div>
-          <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 12 }}>
-            <DashboardProgressRow label={t("progressEventsLabel")} percent={0} colorVariant="gold" />
-            <DashboardProgressRow label={t("progressActivityLabel")} percent={0} colorVariant="green" />
-            <DashboardProgressRow label={t("progressGrowthLabel")} percent={0} colorVariant="blue" />
-            <p className="text-[0.72rem] text-text-muted text-center m-0" style={{ marginTop: 4 }}>
-              {t("statsComingSoon")}
-            </p>
+          <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 12 }}>
+            <Link href="/analytics/chests" className="dashboard-item-link flex items-center gap-2 py-1.5 text-sm">
+              <Image src="/assets/game/icons/icons_chest_1.png" alt="" width={20} height={20} />
+              <span className="flex-1">{t("chestsRankingLink")}</span>
+              <span className="text-[0.72rem] text-gold-2">
+                {isLoadingStats ? "…" : (stats?.chests_this_week.toLocaleString() ?? "—")}
+              </span>
+            </Link>
+            <div className="gold-divider" />
+            <Link href="/analytics/events" className="dashboard-item-link flex items-center gap-2 py-1.5 text-sm">
+              <Image src="/assets/game/icons/icons_main_menu_daily_1.png" alt="" width={20} height={20} />
+              <span className="flex-1">{t("eventResultsLink")}</span>
+              <span className="text-[0.72rem] text-gold-2">
+                {isLoadingStats ? "…" : (stats?.events_with_results.toLocaleString() ?? "—")}
+              </span>
+            </Link>
+            <div className="gold-divider" />
+            <Link href="/analytics/machtpunkte" className="dashboard-item-link flex items-center gap-2 py-1.5 text-sm">
+              <Image src="/assets/game/icons/icons_power.png" alt="" width={20} height={20} />
+              <span className="flex-1">{t("powerRankingLink")}</span>
+              <span className="text-[0.72rem] text-gold-2">
+                {isLoadingStats ? "…" : (stats?.total_power.toLocaleString() ?? "—")}
+              </span>
+            </Link>
           </div>
         </section>
       </div>

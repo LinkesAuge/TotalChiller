@@ -30,3 +30,6 @@
 
 /* Feature: Bug Reports */
 @import "./styles/bugs.css";
+
+/* Feature: Analytics (sub-nav, charts, filters, ranking tables) */
+@import "./styles/analytics.css";

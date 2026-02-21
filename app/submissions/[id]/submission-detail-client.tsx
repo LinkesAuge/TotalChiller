@@ -61,7 +61,7 @@ interface DetailResponse {
 
 type ItemStatusFilter = "" | "pending" | "auto_matched" | "approved" | "rejected";
 
-const PER_PAGE = 50;
+const PER_PAGE = 250;
 
 const STATUS_TABS: readonly { value: ItemStatusFilter; labelKey: string }[] = [
   { value: "", labelKey: "filterAll" },
@@ -132,7 +132,7 @@ function SubmissionDetailClient(): JSX.Element {
     try {
       const params = new URLSearchParams({
         page: String(pagination.page),
-        per_page: String(PER_PAGE),
+        per_page: String(pagination.pageSize),
       });
       if (itemStatusFilter) params.set("item_status", itemStatusFilter);
 
@@ -154,7 +154,7 @@ function SubmissionDetailClient(): JSX.Element {
     } finally {
       setIsLoading(false);
     }
-  }, [id, pagination.page, itemStatusFilter, t]);
+  }, [id, pagination.page, pagination.pageSize, itemStatusFilter, t]);
 
   useEffect(() => {
     void fetchDetail();
@@ -444,6 +444,8 @@ function SubmissionDetailClient(): JSX.Element {
             </div>
 
             {/* Staged entries table */}
+            <PaginationBar pagination={pagination} pageSizeOptions={[50, 100, 250, 500]} idPrefix="detail" />
+
             <DataState
               isLoading={isLoading && !!submission}
               error={null}
@@ -459,7 +461,12 @@ function SubmissionDetailClient(): JSX.Element {
                   </div>
                 ))}
               </section>
-              <PaginationBar pagination={pagination} pageSizeOptions={[50]} idPrefix="detail" compact />
+              <PaginationBar
+                pagination={pagination}
+                pageSizeOptions={[50, 100, 250, 500]}
+                idPrefix="detail-bottom"
+                compact
+              />
             </DataState>
           </>
         )}

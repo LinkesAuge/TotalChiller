@@ -1,0 +1,206 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
+import { standardLimiter } from "@/lib/rate-limit";
+import { requireAuth } from "@/lib/api/require-auth";
+import { apiError, uuidSchema } from "@/lib/api/validation";
+import { captureApiError } from "@/lib/api/logger";
+
+const MAX_PAGE_SIZE = 100;
+
+const querySchema = z.object({
+  clan_id: uuidSchema,
+  event_id: uuidSchema.optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  page_size: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),
+});
+
+/**
+ * GET /api/analytics/events
+ *
+ * Without event_id: list of events with aggregated stats.
+ * With event_id: detailed results for a specific event.
+ */
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const blocked = standardLimiter.check(request);
+  if (blocked) return blocked;
+
+  try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { supabase } = auth;
+
+    const rawParams = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const parsed = querySchema.safeParse(rawParams);
+    if (!parsed.success) return apiError("Invalid query parameters.", 400);
+
+    const { clan_id, event_id, page, page_size } = parsed.data;
+
+    const { data: isMember } = await supabase.rpc("is_clan_member", { target_clan: clan_id });
+    const { data: isAdmin } = await supabase.rpc("is_any_admin");
+    if (!isMember && !isAdmin) return apiError("Access denied.", 403);
+
+    if (event_id) {
+      return await getEventDetail(supabase, clan_id, event_id, page, page_size);
+    }
+
+    return await getEventList(supabase, clan_id, page, page_size);
+  } catch (err) {
+    captureApiError("GET /api/analytics/events", err);
+    return apiError("Internal server error.", 500);
+  }
+}
+
+async function getEventList(
+  supabase: SupabaseClient,
+  clanId: string,
+  page: number,
+  pageSize: number,
+): Promise<NextResponse> {
+  const { data: rows, error } = await supabase
+    .from("event_results")
+    .select("linked_event_id, event_name, event_date, event_points")
+    .eq("clan_id", clanId)
+    .not("linked_event_id", "is", null)
+    .limit(10000);
+
+  if (error) {
+    captureApiError("GET /api/analytics/events (list)", error);
+    return apiError("Failed to load events.", 500);
+  }
+
+  const entries = (rows ?? []) as Array<{
+    linked_event_id: string;
+    event_name: string | null;
+    event_date: string;
+    event_points: number;
+  }>;
+
+  // Aggregate by linked_event_id
+  const eventMap = new Map<
+    string,
+    { event_name: string | null; event_date: string; participant_count: number; total_points: number }
+  >();
+
+  for (const row of entries) {
+    const eid = row.linked_event_id;
+    const points = row.event_points ?? 0;
+    const existing = eventMap.get(eid);
+    if (existing) {
+      existing.participant_count += 1;
+      existing.total_points += points;
+      if (row.event_date > existing.event_date) {
+        existing.event_date = row.event_date;
+        if (row.event_name) existing.event_name = row.event_name;
+      }
+    } else {
+      eventMap.set(eid, {
+        event_name: row.event_name,
+        event_date: row.event_date,
+        participant_count: 1,
+        total_points: points,
+      });
+    }
+  }
+
+  // Also try to get event titles from the events table for linked events
+  const eventIds = [...eventMap.keys()];
+  let eventTitles = new Map<string, string>();
+  if (eventIds.length > 0) {
+    const { data: eventsData } = await supabase.from("events").select("id, title").in("id", eventIds);
+
+    if (eventsData) {
+      eventTitles = new Map((eventsData as Array<{ id: string; title: string }>).map((e) => [e.id, e.title]));
+    }
+  }
+
+  const sorted = [...eventMap.entries()]
+    .map(([id, data]) => ({
+      linked_event_id: id,
+      event_name: eventTitles.get(id) ?? data.event_name ?? "Unknown Event",
+      event_date: data.event_date,
+      participant_count: data.participant_count,
+      total_points: data.total_points,
+    }))
+    .sort((a, b) => b.event_date.localeCompare(a.event_date));
+
+  const total = sorted.length;
+  const offset = (page - 1) * pageSize;
+  const events = sorted.slice(offset, offset + pageSize);
+
+  return NextResponse.json({ data: { events, total, page, page_size: pageSize } });
+}
+
+async function getEventDetail(
+  supabase: SupabaseClient,
+  clanId: string,
+  eventId: string,
+  page: number,
+  pageSize: number,
+): Promise<NextResponse> {
+  const { data: eventRow } = await supabase
+    .from("events")
+    .select("id, title, description, starts_at, ends_at")
+    .eq("id", eventId)
+    .eq("clan_id", clanId)
+    .maybeSingle();
+
+  // Get all results for this event
+  const {
+    data: results,
+    error,
+    count,
+  } = await supabase
+    .from("event_results")
+    .select("player_name, event_points, game_account_id, event_name", { count: "exact" })
+    .eq("clan_id", clanId)
+    .eq("linked_event_id", eventId)
+    .order("event_points", { ascending: false })
+    .range((page - 1) * pageSize, page * pageSize - 1);
+
+  if (error) {
+    captureApiError("GET /api/analytics/events (detail)", error);
+    return apiError("Failed to load event results.", 500);
+  }
+
+  const total = count ?? 0;
+  const rankings = (
+    (results ?? []) as Array<{
+      player_name: string;
+      event_points: number;
+      game_account_id: string | null;
+      event_name: string | null;
+    }>
+  ).map((r, i) => ({
+    rank: (page - 1) * pageSize + i + 1,
+    player_name: r.player_name,
+    event_points: r.event_points,
+    game_account_id: r.game_account_id,
+  }));
+
+  const eventMeta = eventRow
+    ? {
+        id: eventRow.id as string,
+        title: eventRow.title as string,
+        description: eventRow.description as string | null,
+        starts_at: eventRow.starts_at as string | null,
+        ends_at: eventRow.ends_at as string | null,
+      }
+    : null;
+
+  // Fallback event name from results if no calendar event
+  const eventName =
+    eventMeta?.title ?? (results as Array<{ event_name: string | null }> | null)?.[0]?.event_name ?? "Event";
+
+  return NextResponse.json({
+    data: {
+      event_meta: eventMeta,
+      event_name: eventName,
+      rankings,
+      total,
+      page,
+      page_size: pageSize,
+    },
+  });
+}

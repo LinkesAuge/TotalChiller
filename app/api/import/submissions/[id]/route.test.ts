@@ -463,13 +463,19 @@ describe("PATCH /api/import/submissions/[id]", () => {
   it("assigns game account and sets status to auto_matched", async () => {
     const subChain = createChainableMock();
     setChainResult(subChain, {
-      data: { id: validUuid, submission_type: "chests", status: "pending" },
+      data: { id: validUuid, clan_id: "clan-1", submission_type: "chests", status: "pending" },
       error: null,
     });
 
     const updateChain = createChainableMock();
     setChainResult(updateChain, {
-      data: { id: "entry-1", item_status: "auto_matched", matched_game_account_id: "ga-1" },
+      data: {
+        id: "entry-1",
+        player_name: "TestPlayer",
+        item_status: "auto_matched",
+        matched_game_account_id: "ga-1",
+        game_accounts: { id: "ga-1", game_username: "CorrectName" },
+      },
       error: null,
     });
 
@@ -479,15 +485,16 @@ describe("PATCH /api/import/submissions/[id]", () => {
     const subUpdateChain = createChainableMock();
     setChainResult(subUpdateChain, { data: null, error: null });
 
-    let svcCalls = 0;
+    let subCalls = 0;
+    let stagedCalls = 0;
     mockSvcFrom.mockImplementation((table: string) => {
       if (table === "data_submissions") {
-        svcCalls++;
-        return svcCalls === 1 ? subChain : subUpdateChain;
+        subCalls++;
+        return subCalls === 1 ? subChain : subUpdateChain;
       }
       if (table === "staged_chest_entries") {
-        svcCalls++;
-        return svcCalls <= 3 ? updateChain : countChain;
+        stagedCalls++;
+        return stagedCalls === 1 ? updateChain : countChain;
       }
       return createChainableMock();
     });
@@ -502,18 +509,88 @@ describe("PATCH /api/import/submissions/[id]", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data.item_status).toBe("auto_matched");
+    expect(body.data.matchedCount).toBe(3);
+    expect(body.data.game_accounts).toEqual({ id: "ga-1", game_username: "CorrectName" });
   });
 
-  it("clears assignment and sets status to pending when matchGameAccountId is null", async () => {
+  it("creates OCR correction when saveCorrection is true", async () => {
     const subChain = createChainableMock();
     setChainResult(subChain, {
-      data: { id: validUuid, submission_type: "members", status: "pending" },
+      data: { id: validUuid, clan_id: "clan-1", submission_type: "chests", status: "pending" },
       error: null,
     });
 
     const updateChain = createChainableMock();
     setChainResult(updateChain, {
-      data: { id: "entry-1", item_status: "pending", matched_game_account_id: null },
+      data: {
+        id: "entry-1",
+        player_name: "OcrPlayerName",
+        item_status: "auto_matched",
+        matched_game_account_id: "ga-1",
+        game_accounts: { id: "ga-1", game_username: "RealPlayerName" },
+      },
+      error: null,
+    });
+
+    const countChain = createChainableMock();
+    setChainResult(countChain, { data: null, error: null, count: 1 });
+
+    const subUpdateChain = createChainableMock();
+    setChainResult(subUpdateChain, { data: null, error: null });
+
+    const ocrUpsertChain = createChainableMock();
+    setChainResult(ocrUpsertChain, { data: null, error: null });
+
+    let svcCalls = 0;
+    mockSvcFrom.mockImplementation((table: string) => {
+      if (table === "data_submissions") {
+        svcCalls++;
+        return svcCalls === 1 ? subChain : subUpdateChain;
+      }
+      if (table === "staged_chest_entries") {
+        svcCalls++;
+        return svcCalls <= 3 ? updateChain : countChain;
+      }
+      if (table === "ocr_corrections") return ocrUpsertChain;
+      return createChainableMock();
+    });
+
+    const res = await PATCH(
+      makePatchRequest({
+        entryId: "550e8400-e29b-41d4-a716-446655440001",
+        matchGameAccountId: "550e8400-e29b-41d4-a716-446655440002",
+        saveCorrection: true,
+      }),
+      makeContext(),
+    );
+    expect(res.status).toBe(200);
+    expect(ocrUpsertChain.upsert).toHaveBeenCalledWith(
+      {
+        clan_id: "clan-1",
+        entity_type: "player",
+        ocr_text: "OcrPlayerName",
+        corrected_text: "RealPlayerName",
+      },
+      { onConflict: "clan_id,entity_type,ocr_text" },
+    );
+  });
+
+  it("clears assignment and sets status to pending when matchGameAccountId is null", async () => {
+    const subChain = createChainableMock();
+    setChainResult(subChain, {
+      data: { id: validUuid, clan_id: "clan-1", submission_type: "members", status: "pending" },
+      error: null,
+    });
+
+    const updateChain = createChainableMock();
+    setChainResult(updateChain, {
+      data: {
+        id: "entry-1",
+        player_name: "P1",
+        item_status: "pending",
+        matched_game_account_id: null,
+        game_accounts: null,
+      },
       error: null,
     });
 
@@ -548,7 +625,7 @@ describe("PATCH /api/import/submissions/[id]", () => {
   it("returns 404 when entry not found in submission", async () => {
     const subChain = createChainableMock();
     setChainResult(subChain, {
-      data: { id: validUuid, submission_type: "chests", status: "pending" },
+      data: { id: validUuid, clan_id: "clan-1", submission_type: "chests", status: "pending" },
       error: null,
     });
 
@@ -571,7 +648,7 @@ describe("PATCH /api/import/submissions/[id]", () => {
   it("returns 500 when update fails", async () => {
     const subChain = createChainableMock();
     setChainResult(subChain, {
-      data: { id: validUuid, submission_type: "chests", status: "pending" },
+      data: { id: validUuid, clan_id: "clan-1", submission_type: "chests", status: "pending" },
       error: null,
     });
 
@@ -609,13 +686,19 @@ describe("PATCH /api/import/submissions/[id]", () => {
 
     const subChain = createChainableMock();
     setChainResult(subChain, {
-      data: { id: validUuid, submission_type: "events", status: "pending" },
+      data: { id: validUuid, clan_id: "clan-1", submission_type: "events", status: "pending" },
       error: null,
     });
 
     const updateChain = createChainableMock();
     setChainResult(updateChain, {
-      data: { id: "entry-1", item_status: "auto_matched", matched_game_account_id: "ga-1" },
+      data: {
+        id: "entry-1",
+        player_name: "P1",
+        item_status: "auto_matched",
+        matched_game_account_id: "ga-1",
+        game_accounts: { id: "ga-1", game_username: "GA1" },
+      },
       error: null,
     });
 

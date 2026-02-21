@@ -1,7 +1,7 @@
 # Data Pipeline: ChillerBuddy → TotalChiller Website
 
 > Design Date: 2026-02-21
-> Status: CB Phase 2 Complete — Next: Website Phases (WS Phase 1–3), then CB Phase 3
+> Status: WEB Phases 1–4 COMPLETE — Next: CB Phase 3 (Website Connection) + CB Phase 4 (Validation Sync)
 
 ## Goal
 
@@ -226,18 +226,18 @@ minimise blocking dependencies and maximise testability.
 
 ### Phase Details
 
-| Phase           | Codebase     | Depends On       | Delivers                                                                       |
-| --------------- | ------------ | ---------------- | ------------------------------------------------------------------------------ |
-| **CB Phase 1**  | ChillerBuddy | Nothing          | Local clan management, per-clan validation lists, clan-tagged captures/history |
-| **CB Phase 2**  | ChillerBuddy | CB Phase 1       | Export payload builder, export dialog UI, JSON test fixtures                   |
-| ---             | ---          | **HANDOFF**      | _Switch to website agent. Provide test JSON files from CB Phase 2._            |
-| **WEB Phase 1** | TotalChiller | Design docs only | Database tables (staging + production + validation), RLS policies              |
-| **WEB Phase 2** | TotalChiller | WEB Phase 1      | All API routes (`/api/import/*`), Bearer token auth                            |
-| **WEB Phase 3** | TotalChiller | WEB Phase 2      | Submissions list, detail, review UI, file import page                          |
-| **WEB Phase 4** | TotalChiller | WEB Phase 1      | TypeScript types for all new tables and API contracts                          |
-| ---             | ---          | **RESUME**       | _Switch back to ChillerBuddy agent. Website API is ready._                     |
-| **CB Phase 3**  | ChillerBuddy | Website API live | Website connection settings, auth, API push, clan linking                      |
-| **CB Phase 4**  | ChillerBuddy | CB Phase 3       | Bidirectional validation list sync                                             |
+| Phase           | Codebase     | Depends On       | Delivers                                                                       | Status            |
+| --------------- | ------------ | ---------------- | ------------------------------------------------------------------------------ | ----------------- |
+| **CB Phase 1**  | ChillerBuddy | Nothing          | Local clan management, per-clan validation lists, clan-tagged captures/history | ✅ Complete       |
+| **CB Phase 2**  | ChillerBuddy | CB Phase 1       | Export payload builder, export dialog UI, JSON test fixtures                   | ✅ Complete       |
+| ---             | ---          | **HANDOFF**      | _Switch to website agent. Provide test JSON files from CB Phase 2._            | ✅ Done           |
+| **WEB Phase 1** | TotalChiller | Design docs only | Database tables (staging + production + validation), RLS policies              | ✅ Complete       |
+| **WEB Phase 2** | TotalChiller | WEB Phase 1      | All API routes (`/api/import/*`), Bearer token auth                            | ✅ Complete       |
+| **WEB Phase 3** | TotalChiller | WEB Phase 2      | Submissions list, detail, review UI, file import page                          | ✅ Complete       |
+| **WEB Phase 4** | TotalChiller | WEB Phase 1      | TypeScript types for all new tables and API contracts                          | ✅ Complete       |
+| ---             | ---          | **RESUME**       | _Switch back to ChillerBuddy agent. Website API is ready._                     | **← WE ARE HERE** |
+| **CB Phase 3**  | ChillerBuddy | Website API live | Website connection settings, auth, API push, clan linking                      | ⬜ Not started    |
+| **CB Phase 4**  | ChillerBuddy | CB Phase 3       | Bidirectional validation list sync                                             | ⬜ Not started    |
 
 ### When to Switch
 
@@ -287,15 +287,15 @@ prevents issues from compounding across phases.
 
 ### Test Coverage by Phase
 
-| Phase       | Unit Tests                                                          | E2E Tests                           | Manual Review                                  |
-| ----------- | ------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------- |
-| CB Phase 1  | Clan CRUD, migration, ValidationManager clan-awareness              | —                                   | Single-clan UX unchanged, multi-clan switching |
-| CB Phase 2  | Export payload builder (all data types, edge cases, Zod validation) | Export dialog UI                    | Real capture export, JSON inspection           |
-| WEB Phase 1 | —                                                                   | —                                   | Migrations apply, tables/RLS/triggers verified |
-| WEB Phase 2 | All 8 API routes (happy path + error cases + auth)                  | —                                   | Curl/Postman tests, Bearer auth                |
-| WEB Phase 3 | —                                                                   | Full import → review → approve flow | UX walkthrough, permissions, navigation        |
-| WEB Phase 4 | —                                                                   | —                                   | TypeScript compilation, no `any` casts         |
-| CB Phase 3  | Auth client, API client, clan linking                               | Connection settings UI              | Live integration test against website          |
-| CB Phase 4  | Sync merge logic, conflict resolution                               | —                                   | Round-trip sync verification                   |
+| Phase       | Unit Tests                                                          | E2E Tests                           | Manual Review                                  | Status         |
+| ----------- | ------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------- | -------------- |
+| CB Phase 1  | Clan CRUD, migration, ValidationManager clan-awareness              | —                                   | Single-clan UX unchanged, multi-clan switching | ✅ Complete    |
+| CB Phase 2  | Export payload builder (all data types, edge cases, Zod validation) | Export dialog UI                    | Real capture export, JSON inspection           | ✅ Complete    |
+| WEB Phase 1 | —                                                                   | —                                   | Migrations apply, tables/RLS/triggers verified | ✅ Complete    |
+| WEB Phase 2 | 37 Zod schema tests, security audit                                 | —                                   | SQL-level E2E, Bearer auth                     | ✅ Complete    |
+| WEB Phase 3 | —                                                                   | Full import → review → approve flow | UX walkthrough, permissions, navigation        | ✅ Complete    |
+| WEB Phase 4 | —                                                                   | —                                   | TypeScript compilation, no `any` casts         | ✅ Complete    |
+| CB Phase 3  | Auth client, API client, clan linking                               | Connection settings UI              | Live integration test against website          | ⬜ Next        |
+| CB Phase 4  | Sync merge logic, conflict resolution                               | —                                   | Round-trip sync verification                   | ⬜ Not started |
 
 See the per-codebase documents for detailed test lists per phase.

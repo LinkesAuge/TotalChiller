@@ -529,16 +529,20 @@ All migrations in `Documentation/migrations/`. Run order documented in `Document
 
 Key migrations:
 
-| File                               | Purpose                                               |
-| ---------------------------------- | ----------------------------------------------------- |
-| `messages_v2.sql`                  | Messages + recipients, threading, data migration      |
-| `notifications.sql`                | Notifications + user settings                         |
-| `forum_tables.sql`                 | Forum categories, posts, comments, votes              |
-| `roles_permissions_cleanup.sql`    | Drop legacy tables, new permission functions          |
-| `role_change_protection.sql`       | Webmaster/Admin role protection triggers              |
-| `bug_reports.sql`                  | Bug report tables, RLS, storage bucket, categories    |
-| `bug_reports_v2.sql`               | Comment edit/delete, email notifications              |
-| `bug_reports_v3.sql`               | Category slugs for i18n                               |
-| `guest_role_permissions.sql`       | Guest promoted to member-level permissions            |
-| `drop_chest_data_tables.sql`       | Drops removed feature tables                          |
-| `messages_broadcast_targeting.sql` | Broadcast targeting columns, message_reads/dismissals |
+| File                               | Purpose                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| `messages_v2.sql`                  | Messages + recipients, threading, data migration                        |
+| `notifications.sql`                | Notifications + user settings                                           |
+| `forum_tables.sql`                 | Forum categories, posts, comments, votes                                |
+| `roles_permissions_cleanup.sql`    | Drop legacy tables, new permission functions                            |
+| `role_change_protection.sql`       | Webmaster/Admin role protection triggers                                |
+| `bug_reports.sql`                  | Bug report tables, RLS, storage bucket, categories                      |
+| `bug_reports_v2.sql`               | Comment edit/delete, email notifications                                |
+| `bug_reports_v3.sql`               | Category slugs for i18n                                                 |
+| `guest_role_permissions.sql`       | Guest promoted to member-level permissions                              |
+| `drop_chest_data_tables.sql`       | Drops removed feature tables                                            |
+| `messages_broadcast_targeting.sql` | Broadcast targeting columns, message_reads/dismissals                   |
+| `data_pipeline_staging.sql`        | `data_submissions` + staged entry tables (chests, members, events)      |
+| `data_pipeline_production.sql`     | Production tables: `chest_entries`, `member_snapshots`, `event_results` |
+| `data_pipeline_validation.sql`     | `ocr_corrections` + `known_names` for OCR correction sync               |
+| `data_pipeline_rls.sql`            | 23 RLS policies across all 9 data pipeline tables                       |

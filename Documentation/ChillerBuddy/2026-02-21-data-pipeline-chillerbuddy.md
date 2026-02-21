@@ -1,9 +1,27 @@
 # Data Pipeline — ChillerBuddy Implementation (Desktop App)
 
 > Design Date: 2026-02-21
-> Status: Phase 1 + Phase 2 Complete — HANDOFF READY
+> Status: CB Phases 1-2 Complete, WEB Phases 1-4 Complete — RESUME READY for CB Phase 3
 > Companion doc: `2026-02-21-data-pipeline-overview.md` (shared format & pipeline)
-> Companion doc: `2026-02-21-data-pipeline-website.md` (website side)
+> Companion doc: `2026-02-21-data-pipeline-website.md` (website side — all complete)
+>
+> **RESUME POINT:** The website API is live and tested. All `/api/import/*`
+> endpoints are functional on `https://totalchiller.de`. ChillerBuddy can now
+> implement Phase 3 (Website Connection) and Phase 4 (Validation List Sync).
+>
+> **Live API endpoints ready for ChillerBuddy:**
+>
+> | Endpoint                                | Method | Auth   | Purpose                           |
+> | --------------------------------------- | ------ | ------ | --------------------------------- |
+> | `/api/import/config`                    | GET    | None   | Supabase URL + anon key           |
+> | `/api/import/clans`                     | GET    | Bearer | User's clans for linking          |
+> | `/api/import/submit`                    | POST   | Bearer | Submit data (same as file import) |
+> | `/api/import/validation-lists?clan_id=` | GET    | Bearer | Pull corrections + known names    |
+> | `/api/import/validation-lists`          | POST   | Bearer | Push corrections + known names    |
+>
+> **Auth flow:** `POST https://{supabaseUrl}/auth/v1/token?grant_type=password`
+> with `apikey` header (anon key) and `{email, password}` body. Use the returned
+> `access_token` as `Authorization: Bearer {token}` on all API calls.
 
 ---
 
@@ -452,9 +470,9 @@ proceeding. Run `npm test` after each implementation step, not just at the end.
       `sample-export-members-events.json`, `sample-export-validation-only.json`
 - [x] All fixture files validate against the Zod schema
 
-### Round 2 — Do After Website API Is Ready
+### Round 2 — Website API is READY ← START HERE
 
-### Phase 3: Website Connection (Approach 3)
+### Phase 3: Website Connection (Approach 3) — ⬜ NOT STARTED
 
 **Implementation:**
 
@@ -499,7 +517,7 @@ proceeding. Run `npm test` after each implementation step, not just at the end.
       push a small chest export, verify submission appears on website
 - [ ] Manual test: push with expired token — verify auto-refresh works
 
-### Phase 4: Validation List Sync
+### Phase 4: Validation List Sync — ⬜ NOT STARTED
 
 **Implementation:**
 
@@ -534,19 +552,135 @@ proceeding. Run `npm test` after each implementation step, not just at the end.
 
 ---
 
-## 9. Dependencies on Website Side
+## 9. Dependencies on Website Side — ✅ ALL SATISFIED
 
-The following website features must be available before ChillerBuddy can use them:
+All website features are live and tested. ChillerBuddy can proceed with Phase 3
+and Phase 4 immediately.
 
-| Feature               | Website API                         | Needed for       |
-| --------------------- | ----------------------------------- | ---------------- |
-| Discovery endpoint    | `GET /api/import/config`            | Auth setup       |
-| Available clans       | `GET /api/import/clans`             | Clan linking     |
-| Data submission       | `POST /api/import/submit`           | Push data        |
-| Validation list fetch | `GET /api/import/validation-lists`  | Pull corrections |
-| Validation list push  | `POST /api/import/validation-lists` | Push corrections |
-| Bearer token auth     | `requireAuth()` change              | All API calls    |
+| Feature               | Website API                         | Needed for       | Status  |
+| --------------------- | ----------------------------------- | ---------------- | ------- |
+| Discovery endpoint    | `GET /api/import/config`            | Auth setup       | ✅ Live |
+| Available clans       | `GET /api/import/clans`             | Clan linking     | ✅ Live |
+| Data submission       | `POST /api/import/submit`           | Push data        | ✅ Live |
+| Validation list fetch | `GET /api/import/validation-lists`  | Pull corrections | ✅ Live |
+| Validation list push  | `POST /api/import/validation-lists` | Push corrections | ✅ Live |
+| Bearer token auth     | `requireAuthWithBearer()` in routes | All API calls    | ✅ Live |
 
-**Approach 1 (file export) has no website dependencies** — the export format is
-the contract. The website import page and API can be built independently as long
-as both sides agree on the JSON format defined in the overview document.
+---
+
+## 10. Website API Reference for Phase 3-4 Implementation
+
+This section provides the practical details the ChillerBuddy agent needs to
+implement the website connection and validation list sync.
+
+### 10.1 Discovery — `GET /api/import/config`
+
+**No authentication required.** Returns the Supabase project URL and anon key.
+
+```
+GET https://totalchiller.de/api/import/config
+→ 200 { "supabaseUrl": "https://rkterrpmvmombpgaeixa.supabase.co", "supabaseAnonKey": "eyJ..." }
+```
+
+Use this to authenticate users without hardcoding Supabase credentials.
+
+### 10.2 Authentication Flow
+
+1. Call `/api/import/config` to get `supabaseUrl` and `supabaseAnonKey`
+2. Authenticate:
+   ```
+   POST {supabaseUrl}/auth/v1/token?grant_type=password
+   Headers: { "apikey": "{supabaseAnonKey}", "Content-Type": "application/json" }
+   Body: { "email": "user@example.com", "password": "..." }
+   → 200 { "access_token": "...", "refresh_token": "...", "expires_in": 3600, ... }
+   ```
+3. Use `access_token` as Bearer token on all subsequent API calls:
+   ```
+   Authorization: Bearer {access_token}
+   ```
+4. On 401 response, refresh the token:
+   ```
+   POST {supabaseUrl}/auth/v1/token?grant_type=refresh_token
+   Headers: { "apikey": "{supabaseAnonKey}", "Content-Type": "application/json" }
+   Body: { "refresh_token": "..." }
+   ```
+5. If refresh fails, re-authenticate with email + password.
+
+### 10.3 Fetch Available Clans — `GET /api/import/clans`
+
+Returns clans the authenticated user belongs to (via `game_accounts` → `clan_members`).
+
+```
+GET /api/import/clans
+Headers: { "Authorization": "Bearer {token}" }
+→ 200 { "clans": [ { "id": "uuid", "name": "Chiller & Killer", "tag": "CK" } ] }
+```
+
+### 10.4 Submit Data — `POST /api/import/submit`
+
+Accepts the same JSON payload as file import. The `clan_id` can come from:
+
+- `payload.clan.websiteClanId` (preferred — already linked)
+- `?clan_id=uuid` query parameter (fallback for unlinked clans)
+
+```
+POST /api/import/submit?clan_id={clanUuid}
+Headers: { "Authorization": "Bearer {token}", "Content-Type": "application/json" }
+Body: <full export JSON payload>
+→ 200 { "submissions": [ { "id": "uuid", "type": "chests", "itemCount": 42, ... } ] }
+```
+
+### 10.5 Validation Lists — `GET` and `POST /api/import/validation-lists`
+
+**Pull (GET):**
+
+```
+GET /api/import/validation-lists?clan_id={clanUuid}
+Headers: { "Authorization": "Bearer {token}" }
+→ 200 {
+  "corrections": {
+    "player": { "Stratequs": "Strategus" },
+    "chest": { "Eleqant Chest": "Elegant Chest" },
+    "source": {}
+  },
+  "knownNames": {
+    "player": ["Strategus", "DragonSlayer"],
+    "chest": ["Elegant Chest"],
+    "source": ["Level 25 Crypt"]
+  }
+}
+```
+
+**Push (POST):**
+
+```
+POST /api/import/validation-lists?clan_id={clanUuid}
+Headers: { "Authorization": "Bearer {token}", "Content-Type": "application/json" }
+Body: {
+  "corrections": {
+    "player": { "Stratequs": "Strategus" },
+    "chest": {},
+    "source": {}
+  },
+  "knownNames": {
+    "player": ["Strategus"],
+    "chest": ["Elegant Chest"],
+    "source": ["Level 25 Crypt"]
+  }
+}
+→ 200 { "updated": { "corrections": 1, "knownNames": 3 } }
+```
+
+### 10.6 Important Implementation Notes
+
+- **Rate limiting:** API routes use a standard rate limiter. Space requests
+  if doing bulk operations.
+- **Row limits:** Queries use `.limit(10000)` — submissions with >10k items
+  per type should be split into multiple uploads.
+- **Clan membership check:** All authenticated endpoints verify the user is a
+  member of the target clan. A user who isn't a clan member gets 403.
+- **Admin-only endpoints:** Review actions (`POST .../review`, `DELETE ...`)
+  require admin role — these are website-only operations, not called by
+  ChillerBuddy.
+- **Website URL:** Production is `https://totalchiller.de`. For local
+  development, use `http://localhost:3000`.

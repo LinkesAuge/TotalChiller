@@ -29,7 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_event_results_linked_event
 -- Uses date cast so times within the same day collapse.
 -- Only enforced for matched accounts (game_account_id IS NOT NULL).
 CREATE UNIQUE INDEX IF NOT EXISTS idx_member_snapshots_clan_account_date
-  ON public.member_snapshots(clan_id, game_account_id, (snapshot_date::date))
+  ON public.member_snapshots(clan_id, game_account_id, (timezone('UTC', snapshot_date)::date))
   WHERE game_account_id IS NOT NULL;
 
 -- 5. Backfill reference_date from staged entries for existing submissions.

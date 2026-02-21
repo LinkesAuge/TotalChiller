@@ -19,6 +19,7 @@ export function isPublicPath(pathname: string): boolean {
     pathname.endsWith(".xml") ||
     pathname.endsWith(".txt") ||
     pathname.endsWith(".json") ||
-    pathname.endsWith(".ico")
+    pathname.endsWith(".ico") ||
+    pathname.endsWith(".mp3")
   );
 }

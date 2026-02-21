@@ -28,7 +28,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     let query = supabase
       .from("data_submissions")
-      .select("*, profiles!submitted_by(id, display_name)", { count: "exact" })
+      .select("*", { count: "exact" })
       .eq("clan_id", clan_id)
       .order("created_at", { ascending: false });
 
@@ -50,9 +50,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return apiError("Failed to load submissions.", 500);
     }
 
+    const userIds = [...new Set((submissions ?? []).map((s) => s.submitted_by))];
+    let profileMap: Record<string, { id: string; display_name: string | null }> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("id, display_name").in("id", userIds);
+      if (profiles) {
+        for (const p of profiles) {
+          profileMap[p.id] = p;
+        }
+      }
+    }
+
+    const enriched = (submissions ?? []).map((s) => ({
+      ...s,
+      profiles: profileMap[s.submitted_by] ?? null,
+    }));
+
     return NextResponse.json({
       data: {
-        submissions: submissions ?? [],
+        submissions: enriched,
         total: count ?? 0,
         page,
         perPage,

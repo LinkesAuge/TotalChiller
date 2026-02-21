@@ -41,9 +41,9 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     }
     const { page, per_page: perPage, item_status } = parsed.data;
 
-    const { data: submission, error: subError } = await supabase
+    const { data: submissionRaw, error: subError } = await supabase
       .from("data_submissions")
-      .select("*, profiles!submitted_by(id, display_name)")
+      .select("*")
       .eq("id", id)
       .maybeSingle();
 
@@ -51,7 +51,15 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
       captureApiError("GET /api/import/submissions/[id]", subError);
       return apiError("Failed to load submission.", 500);
     }
-    if (!submission) return apiError("Submission not found.", 404);
+    if (!submissionRaw) return apiError("Submission not found.", 404);
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .eq("id", submissionRaw.submitted_by)
+      .maybeSingle();
+
+    const submission = { ...submissionRaw, profiles: profile };
 
     const tableName = STAGED_TABLES[submission.submission_type as string];
     if (!tableName) {

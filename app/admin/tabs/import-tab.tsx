@@ -27,7 +27,9 @@ interface SubmitResponse {
 }
 
 const dropzoneBase: React.CSSProperties = {
-  border: "2px dashed var(--color-border)",
+  borderWidth: "2px",
+  borderStyle: "dashed",
+  borderColor: "var(--color-border)",
   borderRadius: "8px",
   background: "var(--color-surface-elevated)",
   padding: "40px 24px",
@@ -111,6 +113,7 @@ export default function ImportTab(): ReactElement {
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       setIsDragOver(false);
       const file = e.dataTransfer.files[0];
       if (file) processFile(file);
@@ -220,9 +223,14 @@ export default function ImportTab(): ReactElement {
             role="button"
             tabIndex={0}
             style={getDropzoneStyle()}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDragOver(true);
+            }}
             onDragOver={(e) => {
               e.preventDefault();
-              setIsDragOver(true);
+              e.stopPropagation();
             }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={handleDrop}

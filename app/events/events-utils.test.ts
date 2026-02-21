@@ -26,7 +26,7 @@ describe("toLocalDateTimeString", () => {
   });
 
   it("returns YYYY-MM-DDTHH:mm format from a Date object", () => {
-    const d = new Date(2026, 1, 11, 14, 30); // Feb 11 2026, 14:30 local
+    const d = new Date("2026-02-11T14:30:00+01:00"); // Feb 11 2026, 14:30 Berlin
     const result = toLocalDateTimeString(d);
     expect(result).toBe("2026-02-11T14:30");
   });

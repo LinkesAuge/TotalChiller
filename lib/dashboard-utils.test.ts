@@ -2,18 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { toDateString, formatRelativeTime, extractAuthorName } from "./dashboard-utils";
 
 describe("toDateString", () => {
-  it("formats a date as YYYY-MM-DD using local time", () => {
-    const actual = toDateString(new Date(2026, 1, 11, 15, 30)); // Feb 11 local
+  it("formats a date as YYYY-MM-DD using Berlin time", () => {
+    const actual = toDateString(new Date("2026-02-11T15:30:00+01:00"));
     expect(actual).toBe("2026-02-11");
   });
 
   it("handles year boundaries", () => {
-    const actual = toDateString(new Date(2025, 11, 31, 23, 59)); // Dec 31 local
+    const actual = toDateString(new Date("2025-12-31T23:59:00+01:00"));
     expect(actual).toBe("2025-12-31");
   });
 
   it("pads single-digit months and days", () => {
-    const actual = toDateString(new Date(2026, 0, 5)); // Jan 5 local
+    const actual = toDateString(new Date("2026-01-05T12:00:00+01:00"));
     expect(actual).toBe("2026-01-05");
   });
 });

@@ -203,7 +203,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
   try {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
-    const { supabase } = auth;
+    const { supabase: _supabase } = auth;
 
     const { id } = await context.params;
     const idParsed = uuidSchema.safeParse(id);

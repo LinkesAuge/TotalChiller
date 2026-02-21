@@ -241,11 +241,21 @@ function ResultsIcon({
   return (
     <span
       className="calendar-results-icon"
+      role="button"
+      tabIndex={0}
       title={t("resultsAvailable")}
       onClick={(e) => {
         e.stopPropagation();
         setResultsTooltip(null);
         onFocus(event.id, dayKey);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          setResultsTooltip(null);
+          onFocus(event.id, dayKey);
+        }
       }}
       onMouseEnter={(e) => onHoverEnter(e, event.id, event.title)}
       onMouseLeave={onHoverLeave}

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
   try {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
-    const { userId, supabase } = auth;
+    const { userId, supabase: _supabase } = auth;
 
     const { id } = await context.params;
     const idResult = uuidSchema.safeParse(id);

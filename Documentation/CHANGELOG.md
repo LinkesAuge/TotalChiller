@@ -8,14 +8,28 @@
 
 ### Added
 
-- **Inline submission actions in list view:** Approve-all (✓), reject-all (✗), and delete (🗑) buttons directly in each submission row so admins can act without navigating into the detail view.
-- **Server-busy indicator:** When a review/delete action takes longer than 5 seconds, a "Server antwortet langsam…" hint appears so the user knows the click was registered.
+- **Data pipeline enhancement:** Complete date-tracking and event-linking system for data submissions.
+  - `reference_date` column on `data_submissions` tracks what day the data represents (derived from entries or set explicitly).
+  - `linked_event_id` on submissions and `event_results` links event data to calendar events.
+  - Unique index on `member_snapshots(clan_id, game_account_id, date)` prevents duplicate member data per day.
+  - Conflict detection: submitting member data for an already-covered date returns 409 with overwrite/cancel UI.
+- **Members page data display:** Koordinaten, Machtpunkte, and Last Updated columns pulled from latest `member_snapshots` via `/api/members/snapshots`.
+- **Submission metadata editing (always editable regardless of status):**
+  - Member submissions: date picker for `reference_date` with duplicate-date warnings.
+  - Event submissions: searchable RadixSelect for linking/unlinking calendar events.
+  - PATCH cascades to production tables when submission is already approved.
+- **Event results in calendar:** Expanding a calendar event now shows linked event results (player leaderboard) fetched from `event_results`.
+- **Validation lists admin UI:** New "Validierungslisten" sub-tab in the Data section. Full CRUD for OCR corrections and known names with inline editing, type filtering, and add/delete buttons. New DELETE and PATCH endpoints on `/api/import/validation-lists`.
+- **Inline submission actions in list view:** Approve-all, reject-all, and delete buttons directly in each submission row.
+- **Server-busy indicator:** When a review/delete action takes longer than 5 seconds, a hint appears.
 
 ### Changed
 
-- **Merged "Daten importieren" and "Einreichungen" tabs into a single "Daten" tab:** The separate import and submissions admin sections are now one unified tab with a compact inline dropzone next to the filters. Import preview, success, and error feedback render contextually below the filter bar. Uses the chest icon. Removed the old `import-tab.tsx` / `submissions-tab.tsx` split.
-- **Submit endpoint rate limit tightened:** `/api/import/submit` moved from `relaxedLimiter` (120 req/min) to `standardLimiter` (30 req/min) to prevent ChillerBuddy from flooding the server and starving UI requests.
-- **Delete any submission:** Removed the pending-only restriction on submission deletion. Admins can now delete approved, rejected, or partial submissions. Production data (chest_entries, member_snapshots, event_results) is preserved via `ON DELETE SET NULL`. A separate confirmation dialog warns when deleting already-approved submissions.
+- **Merged "Daten importieren" and "Einreichungen" tabs into a single "Daten" tab:** The separate import and submissions admin sections are now one unified tab with a compact inline dropzone next to the filters. Import preview, success, and error feedback render contextually below the filter bar. Uses the chest icon.
+- **Submit endpoint stores reference_date:** All submissions now persist `reference_date` derived from payload or entry timestamps.
+- **Submit endpoint rate limit tightened:** `/api/import/submit` moved from `relaxedLimiter` to `standardLimiter` (30 req/min).
+- **Delete any submission:** Removed the pending-only restriction. Production data preserved via `ON DELETE SET NULL`.
+- **Review route copies linked_event_id:** When approving event submissions, `linked_event_id` propagates to production `event_results`.
 
 ---
 

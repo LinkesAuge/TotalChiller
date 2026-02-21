@@ -4,6 +4,7 @@ import { rankOptions } from "../admin/admin-types";
 
 export interface MemberRow {
   readonly membershipId: string;
+  readonly gameAccountId: string;
   readonly gameUsername: string;
   readonly displayName: string;
   readonly userId: string;
@@ -11,6 +12,12 @@ export interface MemberRow {
   readonly rank: string | null;
   /** User's website role (only set for notable roles: owner, admin, moderator, editor). */
   readonly role: string | null;
+  /** Latest coordinates from member snapshot. */
+  readonly coordinates: string | null;
+  /** Latest power score from member snapshot. */
+  readonly score: number | null;
+  /** Date of the latest snapshot (ISO string). */
+  readonly snapshotDate: string | null;
 }
 
 /* ── Constants ── */

@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
 import useClanContext from "../../hooks/use-clan-context";
@@ -9,8 +10,11 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import DataState from "../../components/data-state";
 import PaginationBar from "../../components/pagination-bar";
 import GameAlert from "../../components/ui/game-alert";
+import RadixSelect, { type SelectOption } from "../../components/ui/radix-select";
 import { usePagination } from "@/lib/hooks/use-pagination";
 import { ImportPayloadSchema, type ImportPayload } from "@/lib/api/import-schemas";
+
+const ValidationListsPanel = dynamic(() => import("./validation-lists-panel"), { ssr: false });
 
 /* ── Types ── */
 
@@ -33,7 +37,15 @@ interface SubmissionRow {
   readonly approved_count: number | null;
   readonly rejected_count: number | null;
   readonly created_at: string;
+  readonly reference_date: string | null;
+  readonly linked_event_id: string | null;
   readonly profiles: SubmissionProfile | null;
+}
+
+interface CalendarEvent {
+  readonly id: string;
+  readonly title: string;
+  readonly starts_at: string;
 }
 
 interface SubmissionsResponse {
@@ -144,6 +156,7 @@ export default function DataTab(): ReactElement {
   const supabase = useSupabase();
   const clanContext = useClanContext();
   const { isAdmin, isContentManager, loading: roleLoading } = useUserRole(supabase);
+  const [dataView, setDataView] = useState<"submissions" | "validationLists">("submissions");
 
   /* ── Import state ── */
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -155,6 +168,12 @@ export default function DataTab(): ReactElement {
   const [importState, setImportState] = useState<ImportState>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmitResponse | null>(null);
+  const [conflictInfo, setConflictInfo] = useState<{
+    conflicts: Array<{
+      type: string;
+      conflict: { existingDate: string; existingItemCount: number; existingStatus: string };
+    }>;
+  } | null>(null);
 
   /* ── List state ── */
   const [submissions, setSubmissions] = useState<readonly SubmissionRow[]>([]);
@@ -176,6 +195,9 @@ export default function DataTab(): ReactElement {
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [itemStatusFilter, setItemStatusFilter] = useState<ItemStatusFilter>("");
   const detailPagination = usePagination(detail?.total ?? 0, DETAIL_PER_PAGE);
+  const [metadataSaving, setMetadataSaving] = useState(false);
+  const [metadataWarning, setMetadataWarning] = useState<string | null>(null);
+  const [clanEvents, setClanEvents] = useState<readonly CalendarEvent[]>([]);
 
   useEffect(() => {
     if (actionLoading) {
@@ -270,59 +292,81 @@ export default function DataTab(): ReactElement {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
-  const handleImportSubmit = useCallback(async () => {
-    if (!payload) return;
+  const submitImport = useCallback(
+    async (overwrite = false) => {
+      if (!payload) return;
 
-    const needsClanId = !payload.clan.websiteClanId;
-    const clanId = payload.clan.websiteClanId ?? clanContext?.clanId;
+      const needsClanId = !payload.clan.websiteClanId;
+      const clanId = payload.clan.websiteClanId ?? clanContext?.clanId;
 
-    if (needsClanId && !clanId) {
-      setSubmitError(tImport("errorNoClan"));
-      return;
-    }
-
-    setImportState("submitting");
-    setSubmitError(null);
-
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) {
-        setSubmitError(tImport("errorUnauthorized"));
-        setImportState("error");
+      if (needsClanId && !clanId) {
+        setSubmitError(tImport("errorNoClan"));
         return;
       }
 
-      const url = new URL("/api/import/submit", window.location.origin);
-      if (needsClanId && clanId) {
-        url.searchParams.set("clan_id", clanId);
-      }
+      setImportState("submitting");
+      setSubmitError(null);
+      setConflictInfo(null);
 
-      const res = await fetch(url.toString(), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) {
+          setSubmitError(tImport("errorUnauthorized"));
+          setImportState("error");
+          return;
+        }
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        setSubmitError(body?.error ?? tImport("errorSubmitFailed"));
+        const url = new URL("/api/import/submit", window.location.origin);
+        if (needsClanId && clanId) {
+          url.searchParams.set("clan_id", clanId);
+        }
+        if (overwrite) {
+          url.searchParams.set("overwrite", "true");
+        }
+
+        const res = await fetch(url.toString(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.status === 409) {
+          const body = await res.json().catch(() => null);
+          if (body?.conflicts) {
+            setConflictInfo({ conflicts: body.conflicts });
+            setImportState("idle");
+            return;
+          }
+        }
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          setSubmitError(body?.error ?? tImport("errorSubmitFailed"));
+          setImportState("error");
+          return;
+        }
+
+        const body = await res.json();
+        setSubmitResult(body.data as SubmitResponse);
+        setImportState("success");
+        setRetryCount((c) => c + 1);
+      } catch {
+        setSubmitError(tImport("errorSubmitFailed"));
         setImportState("error");
-        return;
       }
+    },
+    [payload, clanContext, supabase, tImport],
+  );
 
-      const body = await res.json();
-      setSubmitResult(body.data as SubmitResponse);
-      setImportState("success");
-      setRetryCount((c) => c + 1);
-    } catch {
-      setSubmitError(tImport("errorSubmitFailed"));
-      setImportState("error");
-    }
-  }, [payload, clanContext, supabase, tImport]);
+  const handleImportSubmit = useCallback(() => submitImport(false), [submitImport]);
+  const handleOverwriteSubmit = useCallback(() => {
+    setConflictInfo(null);
+    void submitImport(true);
+  }, [submitImport]);
 
   /* ── Fetch list ── */
 
@@ -500,10 +544,95 @@ export default function DataTab(): ReactElement {
     [selectedId, fetchDetail, t],
   );
 
+  /* ── Metadata editing handlers ── */
+
+  const handleUpdateReferenceDate = useCallback(
+    async (newDate: string) => {
+      if (!selectedId) return;
+      setMetadataSaving(true);
+      setMetadataWarning(null);
+      try {
+        const res = await fetch(`/api/import/submissions/${selectedId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ referenceDate: newDate || null }),
+        });
+        const body = (await res.json()) as { data?: { warnings?: string[] }; error?: string };
+        if (!res.ok) throw new Error(body.error ?? t("reviewError"));
+        if (body.data?.warnings?.length) {
+          setMetadataWarning(body.data.warnings.join(" "));
+        }
+        void fetchDetail();
+        setRetryCount((c) => c + 1);
+      } catch (err) {
+        setDetailError(err instanceof Error ? err.message : t("reviewError"));
+      } finally {
+        setMetadataSaving(false);
+      }
+    },
+    [selectedId, fetchDetail, t],
+  );
+
+  const handleUpdateLinkedEvent = useCallback(
+    async (eventId: string) => {
+      if (!selectedId) return;
+      setMetadataSaving(true);
+      setMetadataWarning(null);
+      try {
+        const res = await fetch(`/api/import/submissions/${selectedId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ linkedEventId: eventId || null }),
+        });
+        const body = (await res.json()) as { data?: { warnings?: string[] }; error?: string };
+        if (!res.ok) throw new Error(body.error ?? t("reviewError"));
+        if (body.data?.warnings?.length) {
+          setMetadataWarning(body.data.warnings.join(" "));
+        }
+        void fetchDetail();
+        setRetryCount((c) => c + 1);
+      } catch (err) {
+        setDetailError(err instanceof Error ? err.message : t("reviewError"));
+      } finally {
+        setMetadataSaving(false);
+      }
+    },
+    [selectedId, fetchDetail, t],
+  );
+
+  useEffect(() => {
+    if (!detail || detail.submission.submission_type !== "events" || !clanContext?.clanId) {
+      setClanEvents([]);
+      return;
+    }
+    async function loadEvents(): Promise<void> {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, starts_at")
+        .eq("clan_id", clanContext!.clanId)
+        .order("starts_at", { ascending: false })
+        .limit(200);
+      if (!error && data) {
+        setClanEvents(data as unknown as CalendarEvent[]);
+      }
+    }
+    void loadEvents();
+  }, [detail, clanContext?.clanId, supabase]);
+
+  const eventOptions: SelectOption[] = useMemo(() => {
+    const opts: SelectOption[] = [{ value: "", label: t("noLinkedEvent") }];
+    for (const evt of clanEvents) {
+      const dateStr = new Date(evt.starts_at).toLocaleDateString();
+      opts.push({ value: evt.id, label: `${evt.title} (${dateStr})` });
+    }
+    return opts;
+  }, [clanEvents, t]);
+
   const handleBack = useCallback(() => {
     setSelectedId(null);
     setDetail(null);
     setItemStatusFilter("");
+    setMetadataWarning(null);
     detailPagination.setPage(1);
   }, [detailPagination]);
 
@@ -555,7 +684,10 @@ export default function DataTab(): ReactElement {
   }
 
   const canAssign = !roleLoading && (isContentManager || isAdmin);
-  const accounts = detail?.clanGameAccounts ?? [];
+  const accountOptions: SelectOption[] = useMemo(() => {
+    const ga = detail?.clanGameAccounts ?? [];
+    return [{ value: "", label: "—" }, ...ga.map((a) => ({ value: a.id, label: a.game_username }))];
+  }, [detail?.clanGameAccounts]);
 
   function renderMatchCell(entry: StagedEntry): ReactElement {
     const editable = canAssign && (entry.item_status === "pending" || entry.item_status === "auto_matched");
@@ -566,18 +698,16 @@ export default function DataTab(): ReactElement {
     const busy = assigningEntryId === entry.id;
     return (
       <span>
-        <select
+        <RadixSelect
           value={entry.game_accounts?.id ?? ""}
+          onValueChange={(val) => handleAssignPlayer(entry.id, val || null)}
+          options={accountOptions}
           disabled={busy}
-          onChange={(e) => handleAssignPlayer(entry.id, e.target.value || null)}
-        >
-          <option value="">{busy ? "…" : "—"}</option>
-          {accounts.map((ga) => (
-            <option key={ga.id} value={ga.id}>
-              {ga.game_username}
-            </option>
-          ))}
-        </select>
+          placeholder={busy ? "…" : "—"}
+          triggerClassName="select-trigger compact"
+          enableSearch
+          searchPlaceholder={t("searchPlayer")}
+        />
       </span>
     );
   }
@@ -721,6 +851,34 @@ export default function DataTab(): ReactElement {
       );
     }
 
+    if (conflictInfo) {
+      return (
+        <div className="card" style={{ marginTop: 12, padding: "12px 14px", borderColor: "var(--color-warning)" }}>
+          <div style={{ fontSize: "0.85rem" }}>
+            <p style={{ color: "var(--color-warning)", fontWeight: 600, margin: "0 0 8px" }}>⚠ {t("conflictTitle")}</p>
+            {conflictInfo.conflicts.map((c) => (
+              <p key={c.type} style={{ margin: "0 0 4px" }}>
+                <span style={{ textTransform: "capitalize" }}>{c.type}</span>:{" "}
+                {t("conflictDescription", {
+                  date: c.conflict.existingDate,
+                  count: String(c.conflict.existingItemCount),
+                  status: c.conflict.existingStatus,
+                })}
+              </p>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button type="button" className="button danger compact" onClick={handleOverwriteSubmit}>
+                {t("overwrite")}
+              </button>
+              <button type="button" className="button compact" onClick={() => setConflictInfo(null)}>
+                {t("cancelOverwrite")}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (importState === "success" && submitResult) {
       return (
         <div className="card" style={{ marginTop: 12, padding: "10px 14px" }}>
@@ -744,6 +902,35 @@ export default function DataTab(): ReactElement {
     }
 
     return null;
+  }
+
+  /* ── View toggle ── */
+  const viewToggle = (
+    <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <button
+        type="button"
+        className={`button compact ${dataView === "submissions" ? "primary" : ""}`}
+        onClick={() => setDataView("submissions")}
+      >
+        {t("tabSubmissions")}
+      </button>
+      <button
+        type="button"
+        className={`button compact ${dataView === "validationLists" ? "primary" : ""}`}
+        onClick={() => setDataView("validationLists")}
+      >
+        {t("tabValidationLists")}
+      </button>
+    </div>
+  );
+
+  if (dataView === "validationLists") {
+    return (
+      <div>
+        {viewToggle}
+        <ValidationListsPanel />
+      </div>
+    );
   }
 
   /* ── Render: Detail loading ── */
@@ -807,6 +994,63 @@ export default function DataTab(): ReactElement {
               {t("rejectedItems")}: <strong>{sub.rejected_count ?? 0}</strong>
             </span>
           </div>
+
+          {/* Metadata editing: reference date and event linking */}
+          {canAssign && (
+            <div
+              className="card-body"
+              style={{
+                display: "flex",
+                gap: 16,
+                flexWrap: "wrap",
+                alignItems: "center",
+                borderTop: "1px solid var(--color-gold-a10)",
+                paddingTop: 12,
+                fontSize: "0.85rem",
+              }}
+            >
+              {sub.submission_type === "members" && (
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <span className="text-muted">{t("dataFromDate")}:</span>
+                  <input
+                    type="date"
+                    value={sub.reference_date ?? ""}
+                    disabled={metadataSaving}
+                    onChange={(e) => handleUpdateReferenceDate(e.target.value)}
+                    style={{ padding: "4px 8px", fontSize: "0.85rem" }}
+                  />
+                </label>
+              )}
+              {sub.submission_type === "events" && (
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <span className="text-muted">{t("linkedEvent")}:</span>
+                  <RadixSelect
+                    value={sub.linked_event_id ?? ""}
+                    onValueChange={handleUpdateLinkedEvent}
+                    options={eventOptions}
+                    disabled={metadataSaving}
+                    placeholder={t("noLinkedEvent")}
+                    triggerClassName="select-trigger compact"
+                    enableSearch
+                    searchPlaceholder={t("searchEvent")}
+                  />
+                </label>
+              )}
+              {sub.submission_type === "chests" && sub.reference_date && (
+                <span className="text-muted">
+                  {t("dataFromDate")}: {new Date(sub.reference_date).toLocaleDateString()}
+                </span>
+              )}
+              {metadataSaving && (
+                <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontStyle: "italic" }}>
+                  {t("saving")}
+                </span>
+              )}
+              {metadataWarning && (
+                <span style={{ fontSize: "0.8rem", color: "var(--color-warning)" }}>⚠ {metadataWarning}</span>
+              )}
+            </div>
+          )}
 
           {!roleLoading && (isContentManager || isAdmin) && (
             <div
@@ -909,14 +1153,18 @@ export default function DataTab(): ReactElement {
 
   if (!clanContext?.clanId && !isLoading) {
     return (
-      <div className="card">
-        <div className="card-body text-text-muted">{t("noClanSelected")}</div>
+      <div>
+        {viewToggle}
+        <div className="card">
+          <div className="card-body text-text-muted">{t("noClanSelected")}</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div>
+      {viewToggle}
       <div
         className="filter-bar"
         style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}

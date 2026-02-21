@@ -17,6 +17,7 @@ import {
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
   loading: () => <div className="skeleton h-8 rounded" />,
 });
+const EventLinkedResults = dynamic(() => import("./event-linked-results"), { ssr: false });
 
 /* ── Inline SVG icons ── */
 
@@ -345,6 +346,7 @@ function DayPanelEventCardInner({
               <AppMarkdown content={entry.description} />
             </div>
           )}
+          <EventLinkedResults eventId={entry.id} />
           {entry.forum_post_id && (
             <a className="day-panel-discuss-btn" href={`/forum?post=${entry.forum_post_id}`} onClick={stopPropagation}>
               <svg

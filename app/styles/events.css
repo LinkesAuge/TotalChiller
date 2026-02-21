@@ -1700,6 +1700,44 @@
   max-height: 72px;
 }
 
+/* ─── Event Linked Results ─── */
+.event-results-section {
+  padding: 12px 0 4px;
+}
+
+.event-results-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: var(--color-gold);
+  letter-spacing: 0.02em;
+}
+
+.event-results-table {
+  width: 100%;
+  font-size: 0.82rem;
+  border-collapse: collapse;
+}
+
+.event-results-table th,
+.event-results-table td {
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.event-results-table th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-gold-a10);
+}
+
+.event-results-table tr:nth-child(even) {
+  background: rgba(14, 26, 40, 0.4);
+}
+
 /* ─── Events layout stacking: must come AFTER base styles to win cascade ─── */
 @media (max-width: 1100px) {
   .events-two-col {

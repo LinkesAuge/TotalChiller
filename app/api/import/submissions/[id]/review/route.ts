@@ -29,6 +29,7 @@ interface SubmissionRow {
   clan_id: string;
   submission_type: string;
   status: string;
+  linked_event_id: string | null;
 }
 
 type StagedRow = Record<string, unknown>;
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
 
     const { data: submission, error: subErr } = await svc
       .from("data_submissions")
-      .select("id, clan_id, submission_type, status")
+      .select("id, clan_id, submission_type, status, linked_event_id")
       .eq("id", id)
       .single();
 
@@ -300,6 +301,7 @@ function mapToProductionRow(item: StagedRow, sub: SubmissionRow): Record<string,
         event_points: item.event_points,
         event_name: item.event_name ?? null,
         event_date: item.captured_at,
+        linked_event_id: sub.linked_event_id,
       };
     default:
       throw new Error(`Unknown submission type: ${sub.submission_type}`);

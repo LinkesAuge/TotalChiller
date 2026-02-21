@@ -3,10 +3,9 @@ import type { NextRequest } from "next/server";
 import { standardLimiter } from "@/lib/rate-limit";
 import { requireAuth } from "@/lib/api/require-auth";
 import { requireAdmin } from "@/lib/api/require-admin";
-import { z } from "zod";
 import { apiError, uuidSchema, parseJsonBody } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
-import { SubmissionDetailQuerySchema } from "@/lib/api/import-schemas";
+import { SubmissionDetailQuerySchema, SubmissionPatchSchema } from "@/lib/api/import-schemas";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
 
 interface RouteContext {
@@ -184,16 +183,13 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
 }
 
 /**
- * PATCH /api/import/submissions/[id] — Assign a game account to a staged entry.
- * Sets matched_game_account_id and changes item_status from "pending" to "auto_matched".
- * Pass matchGameAccountId: null to clear an assignment.
+ * PATCH /api/import/submissions/[id] — Update submission metadata or assign entries.
+ *
+ * Supports three operations (all editable at any time regardless of status):
+ * 1. Set/change reference_date (primarily for member submissions)
+ * 2. Set/change/unlink linked_event_id (for event submissions)
+ * 3. Assign a game account to a staged entry (entryId + matchGameAccountId)
  */
-
-const AssignEntrySchema = z.object({
-  entryId: z.string().uuid(),
-  matchGameAccountId: z.string().uuid().nullable(),
-});
-
 export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const blocked = standardLimiter.check(request);
   if (blocked) return blocked;
@@ -215,54 +211,144 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     const idParsed = uuidSchema.safeParse(id);
     if (!idParsed.success) return apiError("Invalid submission ID.", 400);
 
-    const body = await parseJsonBody(request, AssignEntrySchema);
+    const body = await parseJsonBody(request, SubmissionPatchSchema);
     if (body.error) return body.error;
-    const { entryId, matchGameAccountId } = body.data;
+    const patch = body.data;
 
     const svc = createSupabaseServiceRoleClient();
 
     const { data: submission, error: subErr } = await svc
       .from("data_submissions")
-      .select("id, submission_type, status")
+      .select("id, clan_id, submission_type, status")
       .eq("id", id)
       .maybeSingle();
 
     if (subErr || !submission) return apiError("Submission not found.", 404);
 
-    const tableName = STAGED_TABLES[submission.submission_type as string];
-    if (!tableName) return apiError("Unknown submission type.", 500);
+    const subType = submission.submission_type as string;
+    const subStatus = submission.status as string;
+    const clanId = submission.clan_id as string;
 
-    const newStatus = matchGameAccountId ? "auto_matched" : "pending";
+    /* ── 1. Entry assignment ── */
+    if (patch.entryId !== undefined && patch.matchGameAccountId !== undefined) {
+      const tableName = STAGED_TABLES[subType];
+      if (!tableName) return apiError("Unknown submission type.", 500);
 
-    const { data: updated, error: updateErr } = await svc
-      .from(tableName)
-      .update({
-        matched_game_account_id: matchGameAccountId,
-        item_status: newStatus,
-      })
-      .eq("id", entryId)
-      .eq("submission_id", id)
-      .select("id, item_status, matched_game_account_id")
-      .maybeSingle();
+      const newStatus = patch.matchGameAccountId ? "auto_matched" : "pending";
+
+      const { data: updated, error: updateErr } = await svc
+        .from(tableName)
+        .update({
+          matched_game_account_id: patch.matchGameAccountId,
+          item_status: newStatus,
+        })
+        .eq("id", patch.entryId)
+        .eq("submission_id", id)
+        .select("id, item_status, matched_game_account_id")
+        .maybeSingle();
+
+      if (updateErr) {
+        captureApiError("PATCH /api/import/submissions/[id] assign", updateErr);
+        return apiError("Failed to update entry.", 500);
+      }
+      if (!updated) return apiError("Entry not found in this submission.", 404);
+
+      const { count: matchedTotal } = await svc
+        .from(tableName)
+        .select("id", { count: "exact", head: true })
+        .eq("submission_id", id)
+        .eq("item_status", "auto_matched");
+
+      await svc
+        .from("data_submissions")
+        .update({ matched_count: matchedTotal ?? 0 })
+        .eq("id", id);
+
+      return NextResponse.json({ data: updated });
+    }
+
+    /* ── 2. Metadata updates ── */
+    const submissionUpdate: Record<string, unknown> = {};
+    const warnings: string[] = [];
+
+    if (patch.referenceDate !== undefined) {
+      const newDate = patch.referenceDate;
+      submissionUpdate.reference_date = newDate;
+
+      if (newDate && subType === "members") {
+        const { data: existing } = await svc
+          .from("data_submissions")
+          .select("id, item_count, status")
+          .eq("clan_id", clanId)
+          .eq("submission_type", "members")
+          .eq("reference_date", newDate)
+          .neq("id", id)
+          .limit(1)
+          .maybeSingle();
+
+        if (existing) {
+          warnings.push(
+            `Another member submission for ${newDate} already exists (${existing.item_count} entries, status: ${existing.status}).`,
+          );
+        }
+      }
+
+      if (subStatus === "approved" && subType === "members" && newDate) {
+        await svc.from("member_snapshots").update({ snapshot_date: newDate }).eq("submission_id", id);
+      }
+    }
+
+    if (patch.linkedEventId !== undefined) {
+      if (subType !== "events") {
+        return apiError("linked_event_id can only be set on event submissions.", 400);
+      }
+
+      const eventId = patch.linkedEventId;
+
+      if (eventId) {
+        const { data: evt } = await svc.from("events").select("id, clan_id").eq("id", eventId).maybeSingle();
+
+        if (!evt) return apiError("Event not found.", 404);
+        if ((evt.clan_id as string) !== clanId) {
+          return apiError("Event belongs to a different clan.", 403);
+        }
+
+        const { data: existingLink } = await svc
+          .from("data_submissions")
+          .select("id, item_count, status")
+          .eq("linked_event_id", eventId)
+          .neq("id", id)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingLink) {
+          warnings.push(
+            `Another submission is already linked to this event (${existingLink.item_count} entries, status: ${existingLink.status}).`,
+          );
+        }
+      }
+
+      submissionUpdate.linked_event_id = eventId;
+
+      if (subStatus === "approved") {
+        await svc.from("event_results").update({ linked_event_id: eventId }).eq("submission_id", id);
+      }
+    }
+
+    if (Object.keys(submissionUpdate).length === 0) {
+      return apiError("No fields to update.", 400);
+    }
+
+    const { error: updateErr } = await svc.from("data_submissions").update(submissionUpdate).eq("id", id);
 
     if (updateErr) {
-      captureApiError("PATCH /api/import/submissions/[id] assign", updateErr);
-      return apiError("Failed to update entry.", 500);
+      captureApiError("PATCH /api/import/submissions/[id] metadata", updateErr);
+      return apiError("Failed to update submission.", 500);
     }
-    if (!updated) return apiError("Entry not found in this submission.", 404);
 
-    const { count: matchedTotal } = await svc
-      .from(tableName)
-      .select("id", { count: "exact", head: true })
-      .eq("submission_id", id)
-      .eq("item_status", "auto_matched");
-
-    await svc
-      .from("data_submissions")
-      .update({ matched_count: matchedTotal ?? 0 })
-      .eq("id", id);
-
-    return NextResponse.json({ data: updated });
+    return NextResponse.json({
+      data: { updated: true, warnings: warnings.length > 0 ? warnings : undefined },
+    });
   } catch (err) {
     captureApiError("PATCH /api/import/submissions/[id]", err);
     return apiError("Internal server error.", 500);

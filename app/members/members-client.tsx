@@ -134,18 +134,48 @@ function MembersClient(): JSX.Element {
           }
         }
       }
+      /* Fetch latest member snapshots for this clan */
+      let snapshotMap = new Map<string, { coordinates: string | null; score: number | null; snapshotDate: string }>();
+      try {
+        const snapRes = await fetch(`/api/members/snapshots?clan_id=${encodeURIComponent(clanContext.clanId)}`);
+        if (snapRes.ok) {
+          const snapBody = (await snapRes.json()) as {
+            data: Array<{
+              game_account_id: string;
+              coordinates: string | null;
+              score: number | null;
+              snapshot_date: string;
+            }>;
+          };
+          for (const snap of snapBody.data) {
+            snapshotMap.set(snap.game_account_id, {
+              coordinates: snap.coordinates,
+              score: snap.score,
+              snapshotDate: snap.snapshot_date,
+            });
+          }
+        }
+      } catch {
+        /* snapshot data is optional — continue without it */
+      }
+
       const mapped: MemberRow[] = rows.map((row) => {
         const ga = row.game_accounts;
         const rawUserId = ga.user_id;
         const profile = profileMap.get(rawUserId);
         const memberRole = nextRoleMap.get(rawUserId) ?? null;
+        const snap = snapshotMap.get(ga.id);
         return {
           membershipId: row.id,
+          gameAccountId: ga.id,
           gameUsername: ga.game_username ?? "",
           displayName: profile?.display_name || profile?.username || "",
           userId: rawUserId,
           rank: row.rank ?? null,
           role: memberRole,
+          coordinates: snap?.coordinates ?? null,
+          score: snap?.score ?? null,
+          snapshotDate: snap?.snapshotDate ?? null,
         };
       });
       mapped.sort(compareMemberOrder);
@@ -249,105 +279,117 @@ function MembersClient(): JSX.Element {
           </div>
         }
       >
-        <section className="table member-dir">
-          <header>
-            <span>#</span>
-            <span>{t("gameAccount")}</span>
-            <span>{t("rank")}</span>
-            <span />
-          </header>
-          {members.map((member, index) => {
-            const isExpanded = expandedIds.includes(member.membershipId);
-            const role = member.role;
-            /* If rank is null and user is owner/admin, show role name instead */
-            const useRoleAsRank = !member.rank && !!role && RANK_SUBSTITUTE_ROLES.has(role);
-            const displayRankLabel = useRoleAsRank
-              ? formatRole(role, locale)
-              : member.rank
-                ? formatRank(member.rank, locale)
-                : t("noRank");
-            const displayRankColor = useRoleAsRank ? getRoleColor(role) : getRankColor(member.rank ?? "soldier");
-            return (
-              <div key={member.membershipId}>
-                {/* ── Main row ── */}
-                <div
-                  className="row"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => toggleExpanded(member.membershipId)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      toggleExpanded(member.membershipId);
-                    }
-                  }}
-                >
-                  <span className="member-dir-pos">
-                    <Image src={RANK_ICON} alt="" width={26} height={26} className="member-dir-rank-hex" />
-                    <span className="member-dir-pos-num">{index + 1}</span>
-                  </span>
-                  <div className="member-dir-identity">
-                    <span className="member-dir-username">{member.gameUsername}</span>
-                    {member.displayName && <span className="member-dir-user">{member.displayName}</span>}
-                  </div>
-                  <span>
-                    <span
-                      className="badge member-dir-rank"
-                      style={{
-                        borderColor: displayRankColor,
-                        color: displayRankColor,
-                      }}
-                    >
-                      {displayRankLabel}
+        <div className="table-scroll">
+          <section className="table member-dir">
+            <header>
+              <span>#</span>
+              <span>{t("gameAccount")}</span>
+              <span>{t("coordinates")}</span>
+              <span>{t("score")}</span>
+              <span>{t("rank")}</span>
+              <span>{t("lastUpdated")}</span>
+              <span />
+            </header>
+            {members.map((member, index) => {
+              const isExpanded = expandedIds.includes(member.membershipId);
+              const role = member.role;
+              /* If rank is null and user is owner/admin, show role name instead */
+              const useRoleAsRank = !member.rank && !!role && RANK_SUBSTITUTE_ROLES.has(role);
+              const displayRankLabel = useRoleAsRank
+                ? formatRole(role, locale)
+                : member.rank
+                  ? formatRank(member.rank, locale)
+                  : t("noRank");
+              const displayRankColor = useRoleAsRank ? getRoleColor(role) : getRankColor(member.rank ?? "soldier");
+              return (
+                <div key={member.membershipId}>
+                  {/* ── Main row ── */}
+                  <div
+                    className="row"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggleExpanded(member.membershipId)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleExpanded(member.membershipId);
+                      }
+                    }}
+                  >
+                    <span className="member-dir-pos">
+                      <Image src={RANK_ICON} alt="" width={26} height={26} className="member-dir-rank-hex" />
+                      <span className="member-dir-pos-num">{index + 1}</span>
                     </span>
-                  </span>
-                  <span className="row-caret" aria-hidden="true">
-                    <svg width="14" height="10" viewBox="0 0 12 8" fill="none">
-                      <path
-                        d={isExpanded ? "M1 1L6 6L11 1" : "M3 1L9 4L3 7"}
-                        stroke="currentColor"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
-                </div>
-                {/* ── Expanded subrow ── */}
-                {isExpanded && (
-                  <div className="row subrow">
-                    <div className="col-span-full member-dir-detail">
-                      {/* Website role */}
-                      {role && (
-                        <div className="member-dir-stat">
-                          <span className="badge member-dir-role-badge">{formatRole(role, locale)}</span>
-                        </div>
-                      )}
-                      {/* Send message */}
-                      <Link
-                        href={buildMessageLink(member.userId)}
-                        className="member-dir-message-link"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M2 3H14V11.5H5L2 14V3Z"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinejoin="round"
-                          />
-                          <path d="M5 6.5H11" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                          <path d="M5 9H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                        </svg>
-                        {t("sendMessage")}
-                      </Link>
+                    <div className="member-dir-identity">
+                      <span className="member-dir-username">{member.gameUsername}</span>
+                      {member.displayName && <span className="member-dir-user">{member.displayName}</span>}
                     </div>
+                    <span className="text-muted">{member.coordinates ?? "—"}</span>
+                    <span>{member.score != null ? member.score.toLocaleString() : "—"}</span>
+                    <span>
+                      <span
+                        className="badge member-dir-rank"
+                        style={{
+                          borderColor: displayRankColor,
+                          color: displayRankColor,
+                        }}
+                      >
+                        {displayRankLabel}
+                      </span>
+                    </span>
+                    <span className="text-muted">
+                      {member.snapshotDate
+                        ? new Date(member.snapshotDate).toLocaleDateString(locale === "de" ? "de-DE" : "en-US")
+                        : "—"}
+                    </span>
+                    <span className="row-caret" aria-hidden="true">
+                      <svg width="14" height="10" viewBox="0 0 12 8" fill="none">
+                        <path
+                          d={isExpanded ? "M1 1L6 6L11 1" : "M3 1L9 4L3 7"}
+                          stroke="currentColor"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </section>
+                  {/* ── Expanded subrow ── */}
+                  {isExpanded && (
+                    <div className="row subrow">
+                      <div className="col-span-full member-dir-detail">
+                        {/* Website role */}
+                        {role && (
+                          <div className="member-dir-stat">
+                            <span className="badge member-dir-role-badge">{formatRole(role, locale)}</span>
+                          </div>
+                        )}
+                        {/* Send message */}
+                        <Link
+                          href={buildMessageLink(member.userId)}
+                          className="member-dir-message-link"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M2 3H14V11.5H5L2 14V3Z"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinejoin="round"
+                            />
+                            <path d="M5 6.5H11" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                            <path d="M5 9H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                          </svg>
+                          {t("sendMessage")}
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        </div>
       </DataState>
     </div>
   );

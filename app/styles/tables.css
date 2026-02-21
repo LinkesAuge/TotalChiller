@@ -167,9 +167,13 @@
 }
 
 /* Member directory (public member list) */
+.table.member-dir {
+  min-width: 760px;
+}
+
 .table.member-dir header,
 .table.member-dir .row {
-  grid-template-columns: 56px 1fr 140px 28px;
+  grid-template-columns: 56px 1.2fr 0.8fr 0.7fr 120px 100px 28px;
   align-items: center;
 }
 
@@ -370,7 +374,7 @@
 @media (max-width: 768px) {
   .table.member-dir header,
   .table.member-dir .row {
-    grid-template-columns: 40px 1fr 110px 24px;
+    grid-template-columns: 40px 1.2fr 0.8fr 0.7fr 100px 90px 24px;
   }
 
   .table.member-dir .row {
@@ -605,9 +609,15 @@
   align-items: center;
 }
 
-.table.submissions-detail .row select {
+.table.submissions-detail .row .select-trigger.compact {
   width: 100%;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.82rem;
+  min-height: unset;
+  gap: 0.25rem;
+  overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── Tables mobile: allow wrapping in member table action lists ─── */
@@ -620,4 +630,15 @@
     min-height: 40px;
     padding: 8px 4px;
   }
+}
+
+/* ─── Validation lists table ─── */
+.table.validation-list header,
+.table.validation-list .row {
+  grid-template-columns: 80px 1fr 1fr 80px;
+  align-items: center;
+}
+
+.table.validation-list .row {
+  font-size: 0.82rem;
 }

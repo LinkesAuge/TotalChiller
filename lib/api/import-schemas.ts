@@ -41,6 +41,7 @@ export const ImportPayloadSchema = z.object({
   version: z.literal(1),
   exportedAt: z.string().datetime(),
   source: z.string(),
+  referenceDate: z.string().date().optional(),
   clan: z.object({
     localClanId: z.string(),
     name: z.string(),
@@ -99,6 +100,25 @@ export const ValidationListPushSchema = z.object({
 });
 
 export type ValidationListPush = z.infer<typeof ValidationListPushSchema>;
+
+/* ── Submission Metadata Patch ── */
+
+export const SubmissionPatchSchema = z
+  .object({
+    referenceDate: z.string().date().nullable().optional(),
+    linkedEventId: z.string().uuid().nullable().optional(),
+    entryId: z.string().uuid().optional(),
+    matchGameAccountId: z.string().uuid().nullable().optional(),
+  })
+  .refine(
+    (d) =>
+      d.referenceDate !== undefined ||
+      d.linkedEventId !== undefined ||
+      (d.entryId !== undefined && d.matchGameAccountId !== undefined),
+    { message: "At least one field to update must be provided." },
+  );
+
+export type SubmissionPatch = z.infer<typeof SubmissionPatchSchema>;
 
 /* ── Query Param Schemas ── */
 

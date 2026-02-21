@@ -21,6 +21,14 @@ interface SubmissionResult {
   autoMatchedCount: number;
   unmatchedCount: number;
   duplicateCount: number;
+  referenceDate?: string | null;
+}
+
+interface ConflictInfo {
+  existingSubmissionId: string;
+  existingDate: string;
+  existingItemCount: number;
+  existingStatus: string;
 }
 
 interface GameAccountMatch {
@@ -57,9 +65,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const gameAccounts = await loadClanGameAccounts(svc, clanId);
     const corrections = await loadOcrCorrections(svc, clanId, "player");
 
+    const explicitRefDate = payload.referenceDate ?? null;
+    const forceOverwrite = request.nextUrl.searchParams.get("overwrite") === "true";
+
     const submissions: SubmissionResult[] = [];
+    const conflicts: Array<{ type: string; conflict: ConflictInfo }> = [];
 
     if (payload.data.chests && payload.data.chests.length > 0) {
+      const refDate = explicitRefDate ?? payload.data.chests[0]!.openedAt.slice(0, 10);
       const result = await processChests(
         svc,
         payload.data.chests,
@@ -68,24 +81,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         submissionSource,
         gameAccounts,
         corrections,
+        refDate,
       );
       submissions.push(result);
     }
 
     if (payload.data.members && payload.data.members.length > 0) {
-      const result = await processMembers(
-        svc,
-        payload.data.members,
-        clanId,
-        userId,
-        submissionSource,
-        gameAccounts,
-        corrections,
-      );
-      submissions.push(result);
+      const refDate = explicitRefDate ?? payload.data.members[0]!.capturedAt.slice(0, 10);
+
+      const conflict = await checkDateConflict(svc, clanId, "members", refDate);
+      if (conflict && !forceOverwrite) {
+        conflicts.push({ type: "members", conflict });
+      } else {
+        if (conflict && forceOverwrite) {
+          await svc.from("data_submissions").delete().eq("id", conflict.existingSubmissionId);
+        }
+        const result = await processMembers(
+          svc,
+          payload.data.members,
+          clanId,
+          userId,
+          submissionSource,
+          gameAccounts,
+          corrections,
+          refDate,
+        );
+        submissions.push(result);
+      }
     }
 
     if (payload.data.events && payload.data.events.length > 0) {
+      const refDate = explicitRefDate ?? payload.data.events[0]!.capturedAt.slice(0, 10);
       const result = await processEvents(
         svc,
         payload.data.events,
@@ -94,8 +120,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         submissionSource,
         gameAccounts,
         corrections,
+        refDate,
       );
       submissions.push(result);
+    }
+
+    if (conflicts.length > 0) {
+      return NextResponse.json({ error: "conflict", conflicts }, { status: 409 });
     }
 
     let validationListsUpdated = false;
@@ -196,6 +227,30 @@ function matchPlayer(
   return { accountId: null, status: "pending" };
 }
 
+async function checkDateConflict(
+  svc: SupabaseClient,
+  clanId: string,
+  submissionType: string,
+  referenceDate: string,
+): Promise<ConflictInfo | null> {
+  const { data } = await svc
+    .from("data_submissions")
+    .select("id, reference_date, item_count, status")
+    .eq("clan_id", clanId)
+    .eq("submission_type", submissionType)
+    .eq("reference_date", referenceDate)
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    existingSubmissionId: data.id as string,
+    existingDate: data.reference_date as string,
+    existingItemCount: data.item_count as number,
+    existingStatus: data.status as string,
+  };
+}
+
 async function processChests(
   svc: SupabaseClient,
   chests: ChestItem[],
@@ -204,6 +259,7 @@ async function processChests(
   source: string,
   gameAccounts: Map<string, GameAccountMatch>,
   corrections: Map<string, string>,
+  referenceDate: string,
 ): Promise<SubmissionResult> {
   const { data: sub, error: subErr } = await svc
     .from("data_submissions")
@@ -213,6 +269,7 @@ async function processChests(
       submission_type: "chests",
       source,
       item_count: chests.length,
+      reference_date: referenceDate,
     })
     .select("id")
     .single();
@@ -253,6 +310,7 @@ async function processChests(
     autoMatchedCount,
     unmatchedCount: chests.length - autoMatchedCount,
     duplicateCount,
+    referenceDate,
   };
 }
 
@@ -264,6 +322,7 @@ async function processMembers(
   source: string,
   gameAccounts: Map<string, GameAccountMatch>,
   corrections: Map<string, string>,
+  referenceDate: string,
 ): Promise<SubmissionResult> {
   const { data: sub, error: subErr } = await svc
     .from("data_submissions")
@@ -273,6 +332,7 @@ async function processMembers(
       submission_type: "members",
       source,
       item_count: members.length,
+      reference_date: referenceDate,
     })
     .select("id")
     .single();
@@ -311,6 +371,7 @@ async function processMembers(
     autoMatchedCount,
     unmatchedCount: members.length - autoMatchedCount,
     duplicateCount: 0,
+    referenceDate,
   };
 }
 
@@ -322,6 +383,7 @@ async function processEvents(
   source: string,
   gameAccounts: Map<string, GameAccountMatch>,
   corrections: Map<string, string>,
+  referenceDate: string,
 ): Promise<SubmissionResult> {
   const { data: sub, error: subErr } = await svc
     .from("data_submissions")
@@ -331,6 +393,7 @@ async function processEvents(
       submission_type: "events",
       source,
       item_count: events.length,
+      reference_date: referenceDate,
     })
     .select("id")
     .single();
@@ -369,6 +432,7 @@ async function processEvents(
     autoMatchedCount,
     unmatchedCount: events.length - autoMatchedCount,
     duplicateCount: 0,
+    referenceDate,
   };
 }
 

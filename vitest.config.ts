@@ -1,13 +1,21 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
 
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   test: {
     include: ["lib/**/*.test.{ts,tsx}", "app/**/*.test.{ts,tsx}"],
     environment: "node",
     setupFiles: ["./test/vitest.setup.ts"],
     pool: "forks",
-    maxWorkers: 3,
+    maxWorkers: isCI ? 1 : 3,
+    fileParallelism: !isCI,
+    poolOptions: {
+      forks: {
+        memoryLimit: isCI ? "512MB" : undefined,
+      },
+    },
     coverage: {
       provider: "v8",
       include: ["app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],

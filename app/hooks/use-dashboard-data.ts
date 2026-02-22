@@ -174,7 +174,7 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
 
     async function loadStats(): Promise<void> {
       try {
-        const res = await fetch(`/api/analytics/stats?clan_id=${encodeURIComponent(clanId!)}`);
+        const res = await fetch(`/api/data/stats?clan_id=${encodeURIComponent(clanId!)}`);
         if (!res.ok) throw new Error(`${res.status}`);
         const json = await res.json();
         if (!cancelled) setStats(json.data as DashboardStats);

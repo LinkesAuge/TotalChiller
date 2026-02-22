@@ -71,7 +71,7 @@ export function EventRulesSection({ supabase, userId, clanId }: EventRulesSectio
     setRulesLoading(true);
     setRulesError(null);
     try {
-      const res = await fetch(`/api/analytics/rules/events?clan_id=${clanId}&active_only=false`);
+      const res = await fetch(`/api/data/rules/events?clan_id=${clanId}&active_only=false`);
       if (!res.ok) throw new Error();
       const json = await res.json();
       setRuleSets(json.data ?? []);
@@ -198,7 +198,7 @@ export function EventRulesSection({ supabase, userId, clanId }: EventRulesSectio
             tiers,
           };
 
-      const res = await fetch("/api/analytics/rules/events", {
+      const res = await fetch("/api/data/rules/events", {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -219,7 +219,7 @@ export function EventRulesSection({ supabase, userId, clanId }: EventRulesSectio
     if (!clanId) return;
     setRuleSaving(true);
     try {
-      const res = await fetch(`/api/analytics/rules/events?clan_id=${clanId}&id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/data/rules/events?clan_id=${clanId}&id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setRuleToast({ type: "success", msg: t("ruleSetDeleted") });
       setDeleteConfirmId(null);

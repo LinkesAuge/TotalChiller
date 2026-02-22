@@ -25,50 +25,45 @@ BEGIN
   END IF;
 
   WITH
-  -- Latest score per account (with optional player filter)
-  latest AS (
-    SELECT DISTINCT ON (game_account_id)
-      game_account_id, player_name, COALESCE(score, 0)::int AS score
+  -- Single scan of member_snapshots for this clan + player filter (materialized, reused by 6 CTEs)
+  base AS (
+    SELECT game_account_id, player_name, COALESCE(score, 0)::int AS score, snapshot_date
     FROM member_snapshots
     WHERE clan_id = p_clan_id AND game_account_id IS NOT NULL
       AND (p_player IS NULL OR player_name ILIKE '%' || p_player || '%')
+  ),
+
+  latest AS (
+    SELECT DISTINCT ON (game_account_id)
+      game_account_id, player_name, score
+    FROM base
     ORDER BY game_account_id, snapshot_date DESC
   ),
 
-  -- Previous for cutoff-based modes (week/month/custom)
   prev_cutoff AS (
     SELECT DISTINCT ON (game_account_id)
-      game_account_id, COALESCE(score, 0)::int AS score
-    FROM member_snapshots
-    WHERE clan_id = p_clan_id AND game_account_id IS NOT NULL
-      AND (p_player IS NULL OR player_name ILIKE '%' || p_player || '%')
-      AND p_compare_cutoff IS NOT NULL
+      game_account_id, score
+    FROM base
+    WHERE p_compare_cutoff IS NOT NULL
       AND snapshot_date <= p_compare_cutoff
     ORDER BY game_account_id, snapshot_date DESC
   ),
 
-  -- Previous for all_time: oldest snapshot
   prev_all_time AS (
     SELECT DISTINCT ON (game_account_id)
-      game_account_id, COALESCE(score, 0)::int AS score
-    FROM member_snapshots
-    WHERE clan_id = p_clan_id AND game_account_id IS NOT NULL
-      AND (p_player IS NULL OR player_name ILIKE '%' || p_player || '%')
-      AND p_compare_cutoff IS NULL
+      game_account_id, score
+    FROM base
+    WHERE p_compare_cutoff IS NULL
     ORDER BY game_account_id, snapshot_date ASC
   ),
 
-  -- Snapshot count per account (all_time needs >1 to show delta)
   snap_counts AS (
     SELECT game_account_id, COUNT(*)::int AS cnt
-    FROM member_snapshots
-    WHERE clan_id = p_clan_id AND game_account_id IS NOT NULL
-      AND (p_player IS NULL OR player_name ILIKE '%' || p_player || '%')
-      AND p_compare_cutoff IS NULL
+    FROM base
+    WHERE p_compare_cutoff IS NULL
     GROUP BY game_account_id
   ),
 
-  -- Combine into ranked standings
   standings_data AS (
     SELECT
       l.game_account_id,
@@ -90,7 +85,7 @@ BEGIN
     SELECT COUNT(*)::int AS cnt FROM latest
   ),
 
-  -- Clan total power (always unfiltered)
+  -- Clan total power (always unfiltered — intentionally separate scan)
   clan_total AS (
     SELECT COALESCE(SUM(score), 0)::bigint AS val
     FROM (
@@ -101,23 +96,20 @@ BEGIN
     ) t
   ),
 
-  -- History: all snapshots of top 10 players within date range
   top10 AS (
     SELECT game_account_id FROM standings_data ORDER BY score DESC LIMIT 10
   ),
 
   history AS (
-    SELECT ms.snapshot_date AS date, l.player_name, COALESCE(ms.score, 0)::int AS score
-    FROM member_snapshots ms
-    JOIN latest l ON l.game_account_id = ms.game_account_id
-    WHERE ms.clan_id = p_clan_id
-      AND ms.game_account_id IN (SELECT game_account_id FROM top10)
-      AND (p_from_utc IS NULL OR ms.snapshot_date >= p_from_utc)
-      AND (p_to_utc IS NULL OR ms.snapshot_date < p_to_utc)
-    ORDER BY ms.snapshot_date ASC
+    SELECT b.snapshot_date AS date, l.player_name, b.score
+    FROM base b
+    JOIN latest l ON l.game_account_id = b.game_account_id
+    WHERE b.game_account_id IN (SELECT game_account_id FROM top10)
+      AND (p_from_utc IS NULL OR b.snapshot_date >= p_from_utc)
+      AND (p_to_utc IS NULL OR b.snapshot_date < p_to_utc)
+    ORDER BY b.snapshot_date ASC
   ),
 
-  -- Clan total power trend (max score per account per Berlin date)
   clan_total_history AS (
     SELECT
       TO_CHAR(berlin_date, 'YYYY-MM-DD') AS date,
@@ -127,17 +119,14 @@ BEGIN
       SELECT DISTINCT ON (game_account_id, (snapshot_date AT TIME ZONE 'Europe/Berlin')::date)
         game_account_id,
         (snapshot_date AT TIME ZONE 'Europe/Berlin')::date AS berlin_date,
-        COALESCE(score, 0) AS score
-      FROM member_snapshots
-      WHERE clan_id = p_clan_id AND game_account_id IS NOT NULL
-        AND (p_player IS NULL OR player_name ILIKE '%' || p_player || '%')
+        score
+      FROM base
       ORDER BY game_account_id, (snapshot_date AT TIME ZONE 'Europe/Berlin')::date, score DESC
     ) per_day
     GROUP BY berlin_date
     ORDER BY berlin_date
   ),
 
-  -- Power distribution histogram (8 buckets)
   dist_params AS (
     SELECT
       COALESCE(MAX(score), 0) AS max_score,

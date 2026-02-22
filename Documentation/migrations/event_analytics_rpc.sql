@@ -29,26 +29,32 @@ BEGIN
   END IF;
 
   WITH
-  -- Aggregate one row per event with participant/point totals
+  -- Single scan of event_results for this clan (materialized, reused by 4 CTEs)
+  base AS (
+    SELECT er.linked_event_id, er.player_name, er.event_points,
+           er.game_account_id, er.event_date, er.event_name
+    FROM event_results er
+    WHERE er.clan_id = p_clan_id
+      AND er.linked_event_id IS NOT NULL
+  ),
+
   event_agg AS (
     SELECT
-      er.linked_event_id,
-      COALESCE(e.title, MAX(er.event_name), 'Unknown Event') AS event_name,
-      MAX(er.event_date) AS event_date,
+      b.linked_event_id,
+      COALESCE(e.title, MAX(b.event_name), 'Unknown Event') AS event_name,
+      MAX(b.event_date) AS event_date,
       e.starts_at,
       e.ends_at,
       COUNT(*)::int AS participant_count,
-      COALESCE(SUM(er.event_points), 0)::bigint AS total_points
-    FROM event_results er
-    LEFT JOIN events e ON e.id = er.linked_event_id
-    WHERE er.clan_id = p_clan_id
-      AND er.linked_event_id IS NOT NULL
-    GROUP BY er.linked_event_id, e.title, e.starts_at, e.ends_at
+      COALESCE(SUM(b.event_points), 0)::bigint AS total_points
+    FROM base b
+    LEFT JOIN events e ON e.id = b.linked_event_id
+    GROUP BY b.linked_event_id, e.title, e.starts_at, e.ends_at
   ),
 
   sorted AS (
     SELECT *,
-      ROW_NUMBER() OVER (ORDER BY event_date DESC) AS rn
+      ROW_NUMBER() OVER (ORDER BY COALESCE(starts_at, event_date) DESC) AS rn
     FROM event_agg
   ),
 
@@ -64,43 +70,38 @@ BEGIN
 
   latest_ranking AS (
     SELECT
-      ROW_NUMBER() OVER (ORDER BY er.event_points DESC NULLS LAST)::int AS rank,
-      er.player_name,
-      COALESCE(er.event_points, 0)::int AS event_points,
-      er.game_account_id
-    FROM event_results er
-    WHERE er.clan_id = p_clan_id
-      AND er.linked_event_id = (SELECT linked_event_id FROM latest)
-    ORDER BY er.event_points DESC NULLS LAST
+      ROW_NUMBER() OVER (ORDER BY b.event_points DESC NULLS LAST)::int AS rank,
+      b.player_name,
+      COALESCE(b.event_points, 0)::int AS event_points,
+      b.game_account_id
+    FROM base b
+    WHERE b.linked_event_id = (SELECT linked_event_id FROM latest)
+    ORDER BY b.event_points DESC NULLS LAST
     LIMIT 50
   ),
 
   performer_stats AS (
     SELECT
-      MAX(er.player_name) AS player_name,
-      er.game_account_id,
-      ROUND(AVG(er.event_points))::int AS avg_points,
+      MAX(b.player_name) AS player_name,
+      b.game_account_id,
+      ROUND(AVG(b.event_points))::int AS avg_points,
       COUNT(*)::int AS event_count,
-      SUM(er.event_points)::bigint AS total_points
-    FROM event_results er
-    WHERE er.clan_id = p_clan_id
-      AND er.linked_event_id IS NOT NULL
-    GROUP BY COALESCE(er.game_account_id::text, er.player_name), er.game_account_id
+      SUM(b.event_points)::bigint AS total_points
+    FROM base b
+    GROUP BY COALESCE(b.game_account_id::text, b.player_name), b.game_account_id
     HAVING COUNT(*) >= 2
-    ORDER BY AVG(er.event_points) DESC
+    ORDER BY AVG(b.event_points) DESC
     LIMIT 10
   ),
 
   top_score AS (
     SELECT
-      er.player_name,
-      COALESCE(er.event_points, 0)::int AS event_points,
-      COALESCE(e.title, er.event_name, 'Event') AS event_name
-    FROM event_results er
-    LEFT JOIN events e ON e.id = er.linked_event_id
-    WHERE er.clan_id = p_clan_id
-      AND er.linked_event_id IS NOT NULL
-    ORDER BY er.event_points DESC NULLS LAST
+      b.player_name,
+      COALESCE(b.event_points, 0)::int AS event_points,
+      COALESCE(e.title, b.event_name, 'Event') AS event_name
+    FROM base b
+    LEFT JOIN events e ON e.id = b.linked_event_id
+    ORDER BY b.event_points DESC NULLS LAST
     LIMIT 1
   )
 
@@ -115,7 +116,7 @@ BEGIN
           'ends_at',         s.ends_at,
           'participant_count', s.participant_count,
           'total_points',    s.total_points
-        ) ORDER BY s.event_date DESC
+        ) ORDER BY COALESCE(s.starts_at, s.event_date) DESC
       )
       FROM sorted s
       WHERE s.rn > ((p_page - 1) * p_page_size)
@@ -137,7 +138,7 @@ BEGIN
             THEN ROUND(s.total_points::numeric / s.participant_count)::int
             ELSE 0
           END
-        ) ORDER BY s.event_date ASC
+        ) ORDER BY COALESCE(s.starts_at, s.event_date) ASC
       )
       FROM sorted s
     ), '[]'::jsonb),

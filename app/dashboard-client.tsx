@@ -210,7 +210,7 @@ function DashboardClient(): JSX.Element {
             <div className="tooltip-head-inner">
               <Image src="/assets/vip/batler_icons_stat_armor.png" alt="" width={18} height={18} />
               <h3 className="card-title">{t("quickStatsTitle")}</h3>
-              <Link href="/analytics" className="ml-auto text-[0.65rem] text-gold no-underline">
+              <Link href="/auswertungen" className="ml-auto text-[0.65rem] text-gold no-underline">
                 {t("viewAll")} →
               </Link>
             </div>
@@ -368,7 +368,7 @@ function DashboardClient(): JSX.Element {
             </div>
           </div>
           <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 12 }}>
-            <Link href="/analytics/chests" className="dashboard-item-link flex items-center gap-2 py-1.5 text-sm">
+            <Link href="/auswertungen/chests" className="dashboard-item-link flex items-center gap-2 py-1.5 text-sm">
               <Image src="/assets/game/icons/icons_chest_1.png" alt="" width={20} height={20} />
               <span className="flex-1">{t("chestsRankingLink")}</span>
               <span className="text-[0.72rem] text-gold-2">
@@ -376,7 +376,7 @@ function DashboardClient(): JSX.Element {
               </span>
             </Link>
             <div className="gold-divider" />
-            <Link href="/analytics/events" className="dashboard-item-link flex items-center gap-2 py-1.5 text-sm">
+            <Link href="/auswertungen/events" className="dashboard-item-link flex items-center gap-2 py-1.5 text-sm">
               <Image src="/assets/game/icons/icons_main_menu_daily_1.png" alt="" width={20} height={20} />
               <span className="flex-1">{t("eventResultsLink")}</span>
               <span className="text-[0.72rem] text-gold-2">
@@ -384,7 +384,10 @@ function DashboardClient(): JSX.Element {
               </span>
             </Link>
             <div className="gold-divider" />
-            <Link href="/analytics/machtpunkte" className="dashboard-item-link flex items-center gap-2 py-1.5 text-sm">
+            <Link
+              href="/auswertungen/machtpunkte"
+              className="dashboard-item-link flex items-center gap-2 py-1.5 text-sm"
+            >
               <Image src="/assets/game/icons/icons_power.png" alt="" width={20} height={20} />
               <span className="flex-1">{t("powerRankingLink")}</span>
               <span className="text-[0.72rem] text-gold-2">

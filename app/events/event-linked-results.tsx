@@ -182,7 +182,7 @@ export default function EventLinkedResults({
             <div className={`elr-row${rank <= 3 ? " elr-row-top" : ""}`} key={`${r.player_name}-${i}`}>
               <span className={rankClass(rank)}>{rank}</span>
               <Link
-                href={`/analytics/player?name=${encodeURIComponent(r.player_name)}${r.game_account_id ? `&ga=${encodeURIComponent(r.game_account_id)}` : ""}`}
+                href={`/auswertungen/player?name=${encodeURIComponent(r.player_name)}${r.game_account_id ? `&ga=${encodeURIComponent(r.game_account_id)}` : ""}`}
                 className="elr-player player-link"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -214,7 +214,7 @@ export default function EventLinkedResults({
       </div>
 
       {/* Analytics button */}
-      <Link href={`/analytics/events?event=${encodeURIComponent(eventId)}`} className="elr-analytics-btn">
+      <Link href={`/auswertungen/events?event=${encodeURIComponent(eventId)}`} className="elr-analytics-btn">
         <svg
           width="14"
           height="14"

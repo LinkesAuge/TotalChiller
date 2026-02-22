@@ -67,7 +67,7 @@ const defaultRoutes = [
   "/forum",
   "/messages",
   "/bugs",
-  "/analytics",
+  "/auswertungen",
   "/members",
   "/settings",
   "/profile",

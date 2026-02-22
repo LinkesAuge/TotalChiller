@@ -21,7 +21,7 @@ const SITE_PAGES: readonly { path: string; navKey: string | null; pageKey: strin
   { path: "/home", navKey: "home", pageKey: null },
   { path: "/", navKey: "dashboard", pageKey: null },
   { path: "/news", navKey: "announcements", pageKey: null },
-  { path: "/analytics", navKey: "analytics", pageKey: null },
+  { path: "/auswertungen", navKey: "analytics", pageKey: null },
   { path: "/events", navKey: "events", pageKey: null },
   { path: "/forum", navKey: "forum", pageKey: null },
   { path: "/messages", navKey: "messages", pageKey: null },

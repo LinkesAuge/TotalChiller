@@ -167,19 +167,19 @@ Both scripts are idempotent (upsert on unique keys). Re-run after adding new ass
 
 ## 7. Troubleshooting
 
-| Problem                                       | Fix                                                                                                                                   |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Data insert fails                             | Check RLS policies and membership                                                                                                     |
-| User lookup fails                             | Verify `profiles` trigger ran on signup                                                                                               |
-| Unexpected redirect                           | Confirm auth session in Supabase                                                                                                      |
-| YouTube embeds blocked                        | Verify CSP headers in `next.config.js`                                                                                                |
-| Forum category add/sort fails                 | Verify `/api/admin/forum-categories` route and service role key                                                                       |
-| Admin tab loading indefinitely                | Check devtools network for chunk load errors (dynamic imports)                                                                        |
-| `.next` cache causes stale behavior           | Delete `.next/` and restart `npm run dev`                                                                                             |
-| `npm run lint` errors in `playwright-report/` | Remove generated Playwright artifacts before lint                                                                                     |
-| API routes return HTML instead of JSON        | Verify `proxy.ts` skips auth redirect for `/api/` paths                                                                               |
-| Bug screenshot upload fails                   | Verify `bug-screenshots` storage bucket exists (Supabase → Storage)                                                                   |
-| Radix Select scrollbar missing after upgrade  | Check `!important` overrides in `app/styles/components.css` still counter Radix's injected styles                                     |
-| Bug report categories empty                   | Re-run `bug_reports.sql` migration (seeds 5 defaults)                                                                                 |
-| Data import not visible in `/analytics/daten` | Import requires admin role — verify user has owner/admin role in `user_roles`. Submission list is visible to all authenticated users. |
-| Submission API returns empty list             | Ensure `data_pipeline_*.sql` migrations ran and RLS policies are active                                                               |
+| Problem                                          | Fix                                                                                                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Data insert fails                                | Check RLS policies and membership                                                                                                     |
+| User lookup fails                                | Verify `profiles` trigger ran on signup                                                                                               |
+| Unexpected redirect                              | Confirm auth session in Supabase                                                                                                      |
+| YouTube embeds blocked                           | Verify CSP headers in `next.config.js`                                                                                                |
+| Forum category add/sort fails                    | Verify `/api/admin/forum-categories` route and service role key                                                                       |
+| Admin tab loading indefinitely                   | Check devtools network for chunk load errors (dynamic imports)                                                                        |
+| `.next` cache causes stale behavior              | Delete `.next/` and restart `npm run dev`                                                                                             |
+| `npm run lint` errors in `playwright-report/`    | Remove generated Playwright artifacts before lint                                                                                     |
+| API routes return HTML instead of JSON           | Verify `proxy.ts` skips auth redirect for `/api/` paths                                                                               |
+| Bug screenshot upload fails                      | Verify `bug-screenshots` storage bucket exists (Supabase → Storage)                                                                   |
+| Radix Select scrollbar missing after upgrade     | Check `!important` overrides in `app/styles/components.css` still counter Radix's injected styles                                     |
+| Bug report categories empty                      | Re-run `bug_reports.sql` migration (seeds 5 defaults)                                                                                 |
+| Data import not visible in `/auswertungen/daten` | Import requires admin role — verify user has owner/admin role in `user_roles`. Submission list is visible to all authenticated users. |
+| Submission API returns empty list                | Ensure `data_pipeline_*.sql` migrations ran and RLS policies are active                                                               |

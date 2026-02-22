@@ -21,7 +21,7 @@ async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: "*",
         allow: ["/home", "/about", "/contact", "/privacy-policy", "/auth/login", "/auth/register", "/auth/forgot"],
-        disallow: ["/admin", "/api", "/news", "/settings", "/profile", "/messages", "/analytics", "/events"],
+        disallow: ["/admin", "/api", "/news", "/settings", "/profile", "/messages", "/auswertungen", "/events"],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

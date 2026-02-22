@@ -39,7 +39,7 @@ describe("isPublicPath", () => {
       "/messages",
       "/events",
       "/members",
-      "/analytics",
+      "/auswertungen",
       "/news",
       "/admin",
       "/admin/users",

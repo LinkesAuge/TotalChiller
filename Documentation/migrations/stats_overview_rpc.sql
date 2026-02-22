@@ -22,6 +22,25 @@ BEGIN
   END IF;
 
   WITH
+  -- Base CTEs: single scan per table (materialized, reused by downstream CTEs)
+  chest_base AS (
+    SELECT player_name, game_account_id, opened_at
+    FROM chest_entries
+    WHERE clan_id = p_clan_id
+  ),
+
+  event_base AS (
+    SELECT player_name, game_account_id, linked_event_id, event_date
+    FROM event_results
+    WHERE clan_id = p_clan_id AND linked_event_id IS NOT NULL
+  ),
+
+  snapshot_base AS (
+    SELECT game_account_id, player_name, COALESCE(score, 0) AS score, snapshot_date
+    FROM member_snapshots
+    WHERE clan_id = p_clan_id AND game_account_id IS NOT NULL
+  ),
+
   -- Active member count
   members AS (
     SELECT COUNT(*)::int AS cnt
@@ -32,9 +51,8 @@ BEGIN
   -- Latest power score per account
   latest_power AS (
     SELECT DISTINCT ON (game_account_id)
-      game_account_id, player_name, COALESCE(score, 0) AS score
-    FROM member_snapshots
-    WHERE clan_id = p_clan_id AND game_account_id IS NOT NULL
+      game_account_id, player_name, score
+    FROM snapshot_base
     ORDER BY game_account_id, snapshot_date DESC
   ),
 
@@ -55,11 +73,9 @@ BEGIN
   -- Last week's power total (for delta)
   last_week_power AS (
     SELECT DISTINCT ON (game_account_id)
-      game_account_id, COALESCE(score, 0) AS score
-    FROM member_snapshots
-    WHERE clan_id = p_clan_id
-      AND game_account_id IS NOT NULL
-      AND snapshot_date < p_week_start
+      game_account_id, score
+    FROM snapshot_base
+    WHERE snapshot_date < p_week_start
     ORDER BY game_account_id, snapshot_date DESC
   ),
 
@@ -70,18 +86,17 @@ BEGIN
   -- Chest counts
   chests_this_week AS (
     SELECT COUNT(*)::int AS cnt
-    FROM chest_entries WHERE clan_id = p_clan_id AND opened_at >= p_week_start
+    FROM chest_base WHERE opened_at >= p_week_start
   ),
 
   chests_last_week AS (
     SELECT COUNT(*)::int AS cnt
-    FROM chest_entries
-    WHERE clan_id = p_clan_id
-      AND opened_at >= p_last_week_start AND opened_at < p_last_week_end
+    FROM chest_base
+    WHERE opened_at >= p_last_week_start AND opened_at < p_last_week_end
   ),
 
   chests_all_time AS (
-    SELECT COUNT(*)::int AS cnt FROM chest_entries WHERE clan_id = p_clan_id
+    SELECT COUNT(*)::int AS cnt FROM chest_base
   ),
 
   -- Daily chest activity (last 7 days, zero-filled)
@@ -89,8 +104,8 @@ BEGIN
     SELECT
       TO_CHAR(opened_at AT TIME ZONE 'Europe/Berlin', 'YYYY-MM-DD') AS date,
       COUNT(*)::int AS count
-    FROM chest_entries
-    WHERE clan_id = p_clan_id AND opened_at >= p_seven_days_ago
+    FROM chest_base
+    WHERE opened_at >= p_seven_days_ago
     GROUP BY 1
   ),
 
@@ -112,8 +127,8 @@ BEGIN
   -- Top collector this week
   top_collector AS (
     SELECT MAX(player_name) AS name, COUNT(*)::int AS count
-    FROM chest_entries
-    WHERE clan_id = p_clan_id AND opened_at >= p_week_start
+    FROM chest_base
+    WHERE opened_at >= p_week_start
     GROUP BY COALESCE(game_account_id::text, player_name)
     ORDER BY count DESC
     LIMIT 1
@@ -122,22 +137,20 @@ BEGIN
   -- Unique collectors this week
   unique_collectors AS (
     SELECT COUNT(DISTINCT COALESCE(game_account_id::text, player_name))::int AS cnt
-    FROM chest_entries
-    WHERE clan_id = p_clan_id AND opened_at >= p_week_start
+    FROM chest_base
+    WHERE opened_at >= p_week_start
   ),
 
   -- Distinct events with results
   events_count AS (
     SELECT COUNT(DISTINCT linked_event_id)::int AS cnt
-    FROM event_results
-    WHERE clan_id = p_clan_id AND linked_event_id IS NOT NULL
+    FROM event_base
   ),
 
   -- Most active event participant
   most_active AS (
     SELECT MAX(player_name) AS name, COUNT(DISTINCT linked_event_id)::int AS event_count
-    FROM event_results
-    WHERE clan_id = p_clan_id AND linked_event_id IS NOT NULL
+    FROM event_base
     GROUP BY COALESCE(game_account_id::text, player_name)
     ORDER BY event_count DESC
     LIMIT 1
@@ -146,17 +159,15 @@ BEGIN
   -- Latest event participation rate
   latest_event AS (
     SELECT linked_event_id
-    FROM event_results
-    WHERE clan_id = p_clan_id AND linked_event_id IS NOT NULL
+    FROM event_base
     ORDER BY event_date DESC
     LIMIT 1
   ),
 
   latest_event_parts AS (
     SELECT COUNT(DISTINCT game_account_id)::int AS cnt
-    FROM event_results
-    WHERE clan_id = p_clan_id
-      AND linked_event_id = (SELECT linked_event_id FROM latest_event)
+    FROM event_base
+    WHERE linked_event_id = (SELECT linked_event_id FROM latest_event)
       AND game_account_id IS NOT NULL
   ),
 

@@ -94,37 +94,37 @@ interface AnalyticsSubItem {
 
 const ANALYTICS_SUB_ITEMS: readonly AnalyticsSubItem[] = [
   {
-    href: "/analytics",
+    href: "/auswertungen",
     labelKey: "analyticsOverview",
     icon: "/assets/game/icons/icons_card_globe_1.png",
     exact: true,
   },
   {
-    href: "/analytics/chests",
+    href: "/auswertungen/chests",
     labelKey: "analyticsChests",
     icon: "/assets/game/icons/icons_chest_2.png",
     exact: false,
   },
   {
-    href: "/analytics/events",
+    href: "/auswertungen/events",
     labelKey: "analyticsEvents",
     icon: "/assets/game/icons/icons_events_1.png",
     exact: false,
   },
   {
-    href: "/analytics/machtpunkte",
+    href: "/auswertungen/machtpunkte",
     labelKey: "analyticsPower",
     icon: "/assets/game/icons/force_22.png",
     exact: false,
   },
   {
-    href: "/analytics/player",
+    href: "/auswertungen/player",
     labelKey: "analyticsPlayer",
     icon: "/assets/game/icons/icons_player_1.png",
     exact: false,
   },
   {
-    href: "/analytics/daten",
+    href: "/auswertungen/daten",
     labelKey: "analyticsData",
     icon: "/assets/game/icons/icons_chest_1.png",
     exact: false,
@@ -166,7 +166,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
         lgIcon: true,
       },
       {
-        href: "/analytics",
+        href: "/auswertungen",
         labelKey: "analytics",
         iconKey: "analytics",
         vipIcon: "/assets/game/icons/icons_main_menu_rating_1.png",
@@ -400,8 +400,8 @@ function SidebarNav(): JSX.Element {
                           </div>
                         )}
                       {/* Analytics sub-items (expanded desktop sidebar only, when on analytics page) */}
-                      {item.href === "/analytics" &&
-                        pathname.startsWith("/analytics") &&
+                      {item.href === "/auswertungen" &&
+                        pathname.startsWith("/auswertungen") &&
                         isOpen &&
                         !isCompactViewport && (
                           <div className="nav-sub-items">

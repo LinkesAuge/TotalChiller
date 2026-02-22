@@ -48,7 +48,7 @@ export function ChestGoalsSection({ supabase, clanId }: ChestGoalsSectionProps):
     setChestsLoading(true);
     setChestsError(null);
     try {
-      const res = await fetch(`/api/analytics/rules/chests?clan_id=${clanId}&active_only=false`);
+      const res = await fetch(`/api/data/rules/chests?clan_id=${clanId}&active_only=false`);
       if (!res.ok) throw new Error();
       const json = await res.json();
       setChestGoals(json.data ?? []);
@@ -132,7 +132,7 @@ export function ChestGoalsSection({ supabase, clanId }: ChestGoalsSectionProps):
             is_active: true,
           };
 
-      const res = await fetch("/api/analytics/rules/chests", {
+      const res = await fetch("/api/data/rules/chests", {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -161,7 +161,7 @@ export function ChestGoalsSection({ supabase, clanId }: ChestGoalsSectionProps):
     if (!clanId) return;
     setChestSaving(true);
     try {
-      const res = await fetch(`/api/analytics/rules/chests?clan_id=${clanId}&id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/data/rules/chests?clan_id=${clanId}&id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setChestToast({ type: "success", msg: t("chestGoalDeleted") });
       setDeleteChestConfirmId(null);

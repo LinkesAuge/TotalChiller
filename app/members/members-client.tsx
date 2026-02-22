@@ -437,7 +437,7 @@ function MembersClient(): JSX.Element {
                     </span>
                     <div className="member-dir-identity">
                       <Link
-                        href={`/analytics/player?name=${encodeURIComponent(member.gameUsername)}${member.gameAccountId ? `&ga=${encodeURIComponent(member.gameAccountId)}` : ""}`}
+                        href={`/auswertungen/player?name=${encodeURIComponent(member.gameUsername)}${member.gameAccountId ? `&ga=${encodeURIComponent(member.gameAccountId)}` : ""}`}
                         className="member-dir-username member-dir-username--link"
                         onClick={(e) => e.stopPropagation()}
                       >

@@ -8,7 +8,7 @@
 
 **[THC] Chiller & Killer** is a clan management platform for a Total Battle gaming community. Medieval "Fortress Sanctum" dark theme with gold accents.
 
-**Features:** messaging (private + broadcast), forum, events calendar, announcements, member directory, bug reports, admin panel, CMS-editable public pages, notification system, design system asset manager, analytics (chests, events, power scores).
+**Features:** messaging (private + broadcast), forum, events calendar, announcements, member directory, bug reports, admin panel, CMS-editable public pages, notification system, design system asset manager, analytics (chests, events, power scores), clan rules/goals (event scoring tiers, chest collection targets), event definitions (centralized event type registry).
 
 **Removed features:** validation rules, correction rules, scoring rules. Legacy tables `validation_rules`, `correction_rules`, `scoring_rules` have been dropped.
 
@@ -142,7 +142,7 @@ Calendar with day panel, upcoming sidebar, recurring events (single DB row, clie
 
 When an event has linked analytics data (via `event_results`), the expanded card shows an inline results panel with date, participant/points summary, rank badges (gold/silver/bronze for top 3), and a prominent "View Analytics" button linking to `/analytics/events?event=<id>`. The results table shows all participants by default with a collapse/expand toggle.
 
-Calendar cells for events with linked results display a **podium icon** next to the time label. Hovering shows a preview tooltip (top 3 players + total count, lazy-fetched with caching). Clicking navigates to the day panel and auto-scrolls to the results section. The `useEventsData` hook prefetches the set of event IDs that have results.
+Calendar cells for events with linked results display a **podium icon** next to the time label. Hovering shows a preview tooltip (top 3 players + total count, lazy-fetched with caching). Clicking navigates to the day panel and auto-scrolls to the results section. The `useEventsData` hook prefetches the set of event IDs that have results via the `get_clan_event_ids_with_results` RPC (returns `uuid[]` instead of fetching thousands of rows).
 
 | File                                     | Purpose                                                 |
 | ---------------------------------------- | ------------------------------------------------------- |
@@ -156,7 +156,7 @@ Calendar cells for events with linked results display a **podium icon** next to 
 | `app/events/upcoming-events-sidebar.tsx` | Upcoming events with pagination                         |
 | `app/events/events-utils.ts`             | Date range, recurrence helpers                          |
 
-**DB tables:** `events`, `event_templates`, `event_results` (read-only, for linked results display + calendar badge prefetch)
+**DB tables:** `events`, `event_templates`, `event_results` (read-only, for linked results display + calendar badge prefetch), `clan_event_definitions` (optional FK from events and templates for centralized event type association)
 
 ### 4.5 Announcements (`app/news/`)
 
@@ -210,15 +210,16 @@ Bell icon in header with dropdown. DB-stored, polls every 60s. Fan-out on news/e
 
 Modular tab-based admin. Slim orchestrator (`admin-client.tsx`) with `AdminProvider` context. Each tab lazy-loaded via `next/dynamic`.
 
-| Tab       | File                               | Purpose                                             |
-| --------- | ---------------------------------- | --------------------------------------------------- |
-| Clans     | `app/admin/tabs/clans-tab.tsx`     | Clan management + game account memberships          |
-| Users     | `app/admin/tabs/users-tab.tsx`     | User CRUD, game accounts, inline membership editing |
-| Approvals | `app/admin/tabs/approvals-tab.tsx` | Registration confirmations + game account approvals |
-| Forum     | `app/admin/tabs/forum-tab.tsx`     | Forum category management                           |
-| Logs      | `app/admin/tabs/logs-tab.tsx`      | Audit log viewer                                    |
+| Tab                 | File                                       | Purpose                                                                                           |
+| ------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Clans               | `app/admin/tabs/clans-tab.tsx`             | Clan management + game account memberships                                                        |
+| Users               | `app/admin/tabs/users-tab.tsx`             | User CRUD, game accounts, inline membership editing                                               |
+| Approvals           | `app/admin/tabs/approvals-tab.tsx`         | Registration confirmations + game account approvals                                               |
+| Forum               | `app/admin/tabs/forum-tab.tsx`             | Forum category management                                                                         |
+| Logs                | `app/admin/tabs/logs-tab.tsx`              | Audit log viewer                                                                                  |
+| Rules & Definitions | `app/admin/tabs/rules-definitions-tab.tsx` | Orchestrator for event definitions, event rules, and chest goals (3 sub-tabs in `tabs/sections/`) |
 
-**DB tables:** `profiles`, `user_roles`, `game_accounts`, `game_account_clan_memberships`, `clans`, `audit_logs`
+**DB tables:** `profiles`, `user_roles`, `game_accounts`, `game_account_clan_memberships`, `clans`, `audit_logs`, `clan_event_definitions`
 
 New tabs go in `app/admin/tabs/`, registered in `admin-client.tsx`'s `TAB_MAP`. Shared state lives in `admin-context.tsx`.
 
@@ -226,7 +227,7 @@ New tabs go in `app/admin/tabs/`, registered in `admin-client.tsx`'s `TAB_MAP`. 
 
 ### 4.10 Members (`app/members/`)
 
-Clan member directory. Game accounts sorted by rank. Webmaster/Administrator with no in-game rank show role name as rank substitute. Player usernames link to `/analytics/player?name=...&ga=...` for individual analytics profiles.
+Clan member directory. Game accounts sorted by rank. Webmaster/Administrator with no in-game rank show role name as rank substitute. Player usernames link to `/analytics/player?name=...&ga=...` for individual analytics profiles. Snapshots (coordinates, power) loaded via `get_clan_latest_snapshots` RPC (`DISTINCT ON` per game account).
 
 **DB tables:** `game_account_clan_memberships`, `game_accounts`, `profiles`, `member_snapshots` (for coordinates/power display)
 
@@ -242,7 +243,7 @@ Admin tool for managing game assets, UI element inventory, and asset assignments
 
 ### 4.13 Analytics (`app/analytics/`)
 
-Data analytics hub with sub-route navigation (overview, chests, events, machtpunkte, player, daten). Uses Recharts for all chart visualizations.
+Data analytics hub with sub-route navigation (overview, chests, events, machtpunkte, player, daten, regeln). Uses Recharts for all chart visualizations.
 
 | Route                    | Component                | Purpose                                                                                                         |
 | ------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
@@ -255,9 +256,21 @@ Data analytics hub with sub-route navigation (overview, chests, events, machtpun
 
 **Shared:** `analytics-subnav.tsx` (pill-style sub-navigation with 6 items, icons-only on mobile), `app/styles/analytics.css`.
 
-**Data flow:** Client components fetch from `/api/analytics/*` routes → aggregate from production tables (`chest_entries`, `event_results`, `member_snapshots`). Event calendar links to `/analytics/events?event=<id>` via `event-linked-results.tsx`. Members page links to `/analytics/player?name=...&ga=...` for player profiles.
+**Data flow:** Client components fetch from `/api/analytics/*` routes. All data-heavy routes use `createAnalyticsHandler()` from `lib/api/analytics-handler.ts` and delegate aggregation to PostgreSQL `SECURITY DEFINER` RPCs (bypasses per-row RLS, auth checked once inside the function). Event calendar links to `/analytics/events?event=<id>` via `event-linked-results.tsx`. Members page links to `/analytics/player?name=...&ga=...` for player profiles.
 
 **DB tables:** `chest_entries`, `event_results`, `member_snapshots`, `game_account_clan_memberships`, `events`
+
+**DB functions (analytics RPCs):**
+
+| Function                                                                                      | Purpose                                                    |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `get_clan_event_list(uuid, int, int)`                                                         | Event list with participation trends, best performers      |
+| `get_clan_chest_analytics(uuid, timestamptz, timestamptz, text, text, text, int, int)`        | Chest rankings, daily chart, type distribution, filters    |
+| `get_clan_stats_overview(uuid, timestamptz, timestamptz, timestamptz, timestamptz)`           | 18-KPI dashboard (members, power, chests, events, trends)  |
+| `get_clan_power_analytics(uuid, text, timestamptz, text, timestamptz, timestamptz, int, int)` | Power standings, deltas, history, clan trend, distribution |
+| `get_clan_player_analytics(uuid, text, uuid)`                                                 | Per-player chests/events/power stats with clan rank        |
+| `get_clan_latest_snapshots(uuid)`                                                             | Latest member snapshot per game account (DISTINCT ON)      |
+| `get_clan_event_ids_with_results(uuid)`                                                       | Distinct event IDs with results (client-side prefetch)     |
 
 ### 4.14 Player Analytics (`app/analytics/player/`)
 
@@ -271,7 +284,7 @@ Per-player analytics profile with two modes:
 | `app/analytics/player/page.tsx`             | Server component entry point  |
 | `app/analytics/player/player-analytics.tsx` | Client component with full UI |
 
-**API:** `/api/analytics/player` — 5 parallel DB queries (chests, events, snapshots + counts), computes clan rank, trends, distributions.
+**API:** `/api/analytics/player` — single RPC call (`get_clan_player_analytics`) computes all stats (chests, events, power, clan rank, trends, distributions) in one database round-trip.
 
 ### 4.15 Data Management (`app/analytics/daten/`)
 
@@ -290,6 +303,34 @@ File import, submission review, and validation list management. Previously in th
 Standalone admin-gated page for deep-linking into a specific submission's staged entries. Server component checks `is_any_admin()` and redirects non-admins. Linked from the Data section (`/analytics/daten`) and used for detailed entry review with bulk/per-item actions.
 
 **DB tables:** `data_submissions`, `staged_chest_entries`, `staged_member_entries`, `staged_event_entries`
+
+### 4.17 Rules & Definitions (Admin tab: `app/admin/tabs/rules-definitions-tab.tsx`)
+
+Combined admin tab with three sub-sections (each in `app/admin/tabs/sections/`):
+
+**Event Definitions** (`event-definitions-section.tsx`): Centralized event type registry (master data). Each definition has a name (required), optional banner image, optional description, and active/inactive status. Definitions are reusable:
+
+- **Event rules** link to definitions via many-to-many junction (`clan_event_rule_set_events`)
+- **Events** and **event templates** can optionally reference a definition (`event_definition_id` FK, `ON DELETE SET NULL`)
+- Event/template forms show a dropdown to pick a definition (pre-fills banner); custom values always allowed
+
+**Event Rules** (`event-rules-section.tsx`): Each rule set has a name, optional description, active/inactive status, and is linked to event definitions (many-to-many via junction table). Tiers define power ranges (in millions) with minimum required event points per range. Players below the minimum power threshold can be excluded ("Aus der Wertung").
+
+**Chest Goals** (`chest-goals-section.tsx`): Daily, weekly, or monthly chest collection targets. Clan-wide goals (one per period per clan, unique constraint enforced) or individual player-specific overrides.
+
+| File                                                    | Purpose                                      |
+| ------------------------------------------------------- | -------------------------------------------- |
+| `app/admin/tabs/rules-definitions-tab.tsx`              | Orchestrator with sub-tab switching          |
+| `app/admin/tabs/sections/event-definitions-section.tsx` | Admin CRUD UI for event definitions          |
+| `app/admin/tabs/sections/event-rules-section.tsx`       | Admin CRUD UI for event rule sets and tiers  |
+| `app/admin/tabs/sections/chest-goals-section.tsx`       | Admin CRUD UI for chest collection goals     |
+| `app/api/admin/event-definitions/route.ts`              | API: GET (members), POST/PUT/DELETE (admins) |
+| `app/api/analytics/rules/events/route.ts`               | API: event rule sets CRUD                    |
+| `app/api/analytics/rules/chests/route.ts`               | API: chest goals CRUD                        |
+
+**DB tables:** `clan_event_definitions`, `clan_event_rule_sets`, `clan_event_rule_tiers`, `clan_event_rule_set_events` (junction), `clan_chest_goals`
+
+**DB tables:** `clan_event_definitions`
 
 ## 5. Shared Components (`app/components/`)
 
@@ -318,6 +359,7 @@ Standalone admin-gated page for deep-linking into a specific submission's staged
 | ------------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
 | Auth helpers        | `api/require-auth.ts`             | Validates session, returns `{ userId, supabase }`                                      |
 | Admin helpers       | `api/require-admin.ts`            | Validates admin role (wraps requireAuth)                                               |
+| Analytics handler   | `api/analytics-handler.ts`        | Route factory + RPC helper + parallel auth for analytics endpoints                     |
 | Zod schemas         | `api/validation.ts`               | Input validation schemas + `apiError()` + `parseJsonBody()`                            |
 | Error logging       | `api/logger.ts`                   | `captureApiError()` — logs to console + Sentry                                         |
 | Permissions         | `permissions.ts`                  | Role→permission map, `hasPermission()`, `isOwner()`, `canChangeRoleOf()`               |
@@ -337,102 +379,111 @@ Standalone admin-gated page for deep-linking into a specific submission's staged
 
 ## 7. API Route Index
 
-| Route                                 | Methods                  | Auth         | Rate Limit       | Purpose                                                               |
-| ------------------------------------- | ------------------------ | ------------ | ---------------- | --------------------------------------------------------------------- |
-| `/api/messages`                       | GET, POST                | user         | standard         | Inbox (dual-path) / Send                                              |
-| `/api/messages/[id]`                  | PATCH, DELETE            | user         | standard         | Mark read / Soft-delete                                               |
-| `/api/messages/sent`                  | GET                      | user         | standard         | Sent messages                                                         |
-| `/api/messages/sent/[id]`             | DELETE                   | user         | standard         | Sender soft-delete                                                    |
-| `/api/messages/thread/[threadId]`     | GET, DELETE              | user         | standard         | Thread + mark-read / Thread delete                                    |
-| `/api/messages/archive`               | GET, POST                | user         | standard         | Archived items / Archive batch                                        |
-| `/api/messages/search-recipients`     | GET                      | user         | standard         | Recipient search                                                      |
-| `/api/notifications`                  | GET                      | user         | relaxed          | User notifications                                                    |
-| `/api/notifications/[id]`             | PATCH, DELETE            | user         | standard         | Mark read / Delete                                                    |
-| `/api/notifications/mark-all-read`    | POST                     | user         | standard         | Mark all read                                                         |
-| `/api/notifications/fan-out`          | POST                     | user         | strict           | Fan-out to clan members                                               |
-| `/api/notifications/delete-all`       | POST                     | user         | standard         | Delete all                                                            |
-| `/api/notification-settings`          | GET, PATCH               | user         | standard         | Notification preferences                                              |
-| `/api/game-accounts`                  | GET, POST, PATCH         | user         | standard         | Game account CRUD                                                     |
-| `/api/site-content`                   | GET, PATCH               | public/admin | relaxed/standard | CMS text content                                                      |
-| `/api/site-list-items`                | GET, PATCH               | public/admin | relaxed/standard | CMS list items                                                        |
-| `/api/auth/forgot-password`           | POST                     | public       | standard         | Password reset email                                                  |
-| `/api/admin/create-user`              | POST                     | admin        | strict           | Invite new user                                                       |
-| `/api/admin/resend-invite`            | POST                     | admin        | strict           | Resend invite email                                                   |
-| `/api/admin/delete-user`              | POST                     | admin        | strict           | Delete user                                                           |
-| `/api/admin/user-lookup`              | POST                     | admin        | strict           | Lookup user by email                                                  |
-| `/api/admin/email-confirmations`      | GET, POST                | admin        | standard/strict  | Email confirmation status / Confirm                                   |
-| `/api/admin/game-account-approvals`   | GET, PATCH               | admin        | strict           | Approval queue                                                        |
-| `/api/admin/forum-categories`         | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                                                   |
-| `/api/design-system/assets`           | GET, PATCH               | admin        | relaxed/standard | Design asset library                                                  |
-| `/api/design-system/ui-elements`      | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory                                                  |
-| `/api/design-system/assignments`      | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments                                                     |
-| `/api/design-system/preview-upload`   | POST                     | admin        | standard         | Screenshot upload                                                     |
-| `/api/bugs`                           | GET, POST                | user         | standard         | Bug report list / Create                                              |
-| `/api/bugs/[id]`                      | GET, PATCH, DELETE       | user/admin   | standard/strict  | Report detail / Update / Delete                                       |
-| `/api/bugs/[id]/comments`             | GET, POST                | user         | standard         | Comments / Add comment                                                |
-| `/api/bugs/[id]/comments/[commentId]` | PATCH, DELETE            | user/admin   | standard/strict  | Edit / Delete comment                                                 |
-| `/api/bugs/categories`                | GET, POST, PATCH, DELETE | user/admin   | standard/strict  | Bug category CRUD                                                     |
-| `/api/bugs/screenshots`               | POST                     | user         | standard         | Upload screenshot                                                     |
-| **Analytics**                         |                          |              |                  |                                                                       |
-| `/api/analytics/stats`                | GET                      | user         | standard         | Extended dashboard stats (counts, deltas, top collector, daily chart) |
-| `/api/analytics/chests`               | GET                      | user         | standard         | Chest rankings (date range, filters)                                  |
-| `/api/analytics/events`               | GET                      | user         | standard         | Event list + detail results                                           |
-| `/api/analytics/machtpunkte`          | GET                      | user         | standard         | Power standings + history                                             |
-| `/api/analytics/player`               | GET                      | user         | standard         | Per-player profile (chests, events, power, trends, distributions)     |
-| **Data Pipeline / Import**            |                          |              |                  |                                                                       |
-| `/api/import/config`                  | GET                      | public       | standard         | Supabase URL + anon key discovery                                     |
-| `/api/import/clans`                   | GET                      | bearer/user  | standard         | User's clans (for ChillerBuddy)                                       |
-| `/api/import/submit`                  | POST                     | bearer/admin | relaxed          | Ingest ChillerBuddy export JSON (admin only)                          |
-| `/api/import/submissions`             | GET                      | user         | standard         | List submissions (filters + paging)                                   |
-| `/api/import/submissions/[id]`        | GET, PATCH, DELETE       | user/admin   | standard         | Detail + staged entries / Match edit & delete (admin) / GET (user)    |
-| `/api/import/submissions/[id]/review` | POST                     | admin        | standard         | Approve/reject staged entries (admin only)                            |
-| `/api/import/validation-lists`        | GET, POST                | bearer/user  | standard         | OCR corrections + known names sync                                    |
+| Route                                                  | Methods                  | Auth         | Rate Limit       | Purpose                                                            |
+| ------------------------------------------------------ | ------------------------ | ------------ | ---------------- | ------------------------------------------------------------------ |
+| `/api/messages`                                        | GET, POST                | user         | standard         | Inbox (dual-path) / Send                                           |
+| `/api/messages/[id]`                                   | PATCH, DELETE            | user         | standard         | Mark read / Soft-delete                                            |
+| `/api/messages/sent`                                   | GET                      | user         | standard         | Sent messages                                                      |
+| `/api/messages/sent/[id]`                              | DELETE                   | user         | standard         | Sender soft-delete                                                 |
+| `/api/messages/thread/[threadId]`                      | GET, DELETE              | user         | standard         | Thread + mark-read / Thread delete                                 |
+| `/api/messages/archive`                                | GET, POST                | user         | standard         | Archived items / Archive batch                                     |
+| `/api/messages/search-recipients`                      | GET                      | user         | standard         | Recipient search                                                   |
+| `/api/notifications`                                   | GET                      | user         | relaxed          | User notifications                                                 |
+| `/api/notifications/[id]`                              | PATCH, DELETE            | user         | standard         | Mark read / Delete                                                 |
+| `/api/notifications/mark-all-read`                     | POST                     | user         | standard         | Mark all read                                                      |
+| `/api/notifications/fan-out`                           | POST                     | user         | strict           | Fan-out to clan members                                            |
+| `/api/notifications/delete-all`                        | POST                     | user         | standard         | Delete all                                                         |
+| `/api/notification-settings`                           | GET, PATCH               | user         | standard         | Notification preferences                                           |
+| `/api/game-accounts`                                   | GET, POST, PATCH         | user         | standard         | Game account CRUD                                                  |
+| `/api/site-content`                                    | GET, PATCH               | public/admin | relaxed/standard | CMS text content                                                   |
+| `/api/site-list-items`                                 | GET, PATCH               | public/admin | relaxed/standard | CMS list items                                                     |
+| `/api/auth/forgot-password`                            | POST                     | public       | standard         | Password reset email                                               |
+| `/api/admin/create-user`                               | POST                     | admin        | strict           | Invite new user                                                    |
+| `/api/admin/resend-invite`                             | POST                     | admin        | strict           | Resend invite email                                                |
+| `/api/admin/delete-user`                               | POST                     | admin        | strict           | Delete user                                                        |
+| `/api/admin/user-lookup`                               | POST                     | admin        | strict           | Lookup user by email                                               |
+| `/api/admin/email-confirmations`                       | GET, POST                | admin        | standard/strict  | Email confirmation status / Confirm                                |
+| `/api/admin/game-account-approvals`                    | GET, PATCH               | admin        | strict           | Approval queue                                                     |
+| `/api/admin/forum-categories`                          | GET, POST, PATCH, DELETE | admin        | strict           | Forum category CRUD                                                |
+| `/api/design-system/assets`                            | GET, PATCH               | admin        | relaxed/standard | Design asset library                                               |
+| `/api/design-system/ui-elements`                       | GET, POST, PATCH, DELETE | admin        | relaxed/standard | UI element inventory                                               |
+| `/api/design-system/assignments`                       | GET, POST, DELETE        | admin        | relaxed/standard | Asset assignments                                                  |
+| `/api/design-system/preview-upload`                    | POST                     | admin        | standard         | Screenshot upload                                                  |
+| `/api/bugs`                                            | GET, POST                | user         | standard         | Bug report list / Create                                           |
+| `/api/bugs/[id]`                                       | GET, PATCH, DELETE       | user/admin   | standard/strict  | Report detail / Update / Delete                                    |
+| `/api/bugs/[id]/comments`                              | GET, POST                | user         | standard         | Comments / Add comment                                             |
+| `/api/bugs/[id]/comments/[commentId]`                  | PATCH, DELETE            | user/admin   | standard/strict  | Edit / Delete comment                                              |
+| `/api/bugs/categories`                                 | GET, POST, PATCH, DELETE | user/admin   | standard/strict  | Bug category CRUD                                                  |
+| `/api/bugs/screenshots`                                | POST                     | user         | standard         | Upload screenshot                                                  |
+| `/api/admin/event-definitions`                         | GET, POST, PUT, DELETE   | member/admin | standard         | Event definition CRUD (GET: members, writes: admins)               |
+| `/api/analytics/rules/events`                          | GET, POST, PUT, DELETE   | member/admin | standard         | Event rule sets with tiers + event definition links                |
+| `/api/analytics/rules/chests`                          | GET, POST, PUT, DELETE   | member/admin | standard         | Chest collection goals (clan-wide + individual)                    |
+| **Analytics** (all use `createAnalyticsHandler` + RPC) |                          |              |                  |                                                                    |
+| `/api/analytics/stats`                                 | GET                      | user         | standard         | Dashboard stats via `get_clan_stats_overview` RPC                  |
+| `/api/analytics/chests`                                | GET                      | user         | standard         | Chest rankings via `get_clan_chest_analytics` RPC                  |
+| `/api/analytics/events`                                | GET                      | user         | standard         | Event list via `get_clan_event_list` RPC + detail (direct query)   |
+| `/api/analytics/machtpunkte`                           | GET                      | user         | standard         | Power standings via `get_clan_power_analytics` RPC                 |
+| `/api/analytics/player`                                | GET                      | user         | standard         | Player profile via `get_clan_player_analytics` RPC                 |
+| **Data Pipeline / Import**                             |                          |              |                  |                                                                    |
+| `/api/import/config`                                   | GET                      | public       | standard         | Supabase URL + anon key discovery                                  |
+| `/api/import/clans`                                    | GET                      | bearer/user  | standard         | User's clans (for ChillerBuddy)                                    |
+| `/api/import/submit`                                   | POST                     | bearer/admin | relaxed          | Ingest ChillerBuddy export JSON (admin only)                       |
+| `/api/import/submissions`                              | GET                      | user         | standard         | List submissions (filters + paging)                                |
+| `/api/import/submissions/[id]`                         | GET, PATCH, DELETE       | user/admin   | standard         | Detail + staged entries / Match edit & delete (admin) / GET (user) |
+| `/api/import/submissions/[id]/review`                  | POST                     | admin        | standard         | Approve/reject staged entries (admin only)                         |
+| `/api/import/validation-lists`                         | GET, POST                | bearer/user  | standard         | OCR corrections + known names sync                                 |
 
 ## 8. Database Table Index
 
-| Table                           | Purpose                                                         |
-| ------------------------------- | --------------------------------------------------------------- |
-| `profiles`                      | User profiles (username, display_name, default_game_account)    |
-| `user_roles`                    | One global role per user                                        |
-| `game_accounts`                 | Per-user game accounts with approval_status                     |
-| `game_account_clan_memberships` | Links game accounts to clans (rank, is_active)                  |
-| `clans`                         | Clan metadata (name, is_default, is_unassigned)                 |
-| `audit_logs`                    | Action audit trail                                              |
-| `messages`                      | One row per authored message (sender, subject, type, targeting) |
-| `message_recipients`            | One row per recipient for private messages                      |
-| `message_reads`                 | Per-user read tracking for broadcast messages                   |
-| `message_dismissals`            | Per-user delete/archive for broadcast messages                  |
-| `notifications`                 | Notification feed (type, title, body, reference_id)             |
-| `user_notification_settings`    | Per-user notification toggles                                   |
-| `articles`                      | Announcements (title, content, banner_url, author tracking)     |
-| `events`                        | Events (date, time, duration, recurrence, banner)               |
-| `event_templates`               | Reusable event templates                                        |
-| `forum_categories`              | Forum categories (name, slug, sort_order)                       |
-| `forum_posts`                   | Forum posts (title, content, category, votes)                   |
-| `forum_comments`                | Threaded comments on posts                                      |
-| `forum_votes`                   | Post upvotes/downvotes                                          |
-| `forum_comment_votes`           | Comment upvotes/downvotes                                       |
-| `site_content`                  | CMS text content (page, section_key, bilingual)                 |
-| `site_list_items`               | CMS structured list items (page, section_key, sort_order)       |
-| `design_assets`                 | Game asset catalog                                              |
-| `ui_elements`                   | UI element inventory                                            |
-| `asset_assignments`             | Maps game assets to UI elements                                 |
-| `bug_reports`                   | Bug reports (title, status, priority, category)                 |
-| `bug_report_categories`         | Admin-managed bug report categories                             |
-| `bug_report_comments`           | Comments on bug reports                                         |
-| `bug_report_screenshots`        | Screenshot metadata for bug reports                             |
-| **Data Pipeline (staging)**     |                                                                 |
-| `data_submissions`              | Import batch envelope (per type: chests/members/events)         |
-| `staged_chest_entries`          | Pending chest records awaiting review                           |
-| `staged_member_entries`         | Pending member snapshot records awaiting review                 |
-| `staged_event_entries`          | Pending event result records awaiting review                    |
-| **Data Pipeline (production)**  |                                                                 |
-| `chest_entries`                 | Approved chest data (rebuilt, replaces dropped legacy table)    |
-| `member_snapshots`              | Approved member power snapshots                                 |
-| `event_results`                 | Approved event ranking results                                  |
-| **Data Pipeline (validation)**  |                                                                 |
-| `ocr_corrections`               | OCR text corrections per clan (player/chest/source)             |
-| `known_names`                   | Confirmed-correct names per clan (player/chest/source)          |
+| Table                              | Purpose                                                                     |
+| ---------------------------------- | --------------------------------------------------------------------------- |
+| `profiles`                         | User profiles (username, display_name, default_game_account)                |
+| `user_roles`                       | One global role per user                                                    |
+| `game_accounts`                    | Per-user game accounts with approval_status                                 |
+| `game_account_clan_memberships`    | Links game accounts to clans (rank, is_active)                              |
+| `clans`                            | Clan metadata (name, is_default, is_unassigned)                             |
+| `audit_logs`                       | Action audit trail                                                          |
+| `messages`                         | One row per authored message (sender, subject, type, targeting)             |
+| `message_recipients`               | One row per recipient for private messages                                  |
+| `message_reads`                    | Per-user read tracking for broadcast messages                               |
+| `message_dismissals`               | Per-user delete/archive for broadcast messages                              |
+| `notifications`                    | Notification feed (type, title, body, reference_id)                         |
+| `user_notification_settings`       | Per-user notification toggles                                               |
+| `articles`                         | Announcements (title, content, banner_url, author tracking)                 |
+| `events`                           | Events (date, time, duration, recurrence, banner, opt. event_definition_id) |
+| `event_templates`                  | Reusable event templates (opt. event_definition_id)                         |
+| `forum_categories`                 | Forum categories (name, slug, sort_order)                                   |
+| `forum_posts`                      | Forum posts (title, content, category, votes)                               |
+| `forum_comments`                   | Threaded comments on posts                                                  |
+| `forum_votes`                      | Post upvotes/downvotes                                                      |
+| `forum_comment_votes`              | Comment upvotes/downvotes                                                   |
+| `site_content`                     | CMS text content (page, section_key, bilingual)                             |
+| `site_list_items`                  | CMS structured list items (page, section_key, sort_order)                   |
+| `design_assets`                    | Game asset catalog                                                          |
+| `ui_elements`                      | UI element inventory                                                        |
+| `asset_assignments`                | Maps game assets to UI elements                                             |
+| `bug_reports`                      | Bug reports (title, status, priority, category)                             |
+| `bug_report_categories`            | Admin-managed bug report categories                                         |
+| `bug_report_comments`              | Comments on bug reports                                                     |
+| `bug_report_screenshots`           | Screenshot metadata for bug reports                                         |
+| **Clan Rules & Event Definitions** |                                                                             |
+| `clan_event_definitions`           | Centralized event type registry (name, banner, description)                 |
+| `clan_event_rule_sets`             | Event scoring rule sets (name, description, active status)                  |
+| `clan_event_rule_tiers`            | Power-range tiers within a rule set (min/max power, req points)             |
+| `clan_event_rule_set_events`       | Junction: rule sets ↔ event definitions (many-to-many)                      |
+| `clan_chest_goals`                 | Chest collection targets (daily/weekly/monthly, clan or player)             |
+| **Data Pipeline (staging)**        |                                                                             |
+| `data_submissions`                 | Import batch envelope (per type: chests/members/events)                     |
+| `staged_chest_entries`             | Pending chest records awaiting review                                       |
+| `staged_member_entries`            | Pending member snapshot records awaiting review                             |
+| `staged_event_entries`             | Pending event result records awaiting review                                |
+| **Data Pipeline (production)**     |                                                                             |
+| `chest_entries`                    | Approved chest data (rebuilt, replaces dropped legacy table)                |
+| `member_snapshots`                 | Approved member power snapshots                                             |
+| `event_results`                    | Approved event ranking results                                              |
+| **Data Pipeline (validation)**     |                                                                             |
+| `ocr_corrections`                  | OCR text corrections per clan (player/chest/source)                         |
+| `known_names`                      | Confirmed-correct names per clan (player/chest/source)                      |
 
 ## 9. Conventions & Patterns
 
@@ -445,6 +496,16 @@ Standalone admin-gated page for deep-linking into a specific submission's staged
 - Error logging: Always use `captureApiError()` from `lib/api/logger.ts` (never raw `console.error`).
 - Error responses: Return generic user-facing messages, never raw DB errors. Use `apiError()` helper.
 - Success responses: Wrap in `{ data: ... }`.
+
+### Analytics / Large-Dataset Routes
+
+Routes that aggregate >500 rows **must** use a PostgreSQL RPC instead of in-memory JS aggregation. This is required by the Vercel Hobby plan's 10-second timeout.
+
+- Use `createAnalyticsHandler()` from `lib/api/analytics-handler.ts` — wraps rate-limiting, auth, Zod param parsing, and error handling.
+- Use `callClanRpc()` to call `SECURITY DEFINER` functions that bypass per-row RLS (which calls `is_clan_member()` per row and is extremely slow on large tables). Auth is enforced once inside the function.
+- RPCs return `jsonb_build_object('error', 'access_denied')` on auth failure; `callClanRpc()` maps this to a 403 response.
+- Always export `maxDuration = ANALYTICS_MAX_DURATION` (30s, effective on Pro plan).
+- SQL migration files go in `Documentation/migrations/`. See `.cursor/rules/api-large-datasets.mdc` for the enforced pattern.
 
 ### Client Components
 
@@ -567,6 +628,7 @@ All sidebar/layout responsive rules live in `layout.css`.
 
 - **Silent delete:** Supabase returns success when RLS blocks a delete. All delete operations chain `.select("id")` and verify `data.length > 0`. Follow this pattern for new deletes.
 - **INSERT RLS policies** use `WITH CHECK (...)`, not `USING (...)`. PostgreSQL rejects `USING` on INSERT.
+- **RLS performance on large tables:** RLS policies on `chest_entries`, `event_results`, and `member_snapshots` call `is_clan_member()` per row. On tables with thousands of rows this causes timeouts on Vercel Hobby (10s limit). Analytics queries use `SECURITY DEFINER` RPCs that bypass RLS and check auth once at the start.
 - **Forum comment count:** Maintained by `SECURITY DEFINER` DB triggers, not client-side updates.
 - **Forum thread auto-linking:** Creating an event or announcement auto-creates a forum thread. Edit/delete sync handled by DB triggers (bidirectional). Client only handles creation (`lib/forum-thread-sync.ts`).
 
@@ -608,20 +670,32 @@ All migrations in `Documentation/migrations/`. Run order documented in `Document
 
 Key migrations:
 
-| File                               | Purpose                                                                 |
-| ---------------------------------- | ----------------------------------------------------------------------- |
-| `messages_v2.sql`                  | Messages + recipients, threading, data migration                        |
-| `notifications.sql`                | Notifications + user settings                                           |
-| `forum_tables.sql`                 | Forum categories, posts, comments, votes                                |
-| `roles_permissions_cleanup.sql`    | Drop legacy tables, new permission functions                            |
-| `role_change_protection.sql`       | Webmaster/Admin role protection triggers                                |
-| `bug_reports.sql`                  | Bug report tables, RLS, storage bucket, categories                      |
-| `bug_reports_v2.sql`               | Comment edit/delete, email notifications                                |
-| `bug_reports_v3.sql`               | Category slugs for i18n                                                 |
-| `guest_role_permissions.sql`       | Guest promoted to member-level permissions                              |
-| `drop_chest_data_tables.sql`       | Drops removed feature tables                                            |
-| `messages_broadcast_targeting.sql` | Broadcast targeting columns, message_reads/dismissals                   |
-| `data_pipeline_staging.sql`        | `data_submissions` + staged entry tables (chests, members, events)      |
-| `data_pipeline_production.sql`     | Production tables: `chest_entries`, `member_snapshots`, `event_results` |
-| `data_pipeline_validation.sql`     | `ocr_corrections` + `known_names` for OCR correction sync               |
-| `data_pipeline_rls.sql`            | 23 RLS policies across all 9 data pipeline tables                       |
+| File                                    | Purpose                                                                 |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| `messages_v2.sql`                       | Messages + recipients, threading, data migration                        |
+| `notifications.sql`                     | Notifications + user settings                                           |
+| `forum_tables.sql`                      | Forum categories, posts, comments, votes                                |
+| `roles_permissions_cleanup.sql`         | Drop legacy tables, new permission functions                            |
+| `role_change_protection.sql`            | Webmaster/Admin role protection triggers                                |
+| `bug_reports.sql`                       | Bug report tables, RLS, storage bucket, categories                      |
+| `bug_reports_v2.sql`                    | Comment edit/delete, email notifications                                |
+| `bug_reports_v3.sql`                    | Category slugs for i18n                                                 |
+| `guest_role_permissions.sql`            | Guest promoted to member-level permissions                              |
+| `drop_chest_data_tables.sql`            | Drops removed feature tables                                            |
+| `messages_broadcast_targeting.sql`      | Broadcast targeting columns, message_reads/dismissals                   |
+| `data_pipeline_staging.sql`             | `data_submissions` + staged entry tables (chests, members, events)      |
+| `data_pipeline_production.sql`          | Production tables: `chest_entries`, `member_snapshots`, `event_results` |
+| `data_pipeline_validation.sql`          | `ocr_corrections` + `known_names` for OCR correction sync               |
+| `data_pipeline_rls.sql`                 | 23 RLS policies across all 9 data pipeline tables                       |
+| `data_pipeline_phase2.sql`              | Phase 2 additions for data pipeline (matched count)                     |
+| `clan_rules_goals.sql`                  | Clan event rule sets + tiers, chest goals, RLS, triggers                |
+| `clan_rules_goals_patch_with_check.sql` | Adds CHECK constraints for tiers (max > min) and goals (target > 0)     |
+| `clan_event_definitions.sql`            | Event definitions table, junction table, FKs on events/templates, RLS   |
+| **Analytics RPCs**                      |                                                                         |
+| `event_analytics_rpc.sql`               | `get_clan_event_list` RPC + composite index                             |
+| `chest_analytics_rpc.sql`               | `get_clan_chest_analytics` RPC + date-range index                       |
+| `member_snapshots_rpc.sql`              | `get_clan_latest_snapshots` RPC (DISTINCT ON) + index                   |
+| `stats_overview_rpc.sql`                | `get_clan_stats_overview` RPC (18-KPI dashboard)                        |
+| `power_analytics_rpc.sql`               | `get_clan_power_analytics` RPC (standings, deltas, history, histogram)  |
+| `player_analytics_rpc.sql`              | `get_clan_player_analytics` RPC (chests/events/power + clan rank)       |
+| `event_ids_with_results_rpc.sql`        | `get_clan_event_ids_with_results` RPC (client-side prefetch)            |

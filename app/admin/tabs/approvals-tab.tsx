@@ -39,6 +39,7 @@ export default function ApprovalsTab(): ReactElement {
   const [isLoadingRegistrations, setIsLoadingRegistrations] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState("");
   const [pendingConfirmAll, setPendingConfirmAll] = useState(false);
+  const [userToRemove, setUserToRemove] = useState<UserRow | null>(null);
 
   const unconfirmedUsers = useMemo(
     () => allUsers.filter((u) => !emailConfirmationsByUserId[u.id]),
@@ -225,6 +226,43 @@ export default function ApprovalsTab(): ReactElement {
     setPendingRegistrationCount(Math.max(0, newCount));
   }, [unconfirmedUsers, tAdmin, pushToast, setPendingRegistrationCount, setEmailConfirmationsByUserId]);
 
+  const handleRemoveUser = useCallback((user: UserRow) => {
+    setUserToRemove(user);
+  }, []);
+
+  const handleConfirmRemoveUser = useCallback(async () => {
+    if (!userToRemove) return;
+    const userId = userToRemove.id;
+    setUserToRemove(null);
+
+    setRegistrationStatus(tAdmin("approvals.removingUser"));
+    try {
+      const res = await fetch("/api/admin/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const payload = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setRegistrationStatus(payload.error ?? tAdmin("approvals.removeUserFailed"));
+        return;
+      }
+
+      setAllUsers((cur) => cur.filter((user) => user.id !== userId));
+      setEmailConfirmationsByUserId((cur) => {
+        const next = { ...cur };
+        delete next[userId];
+        return next;
+      });
+      setPendingRegistrationCount((count) => Math.max(0, count - 1));
+      setRegistrationStatus(tAdmin("approvals.userRemoved"));
+      pushToast(tAdmin("approvals.userRemoved"));
+      setUserToRemove(null);
+    } catch {
+      setRegistrationStatus(tAdmin("approvals.removeUserFailed"));
+    }
+  }, [userToRemove, tAdmin, pushToast, setEmailConfirmationsByUserId, setPendingRegistrationCount]);
+
   return (
     <div className="approvals-split-grid">
       {/* ── Left: User Account Approvals ── */}
@@ -278,9 +316,12 @@ export default function ApprovalsTab(): ReactElement {
                   <div>
                     <span className="text-muted">{user.email}</span>
                   </div>
-                  <div>
+                  <div className="list inline admin-table-actions">
                     <GameButton variant="turquoise" fontSize="0.58rem" onClick={() => handleConfirmUser(user.id)}>
                       {tAdmin("users.confirmUser")}
+                    </GameButton>
+                    <GameButton variant="orange" fontSize="0.58rem" onClick={() => handleRemoveUser(user)}>
+                      {tAdmin("approvals.removeUser")}
                     </GameButton>
                   </div>
                 </div>
@@ -395,6 +436,18 @@ export default function ApprovalsTab(): ReactElement {
         cancelLabel={tAdmin("common.cancel")}
         onConfirm={() => void handleConfirmConfirmAll()}
         onCancel={() => setPendingConfirmAll(false)}
+      />
+
+      <ConfirmModal
+        isOpen={userToRemove !== null}
+        title={tAdmin("approvals.removeUser")}
+        message={tAdmin("approvals.removeUserConfirm")}
+        variant="warning"
+        confirmButtonVariant="orange"
+        confirmLabel={tAdmin("common.delete")}
+        cancelLabel={tAdmin("common.cancel")}
+        onConfirm={() => void handleConfirmRemoveUser()}
+        onCancel={() => setUserToRemove(null)}
       />
     </div>
   );

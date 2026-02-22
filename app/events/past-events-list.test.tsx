@@ -59,6 +59,7 @@ function makeEvent(overrides: Partial<DisplayEvent> = {}): DisplayEvent {
     banner_url: null,
     is_pinned: false,
     forum_post_id: null,
+    event_type_id: null,
     isVirtual: false,
     ...overrides,
   };
@@ -82,6 +83,7 @@ function makeSourceEvent(overrides: Partial<EventRow> = {}): EventRow {
     banner_url: null,
     is_pinned: false,
     forum_post_id: null,
+    event_type_id: null,
     ...overrides,
   };
 }
@@ -94,8 +96,6 @@ function makeProps(overrides: Record<string, any> = {}) {
     onToggleExpand: vi.fn(),
     onEditEvent: vi.fn(),
     onDeleteEvent: vi.fn(),
-    onSaveAsTemplate: vi.fn(),
-    isSavingTemplate: false,
     canManage: false,
     locale: "de",
     t: vi.fn((key: string) => key),
@@ -141,11 +141,6 @@ describe("PastEventsList", () => {
     render(<PastEventsList {...makeProps({ isExpanded: true, canManage: false })} />);
     expect(screen.queryByText("editEvent")).toBeNull();
     expect(screen.queryByText("deleteEvent")).toBeNull();
-  });
-
-  it("shows save as template button when canManage=true and sourceEvent exists", () => {
-    render(<PastEventsList {...makeProps({ isExpanded: true, canManage: true })} />);
-    expect(screen.getByText("saveAsTemplate")).toBeDefined();
   });
 
   it("shows edited indicator when updated_at !== created_at", () => {

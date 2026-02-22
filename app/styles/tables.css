@@ -648,12 +648,12 @@
 
 /* ─── Submissions detail table (staged entries) ─── */
 .table.submissions-detail {
-  min-width: 780px;
+  min-width: 900px;
 }
 
 .table.submissions-detail header,
 .table.submissions-detail .row {
-  grid-template-columns: 1.2fr 1fr 0.7fr 0.6fr 0.8fr 0.8fr 1.3fr;
+  grid-template-columns: 32px 1.2fr 1fr 0.7fr 0.6fr 0.8fr 0.8fr 1.3fr 120px;
   min-width: 0;
   width: auto;
   align-items: center;
@@ -668,6 +668,98 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Cells with inline validation/correction icons */
+.cell-with-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cell-with-actions > .btn-icon-inline {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.table.submissions-detail .row:hover .cell-with-actions > .btn-icon-inline {
+  opacity: 0.6;
+}
+
+.cell-with-actions > .btn-icon-inline:hover {
+  opacity: 1 !important;
+}
+
+/* Small inline icon buttons (validation add, correction create) */
+.btn-icon-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-text-3);
+  font-size: 0.7rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.btn-icon-inline:hover {
+  background: var(--color-gold-a10);
+  color: var(--color-gold-2);
+}
+
+/* Row action buttons */
+.row-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-2);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.btn-icon:hover {
+  background: var(--color-surface-elevated);
+  border-color: var(--color-gold-a30);
+}
+
+.btn-icon.success:hover {
+  background: rgba(111, 214, 140, 0.12);
+  border-color: #6fd68c;
+  color: #6fd68c;
+}
+
+.btn-icon.warning:hover {
+  background: rgba(228, 199, 120, 0.12);
+  border-color: #e4c778;
+  color: #e4c778;
+}
+
+.btn-icon.danger:hover {
+  background: rgba(245, 160, 144, 0.12);
+  border-color: #f5a090;
+  color: #f5a090;
 }
 
 /* ─── Tables mobile: allow wrapping in member table action lists ─── */

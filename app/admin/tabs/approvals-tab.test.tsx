@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act, within } from "@testing-library/react";
 
 vi.mock("next-intl", () => ({
   useTranslations: vi.fn(() => vi.fn((key: string) => key)),
@@ -408,6 +408,83 @@ describe("ApprovalsTab", () => {
       if (btns.length > 0) {
         fireEvent.click(btns[0]!);
       }
+    });
+  });
+
+  it("removes a stale unconfirmed user via delete-user endpoint", async () => {
+    mockSupabase.from.mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: [{ id: "u10", email: "u10@test.com", display_name: "User10", username: "user10" }],
+        error: null,
+      }),
+      eq: vi.fn().mockReturnThis(),
+    });
+    mockEmailConfirmations = {};
+
+    let fetchCallCount = 0;
+    (globalThis.fetch as any).mockImplementation(() => {
+      fetchCallCount++;
+      if (fetchCallCount === 1) return Promise.resolve({ ok: true, json: () => Promise.resolve({ data: [] }) });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ data: { success: true } }) });
+    });
+
+    const view = render(<ApprovalsTab />);
+
+    await waitFor(() => expect(within(view.container).getByText("approvals.removeUser")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(within(view.container).getByText("approvals.removeUser"));
+    });
+
+    await waitFor(() => expect(within(view.container).getByTestId("confirm-modal")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(within(view.container).getByTestId("modal-confirm"));
+    });
+
+    await waitFor(() => {
+      const deleteCalls = (globalThis.fetch as any).mock.calls.filter((c: any[]) => c[0] === "/api/admin/delete-user");
+      expect(deleteCalls.length).toBe(1);
+      expect(deleteCalls[0][1]?.method).toBe("POST");
+      expect(JSON.parse(deleteCalls[0][1]?.body ?? "{}").userId).toBe("u10");
+    });
+  });
+
+  it("shows an error when stale user removal fails", async () => {
+    mockSupabase.from.mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: [{ id: "u11", email: "u11@test.com", display_name: "User11", username: "user11" }],
+        error: null,
+      }),
+      eq: vi.fn().mockReturnThis(),
+    });
+    mockEmailConfirmations = {};
+
+    let fetchCallCount = 0;
+    (globalThis.fetch as any).mockImplementation(() => {
+      fetchCallCount++;
+      if (fetchCallCount === 1) return Promise.resolve({ ok: true, json: () => Promise.resolve({ data: [] }) });
+      return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Failed to delete user." }) });
+    });
+
+    const view = render(<ApprovalsTab />);
+
+    await waitFor(() => expect(within(view.container).getByText("approvals.removeUser")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(within(view.container).getByText("approvals.removeUser"));
+    });
+
+    await waitFor(() => expect(within(view.container).getByTestId("confirm-modal")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(within(view.container).getByTestId("modal-confirm"));
+    });
+
+    await waitFor(() => {
+      expect(within(view.container).getByText("Failed to delete user.")).toBeInTheDocument();
     });
   });
 

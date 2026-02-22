@@ -55,6 +55,18 @@ data_pipeline_production.sql
 data_pipeline_validation.sql
 data_pipeline_rls.sql
 forum_atomic_score.sql
+data_pipeline_phase2.sql
+data_pipeline_matched_count.sql
+clan_rules_goals.sql
+clan_rules_goals_patch_with_check.sql
+clan_event_definitions.sql
+event_analytics_rpc.sql                 (analytics RPC: events)
+chest_analytics_rpc.sql                 (analytics RPC: chests)
+member_snapshots_rpc.sql                (analytics RPC: member snapshots)
+stats_overview_rpc.sql                  (analytics RPC: dashboard stats)
+power_analytics_rpc.sql                 (analytics RPC: machtpunkte)
+player_analytics_rpc.sql                (analytics RPC: player profile)
+event_ids_with_results_rpc.sql          (client-side event ID lookup)
 ```
 
 Legacy only (do not run on fresh setup): `messages.sql` (pre-v2 single-table model).
@@ -96,7 +108,7 @@ Email templates (dual-theme: Outlook light + modern dark) are documented in `sup
 ### Unit Tests (Vitest)
 
 ```bash
-npm run test:unit                        # Run all (222 test files, ~3400 tests)
+npm run test:unit                        # Run all (222 test files, ~3340 tests)
 npm run test:unit:watch                  # Watch mode
 npm run test:unit:coverage               # Run with coverage report
 npx vitest run lib/permissions.test.ts   # Specific file

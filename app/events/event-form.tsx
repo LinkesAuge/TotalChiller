@@ -27,11 +27,13 @@ export interface EventFormProps {
   readonly recurrenceType: RecurrenceType;
   readonly recurrenceEndDate: string;
   readonly recurrenceOngoing: boolean;
-  readonly selectedTemplate: string;
   readonly bannerUrl: string;
+  readonly eventTypeId: string;
+  readonly eventTypeOptions: readonly { value: string; label: string }[];
   readonly isBannerUploading: boolean;
   readonly bannerFileRef: React.RefObject<HTMLInputElement | null>;
   readonly onBannerUrlChange: (value: string) => void;
+  readonly onEventTypeChange: (value: string) => void;
   readonly onBannerUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   readonly onTitleChange: (value: string) => void;
   readonly onDescriptionChange: (value: string) => void;
@@ -45,16 +47,12 @@ export interface EventFormProps {
   readonly onRecurrenceTypeChange: (value: RecurrenceType) => void;
   readonly onRecurrenceEndDateChange: (value: string) => void;
   readonly onRecurrenceOngoingChange: (value: boolean) => void;
-  readonly onTemplateSelect: (value: string) => void;
   readonly onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   readonly onCancel: () => void;
-  readonly onSaveAsTemplate: () => void;
   readonly onDelete: () => void;
   readonly isSaving: boolean;
-  readonly isSavingTemplate: boolean;
   readonly canManage: boolean;
   readonly gameAccounts: readonly GameAccountOption[];
-  readonly templateOptions: readonly { value: string; label: string }[];
   readonly locale: string;
   readonly t: (key: string, values?: Record<string, string>) => string;
   /** Supabase client for markdown image uploads. */
@@ -79,11 +77,13 @@ export function EventForm({
   recurrenceType,
   recurrenceEndDate,
   recurrenceOngoing,
-  selectedTemplate,
   bannerUrl,
+  eventTypeId,
+  eventTypeOptions,
   isBannerUploading,
   bannerFileRef,
   onBannerUrlChange,
+  onEventTypeChange,
   onBannerUpload,
   onTitleChange,
   onDescriptionChange,
@@ -97,16 +97,12 @@ export function EventForm({
   onRecurrenceTypeChange,
   onRecurrenceEndDateChange,
   onRecurrenceOngoingChange,
-  onTemplateSelect,
   onSubmit,
   onCancel,
-  onSaveAsTemplate,
   onDelete,
   isSaving,
-  isSavingTemplate,
   canManage,
   gameAccounts,
-  templateOptions,
   t,
   supabase,
   userId,
@@ -122,16 +118,16 @@ export function EventForm({
         </div>
       </div>
       <form onSubmit={onSubmit}>
-        {/* Template selector — only for new events */}
-        {!editingId && (
+        {eventTypeOptions.length > 1 && (
           <div className="form-group">
-            <label htmlFor="eventTemplate">{t("templateLabel")}</label>
+            <label htmlFor="eventType">{t("eventTypeLabel")}</label>
             <RadixSelect
-              id="eventTemplate"
-              ariaLabel={t("templateLabel")}
-              value={selectedTemplate}
-              onValueChange={onTemplateSelect}
-              options={templateOptions}
+              id="eventType"
+              ariaLabel={t("eventTypeLabel")}
+              value={eventTypeId}
+              onValueChange={onEventTypeChange}
+              options={eventTypeOptions}
+              enableSearch
             />
           </div>
         )}
@@ -202,7 +198,6 @@ export function EventForm({
                   name="durationMode"
                   checked={Boolean(endsAt)}
                   onChange={() => {
-                    /* Default end to start + 1 day when switching to range mode */
                     if (startsAt) {
                       const start = new Date(startsAt);
                       start.setDate(start.getDate() + 1);
@@ -316,14 +311,6 @@ export function EventForm({
           </GameButton>
           <button className="button" type="button" onClick={onCancel}>
             {t("cancel")}
-          </button>
-          <button
-            className="button text-[0.78rem]"
-            type="button"
-            onClick={onSaveAsTemplate}
-            disabled={isSavingTemplate}
-          >
-            {isSavingTemplate ? t("saving") : t("saveAsTemplate")}
           </button>
           {editingId && (
             <button className="button danger ml-auto" type="button" onClick={onDelete}>

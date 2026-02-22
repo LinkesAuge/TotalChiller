@@ -202,7 +202,7 @@ describe("GET /api/import/submissions/[id]", () => {
     expect(res.status).toBe(500);
   });
 
-  it("returns 500 when status counts query fails", async () => {
+  it("degrades gracefully when status counts query fails", async () => {
     const subChain = createChainableMock();
     setChainResult(subChain, {
       data: { id: validUuid, clan_id: "clan-1", submitted_by: "user-1", submission_type: "chests", status: "pending" },
@@ -215,21 +215,27 @@ describe("GET /api/import/submissions/[id]", () => {
     const itemsChain = createChainableMock();
     setChainResult(itemsChain, { data: [], error: null, count: 0 });
 
-    const statusChain = createChainableMock();
-    setChainResult(statusChain, { data: null, error: { message: "DB error" } });
+    const statusErrorChain = createChainableMock();
+    setChainResult(statusErrorChain, { data: null, error: { message: "DB error" }, count: undefined });
+
+    const membershipChain = createChainableMock();
+    setChainResult(membershipChain, { data: [], error: null });
 
     mockAuth.mockFrom.mockImplementation((table: string) => {
       if (table === "data_submissions") return subChain;
       if (table === "profiles") return profileChain;
       if (table === "staged_chest_entries") {
         const callCount = mockAuth.mockFrom.mock.calls.filter((c: string[]) => c[0] === "staged_chest_entries").length;
-        return callCount <= 1 ? itemsChain : statusChain;
+        return callCount <= 1 ? itemsChain : statusErrorChain;
       }
       return createChainableMock();
     });
+    mockSvcFrom.mockReturnValue(membershipChain);
 
     const res = await GET(makeGetRequest(), makeContext());
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.statusCounts).toEqual({ pending: 0, auto_matched: 0, approved: 0, rejected: 0 });
   });
 });
 
@@ -727,7 +733,7 @@ describe("GET /api/import/submissions/[id] — additional branches", () => {
     expect(body.error).toContain("Unknown submission type");
   });
 
-  it("computes status counts from multiple statuses", async () => {
+  it("computes status counts from parallel head:true count queries", async () => {
     const subChain = createChainableMock();
     setChainResult(subChain, {
       data: { id: validUuid, clan_id: "clan-1", submitted_by: "user-1", submission_type: "chests", status: "partial" },
@@ -740,16 +746,17 @@ describe("GET /api/import/submissions/[id] — additional branches", () => {
     const itemsChain = createChainableMock();
     setChainResult(itemsChain, { data: [{ id: "i1" }], error: null, count: 3 });
 
-    const statusChain = createChainableMock();
-    setChainResult(statusChain, {
-      data: [
-        { item_status: "approved" },
-        { item_status: "approved" },
-        { item_status: "pending" },
-        { item_status: "rejected" },
-      ],
-      error: null,
-    });
+    const pendingCountChain = createChainableMock();
+    setChainResult(pendingCountChain, { data: null, error: null, count: 1 });
+    const autoMatchedCountChain = createChainableMock();
+    setChainResult(autoMatchedCountChain, { data: null, error: null, count: 0 });
+    const approvedCountChain = createChainableMock();
+    setChainResult(approvedCountChain, { data: null, error: null, count: 2 });
+    const rejectedCountChain = createChainableMock();
+    setChainResult(rejectedCountChain, { data: null, error: null, count: 1 });
+
+    const filterChain = createChainableMock();
+    setChainResult(filterChain, { data: [], error: null });
 
     const membershipChain = createChainableMock();
     setChainResult(membershipChain, { data: [], error: null });
@@ -759,7 +766,12 @@ describe("GET /api/import/submissions/[id] — additional branches", () => {
       if (table === "profiles") return profileChain;
       if (table === "staged_chest_entries") {
         const callCount = mockAuth.mockFrom.mock.calls.filter((c: string[]) => c[0] === "staged_chest_entries").length;
-        return callCount <= 1 ? itemsChain : statusChain;
+        if (callCount === 1) return itemsChain;
+        if (callCount === 2) return pendingCountChain;
+        if (callCount === 3) return autoMatchedCountChain;
+        if (callCount === 4) return approvedCountChain;
+        if (callCount === 5) return rejectedCountChain;
+        return filterChain;
       }
       return createChainableMock();
     });
@@ -768,7 +780,7 @@ describe("GET /api/import/submissions/[id] — additional branches", () => {
     const res = await GET(makeGetRequest({ page: "1", per_page: "10" }), makeContext());
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data.statusCounts).toEqual({ approved: 2, pending: 1, rejected: 1 });
+    expect(body.data.statusCounts).toEqual({ pending: 1, auto_matched: 0, approved: 2, rejected: 1 });
   });
 
   it("returns sorted clan game accounts", async () => {

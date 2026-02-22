@@ -88,12 +88,10 @@ describe("useEvents", () => {
     mockSupabase = createMockSupabase();
 
     const eventsChain = createChainableMock({ data: [MOCK_EVENT_ROW], error: null });
-    const templatesChain = createChainableMock({ data: [], error: null });
     const gameAccountsChain = createChainableMock({ data: [], error: null });
 
     mockSupabase.mockFrom.mockImplementation((table: string) => {
       if (table === "events") return eventsChain;
-      if (table === "event_templates") return templatesChain;
       if (table === "game_account_clan_memberships") return gameAccountsChain;
       return createChainableMock();
     });
@@ -208,18 +206,6 @@ describe("useEvents", () => {
     expect(typeof result.current.handleOpenCreate).toBe("function");
     expect(typeof result.current.handleSubmit).toBe("function");
     expect(typeof result.current.confirmDeleteEvent).toBe("function");
-  });
-
-  it("delegates template state from useEventsTemplates", async () => {
-    const { result } = renderHook(() => useEvents());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.isTemplatesOpen).toBe(false);
-    expect(typeof result.current.handleSaveEventAsTemplate).toBe("function");
-    expect(typeof result.current.confirmDeleteTemplate).toBe("function");
   });
 
   it("selects a date from a different month and switches calendar", async () => {

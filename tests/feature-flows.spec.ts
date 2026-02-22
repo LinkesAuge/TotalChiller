@@ -43,6 +43,7 @@ test.describe("Forum: comment edit/delete flow", () => {
       test.skip(true, "Forum not available (no clan context or tables not ready)");
       return;
     }
+    await expect(page.getByText(/Beiträge werden geladen|Loading posts/i)).toBeHidden({ timeout: 20000 });
     const postOrEmpty = page.locator(".forum-post-card").or(page.getByText(/Keine Beiträge|No posts/i));
     await expect(postOrEmpty.first()).toBeVisible({ timeout: 15000 });
   });

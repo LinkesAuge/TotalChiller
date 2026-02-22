@@ -155,6 +155,7 @@ export function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon
       is_pinned: ev.is_pinned,
       forum_post_id: ev.forum_post_id,
       updated_at: ev.updated_at,
+      event_type_id: ev.event_type_id,
       isVirtual: false,
     });
     if (ev.recurrence_type === "none") continue;
@@ -185,6 +186,7 @@ export function expandRecurringEvents(sourceEvents: readonly EventRow[], horizon
         is_pinned: ev.is_pinned,
         forum_post_id: ev.forum_post_id,
         updated_at: ev.updated_at,
+        event_type_id: ev.event_type_id,
         isVirtual: true,
       });
       advanceCursorDate(cursor, ev.recurrence_type);

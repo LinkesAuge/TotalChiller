@@ -13,6 +13,7 @@ const TAB_ICONS: Record<string, string> = {
   clans: "/assets/game/icons/circle_mercenaries_01.png",
   approvals: "/assets/game/icons/icons_check_1.png",
   forum: "/assets/game/icons/icons_main_menu_storage_1.png",
+  rulesDefinitions: "/assets/game/icons/icons_scroll_1.png",
   designSystem: "/assets/game/icons/clan_emblem_11.png",
   logs: "/assets/game/icons/icons_scroll_1.png",
 };
@@ -32,6 +33,9 @@ const ApprovalsTab = dynamic(() => import("./tabs/approvals-tab"), {
   loading: () => <TabSkeleton />,
 });
 const ForumTab = dynamic(() => import("./tabs/forum-tab"), {
+  loading: () => <TabSkeleton />,
+});
+const RulesDefinitionsTab = dynamic(() => import("./tabs/rules-definitions-tab"), {
   loading: () => <TabSkeleton />,
 });
 
@@ -60,6 +64,7 @@ const TAB_MAP: Record<AdminSection, React.ComponentType> = {
   logs: LogsTab,
   approvals: ApprovalsTab,
   forum: ForumTab,
+  rulesDefinitions: RulesDefinitionsTab,
 };
 
 /* ── Inner component (needs context) ── */
@@ -81,7 +86,9 @@ function AdminInner(): ReactElement {
           ? tAdmin("logs.subtitle")
           : activeSection === "forum"
             ? tAdmin("forum.subtitle")
-            : tAdmin("common.selectAClan");
+            : activeSection === "rulesDefinitions"
+              ? tAdmin("rulesDefinitions.subtitle")
+              : tAdmin("common.selectAClan");
 
   return (
     <div className="admin-grid">

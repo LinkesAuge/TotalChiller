@@ -20,6 +20,7 @@ export interface EventRow {
   readonly banner_url: string | null;
   readonly is_pinned: boolean;
   readonly forum_post_id: string | null;
+  readonly event_type_id: string | null;
   /* Joined author info */
   readonly author_name: string | null;
 }
@@ -42,25 +43,13 @@ export interface DisplayEvent {
   readonly banner_url: string | null;
   readonly is_pinned: boolean;
   readonly forum_post_id: string | null;
+  readonly event_type_id: string | null;
   readonly isVirtual: boolean;
 }
 
 export interface GameAccountOption {
   readonly id: string;
   readonly game_username: string;
-}
-
-export interface TemplateRow {
-  readonly id: string;
-  readonly title: string;
-  readonly description: string;
-  readonly location: string | null;
-  readonly duration_hours: number;
-  readonly is_open_ended: boolean;
-  readonly organizer: string | null;
-  readonly recurrence_type: RecurrenceType;
-  readonly recurrence_end_date: string | null;
-  readonly banner_url: string | null;
 }
 
 /* ── Constants ── */

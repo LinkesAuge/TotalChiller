@@ -165,6 +165,12 @@ describe("AdminClient", () => {
     expect(screen.getByText("forum.subtitle")).toBeInTheDocument();
   });
 
+  it("renders rulesDefinitions subtitle when rulesDefinitions section is active", () => {
+    mockContextOverride = { activeSection: "rulesDefinitions" };
+    render(<AdminClient />);
+    expect(screen.getByText("rulesDefinitions.subtitle")).toBeInTheDocument();
+  });
+
   it("marks approvals tab as active when activeSection is approvals", () => {
     mockContextOverride = { activeSection: "approvals" };
     render(<AdminClient />);
@@ -232,10 +238,10 @@ describe("AdminClient", () => {
 
   /* ── All section buttons render ── */
 
-  it("renders exactly 6 tab buttons for all admin sections", () => {
+  it("renders exactly 7 tab buttons for all admin sections", () => {
     render(<AdminClient />);
     const buttons = document.querySelectorAll(".tabs.admin-tabs button.tab");
-    expect(buttons.length).toBe(6);
+    expect(buttons.length).toBe(7);
   });
 
   /* ── Non-active tabs have no aria-current ── */
@@ -252,7 +258,7 @@ describe("AdminClient", () => {
   it("renders tab icons for all sections with icons", () => {
     render(<AdminClient />);
     const images = document.querySelectorAll("img.admin-tab-icon");
-    expect(images.length).toBe(6);
+    expect(images.length).toBe(7);
   });
 
   /* ── designSystem tab calls navigateAdmin (no tab property) ── */

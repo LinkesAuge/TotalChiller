@@ -34,13 +34,6 @@ vi.mock("./event-modals", () => ({
     const React = require("react");
     return React.createElement("div", { "data-testid": "delete-modal" });
   },
-  TemplateDeleteModal: ({ isOpen }: any) => {
-    if (!isOpen) return null;
-    const React = require("react");
-    return React.createElement("div", {
-      "data-testid": "template-delete-modal",
-    });
-  },
 }));
 vi.mock("./events-list", () => ({
   EventsList: () => {
@@ -61,53 +54,20 @@ const mockEventsState: any = {
   isPastExpanded: false,
   setIsPastExpanded: vi.fn(),
   events: [],
-  templates: [],
-  editingTemplateId: "",
-  editTplTitle: "",
-  editTplDesc: "",
-  editTplLocation: "",
-  editTplDurationH: "1",
-  editTplDurationM: "0",
-  editTplOpenEnded: false,
-  editTplOrganizer: "",
-  editTplRecurrence: "none",
-  editTplRecurrenceEnd: "",
-  editTplRecurrenceOngoing: false,
-  handleStartEditTemplate: vi.fn(),
-  handleCancelEditTemplate: vi.fn(),
-  handleSaveEditedTemplate: vi.fn(),
-  requestDeleteTemplate: vi.fn(),
-  confirmDeleteTemplate: vi.fn(),
-  closeDeleteTemplateModal: vi.fn(),
+  eventTypes: [],
   deleteEventId: "",
-  deleteTemplateId: "",
-  deleteTemplateName: "",
-  deleteTemplateInput: "",
-  isDeleteTemplateStep2: false,
   setDeleteEventId: vi.fn(),
-  setDeleteTemplateInput: vi.fn(),
-  setIsDeleteTemplateStep2: vi.fn(),
-  setEditTplTitle: vi.fn(),
-  setEditTplDesc: vi.fn(),
-  setEditTplLocation: vi.fn(),
-  setEditTplDurationH: vi.fn(),
-  setEditTplDurationM: vi.fn(),
-  setEditTplOpenEnded: vi.fn(),
-  setEditTplOrganizer: vi.fn(),
-  setEditTplRecurrence: vi.fn(),
-  setEditTplRecurrenceEnd: vi.fn(),
-  setEditTplRecurrenceOngoing: vi.fn(),
   confirmDeleteEvent: vi.fn(),
   handleEditEventById: vi.fn(),
   requestDeleteEvent: vi.fn(),
-  handleSaveEventAsTemplate: vi.fn(),
-  isSavingTemplate: false,
   canManage: true,
   locale: "de",
   t: vi.fn((key: string) => key),
   supabase: {},
   currentUserId: "user-1",
-  isTemplatesOpen: false,
+  clanId: undefined,
+  isEventTypesOpen: false,
+  setIsEventTypesOpen: vi.fn(),
   isFormOpen: false,
 };
 
@@ -139,11 +99,6 @@ describe("EventsClient", () => {
     expect(screen.queryByTestId("delete-modal")).toBeNull();
   });
 
-  it("does not render template delete modal when deleteTemplateId is empty", () => {
-    render(<EventsClient />);
-    expect(screen.queryByTestId("template-delete-modal")).toBeNull();
-  });
-
   /* ── Delete modal renders when deleteEventId is set ── */
 
   it("renders delete modal when deleteEventId is set", () => {
@@ -153,26 +108,17 @@ describe("EventsClient", () => {
     mockEventsState.deleteEventId = "";
   });
 
-  /* ── Template delete modal renders when deleteTemplateId is set ── */
+  /* ── ManageEventTypes renders when isEventTypesOpen ── */
 
-  it("renders template delete modal when deleteTemplateId is set", () => {
-    mockEventsState.deleteTemplateId = "tpl-1";
-    render(<EventsClient />);
-    expect(screen.getByTestId("template-delete-modal")).toBeDefined();
-    mockEventsState.deleteTemplateId = "";
-  });
-
-  /* ── ManageTemplates renders when isTemplatesOpen ── */
-
-  it("renders ManageTemplates dynamic component when isTemplatesOpen is true", () => {
-    mockEventsState.isTemplatesOpen = true;
+  it("renders ManageEventTypes dynamic component when isEventTypesOpen is true", () => {
+    mockEventsState.isEventTypesOpen = true;
     render(<EventsClient />);
     expect(screen.getByTestId("dynamic-component")).toBeDefined();
-    mockEventsState.isTemplatesOpen = false;
+    mockEventsState.isEventTypesOpen = false;
   });
 
-  it("does not render ManageTemplates when isTemplatesOpen is false", () => {
-    mockEventsState.isTemplatesOpen = false;
+  it("does not render ManageEventTypes when isEventTypesOpen is false", () => {
+    mockEventsState.isEventTypesOpen = false;
     render(<EventsClient />);
     expect(screen.queryByTestId("dynamic-component")).toBeNull();
   });

@@ -22,6 +22,7 @@ export const ADMIN_SECTIONS: readonly AdminSectionDef[] = [
   { labelKey: "clans", href: "/admin?tab=clans", tab: "clans" },
   { labelKey: "approvals", href: "/admin?tab=approvals", tab: "approvals" },
   { labelKey: "forum", href: "/admin?tab=forum", tab: "forum" },
+  { labelKey: "rulesDefinitions", href: "/admin?tab=rulesDefinitions", tab: "rulesDefinitions" },
   { labelKey: "designSystem", href: "/design-system" },
   { labelKey: "logs", href: "/admin?tab=logs", tab: "logs" },
 ];

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { classifySupabaseError, getErrorMessageKey } from "@/lib/supabase/error-utils";
 import { extractAuthorName } from "@/lib/dashboard-utils";
-import type { EventRow, GameAccountOption, RecurrenceType, TemplateRow } from "./events-types";
+import type { EventRow, GameAccountOption, RecurrenceType } from "./events-types";
 
 /** Profile join shape returned by PostgREST embedded select. */
 interface ProfileJoin {
@@ -29,21 +29,8 @@ interface RawEventRow {
   readonly banner_url: string | null;
   readonly is_pinned: boolean | null;
   readonly forum_post_id: string | null;
+  readonly event_type_id: string | null;
   readonly author: ProfileJoin | null;
-}
-
-/** Raw template row shape returned by the event_templates select. */
-interface RawTemplateRow {
-  readonly id: string;
-  readonly title: string | null;
-  readonly description: string | null;
-  readonly location: string | null;
-  readonly duration_hours: number | null;
-  readonly is_open_ended: boolean | null;
-  readonly organizer: string | null;
-  readonly recurrence_type: string | null;
-  readonly recurrence_end_date: string | null;
-  readonly banner_url: string | null;
 }
 
 /** Raw game account membership row with join. */
@@ -52,19 +39,13 @@ interface RawGameAccountMembershipRow {
   readonly game_accounts: { readonly id: string; readonly game_username: string } | null;
 }
 
-/** Raw event result row for linked event IDs. */
-interface RawEventResultRow {
-  readonly linked_event_id: string;
-}
-
 const PAST_EVENTS_WINDOW_DAYS = 365;
 const FUTURE_EVENTS_WINDOW_DAYS = 540;
 const EVENTS_FETCH_LIMIT = 1000;
-const TEMPLATE_FETCH_LIMIT = 300;
 
 /** Select columns for events, including author profile join. */
 const EVENTS_SELECT =
-  "id,title,description,location,starts_at,ends_at,created_at,updated_at,created_by,organizer,recurrence_type,recurrence_end_date,banner_url,is_pinned,forum_post_id,author:profiles!events_created_by_profiles_fkey(display_name,username)";
+  "id,title,description,location,starts_at,ends_at,created_at,updated_at,created_by,organizer,recurrence_type,recurrence_end_date,banner_url,is_pinned,forum_post_id,event_type_id,author:profiles!events_created_by_profiles_fkey(display_name,username)";
 
 function getEventWindowBounds(): { readonly fromIso: string; readonly toIso: string } {
   const now = new Date();
@@ -97,22 +78,7 @@ function mapRowToEventRow(row: RawEventRow): EventRow {
     banner_url: row.banner_url ?? null,
     is_pinned: row.is_pinned ?? false,
     forum_post_id: row.forum_post_id ?? null,
-  };
-}
-
-/** Map a raw Supabase row to a TemplateRow. */
-function mapRowToTemplateRow(row: RawTemplateRow): TemplateRow {
-  return {
-    id: row.id,
-    title: row.title ?? "",
-    description: row.description ?? "",
-    location: row.location ?? null,
-    duration_hours: row.duration_hours ?? 0,
-    is_open_ended: row.is_open_ended ?? (row.duration_hours ?? 0) <= 0,
-    organizer: row.organizer ?? null,
-    recurrence_type: (row.recurrence_type ?? "none") as RecurrenceType,
-    recurrence_end_date: row.recurrence_end_date ?? null,
-    banner_url: row.banner_url ?? null,
+    event_type_id: row.event_type_id ?? null,
   };
 }
 
@@ -120,12 +86,9 @@ export interface UseEventsDataResult {
   readonly events: readonly EventRow[];
   readonly setEvents: React.Dispatch<React.SetStateAction<readonly EventRow[]>>;
   readonly isLoading: boolean;
-  readonly templates: readonly TemplateRow[];
-  readonly setTemplates: React.Dispatch<React.SetStateAction<readonly TemplateRow[]>>;
   readonly gameAccounts: readonly GameAccountOption[];
   readonly eventIdsWithResults: ReadonlySet<string>;
   readonly reloadEvents: () => Promise<void>;
-  readonly reloadTemplates: () => Promise<void>;
 }
 
 export function useEventsData(
@@ -147,7 +110,6 @@ export function useEventsData(
   );
   const [events, setEvents] = useState<readonly EventRow[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [templates, setTemplates] = useState<readonly TemplateRow[]>([]);
   const [gameAccounts, setGameAccounts] = useState<readonly GameAccountOption[]>([]);
   const [eventIdsWithResults, setEventIdsWithResults] = useState<ReadonlySet<string>>(new Set());
 
@@ -184,49 +146,18 @@ export function useEventsData(
     };
   }, [clanId, showError, supabase]);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadTemplates(): Promise<void> {
-      if (!clanId) {
-        setTemplates([]);
-        return;
-      }
-      const { data, error } = await supabase
-        .from("event_templates")
-        .select("*")
-        .eq("clan_id", clanId)
-        .order("title", { ascending: true })
-        .limit(TEMPLATE_FETCH_LIMIT)
-        .returns<RawTemplateRow[]>();
-      if (cancelled || error) return;
-      setTemplates((data ?? []).map(mapRowToTemplateRow));
-    }
-    void loadTemplates();
-    return () => {
-      cancelled = true;
-    };
-  }, [clanId, supabase]);
-
   const loadResultIds = useCallback(
     async (signal?: { cancelled: boolean }): Promise<void> => {
       if (!clanId) {
         setEventIdsWithResults(new Set());
         return;
       }
-      const { data } = await supabase
-        .from("event_results")
-        .select("linked_event_id")
-        .eq("clan_id", clanId)
-        .not("linked_event_id", "is", null)
-        .limit(5000)
-        .returns<RawEventResultRow[]>();
+      const { data } = await supabase.rpc("get_clan_event_ids_with_results", {
+        p_clan_id: clanId,
+      });
       if (signal?.cancelled) return;
-      if (data) {
-        const ids = new Set<string>();
-        for (const row of data) {
-          ids.add(row.linked_event_id);
-        }
-        setEventIdsWithResults(ids);
+      if (Array.isArray(data)) {
+        setEventIdsWithResults(new Set(data as string[]));
       }
     },
     [clanId, supabase],
@@ -290,31 +221,12 @@ export function useEventsData(
     void loadResultIds();
   }
 
-  async function reloadTemplates(): Promise<void> {
-    if (!clanId) return;
-    const { data, error } = await supabase
-      .from("event_templates")
-      .select("*")
-      .eq("clan_id", clanId)
-      .order("title", { ascending: true })
-      .limit(TEMPLATE_FETCH_LIMIT)
-      .returns<RawTemplateRow[]>();
-    if (error) {
-      showError(error, "saveFailed");
-      return;
-    }
-    setTemplates((data ?? []).map(mapRowToTemplateRow));
-  }
-
   return {
     events,
     setEvents,
     isLoading,
-    templates,
-    setTemplates,
     gameAccounts,
     eventIdsWithResults,
     reloadEvents,
-    reloadTemplates,
   };
 }

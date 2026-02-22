@@ -40,7 +40,6 @@ function makeState(overrides: any = {}): any {
     recurrenceType: "none",
     recurrenceEndDate: "",
     recurrenceOngoing: false,
-    selectedTemplate: "",
     bannerUrl: "",
     isBannerUploading: false,
     bannerFileRef: { current: null },
@@ -58,20 +57,18 @@ function makeState(overrides: any = {}): any {
     setRecurrenceOngoing: vi.fn(),
     setBannerUrl: vi.fn(),
     handleBannerUpload: vi.fn(),
-    applyTemplate: vi.fn(),
+    applyEventType: vi.fn(),
     handleSubmit: vi.fn(),
     resetForm: vi.fn(),
-    handleSaveFormAsTemplate: vi.fn(),
     requestDeleteEvent: vi.fn(),
     isSaving: false,
-    isSavingTemplate: false,
     gameAccounts: [],
-    templateOptions: [],
+    eventTypeOptions: [],
     currentUserId: "user-1",
     handleOpenCreate: vi.fn(),
     t: vi.fn((key: string) => key),
-    isTemplatesOpen: false,
-    setIsTemplatesOpen: vi.fn(),
+    isEventTypesOpen: false,
+    setIsEventTypesOpen: vi.fn(),
     locale: "de",
     supabase: {},
     ...overrides,
@@ -93,9 +90,9 @@ describe("EventsForm", () => {
     expect(screen.getByText("createEvent")).toBeDefined();
   });
 
-  it("shows manage templates button when canManage", () => {
+  it("shows manage event types button when canManage", () => {
     render(<EventsForm eventsState={makeState()} />);
-    expect(screen.getByText(/manageTemplates/)).toBeDefined();
+    expect(screen.getByText(/manageEventTypes/)).toBeDefined();
   });
 
   it("hides create button when form is open", () => {
@@ -115,10 +112,10 @@ describe("EventsForm", () => {
     expect(state.handleOpenCreate).toHaveBeenCalledOnce();
   });
 
-  it("calls setIsTemplatesOpen when templates button clicked", () => {
+  it("calls setIsEventTypesOpen when event types button clicked", () => {
     const state = makeState();
     render(<EventsForm eventsState={state} />);
-    fireEvent.click(screen.getByText(/manageTemplates/));
-    expect(state.setIsTemplatesOpen).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByText(/manageEventTypes/));
+    expect(state.setIsEventTypesOpen).toHaveBeenCalledOnce();
   });
 });

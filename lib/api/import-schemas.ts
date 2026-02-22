@@ -103,6 +103,19 @@ export type ValidationListPush = z.infer<typeof ValidationListPushSchema>;
 
 /* ── Submission Metadata Patch ── */
 
+const EntryEditFieldsSchema = z.object({
+  player_name: z.string().min(1).optional(),
+  chest_name: z.string().min(1).optional(),
+  source: z.string().min(1).optional(),
+  level: z.string().nullable().optional(),
+  opened_at: z.string().datetime().optional(),
+  event_name: z.string().nullable().optional(),
+  event_points: z.number().int().nonnegative().optional(),
+  score: z.number().int().nonnegative().optional(),
+  coordinates: z.string().nullable().optional(),
+  captured_at: z.string().datetime().optional(),
+});
+
 export const SubmissionPatchSchema = z
   .object({
     referenceDate: z.string().date().nullable().optional(),
@@ -110,16 +123,28 @@ export const SubmissionPatchSchema = z
     entryId: z.string().uuid().optional(),
     matchGameAccountId: z.string().uuid().nullable().optional(),
     saveCorrection: z.boolean().optional(),
+    editFields: EntryEditFieldsSchema.optional(),
   })
   .refine(
     (d) =>
       d.referenceDate !== undefined ||
       d.linkedEventId !== undefined ||
-      (d.entryId !== undefined && d.matchGameAccountId !== undefined),
+      (d.entryId !== undefined && d.matchGameAccountId !== undefined) ||
+      (d.entryId !== undefined && d.editFields !== undefined),
     { message: "At least one field to update must be provided." },
   );
 
 export type SubmissionPatch = z.infer<typeof SubmissionPatchSchema>;
+export type EntryEditFields = z.infer<typeof EntryEditFieldsSchema>;
+
+/* ── Bulk Entry Operations ── */
+
+export const BulkEntryActionSchema = z.object({
+  entryIds: z.array(z.string().uuid()).min(1).max(500),
+  action: z.enum(["delete", "reject", "approve", "rematch"]),
+});
+
+export type BulkEntryAction = z.infer<typeof BulkEntryActionSchema>;
 
 /* ── Query Param Schemas ── */
 
@@ -135,4 +160,14 @@ export const SubmissionDetailQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   per_page: z.coerce.number().int().positive().max(500).default(250),
   item_status: z.enum(["pending", "approved", "rejected", "auto_matched"]).optional(),
+  search: z.string().max(200).optional(),
+  unmatched: z.enum(["true", "false"]).optional(),
+  filter_chest_name: z.string().max(200).optional(),
+  filter_source: z.string().max(200).optional(),
+  filter_event_name: z.string().max(200).optional(),
+  filter_player_name: z.string().max(200).optional(),
+  filter_matched_player: z.string().uuid().optional(),
+  sort_by: z.string().max(50).optional(),
+  sort_dir: z.enum(["asc", "desc"]).default("asc"),
+  skip_filter_options: z.enum(["true", "false"]).optional(),
 });

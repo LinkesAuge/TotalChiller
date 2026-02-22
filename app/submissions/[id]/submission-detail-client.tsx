@@ -9,7 +9,7 @@ import ConfirmModal from "../../components/confirm-modal";
 import DataState from "../../components/data-state";
 import PaginationBar from "../../components/pagination-bar";
 import { usePagination } from "@/lib/hooks/use-pagination";
-import { formatBerlinDate } from "@/lib/timezone";
+import { formatBerlinDate, formatBerlinDateTime } from "@/lib/timezone";
 
 /* ── Types ── */
 
@@ -333,7 +333,7 @@ function SubmissionDetailClient(): JSX.Element {
       </button>
 
       <DataState
-        isLoading={isLoading && !submission}
+        isLoading={(isLoading && !submission) || roleLoading}
         error={loadError}
         isEmpty={!submission}
         loadingMessage={t("loading")}
@@ -353,7 +353,7 @@ function SubmissionDetailClient(): JSX.Element {
                   <div className="card-subtitle">
                     {t("submittedBy", { name: submission.profiles?.display_name ?? "—" })}
                     {" · "}
-                    {formatBerlinDate(submission.created_at)}
+                    {formatBerlinDateTime(submission.created_at)}
                   </div>
                 </div>
               </div>

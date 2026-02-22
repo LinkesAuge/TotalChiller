@@ -37,19 +37,6 @@ const MOCK_EVENT_ROW = {
   author: { display_name: "TestUser", username: "testuser" },
 };
 
-const MOCK_TEMPLATE_ROW = {
-  id: "tpl-1",
-  title: "Template 1",
-  description: "Template desc",
-  location: "HQ",
-  duration_hours: 2,
-  is_open_ended: false,
-  organizer: null,
-  recurrence_type: "none",
-  recurrence_end_date: null,
-  banner_url: null,
-};
-
 const MOCK_GAME_ACCOUNT_ROW = {
   game_account_id: "ga-1",
   game_accounts: { id: "ga-1", game_username: "Player1" },
@@ -63,13 +50,11 @@ describe("useEventsData", () => {
 
   it("starts in loading state", () => {
     const eventsChain = createChainableMock({ data: [], error: null });
-    const templatesChain = createChainableMock({ data: [], error: null });
     const gameAccountsChain = createChainableMock({ data: [], error: null });
 
     let _callCount = 0;
     mockSupabase.mockFrom.mockImplementation((table: string) => {
       if (table === "events") return eventsChain;
-      if (table === "event_templates") return templatesChain;
       if (table === "game_account_clan_memberships") return gameAccountsChain;
       _callCount++;
       return createChainableMock();
@@ -81,13 +66,9 @@ describe("useEventsData", () => {
     expect(result.current.events).toEqual([]);
   });
 
-  it("loads events, templates, and game accounts on mount", async () => {
+  it("loads events and game accounts on mount", async () => {
     const eventsChain = createChainableMock({
       data: [MOCK_EVENT_ROW],
-      error: null,
-    });
-    const templatesChain = createChainableMock({
-      data: [MOCK_TEMPLATE_ROW],
       error: null,
     });
     const gameAccountsChain = createChainableMock({
@@ -97,7 +78,6 @@ describe("useEventsData", () => {
 
     mockSupabase.mockFrom.mockImplementation((table: string) => {
       if (table === "events") return eventsChain;
-      if (table === "event_templates") return templatesChain;
       if (table === "game_account_clan_memberships") return gameAccountsChain;
       return createChainableMock();
     });
@@ -111,8 +91,6 @@ describe("useEventsData", () => {
     expect(result.current.events).toHaveLength(1);
     expect(result.current.events[0]!.title).toBe("Test Event");
     expect(result.current.events[0]!.author_name).toBe("TestUser");
-    expect(result.current.templates).toHaveLength(1);
-    expect(result.current.templates[0]!.title).toBe("Template 1");
     expect(result.current.gameAccounts).toHaveLength(1);
     expect(result.current.gameAccounts[0]!.game_username).toBe("Player1");
   });
@@ -125,7 +103,6 @@ describe("useEventsData", () => {
     });
 
     expect(result.current.events).toEqual([]);
-    expect(result.current.templates).toEqual([]);
     expect(result.current.gameAccounts).toEqual([]);
   });
 
@@ -134,12 +111,10 @@ describe("useEventsData", () => {
       data: null,
       error: { message: "DB error", code: "500", details: "", hint: "" },
     });
-    const templatesChain = createChainableMock({ data: [], error: null });
     const gameAccountsChain = createChainableMock({ data: [], error: null });
 
     mockSupabase.mockFrom.mockImplementation((table: string) => {
       if (table === "events") return eventsChain;
-      if (table === "event_templates") return templatesChain;
       if (table === "game_account_clan_memberships") return gameAccountsChain;
       return createChainableMock();
     });
@@ -159,12 +134,10 @@ describe("useEventsData", () => {
       data: [MOCK_EVENT_ROW],
       error: null,
     });
-    const templatesChain = createChainableMock({ data: [], error: null });
     const gameAccountsChain = createChainableMock({ data: [], error: null });
 
     mockSupabase.mockFrom.mockImplementation((table: string) => {
       if (table === "events") return eventsChain;
-      if (table === "event_templates") return templatesChain;
       if (table === "game_account_clan_memberships") return gameAccountsChain;
       return createChainableMock();
     });
@@ -182,37 +155,6 @@ describe("useEventsData", () => {
 
     await waitFor(() => {
       expect(result.current.events[0]!.title).toBe("Updated Event");
-    });
-  });
-
-  it("reloads templates via reloadTemplates", async () => {
-    const eventsChain = createChainableMock({ data: [], error: null });
-    const templatesChain = createChainableMock({
-      data: [MOCK_TEMPLATE_ROW],
-      error: null,
-    });
-    const gameAccountsChain = createChainableMock({ data: [], error: null });
-
-    mockSupabase.mockFrom.mockImplementation((table: string) => {
-      if (table === "events") return eventsChain;
-      if (table === "event_templates") return templatesChain;
-      if (table === "game_account_clan_memberships") return gameAccountsChain;
-      return createChainableMock();
-    });
-
-    const { result } = renderHook(() => useEventsData(mockSupabase.supabase, "clan-1", mockPushToast));
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    const newTemplate = { ...MOCK_TEMPLATE_ROW, id: "tpl-2", title: "New Template" };
-    setChainResult(templatesChain, { data: [MOCK_TEMPLATE_ROW, newTemplate], error: null });
-
-    await result.current.reloadTemplates();
-
-    await waitFor(() => {
-      expect(result.current.templates).toHaveLength(2);
     });
   });
 });

@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { formatLocalDateTime } from "../../lib/date-format";
 import GameButton from "../components/ui/game-button";
-import type { DisplayEvent, EventRow } from "./events-types";
+import type { DisplayEvent } from "./events-types";
 import { formatDuration, getRecurrenceLabel } from "./events-utils";
 
 const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
@@ -13,13 +12,10 @@ const AppMarkdown = dynamic(() => import("@/lib/markdown/app-markdown"), {
 
 export interface PastEventsListProps {
   readonly pastEvents: readonly DisplayEvent[];
-  readonly sourceEvents: readonly EventRow[];
   readonly isExpanded: boolean;
   readonly onToggleExpand: () => void;
   readonly onEditEvent: (eventId: string) => void;
   readonly onDeleteEvent: (eventId: string) => void;
-  readonly onSaveAsTemplate: (entry: EventRow) => void;
-  readonly isSavingTemplate: boolean;
   readonly canManage: boolean;
   readonly locale: string;
   readonly t: (key: string, values?: Record<string, string>) => string;
@@ -27,23 +23,17 @@ export interface PastEventsListProps {
 
 function EventCard({
   entry,
-  sourceEvent,
   isPast,
   onEditEvent,
   onDeleteEvent,
-  onSaveAsTemplate,
-  isSavingTemplate,
   canManage,
   locale,
   t,
 }: {
   readonly entry: DisplayEvent;
-  readonly sourceEvent: EventRow | undefined;
   readonly isPast: boolean;
   readonly onEditEvent: (eventId: string) => void;
   readonly onDeleteEvent: (eventId: string) => void;
-  readonly onSaveAsTemplate: (entry: EventRow) => void;
-  readonly isSavingTemplate: boolean;
   readonly canManage: boolean;
   readonly locale: string;
   readonly t: (key: string, values?: Record<string, string>) => string;
@@ -94,16 +84,6 @@ function EventCard({
           <GameButton variant="orange" fontSize="0.6rem" type="button" onClick={() => onDeleteEvent(entry.id)}>
             {t("deleteEvent")}
           </GameButton>
-          {sourceEvent && (
-            <button
-              className="button ml-auto"
-              type="button"
-              onClick={() => onSaveAsTemplate(sourceEvent)}
-              disabled={isSavingTemplate}
-            >
-              {t("saveAsTemplate")}
-            </button>
-          )}
         </div>
       )}
     </section>
@@ -112,23 +92,14 @@ function EventCard({
 
 export function PastEventsList({
   pastEvents,
-  sourceEvents,
   isExpanded,
   onToggleExpand,
   onEditEvent,
   onDeleteEvent,
-  onSaveAsTemplate,
-  isSavingTemplate,
   canManage,
   locale,
   t,
 }: PastEventsListProps): JSX.Element {
-  const sourceEventMap = useMemo(() => {
-    const map = new Map<string, EventRow>();
-    for (const ev of sourceEvents) map.set(ev.id, ev);
-    return map;
-  }, [sourceEvents]);
-
   return (
     <>
       <div className="col-span-full flex items-center gap-3">
@@ -144,12 +115,9 @@ export function PastEventsList({
           <EventCard
             key={entry.displayKey}
             entry={entry}
-            sourceEvent={sourceEventMap.get(entry.id)}
             isPast={true}
             onEditEvent={onEditEvent}
             onDeleteEvent={onDeleteEvent}
-            onSaveAsTemplate={onSaveAsTemplate}
-            isSavingTemplate={isSavingTemplate}
             canManage={canManage}
             locale={locale}
             t={t}

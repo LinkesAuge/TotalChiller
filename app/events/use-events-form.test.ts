@@ -25,7 +25,7 @@ vi.mock("@/lib/hooks/use-banner-upload", () => ({
 }));
 
 import { useEventsForm, type UseEventsFormParams } from "./use-events-form";
-import type { EventRow, TemplateRow } from "./events-types";
+import type { EventRow } from "./events-types";
 
 let mockSupabase: ReturnType<typeof createMockSupabase>;
 
@@ -35,11 +35,10 @@ function makeParams(overrides?: Partial<UseEventsFormParams>): UseEventsFormPara
     clanId: "clan-1",
     currentUserId: "user-1",
     events: [],
-    templates: [],
+    eventTypes: [],
     pushToast: vi.fn(),
     t: vi.fn((key: string) => key),
     reloadEvents: vi.fn().mockResolvedValue(undefined),
-    reloadTemplates: vi.fn().mockResolvedValue(undefined),
     setEvents: vi.fn(),
     ...overrides,
   };
@@ -61,20 +60,8 @@ const MOCK_EVENT: EventRow = {
   banner_url: null,
   is_pinned: false,
   forum_post_id: null,
+  event_type_id: null,
   author_name: "TestUser",
-};
-
-const MOCK_TEMPLATE: TemplateRow = {
-  id: "tpl-1",
-  title: "Template Event",
-  description: "Template desc",
-  location: "HQ",
-  duration_hours: 2,
-  is_open_ended: false,
-  organizer: "OrgTpl",
-  recurrence_type: "weekly",
-  recurrence_end_date: "2026-12-31",
-  banner_url: "https://example.com/banner.png",
 };
 
 describe("useEventsForm", () => {
@@ -108,43 +95,12 @@ describe("useEventsForm", () => {
     expect(result.current.editingId).toBe("");
   });
 
-  it("applies a template to the form", () => {
-    const params = makeParams({ templates: [MOCK_TEMPLATE] });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.applyTemplate("tpl-1");
-    });
-
-    expect(result.current.title).toBe("Template Event");
-    expect(result.current.description).toBe("Template desc");
-    expect(result.current.location).toBe("HQ");
-    expect(result.current.organizer).toBe("OrgTpl");
-    expect(result.current.bannerUrl).toBe("https://example.com/banner.png");
-    expect(result.current.selectedTemplate).toBe("tpl-1");
-  });
-
-  it("ignores template apply when value is 'none'", () => {
-    const params = makeParams({ templates: [MOCK_TEMPLATE] });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.applyTemplate("tpl-1");
-    });
-    act(() => {
-      result.current.applyTemplate("none");
-    });
-
-    expect(result.current.title).toBe("Template Event");
-  });
-
   it("resets form state", () => {
-    const params = makeParams({ templates: [MOCK_TEMPLATE] });
+    const params = makeParams();
     const { result } = renderHook(() => useEventsForm(params));
 
     act(() => {
       result.current.handleOpenCreate();
-      result.current.applyTemplate("tpl-1");
     });
 
     act(() => {
@@ -263,16 +219,6 @@ describe("useEventsForm", () => {
     });
 
     expect(reloadEvents).toHaveBeenCalled();
-  });
-
-  it("generates template options including 'none'", () => {
-    const params = makeParams({ templates: [MOCK_TEMPLATE] });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    expect(result.current.templateOptions).toEqual([
-      { value: "none", label: "templateNone" },
-      { value: "tpl-1", label: "Template Event" },
-    ]);
   });
 
   it("shows toast when form validation fails (empty title)", async () => {
@@ -518,118 +464,6 @@ describe("useEventsForm", () => {
     expect(pushToast).toHaveBeenCalledWith("pinFailed");
   });
 
-  it("saves form as template", async () => {
-    const pushToast = vi.fn();
-    const reloadTemplates = vi.fn().mockResolvedValue(undefined);
-    const templateChain = createChainableMock({ data: null, error: null });
-    mockSupabase.mockFrom.mockReturnValue(templateChain);
-
-    const params = makeParams({ pushToast, reloadTemplates });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.setTitle("Template Title");
-      result.current.setDescription("Template Desc");
-    });
-
-    await act(async () => {
-      await result.current.handleSaveFormAsTemplate();
-    });
-
-    expect(pushToast).toHaveBeenCalledWith("templateSaved");
-    expect(reloadTemplates).toHaveBeenCalled();
-  });
-
-  it("shows toast when saving template with empty title", async () => {
-    const pushToast = vi.fn();
-    const params = makeParams({ pushToast });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    await act(async () => {
-      await result.current.handleSaveFormAsTemplate();
-    });
-
-    expect(pushToast).toHaveBeenCalledWith("checkFormValues");
-  });
-
-  it("does nothing when saving template without clanId", async () => {
-    const pushToast = vi.fn();
-    const params = makeParams({ pushToast, clanId: undefined });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.setTitle("Template");
-    });
-
-    await act(async () => {
-      await result.current.handleSaveFormAsTemplate();
-    });
-
-    expect(pushToast).not.toHaveBeenCalled();
-  });
-
-  it("shows error toast when template save fails", async () => {
-    const pushToast = vi.fn();
-    const templateChain = createChainableMock({
-      data: null,
-      error: { message: "template error", code: "500" },
-    });
-    mockSupabase.mockFrom.mockReturnValue(templateChain);
-
-    const params = makeParams({ pushToast });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.setTitle("Template Title");
-    });
-
-    await act(async () => {
-      await result.current.handleSaveFormAsTemplate();
-    });
-
-    expect(pushToast).toHaveBeenCalled();
-  });
-
-  it("applies template with open_ended flag from template", () => {
-    const openEndedTemplate: TemplateRow = {
-      ...MOCK_TEMPLATE,
-      id: "tpl-open",
-      is_open_ended: true,
-      duration_hours: 0,
-      recurrence_type: "none",
-      recurrence_end_date: null,
-      banner_url: null,
-    };
-    const params = makeParams({ templates: [openEndedTemplate] });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.applyTemplate("tpl-open");
-    });
-
-    expect(result.current.isOpenEnded).toBe(true);
-    expect(result.current.recurrenceType).toBe("none");
-    expect(result.current.recurrenceOngoing).toBe(false);
-  });
-
-  it("applies template with recurrence ongoing (no end date)", () => {
-    const ongoingTemplate: TemplateRow = {
-      ...MOCK_TEMPLATE,
-      id: "tpl-ongoing",
-      recurrence_type: "daily",
-      recurrence_end_date: null,
-    };
-    const params = makeParams({ templates: [ongoingTemplate] });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.applyTemplate("tpl-ongoing");
-    });
-
-    expect(result.current.recurrenceType).toBe("daily");
-    expect(result.current.recurrenceOngoing).toBe(true);
-  });
-
   it("edits an open-ended event", () => {
     const openEvent: EventRow = {
       ...MOCK_EVENT,
@@ -830,59 +664,5 @@ describe("useEventsForm", () => {
 
     expect(result.current.recurrenceType).toBe("daily");
     expect(result.current.recurrenceOngoing).toBe(true);
-  });
-
-  it("saves template with recurrence ongoing", async () => {
-    const pushToast = vi.fn();
-    const reloadTemplates = vi.fn().mockResolvedValue(undefined);
-    const templateChain = createChainableMock({ data: null, error: null });
-    mockSupabase.mockFrom.mockReturnValue(templateChain);
-
-    const params = makeParams({ pushToast, reloadTemplates });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.setTitle("Ongoing Template");
-      result.current.setRecurrenceType("daily");
-      result.current.setRecurrenceOngoing(true);
-      result.current.setRecurrenceEndDate("2026-12-31");
-    });
-
-    await act(async () => {
-      await result.current.handleSaveFormAsTemplate();
-    });
-
-    expect(pushToast).toHaveBeenCalledWith("templateSaved");
-  });
-
-  it("applies template with no location (null)", () => {
-    const noLocTemplate: TemplateRow = {
-      ...MOCK_TEMPLATE,
-      id: "tpl-noloc",
-      location: null,
-      organizer: null,
-      banner_url: null,
-    };
-    const params = makeParams({ templates: [noLocTemplate] });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.applyTemplate("tpl-noloc");
-    });
-
-    expect(result.current.location).toBe("");
-    expect(result.current.organizer).toBe("");
-    expect(result.current.bannerUrl).toBe("");
-  });
-
-  it("ignores template apply for non-existent template id", () => {
-    const params = makeParams({ templates: [MOCK_TEMPLATE] });
-    const { result } = renderHook(() => useEventsForm(params));
-
-    act(() => {
-      result.current.applyTemplate("nonexistent-id");
-    });
-
-    expect(result.current.title).toBe("");
   });
 });

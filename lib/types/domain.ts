@@ -354,6 +354,73 @@ export interface KnownName {
   readonly created_at: string;
 }
 
+/* ── Event Types ── */
+
+export interface ClanEventType {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly name: string;
+  readonly banner_url: string | null;
+  readonly description: string | null;
+  readonly is_active: boolean;
+  readonly created_by: string;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export interface ClanEventTypeSummary {
+  readonly id: string;
+  readonly name: string;
+}
+
+/* ── Clan Rules & Goals ── */
+
+export type ChestGoalPeriod = "daily" | "weekly" | "monthly";
+
+export interface ClanEventRuleSet {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly is_active: boolean;
+  readonly created_by: string;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export interface ClanEventRuleTier {
+  readonly id: string;
+  readonly rule_set_id: string;
+  readonly min_power: number;
+  readonly max_power: number | null;
+  readonly required_points: number | null;
+  readonly sort_order: number;
+  readonly created_at: string;
+}
+
+export interface ClanChestGoal {
+  readonly id: string;
+  readonly clan_id: string;
+  readonly game_account_id: string | null;
+  readonly period: ChestGoalPeriod;
+  readonly target_count: number;
+  readonly is_active: boolean;
+  readonly created_by: string;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+/** Rule set with nested tiers and linked event types (for display). */
+export interface ClanEventRuleSetWithTiers extends ClanEventRuleSet {
+  readonly tiers: readonly ClanEventRuleTier[];
+  readonly event_types: readonly ClanEventTypeSummary[];
+}
+
+/** Chest goal with optional player name (for display of individual goals). */
+export interface ClanChestGoalWithPlayer extends ClanChestGoal {
+  readonly player_name?: string | null;
+}
+
 /** Summary row for submission list views. */
 export interface SubmissionSummary {
   readonly id: string;

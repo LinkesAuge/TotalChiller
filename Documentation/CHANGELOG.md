@@ -6,6 +6,38 @@
 
 ## 2026-02-22
 
+### Performance
+
+- **Table loading optimization (submissions detail + list routes):**
+  - **Query parallelization:** Detail route (`GET /api/import/submissions/[id]`) now runs profile, items, status counts, filter options, and clan game accounts queries in a single `Promise.all` instead of sequentially (6+ roundtrips → 1 sequential + 1 parallel block).
+  - **Status counts:** Replaced 10,000-row fetch + JS iteration with 4 parallel `head:true` count queries (zero row transfer). Graceful degradation on count errors (defaults to 0 instead of 500).
+  - **`skip_filter_options` parameter:** New query param in `SubmissionDetailQuerySchema`. When `true`, the API skips the expensive filter options and clan game accounts queries, returning `null` for both. Used by the client on pagination/sort/filter changes after the initial load.
+  - **Client-side filter cache:** `daten-client.tsx` caches `filterOptions` and `clanGameAccounts` in `useRef` (avoids dependency loops vs. `useState`). First request loads everything; subsequent requests skip filter options via the API param and merge cached values. Cache invalidated on submission switch (`handleBack`) and after delete mutations.
+  - **List route parallelization:** `GET /api/import/submissions` now runs profile and event lookups in parallel via `Promise.all`.
+- **Shared `SortableColumnHeader` adoption:** Replaced custom sort implementation in `daten-client.tsx` (`handleSort`, `sortIndicator`, `sortableHeader`, `sortHeaderStyle`) with the existing shared `SortableColumnHeader` component (triangle variant). Consistent sort UI across all tables (users, members, clans, submissions).
+
+### Features
+
+- **Rules & Definitions (admin tab):** Combined admin tab "Regeln & Definitionen" with three modular sub-sections:
+  - **Event Definitions:** Centralized event type registry (master data). Name (required), optional banner image (BannerPicker + custom upload), optional description, active/inactive status. Linked to event rule sets via many-to-many junction (`clan_event_rule_set_events`). `events` and `event_templates` reference definitions via optional FK (`event_definition_id`, `ON DELETE SET NULL`).
+  - **Event Rules:** Named rule sets linked to event definitions (many-to-many). Power-range tiers (in millions) mapping to required event points. Players below lowest tier can be excluded. Admins add/remove/reorder tiers freely.
+  - **Chest Goals:** Daily, weekly, or monthly chest collection targets. Clan-wide goals (unique per period per clan) and individual player-specific overrides.
+  - Previously split across `/analytics/regeln` and admin "Event Definitions" tab; now unified in a single admin tab with clean separation of concerns (`tabs/sections/` directory).
+  - DB tables: `clan_event_definitions`, `clan_event_rule_sets`, `clan_event_rule_tiers`, `clan_event_rule_set_events` (junction), `clan_chest_goals`.
+  - API routes: `/api/admin/event-definitions`, `/api/analytics/rules/events`, `/api/analytics/rules/chests` (all with Zod validation, rollback on failures).
+  - Full i18n (de + en). Tests: all updated for new admin section key `rulesDefinitions`.
+
+### Performance
+
+- **Analytics RPC migration (Vercel Hobby 10s timeout fix):** Moved all heavy data aggregation from serverless JavaScript into PostgreSQL `SECURITY DEFINER` RPCs. Eliminates per-row RLS overhead on large tables by running auth once at the top of each function.
+  - `get_clan_stats_overview` — replaces 10 parallel queries + JS aggregation in `/api/analytics/stats` (286→46 lines)
+  - `get_clan_power_analytics` — standings, deltas (week/month/all_time/custom), history, clan trend, power distribution histogram for `/api/analytics/machtpunkte` (263→64 lines)
+  - `get_clan_player_analytics` — chests/events/power stats with median, std dev, clan rank for `/api/analytics/player` (304→32 lines)
+  - `get_clan_latest_snapshots` — `DISTINCT ON` replaces 5000-row fetch + JS deduplication for `/api/members/snapshots` (76→47 lines)
+  - `get_clan_event_ids_with_results` — returns `uuid[]` instead of 5000-row client-side fetch in `use-events-data.ts`
+- **Shared analytics handler (`lib/api/analytics-handler.ts`):** Factory for analytics GET routes. Wraps rate-limiting, auth, Zod param parsing, and error handling. Includes `callClanRpc()` helper for SECURITY DEFINER RPCs and `requireClanAccess()` for parallel auth checks.
+- **Cursor rule (`api-large-datasets.mdc`):** Enforces RPC-first pattern for routes handling >500 rows, parallel auth, `maxDuration` export, and no in-memory aggregation on large datasets.
+
 ### Fixed
 
 - **Test suite: Supabase `.returns()` mock support:** Central `createChainableMock` now includes `.returns()` as a chainable method. `single`/`maybeSingle` return chain instead of resolving directly, enabling `.maybeSingle().returns<T>()` chains. Inline mocks in `clan-access-gate`, `sidebar-shell`, and `members-client` tests updated with `chainEnd` helper.

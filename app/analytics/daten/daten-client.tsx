@@ -12,13 +12,17 @@ import DataState from "@/app/components/data-state";
 import PaginationBar from "@/app/components/pagination-bar";
 import GameAlert from "@/app/components/ui/game-alert";
 import RadixSelect, { type SelectOption } from "@/app/components/ui/radix-select";
+import { useToast } from "@/app/components/toast-provider";
 import { usePagination } from "@/lib/hooks/use-pagination";
+import SortableColumnHeader from "@/app/components/sortable-column-header";
 import { formatBerlinDate } from "@/lib/timezone";
 import { ImportPayloadSchema, type ImportPayload } from "@/lib/api/import-schemas";
-import { formatLocalDateTime } from "@/lib/date-format";
+import { formatBerlinDateTime } from "@/lib/timezone";
 import AnalyticsSubnav from "../analytics-subnav";
 
 const ValidationListsPanel = dynamic(() => import("./validation-lists-panel"), { ssr: false });
+const EntryEditModal = dynamic(() => import("./entry-edit-modal"), { ssr: false });
+const CorrectionModal = dynamic(() => import("./correction-modal"), { ssr: false });
 
 /* ── Types ── */
 
@@ -90,7 +94,8 @@ interface DetailResponse {
   readonly page: number;
   readonly perPage: number;
   readonly statusCounts: Record<string, number>;
-  readonly clanGameAccounts: readonly ClanGameAccount[];
+  readonly clanGameAccounts: readonly ClanGameAccount[] | null;
+  readonly filterOptions: Record<string, string[]> | null;
 }
 
 interface SubmissionResultItem {
@@ -186,6 +191,7 @@ function DataContent(): ReactElement {
   const t = useTranslations("submissions");
   const tImport = useTranslations("import");
   const supabase = useSupabase();
+  const { pushToast } = useToast();
   const clanContext = useClanContext();
   const { isAdmin, loading: roleLoading } = useUserRole(supabase);
   const [dataView, setDataView] = useState<"submissions" | "validationLists">("submissions");
@@ -230,6 +236,121 @@ function DataContent(): ReactElement {
   const [metadataSaving, setMetadataSaving] = useState(false);
   const [metadataWarning, setMetadataWarning] = useState<string | null>(null);
   const [clanEvents, setClanEvents] = useState<readonly CalendarEvent[]>([]);
+
+  /* ── Detail filter state ── */
+  const [searchText, setSearchText] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
+  const [unmatchedOnly, setUnmatchedOnly] = useState(false);
+  const [filterChestName, setFilterChestName] = useState("");
+  const [filterSource, setFilterSource] = useState("");
+  const [filterEventName, setFilterEventName] = useState("");
+  const [filterPlayerName, setFilterPlayerName] = useState("");
+  const [filterMatchedPlayer, setFilterMatchedPlayer] = useState("");
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* ── Sort state ── */
+  const [sortKey, setSortKey] = useState("created_at");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const toggleSort = useCallback(
+    (key: string) => {
+      if (sortKey === key) {
+        setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+      } else {
+        setSortKey(key);
+        setSortDirection("asc");
+      }
+      detailPagination.setPage(1);
+    },
+    [sortKey, detailPagination],
+  );
+
+  /* ── Filter options cache (refs to avoid re-render / dependency loops) ── */
+  const cachedFilterOptionsRef = useRef<Record<string, string[]> | null>(null);
+  const cachedGameAccountsRef = useRef<readonly ClanGameAccount[] | null>(null);
+
+  /* ── Multi-select state ── */
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
+
+  /* ── Modal state ── */
+  const [editingEntry, setEditingEntry] = useState<StagedEntry | null>(null);
+  const [correctionEntry, setCorrectionEntry] = useState<{
+    ocrText: string;
+    category: "player" | "chest" | "source";
+  } | null>(null);
+  const [accessToken, setAccessToken] = useState<string>("");
+  const [knownNames, setKnownNames] = useState<{ chest: string[]; source: string[] }>({ chest: [], source: [] });
+
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setSearchDebounced(searchText);
+      detailPagination.setPage(1);
+    }, 350);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText]);
+
+  useEffect(() => {
+    setSelectedEntryIds(new Set());
+  }, [
+    detailPagination.page,
+    itemStatusFilter,
+    searchDebounced,
+    unmatchedOnly,
+    filterChestName,
+    filterSource,
+    filterEventName,
+    filterPlayerName,
+    filterMatchedPlayer,
+    sortKey,
+    sortDirection,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setAccessToken(data.session?.access_token ?? "");
+    });
+    const { data } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (!active) return;
+      setAccessToken(session?.access_token ?? "");
+    });
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    const clanId = clanContext?.clanId;
+    if (!selectedId || !clanId || !accessToken) return;
+    let cancelled = false;
+    async function loadKnownNames(): Promise<void> {
+      try {
+        const res = await fetch(`/api/import/validation-lists?clan_id=${clanId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!res.ok) return;
+        const body = (await res.json()) as { data?: { knownNames?: { chest?: string[]; source?: string[] } } };
+        if (cancelled) return;
+        setKnownNames({
+          chest: body.data?.knownNames?.chest ?? [],
+          source: body.data?.knownNames?.source ?? [],
+        });
+      } catch {
+        if (!cancelled) {
+          setKnownNames({ chest: [], source: [] });
+        }
+      }
+    }
+    void loadKnownNames();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, clanContext?.clanId, accessToken]);
 
   useEffect(() => {
     if (actionLoading) {
@@ -453,6 +574,16 @@ function DataContent(): ReactElement {
         per_page: String(detailPagination.pageSize),
       });
       if (itemStatusFilter) params.set("item_status", itemStatusFilter);
+      if (searchDebounced) params.set("search", searchDebounced);
+      if (unmatchedOnly) params.set("unmatched", "true");
+      if (filterChestName) params.set("filter_chest_name", filterChestName);
+      if (filterSource) params.set("filter_source", filterSource);
+      if (filterEventName) params.set("filter_event_name", filterEventName);
+      if (filterPlayerName) params.set("filter_player_name", filterPlayerName);
+      if (filterMatchedPlayer) params.set("filter_matched_player", filterMatchedPlayer);
+      params.set("sort_by", sortKey);
+      params.set("sort_dir", sortDirection);
+      if (cachedFilterOptionsRef.current !== null) params.set("skip_filter_options", "true");
 
       const res = await fetch(`/api/import/submissions/${selectedId}?${params.toString()}`);
       if (!res.ok) {
@@ -460,13 +591,34 @@ function DataContent(): ReactElement {
         throw new Error((body as { error?: string } | null)?.error ?? t("loadError"));
       }
       const json = (await res.json()) as { data: DetailResponse };
-      setDetail(json.data);
+
+      const opts = json.data.filterOptions ?? cachedFilterOptionsRef.current;
+      const accounts = json.data.clanGameAccounts ?? cachedGameAccountsRef.current;
+      if (json.data.filterOptions) cachedFilterOptionsRef.current = json.data.filterOptions;
+      if (json.data.clanGameAccounts) cachedGameAccountsRef.current = json.data.clanGameAccounts;
+
+      setDetail({ ...json.data, filterOptions: opts, clanGameAccounts: accounts });
     } catch (err) {
       setDetailError(err instanceof Error ? err.message : t("loadError"));
     } finally {
       setDetailLoading(false);
     }
-  }, [selectedId, detailPagination.page, detailPagination.pageSize, itemStatusFilter, t]);
+  }, [
+    selectedId,
+    detailPagination.page,
+    detailPagination.pageSize,
+    itemStatusFilter,
+    searchDebounced,
+    unmatchedOnly,
+    filterChestName,
+    filterSource,
+    filterEventName,
+    filterPlayerName,
+    filterMatchedPlayer,
+    sortKey,
+    sortDirection,
+    t,
+  ]);
 
   useEffect(() => {
     if (selectedId) void fetchDetail();
@@ -616,6 +768,164 @@ function DataContent(): ReactElement {
     [selectedId, detail?.items, fetchDetail, t],
   );
 
+  /* ── Entry-level actions ── */
+
+  const handleDeleteEntry = useCallback(
+    async (entryId: string) => {
+      if (!selectedId || !window.confirm(t("deleteEntryConfirm"))) return;
+      try {
+        const res = await fetch(`/api/import/submissions/${selectedId}?entryId=${entryId}`, { method: "DELETE" });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error((body as { error?: string } | null)?.error ?? t("deleteError"));
+        }
+        const json = (await res.json()) as { data: { submissionDeleted?: boolean } };
+        cachedFilterOptionsRef.current = null;
+        cachedGameAccountsRef.current = null;
+        if (json.data.submissionDeleted) {
+          setSelectedId(null);
+          setDetail(null);
+          setRetryCount((c) => c + 1);
+        } else {
+          void fetchDetail();
+          setRetryCount((c) => c + 1);
+        }
+      } catch (err) {
+        setDetailError(err instanceof Error ? err.message : t("deleteError"));
+      }
+    },
+    [selectedId, fetchDetail, t],
+  );
+
+  const handleReviewEntry = useCallback(
+    async (entryId: string, action: "approve" | "reject") => {
+      if (!selectedId) return;
+      try {
+        const res = await fetch(`/api/import/submissions/${selectedId}/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: [{ id: entryId, action }] }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error((body as { error?: string } | null)?.error ?? t("reviewError"));
+        }
+        void fetchDetail();
+        setRetryCount((c) => c + 1);
+      } catch (err) {
+        setDetailError(err instanceof Error ? err.message : t("reviewError"));
+      }
+    },
+    [selectedId, fetchDetail, t],
+  );
+
+  const handleBulkAction = useCallback(
+    async (action: "delete" | "reject" | "approve" | "rematch") => {
+      if (!selectedId || selectedEntryIds.size === 0) return;
+      if (action === "delete" && !window.confirm(t("bulkDeleteConfirm", { count: String(selectedEntryIds.size) })))
+        return;
+      setActionLoading(true);
+      try {
+        const res = await fetch(`/api/import/submissions/${selectedId}/bulk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entryIds: [...selectedEntryIds], action }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error((body as { error?: string } | null)?.error ?? t("reviewError"));
+        }
+        const json = (await res.json()) as { data: { submissionDeleted?: boolean } };
+        setSelectedEntryIds(new Set());
+        if (action === "delete") {
+          cachedFilterOptionsRef.current = null;
+          cachedGameAccountsRef.current = null;
+        }
+        if (json.data.submissionDeleted) {
+          setSelectedId(null);
+          setDetail(null);
+        } else {
+          void fetchDetail();
+        }
+        setRetryCount((c) => c + 1);
+      } catch (err) {
+        setDetailError(err instanceof Error ? err.message : t("reviewError"));
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [selectedId, selectedEntryIds, fetchDetail, t],
+  );
+
+  const handleRematch = useCallback(async () => {
+    if (!selectedId || !clanContext?.clanId) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/import/submissions/rematch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clanId: clanContext.clanId, submissionId: selectedId }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error((body as { error?: string } | null)?.error ?? t("reviewError"));
+      }
+      const body = (await res.json()) as { data?: { rematchedCount?: number } };
+      pushToast(t("rematchDone", { count: String(body.data?.rematchedCount ?? 0) }));
+      void fetchDetail();
+      setRetryCount((c) => c + 1);
+    } catch (err) {
+      setDetailError(err instanceof Error ? err.message : t("reviewError"));
+    } finally {
+      setActionLoading(false);
+    }
+  }, [selectedId, clanContext?.clanId, fetchDetail, pushToast, t]);
+
+  const handleAddToKnownNames = useCallback(
+    async (name: string, entityType: "player" | "chest" | "source") => {
+      if (!clanContext?.clanId || !accessToken) return;
+      try {
+        const body: Record<string, unknown> = { clanId: clanContext.clanId };
+        if (entityType === "player") body.knownPlayerNames = [name];
+        else if (entityType === "chest") body.knownChestNames = [name];
+        else body.knownSources = [name];
+
+        const res = await fetch("/api/import/validation-lists", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const rb = await res.json().catch(() => null);
+          throw new Error((rb as { error?: string } | null)?.error ?? t("reviewError"));
+        }
+        pushToast(t("knownNameAdded"));
+      } catch (err) {
+        setDetailError(err instanceof Error ? err.message : t("reviewError"));
+      }
+    },
+    [clanContext?.clanId, accessToken, pushToast, t],
+  );
+
+  const toggleEntrySelection = useCallback((entryId: string) => {
+    setSelectedEntryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(entryId)) next.delete(entryId);
+      else next.add(entryId);
+      return next;
+    });
+  }, []);
+
+  const toggleAllEntries = useCallback(() => {
+    if (!detail) return;
+    setSelectedEntryIds((prev) => {
+      const allIds = detail.items.map((i) => i.id);
+      const allSelected = allIds.every((id) => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(allIds);
+    });
+  }, [detail]);
+
   /* ── Metadata editing handlers ── */
 
   const handleUpdateReferenceDate = useCallback(
@@ -706,6 +1016,21 @@ function DataContent(): ReactElement {
     setDetail(null);
     setItemStatusFilter("");
     setMetadataWarning(null);
+    setSearchText("");
+    setSearchDebounced("");
+    setUnmatchedOnly(false);
+    setFilterChestName("");
+    setFilterSource("");
+    setFilterEventName("");
+    setFilterPlayerName("");
+    setFilterMatchedPlayer("");
+    setSortKey("created_at");
+    setSortDirection("asc");
+    cachedFilterOptionsRef.current = null;
+    cachedGameAccountsRef.current = null;
+    setSelectedEntryIds(new Set());
+    setEditingEntry(null);
+    setCorrectionEntry(null);
     detailPagination.setPage(1);
   }, [detailPagination]);
 
@@ -718,40 +1043,178 @@ function DataContent(): ReactElement {
     return detail.statusCounts[filter] ?? 0;
   }
 
+  function getDetailGridTemplate(type: string): string {
+    if (type === "chests") {
+      return canAssign ? "32px 1.2fr 1fr 1fr 0.6fr 0.8fr 0.8fr 1.3fr 120px" : "1.2fr 1fr 1fr 0.6fr 0.8fr 0.8fr 1.3fr";
+    }
+    return canAssign ? "32px 1.2fr 1fr 0.7fr 0.8fr 0.8fr 1.3fr 120px" : "1.2fr 1fr 0.7fr 0.8fr 0.8fr 1.3fr";
+  }
+
   function renderTableHeader(type: string): ReactElement {
+    const gridTemplateColumns = getDetailGridTemplate(type);
+    const checkboxCol = canAssign ? (
+      <span style={{ display: "flex", justifyContent: "center" }}>
+        <input
+          type="checkbox"
+          checked={detail ? detail.items.length > 0 && detail.items.every((i) => selectedEntryIds.has(i.id)) : false}
+          onChange={toggleAllEntries}
+        />
+      </span>
+    ) : null;
+
+    const actionsCol = canAssign ? <span>{t("colActions")}</span> : null;
+
     if (type === "chests") {
       return (
-        <header>
-          <span>{t("colPlayer")}</span>
-          <span>{t("colChestName")}</span>
-          <span>{t("colSource")}</span>
-          <span>{t("colLevel")}</span>
-          <span>{t("colDate")}</span>
-          <span>{t("colStatus")}</span>
+        <header style={{ gridTemplateColumns }}>
+          {checkboxCol}
+          <SortableColumnHeader
+            label={t("colPlayer")}
+            sortKey="player_name"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
+          <SortableColumnHeader
+            label={t("colChestName")}
+            sortKey="chest_name"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
+          <SortableColumnHeader
+            label={t("colSource")}
+            sortKey="source"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
+          <SortableColumnHeader
+            label={t("colLevel")}
+            sortKey="level"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
+          <SortableColumnHeader
+            label={t("colDate")}
+            sortKey="opened_at"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
+          <SortableColumnHeader
+            label={t("colStatus")}
+            sortKey="item_status"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
           <span>{t("colMatchedAccount")}</span>
+          {actionsCol}
         </header>
       );
     }
     if (type === "members") {
       return (
-        <header>
-          <span>{t("colPlayer")}</span>
-          <span>{t("colCoordinates")}</span>
-          <span>{t("colScore")}</span>
-          <span>{t("colDate")}</span>
-          <span>{t("colStatus")}</span>
+        <header style={{ gridTemplateColumns }}>
+          {checkboxCol}
+          <SortableColumnHeader
+            label={t("colPlayer")}
+            sortKey="player_name"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
+          <SortableColumnHeader
+            label={t("colCoordinates")}
+            sortKey="coordinates"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
+          <SortableColumnHeader
+            label={t("colScore")}
+            sortKey="score"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
+          <SortableColumnHeader
+            label={t("colDate")}
+            sortKey="captured_at"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
+          <SortableColumnHeader
+            label={t("colStatus")}
+            sortKey="item_status"
+            activeSortKey={sortKey}
+            direction={sortDirection}
+            onToggle={toggleSort}
+            variant="triangle"
+          />
           <span>{t("colMatchedAccount")}</span>
+          {actionsCol}
         </header>
       );
     }
     return (
-      <header>
-        <span>{t("colPlayer")}</span>
-        <span>{t("colEventName")}</span>
-        <span>{t("colPoints")}</span>
-        <span>{t("colDate")}</span>
-        <span>{t("colStatus")}</span>
+      <header style={{ gridTemplateColumns }}>
+        {checkboxCol}
+        <SortableColumnHeader
+          label={t("colPlayer")}
+          sortKey="player_name"
+          activeSortKey={sortKey}
+          direction={sortDirection}
+          onToggle={toggleSort}
+          variant="triangle"
+        />
+        <SortableColumnHeader
+          label={t("colEventName")}
+          sortKey="event_name"
+          activeSortKey={sortKey}
+          direction={sortDirection}
+          onToggle={toggleSort}
+          variant="triangle"
+        />
+        <SortableColumnHeader
+          label={t("colPoints")}
+          sortKey="event_points"
+          activeSortKey={sortKey}
+          direction={sortDirection}
+          onToggle={toggleSort}
+          variant="triangle"
+        />
+        <SortableColumnHeader
+          label={t("colDate")}
+          sortKey="captured_at"
+          activeSortKey={sortKey}
+          direction={sortDirection}
+          onToggle={toggleSort}
+          variant="triangle"
+        />
+        <SortableColumnHeader
+          label={t("colStatus")}
+          sortKey="item_status"
+          activeSortKey={sortKey}
+          direction={sortDirection}
+          onToggle={toggleSort}
+          variant="triangle"
+        />
         <span>{t("colMatchedAccount")}</span>
+        {actionsCol}
       </header>
     );
   }
@@ -784,26 +1247,136 @@ function DataContent(): ReactElement {
     );
   }
 
+  function renderValidationIcon(
+    name: string | undefined | null,
+    entityType: "player" | "chest" | "source",
+  ): ReactElement | null {
+    if (!canAssign || !name) return null;
+    return (
+      <button
+        type="button"
+        className="btn-icon-inline"
+        title={t("addToKnownNames")}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleAddToKnownNames(name, entityType);
+        }}
+      >
+        ✚
+      </button>
+    );
+  }
+
+  function renderCorrectionButton(ocrText: string, category: "player" | "chest" | "source"): ReactElement | null {
+    if (!canAssign || !ocrText.trim()) return null;
+    return (
+      <button
+        type="button"
+        className="btn-icon-inline"
+        title={t("createCorrection")}
+        onClick={(e) => {
+          e.stopPropagation();
+          setCorrectionEntry({ ocrText, category });
+        }}
+      >
+        ↻
+      </button>
+    );
+  }
+
+  function renderRowActions(entry: StagedEntry): ReactElement | null {
+    if (!canAssign) return null;
+    return (
+      <span
+        className="row-actions"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        role="group"
+      >
+        <button type="button" className="btn-icon" title={t("editEntry")} onClick={() => setEditingEntry(entry)}>
+          ✎
+        </button>
+        <button
+          type="button"
+          className="btn-icon success"
+          title={t("approveEntry")}
+          onClick={() => handleReviewEntry(entry.id, "approve")}
+        >
+          ✓
+        </button>
+        <button
+          type="button"
+          className="btn-icon warning"
+          title={t("rejectEntry")}
+          onClick={() => handleReviewEntry(entry.id, "reject")}
+        >
+          ✗
+        </button>
+        <button
+          type="button"
+          className="btn-icon danger"
+          title={t("deleteEntry")}
+          onClick={() => handleDeleteEntry(entry.id)}
+        >
+          🗑
+        </button>
+      </span>
+    );
+  }
+
   function renderRow(entry: StagedEntry, type: string): ReactElement {
+    const checkboxCell = canAssign ? (
+      <span
+        style={{ display: "flex", justifyContent: "center" }}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        <input
+          type="checkbox"
+          checked={selectedEntryIds.has(entry.id)}
+          onChange={() => toggleEntrySelection(entry.id)}
+        />
+      </span>
+    ) : null;
+
     if (type === "chests") {
       return (
         <>
-          <span>{entry.player_name}</span>
-          <span>{entry.chest_name ?? "—"}</span>
-          <span>{entry.source ?? "—"}</span>
+          {checkboxCell}
+          <span className="cell-with-actions">
+            {entry.player_name}
+            {renderValidationIcon(entry.player_name, "player")}
+            {renderCorrectionButton(entry.player_name, "player")}
+          </span>
+          <span className="cell-with-actions">
+            {entry.chest_name ?? "—"}
+            {renderValidationIcon(entry.chest_name, "chest")}
+            {renderCorrectionButton(entry.chest_name ?? "", "chest")}
+          </span>
+          <span className="cell-with-actions">
+            {entry.source ?? "—"}
+            {renderValidationIcon(entry.source, "source")}
+            {renderCorrectionButton(entry.source ?? "", "source")}
+          </span>
           <span>{entry.level ?? "—"}</span>
           <span>{entry.opened_at ? formatBerlinDate(entry.opened_at) : "—"}</span>
           <span>
             <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
           </span>
           {renderMatchCell(entry)}
+          {renderRowActions(entry)}
         </>
       );
     }
     if (type === "members") {
       return (
         <>
-          <span>{entry.player_name}</span>
+          {checkboxCell}
+          <span className="cell-with-actions">
+            {entry.player_name}
+            {renderValidationIcon(entry.player_name, "player")}
+            {renderCorrectionButton(entry.player_name, "player")}
+          </span>
           <span>{entry.coordinates ?? "—"}</span>
           <span>{entry.score != null ? Number(entry.score).toLocaleString() : "—"}</span>
           <span>{entry.captured_at ? formatBerlinDate(entry.captured_at) : "—"}</span>
@@ -811,19 +1384,29 @@ function DataContent(): ReactElement {
             <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
           </span>
           {renderMatchCell(entry)}
+          {renderRowActions(entry)}
         </>
       );
     }
     return (
       <>
-        <span>{entry.player_name}</span>
-        <span>{entry.event_name ?? "—"}</span>
+        {checkboxCell}
+        <span className="cell-with-actions">
+          {entry.player_name}
+          {renderValidationIcon(entry.player_name, "player")}
+          {renderCorrectionButton(entry.player_name, "player")}
+        </span>
+        <span className="cell-with-actions">
+          {entry.event_name ?? "—"}
+          {entry.event_name && renderCorrectionButton(entry.event_name, "source")}
+        </span>
         <span>{entry.event_points != null ? Number(entry.event_points).toLocaleString() : "—"}</span>
         <span>{entry.captured_at ? formatBerlinDate(entry.captured_at) : "—"}</span>
         <span>
           <span className={statusBadgeClass(entry.item_status)}>{t(`itemStatus_${entry.item_status}`)}</span>
         </span>
         {renderMatchCell(entry)}
+        {renderRowActions(entry)}
       </>
     );
   }
@@ -1007,14 +1590,14 @@ function DataContent(): ReactElement {
 
   /* ── Render: Detail loading ── */
 
-  if (selectedId && !detail) {
+  if (selectedId && (!detail || roleLoading)) {
     return (
       <div>
         <button type="button" className="button" onClick={handleBack} style={{ marginBottom: 16 }}>
           ← {t("backToList")}
         </button>
         <DataState
-          isLoading={detailLoading}
+          isLoading={detailLoading || roleLoading}
           error={detailError}
           isEmpty={false}
           loadingMessage={t("loading")}
@@ -1048,7 +1631,7 @@ function DataContent(): ReactElement {
               <div className="card-subtitle">
                 {t("submittedBy", { name: sub.profiles?.display_name ?? "—" })}
                 {" · "}
-                {formatLocalDateTime(sub.created_at)}
+                {formatBerlinDateTime(sub.created_at)}
               </div>
             </div>
           </div>
@@ -1164,6 +1747,11 @@ function DataContent(): ReactElement {
                   </button>
                 </>
               )}
+              {isAdmin && reviewable && (
+                <button type="button" className="button" disabled={actionLoading} onClick={handleRematch}>
+                  {t("rematch")}
+                </button>
+              )}
               {slowAction && (
                 <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontStyle: "italic" }}>
                   {t("serverBusy")}
@@ -1200,6 +1788,191 @@ function DataContent(): ReactElement {
           ))}
         </div>
 
+        {/* Detail filter bar */}
+        <div className="filter-bar">
+          <label>
+            <span className="filter-bar-spacer">{t("searchEntries")}</span>
+            <input
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder={t("searchEntries")}
+            />
+          </label>
+          {detail.filterOptions?.player_name && detail.filterOptions.player_name.length > 1 && (
+            <label>
+              <span className="filter-bar-spacer">{t("colPlayer")}</span>
+              <select
+                value={filterPlayerName}
+                onChange={(e) => {
+                  setFilterPlayerName(e.target.value);
+                  detailPagination.setPage(1);
+                }}
+              >
+                <option value="">{t("allPlayers")}</option>
+                {detail.filterOptions.player_name.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {detail.clanGameAccounts && detail.clanGameAccounts.length > 0 && (
+            <label>
+              <span className="filter-bar-spacer">{t("colMatchedAccount")}</span>
+              <select
+                value={filterMatchedPlayer}
+                onChange={(e) => {
+                  setFilterMatchedPlayer(e.target.value);
+                  detailPagination.setPage(1);
+                }}
+              >
+                <option value="">{t("allMatchedPlayers")}</option>
+                {detail.clanGameAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.game_username}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {sub.submission_type === "chests" &&
+            detail.filterOptions?.chest_name &&
+            detail.filterOptions.chest_name.length > 1 && (
+              <label>
+                <span className="filter-bar-spacer">{t("colChestName")}</span>
+                <select
+                  value={filterChestName}
+                  onChange={(e) => {
+                    setFilterChestName(e.target.value);
+                    detailPagination.setPage(1);
+                  }}
+                >
+                  <option value="">{t("allChestNames")}</option>
+                  {detail.filterOptions.chest_name.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          {sub.submission_type === "chests" &&
+            detail.filterOptions?.source &&
+            detail.filterOptions.source.length > 1 && (
+              <label>
+                <span className="filter-bar-spacer">{t("colSource")}</span>
+                <select
+                  value={filterSource}
+                  onChange={(e) => {
+                    setFilterSource(e.target.value);
+                    detailPagination.setPage(1);
+                  }}
+                >
+                  <option value="">{t("allSources")}</option>
+                  {detail.filterOptions.source.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          {sub.submission_type === "events" &&
+            detail.filterOptions?.event_name &&
+            detail.filterOptions.event_name.length > 1 && (
+              <label>
+                <span className="filter-bar-spacer">{t("colEventName")}</span>
+                <select
+                  value={filterEventName}
+                  onChange={(e) => {
+                    setFilterEventName(e.target.value);
+                    detailPagination.setPage(1);
+                  }}
+                >
+                  <option value="">{t("allEventNames")}</option>
+                  {detail.filterOptions.event_name.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={unmatchedOnly}
+              onChange={(e) => {
+                setUnmatchedOnly(e.target.checked);
+                detailPagination.setPage(1);
+              }}
+            />
+            {t("unmatchedOnly")}
+          </label>
+        </div>
+
+        {/* Multi-select action bar */}
+        {canAssign && selectedEntryIds.size > 0 && (
+          <div
+            className="bulk-action-bar"
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              padding: "8px 12px",
+              background: "var(--color-surface-elevated)",
+              borderRadius: 6,
+              border: "1px solid var(--color-gold-a20)",
+              marginBottom: 12,
+              fontSize: "0.82rem",
+            }}
+          >
+            <span style={{ fontWeight: 500 }}>{t("selectedCount", { count: String(selectedEntryIds.size) })}</span>
+            <button
+              type="button"
+              className="button primary compact"
+              disabled={actionLoading}
+              onClick={() => handleBulkAction("approve")}
+            >
+              {t("approveSelected")}
+            </button>
+            <button
+              type="button"
+              className="button compact"
+              disabled={actionLoading}
+              onClick={() => handleBulkAction("reject")}
+            >
+              {t("rejectSelected")}
+            </button>
+            <button
+              type="button"
+              className="button compact"
+              disabled={actionLoading}
+              onClick={() => handleBulkAction("rematch")}
+            >
+              {t("rematchSelected")}
+            </button>
+            <button
+              type="button"
+              className="button danger compact"
+              disabled={actionLoading}
+              onClick={() => handleBulkAction("delete")}
+            >
+              {t("deleteSelected")}
+            </button>
+            <button
+              type="button"
+              className="button compact"
+              style={{ marginLeft: "auto" }}
+              onClick={() => setSelectedEntryIds(new Set())}
+            >
+              {t("clearSelection")}
+            </button>
+          </div>
+        )}
+
         <PaginationBar pagination={detailPagination} pageSizeOptions={[50, 100, 250, 500]} idPrefix="detail" />
 
         <DataState
@@ -1212,7 +1985,11 @@ function DataContent(): ReactElement {
           <section className="table submissions-detail">
             {renderTableHeader(sub.submission_type)}
             {detail.items.map((entry) => (
-              <div key={entry.id} className="row">
+              <div
+                key={entry.id}
+                className="row"
+                style={{ gridTemplateColumns: getDetailGridTemplate(sub.submission_type) }}
+              >
                 {renderRow(entry, sub.submission_type)}
               </div>
             ))}
@@ -1224,6 +2001,40 @@ function DataContent(): ReactElement {
             compact
           />
         </DataState>
+
+        {/* Edit Modal */}
+        {editingEntry && (
+          <EntryEditModal
+            entry={editingEntry}
+            submissionType={sub.submission_type}
+            submissionId={selectedId}
+            onClose={() => setEditingEntry(null)}
+            onSaved={() => {
+              setEditingEntry(null);
+              void fetchDetail();
+              setRetryCount((c) => c + 1);
+            }}
+          />
+        )}
+
+        {/* Correction Modal */}
+        {correctionEntry && clanContext?.clanId && (
+          <CorrectionModal
+            ocrText={correctionEntry.ocrText}
+            defaultCategory={correctionEntry.category}
+            clanId={clanContext.clanId}
+            accessToken={accessToken}
+            clanGameAccounts={detail.clanGameAccounts ?? []}
+            knownChestNames={knownNames.chest}
+            knownSources={knownNames.source}
+            onClose={() => setCorrectionEntry(null)}
+            onSaved={() => {
+              setCorrectionEntry(null);
+              pushToast(t("correctionSaved"));
+              void fetchDetail();
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -1334,7 +2145,7 @@ function DataContent(): ReactElement {
       {isAdmin && renderImportFeedback()}
 
       <DataState
-        isLoading={isLoading}
+        isLoading={isLoading || roleLoading}
         error={loadError}
         isEmpty={submissions.length === 0}
         loadingMessage={t("loading")}
@@ -1384,7 +2195,7 @@ function DataContent(): ReactElement {
                   <span>{sub.profiles?.display_name ?? "—"}</span>
                   <span>{sub.reference_date ? formatBerlinDate(sub.reference_date + "T00:00:00") : "—"}</span>
                   <span>{formatEventDateRange(sub.event_starts_at, sub.event_ends_at)}</span>
-                  <span>{formatLocalDateTime(sub.created_at)}</span>
+                  <span>{formatBerlinDateTime(sub.created_at)}</span>
                   <span
                     role="group"
                     style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}

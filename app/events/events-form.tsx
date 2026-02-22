@@ -12,8 +12,7 @@ export interface EventsFormProps {
 
 /**
  * Container component for the event creation/editing form section.
- * Renders the Create Event button, Manage Templates toggle, and the EventForm
- * with all state and handlers from the useEvents hook.
+ * Renders the Create Event button, Manage Event Types toggle, and the EventForm.
  */
 export function EventsForm({ eventsState }: EventsFormProps): JSX.Element {
   const {
@@ -33,8 +32,8 @@ export function EventsForm({ eventsState }: EventsFormProps): JSX.Element {
     recurrenceType,
     recurrenceEndDate,
     recurrenceOngoing,
-    selectedTemplate,
     bannerUrl,
+    eventTypeId,
     isBannerUploading,
     bannerFileRef,
     setTitle,
@@ -51,15 +50,13 @@ export function EventsForm({ eventsState }: EventsFormProps): JSX.Element {
     setRecurrenceOngoing,
     setBannerUrl,
     handleBannerUpload,
-    applyTemplate,
+    applyEventType,
     handleSubmit,
     resetForm,
-    handleSaveFormAsTemplate,
     requestDeleteEvent,
     isSaving,
-    isSavingTemplate,
     gameAccounts,
-    templateOptions,
+    eventTypeOptions,
     currentUserId,
   } = eventsState;
 
@@ -75,9 +72,9 @@ export function EventsForm({ eventsState }: EventsFormProps): JSX.Element {
           <button
             className="button text-[0.82rem]"
             type="button"
-            onClick={() => eventsState.setIsTemplatesOpen((prev) => !prev)}
+            onClick={() => eventsState.setIsEventTypesOpen((prev) => !prev)}
           >
-            {eventsState.t("manageTemplates")} {eventsState.isTemplatesOpen ? "▲" : "▼"}
+            {eventsState.t("manageEventTypes")} {eventsState.isEventTypesOpen ? "▲" : "▼"}
           </button>
         </div>
       )}
@@ -99,11 +96,13 @@ export function EventsForm({ eventsState }: EventsFormProps): JSX.Element {
           recurrenceType={recurrenceType}
           recurrenceEndDate={recurrenceEndDate}
           recurrenceOngoing={recurrenceOngoing}
-          selectedTemplate={selectedTemplate}
           bannerUrl={bannerUrl}
+          eventTypeId={eventTypeId}
+          eventTypeOptions={eventTypeOptions}
           isBannerUploading={isBannerUploading}
           bannerFileRef={bannerFileRef}
           onBannerUrlChange={setBannerUrl}
+          onEventTypeChange={applyEventType}
           onBannerUpload={handleBannerUpload}
           onTitleChange={setTitle}
           onDescriptionChange={setDescription}
@@ -117,19 +116,15 @@ export function EventsForm({ eventsState }: EventsFormProps): JSX.Element {
           onRecurrenceTypeChange={setRecurrenceType}
           onRecurrenceEndDateChange={setRecurrenceEndDate}
           onRecurrenceOngoingChange={setRecurrenceOngoing}
-          onTemplateSelect={applyTemplate}
           onSubmit={handleSubmit}
           onCancel={resetForm}
-          onSaveAsTemplate={handleSaveFormAsTemplate}
           onDelete={() => {
             requestDeleteEvent(editingId);
             resetForm();
           }}
           isSaving={isSaving}
-          isSavingTemplate={isSavingTemplate}
           canManage={canManage}
           gameAccounts={gameAccounts}
-          templateOptions={templateOptions}
           locale={eventsState.locale}
           t={eventsState.t}
           supabase={eventsState.supabase}

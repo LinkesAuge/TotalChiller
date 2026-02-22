@@ -6,8 +6,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifySupabaseError, getErrorMessageKey } from "@/lib/supabase/error-utils";
 import { createLinkedForumPost } from "@/lib/forum-thread-sync";
 import { useBannerUpload } from "@/lib/hooks/use-banner-upload";
+import type { ClanEventType } from "@/lib/types/domain";
 import { toLocalDateTimeString } from "./events-utils";
-import type { EventRow, RecurrenceType, TemplateRow } from "./events-types";
+import type { EventRow, RecurrenceType } from "./events-types";
 import { EVENT_SCHEMA } from "./events-types";
 
 export interface UseEventsFormParams {
@@ -15,11 +16,10 @@ export interface UseEventsFormParams {
   readonly clanId: string | undefined;
   readonly currentUserId: string;
   readonly events: readonly EventRow[];
-  readonly templates: readonly TemplateRow[];
+  readonly eventTypes: readonly ClanEventType[];
   readonly pushToast: (msg: string) => void;
   readonly t: (key: string, values?: Record<string, string>) => string;
   readonly reloadEvents: () => Promise<void>;
-  readonly reloadTemplates: () => Promise<void>;
   readonly setEvents: React.Dispatch<React.SetStateAction<readonly EventRow[]>>;
 }
 
@@ -39,12 +39,12 @@ export interface UseEventsFormResult {
   readonly recurrenceType: RecurrenceType;
   readonly recurrenceEndDate: string;
   readonly recurrenceOngoing: boolean;
-  readonly selectedTemplate: string;
   readonly bannerUrl: string;
+  readonly eventTypeId: string;
   readonly isBannerUploading: boolean;
   readonly bannerFileRef: React.RefObject<HTMLInputElement | null>;
   readonly eventFormRef: React.RefObject<HTMLElement | null>;
-  readonly templateOptions: readonly { value: string; label: string }[];
+  readonly eventTypeOptions: readonly { value: string; label: string }[];
   readonly deleteEventId: string;
   readonly setTitle: React.Dispatch<React.SetStateAction<string>>;
   readonly setDescription: React.Dispatch<React.SetStateAction<string>>;
@@ -59,10 +59,10 @@ export interface UseEventsFormResult {
   readonly setRecurrenceEndDate: React.Dispatch<React.SetStateAction<string>>;
   readonly setRecurrenceOngoing: React.Dispatch<React.SetStateAction<boolean>>;
   readonly setBannerUrl: React.Dispatch<React.SetStateAction<string>>;
-  readonly setSelectedTemplate: React.Dispatch<React.SetStateAction<string>>;
+  readonly setEventTypeId: React.Dispatch<React.SetStateAction<string>>;
   readonly setDeleteEventId: React.Dispatch<React.SetStateAction<string>>;
   readonly handleBannerUpload: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  readonly applyTemplate: (templateValue: string) => void;
+  readonly applyEventType: (typeId: string) => void;
   readonly resetForm: () => void;
   readonly handleOpenCreate: () => void;
   readonly handleEditEventById: (eventId: string) => void;
@@ -70,12 +70,10 @@ export interface UseEventsFormResult {
   readonly requestDeleteEvent: (eventId: string) => void;
   readonly confirmDeleteEvent: () => Promise<void>;
   readonly handleTogglePin: (eventId: string, isPinned: boolean) => Promise<void>;
-  readonly handleSaveFormAsTemplate: () => Promise<void>;
 }
 
 export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult {
-  const { supabase, clanId, currentUserId, events, templates, pushToast, t, reloadEvents, reloadTemplates, setEvents } =
-    params;
+  const { supabase, clanId, currentUserId, events, eventTypes, pushToast, t, reloadEvents, setEvents } = params;
 
   const eventFormRef = useRef<HTMLElement>(null);
   const bannerFileRef = useRef<HTMLInputElement>(null);
@@ -83,7 +81,6 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<string>("");
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("none");
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [location, setLocation] = useState<string>("");
@@ -97,6 +94,7 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
   const [recurrenceOngoing, setRecurrenceOngoing] = useState<boolean>(false);
   const [endsAt, setEndsAt] = useState<string>("");
   const [bannerUrl, setBannerUrl] = useState<string>("");
+  const [eventTypeId, setEventTypeId] = useState<string>("");
   const [deleteEventId, setDeleteEventId] = useState<string>("");
 
   const showError = useCallback(
@@ -107,8 +105,10 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
     [pushToast, t],
   );
 
-  const templateOptions = templates.map((tpl) => ({ value: tpl.id, label: tpl.title }));
-  const fullTemplateOptions = [{ value: "none", label: t("templateNone") }, ...templateOptions];
+  const eventTypeOptions: readonly { value: string; label: string }[] = [
+    { value: "", label: t("eventTypeNone") },
+    ...eventTypes.filter((et) => et.is_active).map((et) => ({ value: et.id, label: et.name })),
+  ];
 
   const bannerErrorHandler = useCallback((msg: string) => pushToast(`${t("saveFailed")}: ${msg}`), [pushToast, t]);
   const { handleBannerUpload, isBannerUploading } = useBannerUpload({
@@ -119,32 +119,17 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
     filePrefix: "event_banner",
   });
 
-  const applyTemplate = useCallback(
-    (templateValue: string): void => {
-      setSelectedTemplate(templateValue);
-      if (templateValue === "none") return;
-      const tpl = templates.find((item) => item.id === templateValue);
-      if (!tpl) return;
-      setTitle(tpl.title);
-      setDescription(tpl.description);
-      setLocation(tpl.location ?? "");
-      setOrganizer(tpl.organizer ?? "");
-      const now = new Date();
-      now.setMinutes(0, 0, 0);
-      now.setHours(now.getHours() + 1);
-      setStartsAt(toLocalDateTimeString(now));
-      setIsOpenEnded(tpl.is_open_ended ?? tpl.duration_hours <= 0);
-      setEndsAt("");
-      const totalMin = Math.round(tpl.duration_hours * 60);
-      setDurationH(String(Math.floor(totalMin / 60)));
-      setDurationM(String(totalMin % 60));
-      setRecurrenceType(tpl.recurrence_type ?? "none");
-      const hasEnd = Boolean(tpl.recurrence_end_date);
-      setRecurrenceEndDate(tpl.recurrence_end_date ?? "");
-      setRecurrenceOngoing(tpl.recurrence_type !== "none" && !hasEnd);
-      setBannerUrl(tpl.banner_url ?? "");
+  const applyEventType = useCallback(
+    (typeId: string): void => {
+      setEventTypeId(typeId);
+      if (!typeId) return;
+      const eventType = eventTypes.find((et) => et.id === typeId);
+      if (!eventType) return;
+      setTitle(eventType.name);
+      setBannerUrl(eventType.banner_url ?? "");
+      setDescription(eventType.description ?? "");
     },
-    [templates],
+    [eventTypes],
   );
 
   const resetForm = useCallback((): void => {
@@ -161,8 +146,8 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
     setRecurrenceEndDate("");
     setRecurrenceOngoing(false);
     setBannerUrl("");
+    setEventTypeId("");
     setEditingId("");
-    setSelectedTemplate("none");
     setIsFormOpen(false);
   }, []);
 
@@ -207,7 +192,7 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
       setRecurrenceEndDate(source.recurrence_end_date ?? "");
       setRecurrenceOngoing(source.recurrence_type !== "none" && !hasEndDate);
       setBannerUrl(source.banner_url ?? "");
-      setSelectedTemplate("none");
+      setEventTypeId(source.event_type_id ?? "");
       setIsFormOpen(true);
       requestAnimationFrame(() => {
         eventFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -267,6 +252,7 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
         recurrence_type: recurrenceType,
         recurrence_end_date: recurrenceType !== "none" ? effectiveEndDate : null,
         banner_url: bannerUrl || null,
+        event_type_id: eventTypeId || null,
       };
       setIsSaving(true);
       const isNewEvent = !editingId;
@@ -331,6 +317,7 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
       recurrenceEndDate,
       organizer,
       bannerUrl,
+      eventTypeId,
       editingId,
       pushToast,
       t,
@@ -374,54 +361,6 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
     [supabase, pushToast, t, reloadEvents],
   );
 
-  const handleSaveFormAsTemplate = useCallback(async (): Promise<void> => {
-    if (!clanId) return;
-    if (!title.trim()) {
-      pushToast(t("checkFormValues"));
-      return;
-    }
-    const totalMin = (parseInt(durationH, 10) || 0) * 60 + (parseInt(durationM, 10) || 0);
-    const hours = isOpenEnded ? 0 : Math.max(0, totalMin / 60);
-    const effectiveRecurrenceEnd = recurrenceOngoing ? null : recurrenceEndDate || null;
-    const { error } = await supabase.from("event_templates").insert({
-      clan_id: clanId,
-      name: title.trim(),
-      title: title.trim(),
-      description: description.trim(),
-      location: location.trim() || null,
-      duration_hours: hours,
-      is_open_ended: isOpenEnded,
-      organizer: organizer.trim() || null,
-      recurrence_type: recurrenceType,
-      recurrence_end_date: recurrenceType !== "none" ? effectiveRecurrenceEnd : null,
-      banner_url: bannerUrl || null,
-    });
-    if (error) {
-      showError(error, "templateSaveFailed");
-      return;
-    }
-    pushToast(t("templateSaved"));
-    await reloadTemplates();
-  }, [
-    clanId,
-    title,
-    description,
-    location,
-    durationH,
-    durationM,
-    isOpenEnded,
-    organizer,
-    recurrenceType,
-    recurrenceEndDate,
-    recurrenceOngoing,
-    bannerUrl,
-    pushToast,
-    t,
-    supabase,
-    showError,
-    reloadTemplates,
-  ]);
-
   return {
     isFormOpen,
     isSaving,
@@ -438,12 +377,12 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
     recurrenceType,
     recurrenceEndDate,
     recurrenceOngoing,
-    selectedTemplate,
     bannerUrl,
+    eventTypeId,
     isBannerUploading,
     bannerFileRef,
     eventFormRef,
-    templateOptions: fullTemplateOptions,
+    eventTypeOptions,
     deleteEventId,
     setTitle,
     setDescription,
@@ -458,10 +397,10 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
     setRecurrenceEndDate,
     setRecurrenceOngoing,
     setBannerUrl,
-    setSelectedTemplate,
+    setEventTypeId,
     setDeleteEventId,
     handleBannerUpload,
-    applyTemplate,
+    applyEventType,
     resetForm,
     handleOpenCreate,
     handleEditEventById,
@@ -469,6 +408,5 @@ export function useEventsForm(params: UseEventsFormParams): UseEventsFormResult 
     requestDeleteEvent,
     confirmDeleteEvent,
     handleTogglePin,
-    handleSaveFormAsTemplate,
   };
 }

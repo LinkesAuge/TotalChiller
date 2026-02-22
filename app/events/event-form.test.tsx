@@ -76,7 +76,6 @@ function makeProps(overrides: any = {}): any {
     recurrenceType: "none" as const,
     recurrenceEndDate: "",
     recurrenceOngoing: false,
-    selectedTemplate: "",
     bannerUrl: "",
     isBannerUploading: false,
     bannerFileRef: createRef(),
@@ -94,16 +93,15 @@ function makeProps(overrides: any = {}): any {
     onRecurrenceTypeChange: vi.fn(),
     onRecurrenceEndDateChange: vi.fn(),
     onRecurrenceOngoingChange: vi.fn(),
-    onTemplateSelect: vi.fn(),
     onSubmit: vi.fn((e: any) => e.preventDefault()),
     onCancel: vi.fn(),
-    onSaveAsTemplate: vi.fn(),
     onDelete: vi.fn(),
     isSaving: false,
-    isSavingTemplate: false,
     canManage: true,
     gameAccounts: [],
-    templateOptions: [{ value: "", label: "No template" }],
+    eventTypeId: "",
+    eventTypeOptions: [],
+    onEventTypeChange: vi.fn(),
     locale: "de",
     t: vi.fn((key: string) => key),
     supabase: {} as any,
@@ -145,35 +143,6 @@ describe("EventForm", () => {
   it("shows edit heading when editingId is set", () => {
     render(<EventForm {...makeProps({ editingId: "evt-1" })} />);
     expect(screen.getByText("editEvent")).toBeInTheDocument();
-  });
-
-  // ── Template selector ──
-
-  it("shows template selector when creating (no editingId)", () => {
-    render(<EventForm {...makeProps()} />);
-    expect(screen.getByTestId("select-eventTemplate")).toBeInTheDocument();
-  });
-
-  it("hides template selector when editing", () => {
-    render(<EventForm {...makeProps({ editingId: "evt-1" })} />);
-    expect(screen.queryByTestId("select-eventTemplate")).not.toBeInTheDocument();
-  });
-
-  it("calls onTemplateSelect when template changes", () => {
-    const onTemplateSelect = vi.fn();
-    render(
-      <EventForm
-        {...makeProps({
-          onTemplateSelect,
-          templateOptions: [
-            { value: "", label: "None" },
-            { value: "t1", label: "Template 1" },
-          ],
-        })}
-      />,
-    );
-    fireEvent.change(screen.getByTestId("select-eventTemplate"), { target: { value: "t1" } });
-    expect(onTemplateSelect).toHaveBeenCalledWith("t1");
   });
 
   // ── Title ──
@@ -405,25 +374,6 @@ describe("EventForm", () => {
     render(<EventForm {...makeProps({ onCancel })} />);
     fireEvent.click(screen.getByText("cancel"));
     expect(onCancel).toHaveBeenCalledOnce();
-  });
-
-  // ── Save as template ──
-
-  it("shows save as template button", () => {
-    render(<EventForm {...makeProps()} />);
-    expect(screen.getByText("saveAsTemplate")).toBeInTheDocument();
-  });
-
-  it("calls onSaveAsTemplate", () => {
-    const onSaveAsTemplate = vi.fn();
-    render(<EventForm {...makeProps({ onSaveAsTemplate })} />);
-    fireEvent.click(screen.getByText("saveAsTemplate"));
-    expect(onSaveAsTemplate).toHaveBeenCalled();
-  });
-
-  it("disables save as template when isSavingTemplate", () => {
-    render(<EventForm {...makeProps({ isSavingTemplate: true })} />);
-    expect(screen.getByText("saving")).toBeInTheDocument();
   });
 
   // ── Delete ──

@@ -226,6 +226,7 @@ describe("expandRecurringEvents", () => {
     banner_url: null,
     is_pinned: false,
     forum_post_id: null,
+    event_type_id: null,
   };
 
   it("passes non-recurring events through as-is", () => {

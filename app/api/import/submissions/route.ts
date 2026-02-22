@@ -51,24 +51,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const userIds = [...new Set((submissions ?? []).map((s) => s.submitted_by))];
-    let profileMap: Record<string, { id: string; display_name: string | null }> = {};
-    if (userIds.length > 0) {
-      const { data: profiles } = await supabase.from("profiles").select("id, display_name").in("id", userIds);
-      if (profiles) {
-        for (const p of profiles) {
-          profileMap[p.id] = p;
-        }
+    const linkedEventIds = [...new Set((submissions ?? []).map((s) => s.linked_event_id).filter(Boolean))] as string[];
+
+    const [profilesResult, eventsResult] = await Promise.all([
+      userIds.length > 0
+        ? supabase.from("profiles").select("id, display_name").in("id", userIds)
+        : Promise.resolve({ data: null }),
+      linkedEventIds.length > 0
+        ? supabase.from("events").select("id, starts_at, ends_at").in("id", linkedEventIds)
+        : Promise.resolve({ data: null }),
+    ]);
+
+    const profileMap: Record<string, { id: string; display_name: string | null }> = {};
+    if (profilesResult.data) {
+      for (const p of profilesResult.data) {
+        profileMap[p.id] = p;
       }
     }
 
-    const linkedEventIds = [...new Set((submissions ?? []).map((s) => s.linked_event_id).filter(Boolean))] as string[];
-    let eventDateMap: Record<string, { starts_at: string; ends_at: string }> = {};
-    if (linkedEventIds.length > 0) {
-      const { data: events } = await supabase.from("events").select("id, starts_at, ends_at").in("id", linkedEventIds);
-      if (events) {
-        for (const e of events) {
-          eventDateMap[e.id] = { starts_at: e.starts_at, ends_at: e.ends_at };
-        }
+    const eventDateMap: Record<string, { starts_at: string; ends_at: string }> = {};
+    if (eventsResult.data) {
+      for (const e of eventsResult.data) {
+        eventDateMap[e.id] = { starts_at: e.starts_at, ends_at: e.ends_at };
       }
     }
 

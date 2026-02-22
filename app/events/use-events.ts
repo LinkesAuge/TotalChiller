@@ -9,17 +9,10 @@ import { useUserRole } from "@/lib/hooks/use-user-role";
 import { useAuth } from "@/app/hooks/use-auth";
 import useClanContext from "../hooks/use-clan-context";
 import { useToast } from "../components/toast-provider";
+import type { ClanEventType } from "@/lib/types/domain";
 import { useEventsData } from "./use-events-data";
 import { useEventsForm } from "./use-events-form";
-import { useEventsTemplates } from "./use-events-templates";
-import type {
-  CalendarDay,
-  DisplayEvent,
-  EventRow,
-  GameAccountOption,
-  RecurrenceType,
-  TemplateRow,
-} from "./events-types";
+import type { CalendarDay, DisplayEvent, EventRow, GameAccountOption, RecurrenceType } from "./events-types";
 import { expandRecurringEvents, getDateRangeKeys, parseDateKey } from "./events-utils";
 import { toDateString } from "@/lib/dashboard-utils";
 import { TIMEZONE } from "@/lib/timezone";
@@ -33,14 +26,15 @@ export interface UseEventsResult {
   readonly events: readonly EventRow[];
   readonly setEvents: React.Dispatch<React.SetStateAction<readonly EventRow[]>>;
   readonly isLoading: boolean;
-  readonly templates: readonly TemplateRow[];
+  readonly eventTypes: readonly ClanEventType[];
   readonly gameAccounts: readonly GameAccountOption[];
   readonly reloadEvents: () => Promise<void>;
-  readonly reloadTemplates: () => Promise<void>;
+  readonly reloadEventTypes: () => Promise<void>;
 
   /* ── Permissions & context ── */
   readonly canManage: boolean;
   readonly currentUserId: string;
+  readonly clanId: string | undefined;
   readonly supabase: SupabaseClient;
   readonly t: (key: string, values?: Record<string, string>) => string;
   readonly locale: string;
@@ -81,36 +75,19 @@ export interface UseEventsResult {
   readonly recurrenceType: RecurrenceType;
   readonly recurrenceEndDate: string;
   readonly recurrenceOngoing: boolean;
-  readonly selectedTemplate: string;
   readonly bannerUrl: string;
+  readonly eventTypeId: string;
+  readonly eventTypeOptions: readonly { value: string; label: string }[];
   readonly isBannerUploading: boolean;
   readonly bannerFileRef: React.RefObject<HTMLInputElement | null>;
   readonly eventFormRef: React.RefObject<HTMLElement | null>;
-  readonly templateOptions: readonly { value: string; label: string }[];
 
-  /* ── Template management state ── */
-  readonly isTemplatesOpen: boolean;
-  readonly setIsTemplatesOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  readonly isSavingTemplate: boolean;
-  readonly editingTemplateId: string;
-  readonly editTplTitle: string;
-  readonly editTplDesc: string;
-  readonly editTplLocation: string;
-  readonly editTplDurationH: string;
-  readonly editTplDurationM: string;
-  readonly editTplOpenEnded: boolean;
-  readonly editTplOrganizer: string;
-  readonly editTplRecurrence: RecurrenceType;
-  readonly editTplRecurrenceEnd: string;
-  readonly editTplRecurrenceOngoing: boolean;
-  readonly editTplBannerUrl: string;
+  /* ── Event types management state ── */
+  readonly isEventTypesOpen: boolean;
+  readonly setIsEventTypesOpen: React.Dispatch<React.SetStateAction<boolean>>;
 
   /* ── Delete modal state ── */
   readonly deleteEventId: string;
-  readonly deleteTemplateId: string;
-  readonly deleteTemplateName: string;
-  readonly deleteTemplateInput: string;
-  readonly isDeleteTemplateStep2: boolean;
 
   /* ── Handlers ── */
   readonly setTitle: React.Dispatch<React.SetStateAction<string>>;
@@ -126,24 +103,11 @@ export interface UseEventsResult {
   readonly setRecurrenceEndDate: React.Dispatch<React.SetStateAction<string>>;
   readonly setRecurrenceOngoing: React.Dispatch<React.SetStateAction<boolean>>;
   readonly setBannerUrl: React.Dispatch<React.SetStateAction<string>>;
-  readonly setSelectedTemplate: React.Dispatch<React.SetStateAction<string>>;
+  readonly setEventTypeId: React.Dispatch<React.SetStateAction<string>>;
   readonly setDeleteEventId: React.Dispatch<React.SetStateAction<string>>;
-  readonly setDeleteTemplateInput: React.Dispatch<React.SetStateAction<string>>;
-  readonly setIsDeleteTemplateStep2: React.Dispatch<React.SetStateAction<boolean>>;
-  readonly setEditTplTitle: React.Dispatch<React.SetStateAction<string>>;
-  readonly setEditTplDesc: React.Dispatch<React.SetStateAction<string>>;
-  readonly setEditTplLocation: React.Dispatch<React.SetStateAction<string>>;
-  readonly setEditTplDurationH: React.Dispatch<React.SetStateAction<string>>;
-  readonly setEditTplDurationM: React.Dispatch<React.SetStateAction<string>>;
-  readonly setEditTplOpenEnded: React.Dispatch<React.SetStateAction<boolean>>;
-  readonly setEditTplOrganizer: React.Dispatch<React.SetStateAction<string>>;
-  readonly setEditTplRecurrence: React.Dispatch<React.SetStateAction<RecurrenceType>>;
-  readonly setEditTplRecurrenceEnd: React.Dispatch<React.SetStateAction<string>>;
-  readonly setEditTplRecurrenceOngoing: React.Dispatch<React.SetStateAction<boolean>>;
-  readonly setEditTplBannerUrl: React.Dispatch<React.SetStateAction<string>>;
 
   readonly handleBannerUpload: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  readonly applyTemplate: (templateValue: string) => void;
+  readonly applyEventType: (typeId: string) => void;
   readonly resetForm: () => void;
   readonly handleOpenCreate: () => void;
   readonly handleEditEventById: (eventId: string) => void;
@@ -151,14 +115,6 @@ export interface UseEventsResult {
   readonly requestDeleteEvent: (eventId: string) => void;
   readonly confirmDeleteEvent: () => Promise<void>;
   readonly handleTogglePin: (eventId: string, isPinned: boolean) => Promise<void>;
-  readonly handleSaveFormAsTemplate: () => Promise<void>;
-  readonly handleSaveEventAsTemplate: (entry: EventRow) => Promise<void>;
-  readonly handleStartEditTemplate: (tpl: TemplateRow) => void;
-  readonly handleCancelEditTemplate: () => void;
-  readonly handleSaveEditedTemplate: () => Promise<void>;
-  readonly requestDeleteTemplate: (templateId: string, templateName: string) => void;
-  readonly confirmDeleteTemplate: () => Promise<void>;
-  readonly closeDeleteTemplateModal: () => void;
   readonly shiftCalendarMonth: (offset: number) => void;
   readonly jumpToToday: () => void;
   readonly handleDateSelect: (dayKey: string, day: CalendarDay) => void;
@@ -169,7 +125,7 @@ export interface UseEventsResult {
 /**
  * Custom hook that encapsulates all events state management, data loading,
  * computed values, and CRUD operations. Used by EventsClient to orchestrate
- * the events page. Delegates to useEventsForm and useEventsTemplates sub-hooks.
+ * the events page.
  */
 export function useEvents(): UseEventsResult {
   const supabase = useSupabase();
@@ -182,28 +138,48 @@ export function useEvents(): UseEventsResult {
   const { userId: authUserId } = useAuth();
   const currentUserId = authUserId ?? "";
 
-  const { events, setEvents, isLoading, templates, gameAccounts, eventIdsWithResults, reloadEvents, reloadTemplates } =
-    useEventsData(supabase, clanContext?.clanId, pushToast, t);
+  const { events, setEvents, isLoading, gameAccounts, eventIdsWithResults, reloadEvents } = useEventsData(
+    supabase,
+    clanContext?.clanId,
+    pushToast,
+    t,
+  );
+
+  /* ── Event Types ── */
+  const [eventTypes, setEventTypes] = useState<readonly ClanEventType[]>([]);
+  const [isEventTypesOpen, setIsEventTypesOpen] = useState<boolean>(false);
+
+  const clanId = clanContext?.clanId;
+  const loadEventTypes = useCallback(async () => {
+    if (!clanId) return;
+    try {
+      const res = await fetch(`/api/event-types?clan_id=${clanId}&active_only=false`);
+      if (!res.ok) return;
+      const json = (await res.json()) as { data: ClanEventType[] };
+      setEventTypes(json.data ?? []);
+    } catch {
+      /* event types are optional */
+    }
+  }, [clanId]);
+
+  useEffect(() => {
+    void loadEventTypes();
+  }, [loadEventTypes]);
+
+  const reloadEventTypes = useCallback(async () => {
+    await loadEventTypes();
+  }, [loadEventTypes]);
 
   const formState = useEventsForm({
     supabase,
     clanId: clanContext?.clanId,
     currentUserId,
     events,
-    templates,
+    eventTypes: eventTypes as ClanEventType[],
     pushToast,
     t,
     reloadEvents,
-    reloadTemplates,
     setEvents,
-  });
-
-  const templatesState = useEventsTemplates({
-    supabase,
-    clanId: clanContext?.clanId,
-    pushToast,
-    t,
-    reloadTemplates,
   });
 
   const searchParams = useSearchParams();
@@ -364,7 +340,6 @@ export function useEvents(): UseEventsResult {
     requestAnimationFrame(() => {
       document.querySelector(".calendar-day-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-    // Auto-clear so it doesn't re-trigger on subsequent day selections
     setTimeout(() => setFocusResultsEventId(""), 0);
   }, []);
 
@@ -372,12 +347,13 @@ export function useEvents(): UseEventsResult {
     events,
     setEvents,
     isLoading,
-    templates,
+    eventTypes,
     gameAccounts,
     reloadEvents,
-    reloadTemplates,
+    reloadEventTypes,
     canManage,
     currentUserId,
+    clanId: clanContext?.clanId,
     supabase,
     t,
     locale,
@@ -398,45 +374,8 @@ export function useEvents(): UseEventsResult {
     isPastExpanded,
     setIsPastExpanded,
     ...formState,
-    isTemplatesOpen: templatesState.isTemplatesOpen,
-    setIsTemplatesOpen: templatesState.setIsTemplatesOpen,
-    isSavingTemplate: templatesState.isSavingTemplate,
-    editingTemplateId: templatesState.editingTemplateId,
-    editTplTitle: templatesState.editTplTitle,
-    editTplDesc: templatesState.editTplDesc,
-    editTplLocation: templatesState.editTplLocation,
-    editTplDurationH: templatesState.editTplDurationH,
-    editTplDurationM: templatesState.editTplDurationM,
-    editTplOpenEnded: templatesState.editTplOpenEnded,
-    editTplOrganizer: templatesState.editTplOrganizer,
-    editTplRecurrence: templatesState.editTplRecurrence,
-    editTplRecurrenceEnd: templatesState.editTplRecurrenceEnd,
-    editTplRecurrenceOngoing: templatesState.editTplRecurrenceOngoing,
-    editTplBannerUrl: templatesState.editTplBannerUrl,
-    deleteTemplateId: templatesState.deleteTemplateId,
-    deleteTemplateName: templatesState.deleteTemplateName,
-    deleteTemplateInput: templatesState.deleteTemplateInput,
-    isDeleteTemplateStep2: templatesState.isDeleteTemplateStep2,
-    setDeleteTemplateInput: templatesState.setDeleteTemplateInput,
-    setIsDeleteTemplateStep2: templatesState.setIsDeleteTemplateStep2,
-    setEditTplTitle: templatesState.setEditTplTitle,
-    setEditTplDesc: templatesState.setEditTplDesc,
-    setEditTplLocation: templatesState.setEditTplLocation,
-    setEditTplDurationH: templatesState.setEditTplDurationH,
-    setEditTplDurationM: templatesState.setEditTplDurationM,
-    setEditTplOpenEnded: templatesState.setEditTplOpenEnded,
-    setEditTplOrganizer: templatesState.setEditTplOrganizer,
-    setEditTplRecurrence: templatesState.setEditTplRecurrence,
-    setEditTplRecurrenceEnd: templatesState.setEditTplRecurrenceEnd,
-    setEditTplRecurrenceOngoing: templatesState.setEditTplRecurrenceOngoing,
-    setEditTplBannerUrl: templatesState.setEditTplBannerUrl,
-    handleSaveEventAsTemplate: templatesState.handleSaveEventAsTemplate,
-    handleStartEditTemplate: templatesState.handleStartEditTemplate,
-    handleCancelEditTemplate: templatesState.handleCancelEditTemplate,
-    handleSaveEditedTemplate: templatesState.handleSaveEditedTemplate,
-    requestDeleteTemplate: templatesState.requestDeleteTemplate,
-    confirmDeleteTemplate: templatesState.confirmDeleteTemplate,
-    closeDeleteTemplateModal: templatesState.closeDeleteTemplateModal,
+    isEventTypesOpen,
+    setIsEventTypesOpen,
     shiftCalendarMonth,
     jumpToToday,
     handleDateSelect,

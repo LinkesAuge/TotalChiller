@@ -36,9 +36,10 @@ vi.mock("./hooks/use-clan-context", () => ({
 }));
 vi.mock("./components/data-state", () => ({
   __esModule: true,
-  default: ({ children, isLoading, isEmpty, loadingNode, emptyNode }: any) => {
+  default: ({ children, isLoading, isEmpty, loadingNode, emptyNode, error }: any) => {
     const React = require("react");
     if (isLoading) return loadingNode || React.createElement("div", null, "Loading...");
+    if (error) return React.createElement("div", null, error);
     if (isEmpty) return emptyNode || React.createElement("div", null, "Empty");
     return React.createElement("div", { "data-testid": "data-state" }, children);
   },

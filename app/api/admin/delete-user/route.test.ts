@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createMockAuth, createForbiddenResult } from "@/test";
+import { createMockAuth, createForbiddenResult, createChainableMock } from "@/test";
 
 vi.mock("@/lib/api/require-admin");
 vi.mock("@/lib/api/logger", () => ({ captureApiError: vi.fn() }));
@@ -10,10 +10,11 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 
 const mockDeleteUser = vi.fn();
+const mockServiceFrom = vi.fn();
 vi.mock("@/lib/supabase/service-role-client", () => ({
   default: vi.fn(() => ({
     auth: { admin: { deleteUser: mockDeleteUser } },
-    from: vi.fn(),
+    from: mockServiceFrom,
   })),
 }));
 
@@ -35,6 +36,9 @@ describe("POST /api/admin/delete-user", () => {
     mockAuth = createMockAuth();
     vi.mocked(requireAdmin).mockResolvedValue(mockAuth.authResult);
     mockDeleteUser.mockReset();
+    mockServiceFrom.mockReset();
+    const roleChain = createChainableMock({ data: null, error: null });
+    mockServiceFrom.mockReturnValue(roleChain);
   });
 
   it("returns 403 when user is not admin", async () => {

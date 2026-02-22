@@ -394,24 +394,27 @@ function SidebarNav(): JSX.Element {
                             })}
                           </div>
                         )}
-                      {/* Analytics sub-items (expanded desktop sidebar only) */}
-                      {item.href === "/analytics" && isOpen && !isCompactViewport && (
-                        <div className="nav-sub-items">
-                          {ANALYTICS_SUB_ITEMS.map((sub) => {
-                            const isSubActive = sub.exact ? pathname === sub.href : pathname.startsWith(sub.href);
-                            return (
-                              <Link
-                                key={sub.href}
-                                href={sub.href}
-                                className={`nav-sub-item${isSubActive ? " active" : ""}`}
-                              >
-                                <Image src={sub.icon} alt="" width={16} height={16} className="nav-sub-icon" />
-                                <span className="nav-sub-label">{t(sub.labelKey)}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {/* Analytics sub-items (expanded desktop sidebar only, when on analytics page) */}
+                      {item.href === "/analytics" &&
+                        pathname.startsWith("/analytics") &&
+                        isOpen &&
+                        !isCompactViewport && (
+                          <div className="nav-sub-items">
+                            {ANALYTICS_SUB_ITEMS.map((sub) => {
+                              const isSubActive = sub.exact ? pathname === sub.href : pathname.startsWith(sub.href);
+                              return (
+                                <Link
+                                  key={sub.href}
+                                  href={sub.href}
+                                  className={`nav-sub-item${isSubActive ? " active" : ""}`}
+                                >
+                                  <Image src={sub.icon} alt="" width={16} height={16} className="nav-sub-icon" />
+                                  <span className="nav-sub-label">{t(sub.labelKey)}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
                     </div>
                   );
                 })}

@@ -468,7 +468,7 @@ describe("NotificationBell", () => {
     await act(async () => {
       render(<NotificationBell {...defaultProps} isOpen />);
     });
-    expect(mockFetch).toHaveBeenCalledWith("/api/notification-settings");
+    expect(mockFetch).toHaveBeenCalledWith("/api/notification-settings", expect.any(Object));
   });
 
   it("fetches notifications on mount", async () => {

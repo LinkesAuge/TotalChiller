@@ -3,6 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import ClanAccessGate from "./clan-access-gate";
 
+function chainEnd(result: unknown) {
+  return {
+    returns: vi.fn(() => Promise.resolve(result)),
+    then: (fn?: ((v: unknown) => unknown) | null, rej?: ((r: unknown) => unknown) | null) =>
+      Promise.resolve(result).then(fn, rej),
+  };
+}
+
 vi.mock("next-intl", () => ({
   useTranslations: vi.fn(() => vi.fn((key: string) => key)),
   useLocale: vi.fn(() => "de"),
@@ -87,7 +95,7 @@ describe("ClanAccessGate", () => {
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          eq: vi.fn().mockReturnValue(chainEnd({ data: [], error: null })),
         }),
       }),
     });
@@ -104,10 +112,12 @@ describe("ClanAccessGate", () => {
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: [{ id: "m1", clans: { is_unassigned: true } }],
-            error: null,
-          }),
+          eq: vi.fn().mockReturnValue(
+            chainEnd({
+              data: [{ id: "m1", clans: { is_unassigned: true } }],
+              error: null,
+            }),
+          ),
         }),
       }),
     });
@@ -124,10 +134,12 @@ describe("ClanAccessGate", () => {
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: [{ id: "m1", clans: { is_unassigned: false } }],
-            error: null,
-          }),
+          eq: vi.fn().mockReturnValue(
+            chainEnd({
+              data: [{ id: "m1", clans: { is_unassigned: false } }],
+              error: null,
+            }),
+          ),
         }),
       }),
     });
@@ -144,7 +156,7 @@ describe("ClanAccessGate", () => {
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: null, error: new Error("DB error") }),
+          eq: vi.fn().mockReturnValue(chainEnd({ data: null, error: new Error("DB error") })),
         }),
       }),
     });
@@ -174,10 +186,12 @@ describe("ClanAccessGate", () => {
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: [{ id: "m1", clans: { is_unassigned: true } }],
-            error: null,
-          }),
+          eq: vi.fn().mockReturnValue(
+            chainEnd({
+              data: [{ id: "m1", clans: { is_unassigned: true } }],
+              error: null,
+            }),
+          ),
         }),
       }),
     });
@@ -243,10 +257,12 @@ describe("ClanAccessGate", () => {
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: [{ id: "m1", clans: null }],
-            error: null,
-          }),
+          eq: vi.fn().mockReturnValue(
+            chainEnd({
+              data: [{ id: "m1", clans: null }],
+              error: null,
+            }),
+          ),
         }),
       }),
     });
@@ -263,13 +279,15 @@ describe("ClanAccessGate", () => {
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: [
-              { id: "m1", clans: { is_unassigned: true } },
-              { id: "m2", clans: { is_unassigned: false } },
-            ],
-            error: null,
-          }),
+          eq: vi.fn().mockReturnValue(
+            chainEnd({
+              data: [
+                { id: "m1", clans: { is_unassigned: true } },
+                { id: "m2", clans: { is_unassigned: false } },
+              ],
+              error: null,
+            }),
+          ),
         }),
       }),
     });
@@ -301,10 +319,12 @@ describe("ClanAccessGate", () => {
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: [{ id: "m1", clans: { is_unassigned: false } }],
-            error: null,
-          }),
+          eq: vi.fn().mockReturnValue(
+            chainEnd({
+              data: [{ id: "m1", clans: { is_unassigned: false } }],
+              error: null,
+            }),
+          ),
         }),
       }),
     });

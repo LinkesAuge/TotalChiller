@@ -71,7 +71,7 @@ describe("POST /api/admin/user-lookup", () => {
     const res = await POST(makeRequest({ email: "user@test.com", clanId: VALID_CLAN_ID }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.id).toBe("profile-123");
+    expect(body.data.id).toBe("profile-123");
   });
 
   it("returns profile id on username lookup", async () => {
@@ -80,7 +80,7 @@ describe("POST /api/admin/user-lookup", () => {
     const res = await POST(makeRequest({ username: "testuser", clanId: VALID_CLAN_ID }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.id).toBe("profile-456");
+    expect(body.data.id).toBe("profile-456");
   });
 
   it("returns 404 when user not found", async () => {

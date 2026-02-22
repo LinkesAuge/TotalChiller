@@ -77,7 +77,7 @@ describe("POST /api/admin/resend-invite", () => {
     const res = await POST(makeRequest({ email: "User@Example.com" }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.success).toBe(true);
+    expect(body.data.success).toBe(true);
     expect(mockInviteUserByEmail).toHaveBeenCalledWith("user@example.com");
   });
 

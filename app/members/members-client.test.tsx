@@ -27,7 +27,9 @@ function buildChain(result: any = { data: [], error: null }) {
   chain.select = vi.fn(() => chain);
   chain.eq = vi.fn(() => chain);
   chain.in = vi.fn(() => chain);
-  chain.order = vi.fn(() => Promise.resolve(result));
+  chain.order = vi.fn(() => chain);
+  chain.returns = vi.fn(() => Promise.resolve(result));
+  chain.then = (fn?: any, rej?: any) => Promise.resolve(result).then(fn, rej);
   return chain;
 }
 
@@ -86,7 +88,7 @@ describe("MembersClient", () => {
 
   it("renders loading state initially when clan is set", () => {
     const neverResolve = buildChain();
-    neverResolve.order.mockReturnValue(new Promise(() => {}));
+    neverResolve.returns.mockReturnValue(new Promise(() => {}));
     stableSupabase.from.mockReturnValue(neverResolve);
     render(<MembersClient />);
     expect(screen.getByText("loading")).toBeInTheDocument();

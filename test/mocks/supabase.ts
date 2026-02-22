@@ -29,14 +29,15 @@ interface ChainableMock {
   range: ReturnType<typeof vi.fn>;
   single: ReturnType<typeof vi.fn>;
   maybeSingle: ReturnType<typeof vi.fn>;
+  returns: ReturnType<typeof vi.fn>;
   textSearch: ReturnType<typeof vi.fn>;
   then: ReturnType<typeof vi.fn>;
 }
 
 /**
  * Creates a chainable Supabase query builder mock.
- * Every method returns `this` (for chaining) except terminal methods
- * (`single`, `maybeSingle`, `then`) which resolve to `result`.
+ * Every method returns `this` for chaining. The mock is thenable –
+ * awaiting it (or calling `.then()`) resolves to `result`.
  */
 export function createChainableMock(result: MockResult = { data: null, error: null }): ChainableMock {
   const chain: ChainableMock = {} as ChainableMock;
@@ -65,6 +66,7 @@ export function createChainableMock(result: MockResult = { data: null, error: nu
     "order",
     "limit",
     "range",
+    "returns",
     "textSearch",
   ] as const;
 
@@ -72,8 +74,8 @@ export function createChainableMock(result: MockResult = { data: null, error: nu
     chain[method] = vi.fn().mockReturnValue(chain);
   }
 
-  chain.single = vi.fn().mockResolvedValue(result);
-  chain.maybeSingle = vi.fn().mockResolvedValue(result);
+  chain.single = vi.fn().mockReturnValue(chain);
+  chain.maybeSingle = vi.fn().mockReturnValue(chain);
 
   const thenImpl = (
     onfulfilled?: ((value: MockResult) => unknown) | null,
@@ -91,8 +93,8 @@ export function createChainableMock(result: MockResult = { data: null, error: nu
 }
 
 export function setChainResult(chain: ChainableMock, result: MockResult): void {
-  chain.single.mockResolvedValue(result);
-  chain.maybeSingle.mockResolvedValue(result);
+  chain.single.mockReturnValue(chain);
+  chain.maybeSingle.mockReturnValue(chain);
   chain.then.mockImplementation(
     (onfulfilled?: ((value: MockResult) => unknown) | null, onrejected?: ((reason: unknown) => unknown) | null) =>
       Promise.resolve(result).then(onfulfilled, onrejected),

@@ -6,6 +6,14 @@
 
 ## 2026-02-22
 
+### Fixed
+
+- **Test suite: Supabase `.returns()` mock support:** Central `createChainableMock` now includes `.returns()` as a chainable method. `single`/`maybeSingle` return chain instead of resolving directly, enabling `.maybeSingle().returns<T>()` chains. Inline mocks in `clan-access-gate`, `sidebar-shell`, and `members-client` tests updated with `chainEnd` helper.
+- **Test suite: Response structure assertions:** Updated `user-lookup` (`body.id` → `body.data.id`), `resend-invite` (`body.success` → `body.data.success`), and `delete-user` (added `from()` chain mock for role permission checks) tests to match current API response format.
+- **Test suite: DataState error mock:** Dashboard test's `DataState` mock now handles the `error` prop, fixing error state rendering tests.
+- **Test suite: Notification bell fetch assertion:** Updated to match `AbortController` signal parameter.
+- **Analytics submenu:** Only opens when user is on an `/analytics` page, no longer open by default.
+
 ### Security
 
 - **Admin delete-user hierarchy enforcement:** `/api/admin/delete-user` now queries both actor and target roles from `user_roles` and uses `canChangeRoleOf()` to prevent privilege escalation (e.g. admin deleting owner). Self-deletion is blocked. DB errors during role lookup return 500 instead of proceeding.

@@ -3,6 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import SidebarShell from "./sidebar-shell";
 
+function chainEnd(result: unknown) {
+  return {
+    returns: vi.fn(() => Promise.resolve(result)),
+    then: (fn?: ((v: unknown) => unknown) | null, rej?: ((r: unknown) => unknown) | null) =>
+      Promise.resolve(result).then(fn, rej),
+  };
+}
+
 let mockIsOpen = true;
 const mockToggle = vi.fn();
 let mockWidth = 240;
@@ -103,9 +111,9 @@ function setupMockUser(opts: { hasProfile?: boolean; hasClanOptions?: boolean; i
     mockFromSelect.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+          maybeSingle: vi.fn().mockReturnValue(chainEnd({ data: null })),
           eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: [] }),
+            eq: vi.fn().mockReturnValue(chainEnd({ data: [] })),
           }),
         }),
       }),
@@ -130,14 +138,16 @@ function setupMockUser(opts: { hasProfile?: boolean; hasClanOptions?: boolean; i
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: {
-                  user_db: "TestDB",
-                  username: "testuser",
-                  display_name: "Test User",
-                  default_game_account_id: null,
-                },
-              }),
+              maybeSingle: vi.fn().mockReturnValue(
+                chainEnd({
+                  data: {
+                    user_db: "TestDB",
+                    username: "testuser",
+                    display_name: "Test User",
+                    default_game_account_id: null,
+                  },
+                }),
+              ),
             }),
           }),
         };
@@ -147,7 +157,7 @@ function setupMockUser(opts: { hasProfile?: boolean; hasClanOptions?: boolean; i
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockResolvedValue({ data: memberships }),
+                eq: vi.fn().mockReturnValue(chainEnd({ data: memberships })),
               }),
             }),
           }),
@@ -156,9 +166,9 @@ function setupMockUser(opts: { hasProfile?: boolean; hasClanOptions?: boolean; i
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+            maybeSingle: vi.fn().mockReturnValue(chainEnd({ data: null })),
             eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ data: [] }),
+              eq: vi.fn().mockReturnValue(chainEnd({ data: [] })),
             }),
           }),
         }),
@@ -684,14 +694,16 @@ describe("SidebarShell", () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: {
-                  user_db: "TestDB",
-                  username: "testuser",
-                  display_name: "Test User",
-                  default_game_account_id: "ga-1",
-                },
-              }),
+              maybeSingle: vi.fn().mockReturnValue(
+                chainEnd({
+                  data: {
+                    user_db: "TestDB",
+                    username: "testuser",
+                    display_name: "Test User",
+                    default_game_account_id: "ga-1",
+                  },
+                }),
+              ),
             }),
           }),
         };
@@ -701,17 +713,19 @@ describe("SidebarShell", () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockResolvedValue({
-                  data: [
-                    {
-                      clan_id: "clan-1",
-                      game_account_id: "ga-1",
-                      rank: "leader",
-                      clans: { name: "TestClan", is_unassigned: false },
-                      game_accounts: { game_username: "Player1", approval_status: "approved" },
-                    },
-                  ],
-                }),
+                eq: vi.fn().mockReturnValue(
+                  chainEnd({
+                    data: [
+                      {
+                        clan_id: "clan-1",
+                        game_account_id: "ga-1",
+                        rank: "leader",
+                        clans: { name: "TestClan", is_unassigned: false },
+                        game_accounts: { game_username: "Player1", approval_status: "approved" },
+                      },
+                    ],
+                  }),
+                ),
               }),
             }),
           }),
@@ -720,9 +734,9 @@ describe("SidebarShell", () => {
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+            maybeSingle: vi.fn().mockReturnValue(chainEnd({ data: null })),
             eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ data: [] }),
+              eq: vi.fn().mockReturnValue(chainEnd({ data: [] })),
             }),
           }),
         }),
@@ -796,9 +810,11 @@ describe("SidebarShell", () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { user_db: null, username: "test", display_name: "Test", default_game_account_id: null },
-              }),
+              maybeSingle: vi.fn().mockReturnValue(
+                chainEnd({
+                  data: { user_db: null, username: "test", display_name: "Test", default_game_account_id: null },
+                }),
+              ),
             }),
           }),
         };
@@ -808,17 +824,19 @@ describe("SidebarShell", () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockResolvedValue({
-                  data: [
-                    {
-                      clan_id: "clan-1",
-                      game_account_id: "ga-pending",
-                      rank: "member",
-                      clans: { name: "Clan1", is_unassigned: false },
-                      game_accounts: { game_username: "PendingPlayer", approval_status: "pending" },
-                    },
-                  ],
-                }),
+                eq: vi.fn().mockReturnValue(
+                  chainEnd({
+                    data: [
+                      {
+                        clan_id: "clan-1",
+                        game_account_id: "ga-pending",
+                        rank: "member",
+                        clans: { name: "Clan1", is_unassigned: false },
+                        game_accounts: { game_username: "PendingPlayer", approval_status: "pending" },
+                      },
+                    ],
+                  }),
+                ),
               }),
             }),
           }),
@@ -827,9 +845,9 @@ describe("SidebarShell", () => {
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+            maybeSingle: vi.fn().mockReturnValue(chainEnd({ data: null })),
             eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ data: [] }),
+              eq: vi.fn().mockReturnValue(chainEnd({ data: [] })),
             }),
           }),
         }),
@@ -871,9 +889,11 @@ describe("SidebarShell", () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { user_db: null, username: "fallbackuser", display_name: null, default_game_account_id: null },
-              }),
+              maybeSingle: vi.fn().mockReturnValue(
+                chainEnd({
+                  data: { user_db: null, username: "fallbackuser", display_name: null, default_game_account_id: null },
+                }),
+              ),
             }),
           }),
         };
@@ -883,7 +903,7 @@ describe("SidebarShell", () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockResolvedValue({ data: [] }),
+                eq: vi.fn().mockReturnValue(chainEnd({ data: [] })),
               }),
             }),
           }),
@@ -892,9 +912,9 @@ describe("SidebarShell", () => {
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+            maybeSingle: vi.fn().mockReturnValue(chainEnd({ data: null })),
             eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ data: [] }),
+              eq: vi.fn().mockReturnValue(chainEnd({ data: [] })),
             }),
           }),
         }),

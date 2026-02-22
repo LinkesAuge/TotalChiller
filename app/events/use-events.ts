@@ -316,7 +316,7 @@ export function useEvents(): UseEventsResult {
     if (urlEventId) {
       setHighlightEventId(urlEventId);
       requestAnimationFrame(() => {
-        const el = document.querySelector(`[data-event-id="${urlEventId}"]`);
+        const el = document.querySelector(`[data-event-id="${CSS.escape(urlEventId)}"]`);
         el?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
     }

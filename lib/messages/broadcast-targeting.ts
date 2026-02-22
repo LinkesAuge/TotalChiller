@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+/** Row shape from game_account_clan_memberships with game_accounts join. */
+interface MembershipWithUserRow {
+  readonly game_accounts: { readonly user_id: string } | null;
+}
+
 /**
  * Resolve which user IDs match a broadcast's targeting criteria.
  * Used at send time (notifications) and for reply-all recipient computation.
@@ -30,11 +35,10 @@ export async function resolveBroadcastRecipients(
       query = query.in("rank", targetRanks as string[]);
     }
 
-    const { data: memberships } = await query;
+    const { data: memberships } = await query.returns<MembershipWithUserRow[]>();
     for (const row of memberships ?? []) {
-      const ga = row.game_accounts as unknown as { user_id: string } | null;
-      if (ga?.user_id && ga.user_id !== senderId) {
-        recipientSet.add(ga.user_id);
+      if (row.game_accounts?.user_id && row.game_accounts.user_id !== senderId) {
+        recipientSet.add(row.game_accounts.user_id);
       }
     }
   } else {
@@ -44,18 +48,22 @@ export async function resolveBroadcastRecipients(
         .select("game_accounts(user_id)")
         .eq("is_active", true)
         .eq("is_shadow", false)
-        .in("rank", targetRanks as string[]);
+        .in("rank", targetRanks as string[])
+        .returns<MembershipWithUserRow[]>();
 
       for (const row of memberships ?? []) {
-        const ga = row.game_accounts as unknown as { user_id: string } | null;
-        if (ga?.user_id && ga.user_id !== senderId) {
-          recipientSet.add(ga.user_id);
+        if (row.game_accounts?.user_id && row.game_accounts.user_id !== senderId) {
+          recipientSet.add(row.game_accounts.user_id);
         }
       }
     } else {
-      const { data: allProfiles } = await svc.from("profiles").select("id").neq("id", senderId);
+      const { data: allProfiles } = await svc
+        .from("profiles")
+        .select("id")
+        .neq("id", senderId)
+        .returns<Array<{ id: string }>>();
       for (const p of allProfiles ?? []) {
-        recipientSet.add(p.id as string);
+        recipientSet.add(p.id);
       }
     }
   }
@@ -64,10 +72,10 @@ export async function resolveBroadcastRecipients(
     const { data: roleUsers } = await svc
       .from("user_roles")
       .select("user_id")
-      .in("role", targetRoles as string[]);
+      .in("role", targetRoles as string[])
+      .returns<Array<{ user_id: string }>>();
     for (const r of roleUsers ?? []) {
-      const uid = r.user_id as string;
-      if (uid !== senderId) recipientSet.add(uid);
+      if (r.user_id !== senderId) recipientSet.add(r.user_id);
     }
   }
 

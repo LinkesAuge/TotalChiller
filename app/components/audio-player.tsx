@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 interface AudioPlayerProps {
   src: string;
@@ -8,6 +9,7 @@ interface AudioPlayerProps {
 }
 
 export default function AudioPlayer({ src, autoPlay = true }: AudioPlayerProps) {
+  const t = useTranslations("audioPlayer");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -117,8 +119,8 @@ export default function AudioPlayer({ src, autoPlay = true }: AudioPlayerProps) 
       <button
         className="audio-player-btn"
         onClick={togglePlay}
-        aria-label={playing ? "Musik pausieren" : "Musik abspielen"}
-        title={playing ? "Musik pausieren" : "Musik abspielen"}
+        aria-label={playing ? t("pause") : t("play")}
+        title={playing ? t("pause") : t("play")}
       >
         {playing ? (
           <svg
@@ -148,8 +150,8 @@ export default function AudioPlayer({ src, autoPlay = true }: AudioPlayerProps) 
           toggleMute();
           handleTouchToggleVolume();
         }}
-        aria-label={muted ? "Ton einschalten" : "Ton ausschalten"}
-        title={muted ? "Ton einschalten" : "Ton ausschalten"}
+        aria-label={muted ? t("unmute") : t("mute")}
+        title={muted ? t("unmute") : t("mute")}
       >
         {muted ? (
           <svg
@@ -191,7 +193,7 @@ export default function AudioPlayer({ src, autoPlay = true }: AudioPlayerProps) 
           value={muted ? 0 : volume}
           onChange={handleVolume}
           className="audio-range"
-          aria-label="Lautstärke"
+          aria-label={t("volume")}
         />
       </div>
 

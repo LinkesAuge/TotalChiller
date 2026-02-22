@@ -116,11 +116,12 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
       .from("game_account_clan_memberships")
       .select("game_accounts!inner(id, game_username)")
       .eq("clan_id", clanId)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .returns<Array<{ game_accounts: { id: string; game_username: string } }>>();
 
     const clanGameAccounts: Array<{ id: string; game_username: string }> = [];
     if (membershipRows) {
-      for (const row of membershipRows as unknown as Array<{ game_accounts: { id: string; game_username: string } }>) {
+      for (const row of membershipRows) {
         clanGameAccounts.push(row.game_accounts);
       }
       clanGameAccounts.sort((a, b) => a.game_username.localeCompare(b.game_username));

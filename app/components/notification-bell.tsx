@@ -116,30 +116,37 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
   }, [loadNotifications]);
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    async function loadPrefs(): Promise<void> {
-      const response = await fetch("/api/notification-settings");
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data) {
-          setPrefs(result.data);
+    if (!isOpen) return;
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const response = await fetch("/api/notification-settings", { signal: ac.signal });
+        if (response.ok) {
+          const result = await response.json();
+          if (!ac.signal.aborted && result.data) {
+            setPrefs(result.data);
+          }
         }
+      } catch (err) {
+        if (isAbortError(err)) return;
       }
-    }
-    void loadPrefs();
+    })();
+    return () => ac.abort();
   }, [isOpen]);
 
   async function handleTogglePref(key: keyof NotificationPrefs): Promise<void> {
     const nextValue = !prefs[key];
     setPrefs((current) => ({ ...current, [key]: nextValue }));
-    const response = await fetch("/api/notification-settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [key]: nextValue }),
-    });
-    if (!response.ok) {
+    try {
+      const response = await fetch("/api/notification-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: nextValue }),
+      });
+      if (!response.ok) {
+        setPrefs((current) => ({ ...current, [key]: !nextValue }));
+      }
+    } catch {
       setPrefs((current) => ({ ...current, [key]: !nextValue }));
     }
     void loadNotifications();
@@ -151,19 +158,37 @@ function NotificationBell({ isOpen, onToggle, onClose }: NotificationBellProps):
   );
 
   async function handleMarkAllRead(): Promise<void> {
-    await fetch("/api/notifications/mark-all-read", { method: "POST" });
+    const previous = notifications;
     setNotifications((current) => current.map((notification) => ({ ...notification, is_read: true })));
+    try {
+      const res = await fetch("/api/notifications/mark-all-read", { method: "POST" });
+      if (!res.ok) setNotifications(previous);
+    } catch {
+      setNotifications(previous);
+    }
   }
 
   async function handleDeleteNotification(id: string, event: React.MouseEvent): Promise<void> {
     event.stopPropagation();
+    const previous = notifications;
     setNotifications((current) => current.filter((n) => n.id !== id));
-    await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+    try {
+      const res = await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+      if (!res.ok) setNotifications(previous);
+    } catch {
+      setNotifications(previous);
+    }
   }
 
   async function handleDeleteAll(): Promise<void> {
+    const previous = notifications;
     setNotifications([]);
-    await fetch("/api/notifications/delete-all", { method: "POST" });
+    try {
+      const res = await fetch("/api/notifications/delete-all", { method: "POST" });
+      if (!res.ok) setNotifications(previous);
+    } catch {
+      setNotifications(previous);
+    }
   }
 
   async function handleClickNotification(notification: NotificationRow): Promise<void> {

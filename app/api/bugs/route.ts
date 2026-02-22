@@ -28,6 +28,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { status, category, search } = params.data;
     const svc = createSupabaseServiceRoleClient();
 
+    interface RawReport {
+      readonly id: string;
+      readonly title: string;
+      readonly description: string | null;
+      readonly status: string;
+      readonly priority: string;
+      readonly created_at: string;
+      readonly created_by: string;
+      readonly bug_report_categories: { name: string; slug: string | null } | null;
+      readonly profiles: { username: string | null; display_name: string | null } | null;
+      readonly [key: string]: unknown;
+    }
+
     let query = svc
       .from("bug_reports")
       .select("*, bug_report_categories(name, slug), profiles!bug_reports_reporter_id_fkey(username, display_name)")
@@ -36,14 +49,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (status !== "all") query = query.eq("status", status);
     if (category) query = query.eq("category_id", category);
 
-    const { data: reports, error: reportsErr } = await query;
+    const { data: reports, error: reportsErr } = await query.returns<RawReport[]>();
     if (reportsErr) {
       captureApiError("GET /api/bugs", reportsErr);
       return apiError("Failed to load bug reports.", 500);
     }
 
     /* Fetch comment + screenshot counts in bulk */
-    const reportIds = (reports ?? []).map((r) => (r as { id: string }).id);
+    const reportIds = (reports ?? []).map((r) => r.id);
     const commentCounts = new Map<string, number>();
     const screenshotCounts = new Map<string, number>();
 
@@ -65,34 +78,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     /* Flatten and filter */
-    type RawReport = Record<string, unknown> & {
-      id: string;
-      title: string;
-      bug_report_categories: { name: string; slug: string | null } | null;
-      profiles: { username: string | null; display_name: string | null } | null;
-    };
-
-    let items = (reports ?? []).map((raw) => {
-      const r = raw as RawReport;
-      return {
-        ...r,
-        category_name: r.bug_report_categories?.name ?? null,
-        category_slug: r.bug_report_categories?.slug ?? null,
-        reporter: r.profiles ?? null,
-        comment_count: commentCounts.get(r.id) ?? 0,
-        screenshot_count: screenshotCounts.get(r.id) ?? 0,
-        bug_report_categories: undefined,
-        profiles: undefined,
-      };
-    });
+    let items = (reports ?? []).map((r) => ({
+      ...r,
+      category_name: r.bug_report_categories?.name ?? null,
+      category_slug: r.bug_report_categories?.slug ?? null,
+      reporter: r.profiles ?? null,
+      comment_count: commentCounts.get(r.id) ?? 0,
+      screenshot_count: screenshotCounts.get(r.id) ?? 0,
+      bug_report_categories: undefined,
+      profiles: undefined,
+    }));
 
     /* Search filter (client-side for simplicity; DB has few rows) */
     if (search) {
       const lower = search.toLowerCase();
       items = items.filter(
-        (r) =>
-          r.title.toLowerCase().includes(lower) ||
-          (r as unknown as { description: string }).description?.toLowerCase().includes(lower),
+        (r) => r.title.toLowerCase().includes(lower) || (r.description ?? "").toLowerCase().includes(lower),
       );
     }
 

@@ -564,9 +564,12 @@ export function EventCalendar({
               <TooltipSingleEvent ev={tooltipDay.events[0]} locale={locale} />
             ) : (
               <div className="calendar-tooltip-multi">
-                {tooltipDay.events.map((entry) => (
+                {tooltipDay.events.map((entry, index) => (
                   <div key={entry.displayKey} className="calendar-tooltip-item">
-                    <span className="calendar-tooltip-dot" style={{ background: EVENT_COLORS[0] }} />
+                    <span
+                      className="calendar-tooltip-dot"
+                      style={{ background: EVENT_COLORS[index % EVENT_COLORS.length] }}
+                    />
                     <span className="calendar-tooltip-item-title">{entry.title}</span>
                     <span className="calendar-tooltip-item-time">
                       {cellTimeLabel(entry, tooltipDay.key, locale, t)}

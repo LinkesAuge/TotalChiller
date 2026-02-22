@@ -20,6 +20,13 @@ interface ClanAccessGateProps {
 
 type AccessState = "loading" | "granted" | "unassigned" | "denied";
 
+/** Raw row shape from game_account_clan_memberships with clans join. */
+interface ClanMembershipCheckRow {
+  readonly id: string;
+  readonly clans: { readonly is_unassigned: boolean } | null;
+  readonly game_accounts: { readonly user_id: string };
+}
+
 /**
  * Hides clan-scoped content until a user belongs to a non-unassigned clan.
  * Distinguishes between "no memberships" and "only in the unassigned holding clan"
@@ -50,7 +57,8 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
         .from("game_account_clan_memberships")
         .select("id,clans(is_unassigned),game_accounts!inner(user_id)")
         .eq("is_active", true)
-        .eq("game_accounts.user_id", userId);
+        .eq("game_accounts.user_id", userId)
+        .returns<ClanMembershipCheckRow[]>();
       if (!isActive) return;
       if (error || !data) {
         setAccessState("denied");
@@ -60,10 +68,7 @@ function ClanAccessGate({ children }: ClanAccessGateProps): JSX.Element {
         setAccessState("denied");
         return;
       }
-      const hasRealClan = data.some((row) => {
-        const clan = row.clans as unknown as { is_unassigned: boolean } | null;
-        return clan?.is_unassigned === false;
-      });
+      const hasRealClan = data.some((row) => row.clans?.is_unassigned === false);
       setAccessState(hasRealClan ? "granted" : "unassigned");
     }
     void loadAccess();

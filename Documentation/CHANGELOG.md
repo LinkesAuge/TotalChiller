@@ -4,6 +4,57 @@
 
 ---
 
+## 2026-02-22
+
+### Security
+
+- **Admin delete-user hierarchy enforcement:** `/api/admin/delete-user` now queries both actor and target roles from `user_roles` and uses `canChangeRoleOf()` to prevent privilege escalation (e.g. admin deleting owner). Self-deletion is blocked. DB errors during role lookup return 500 instead of proceeding.
+- **Owner/admin role distinction in `check-role.ts`:** `resolveUserRole()` now queries `user_roles` when `is_any_admin` returns true, correctly returning `"owner"` instead of always `"admin"`.
+- **Strict rate limiting on forgot-password:** Changed from `standardLimiter` to `strictLimiter`.
+- **Middleware rewrite (`middleware.ts`):** Replaced `proxy.ts` with proper Next.js middleware. Handles PKCE code catch-all, locale cookie init, Supabase session refresh on all routes, root path redirect, protected route redirect, and admin path protection via `is_any_admin` RPC.
+- **Forum atomic score with input validation:** `increment_post_score` and `increment_comment_score` RPCs use `SECURITY DEFINER` (needed to bypass RLS for score updates on non-owned posts) but validate `auth.uid() IS NOT NULL` and `delta BETWEEN -2 AND 2` to prevent abuse.
+- **`auth_redirect_next` cookie:** Now sets `Secure: true` in production (register and forgot-password flows).
+
+### Fixed
+
+- **Forum vote-score consistency:** Vote handlers now rollback the vote record if the score RPC fails, preventing permanent vote/score desync.
+- **Timezone filtering (analytics):** `berlinDateRangeUTC()` utility computes correct UTC boundaries for Berlin date ranges, handling DST. Applied to `/api/analytics/chests` (`.gte`/`.lt` instead of naive string concat) and `/api/analytics/machtpunkte` (pre-computed bounds outside loop).
+- **Notification unread count:** Separate Supabase `count` query for accuracy instead of counting loaded notifications. `bug_comment` type included in system-enabled filter.
+- **Notification bell error handling:** `loadPrefs` uses `AbortController`; toggle/mark-all/delete actions wrapped in try/catch with optimistic rollback.
+- **Chests analytics race condition:** `AbortController` + `retryCount` state for explicit retries. Filter options cached to prevent disappearing when filters active.
+- **Members client race condition:** `cancelled` flag checked after every `await` in `loadMembers`.
+- **Confirm modal accessibility:** Focus trap, escape key handler, backdrop click, `useId()`, auto-focus. Stable `onCancel` ref via `useLatest` hook prevents focus flicker.
+- **Public path matching:** `isPublicPath()` now uses `pathname === "/x" || pathname.startsWith("/x/")` instead of just `startsWith("/x")` to prevent false positives.
+- **Event calendar tooltip colors:** Each event dot uses `EVENT_COLORS[index % length]` for distinct colors.
+- **Event results default collapsed:** `EventLinkedResults` starts collapsed (`collapsed = true`).
+- **Dashboard error display:** Correctly uses `error` prop of `DataState` instead of rendering errors in `emptyNode`.
+- **Player analytics responsive chart:** PieChart uses `width="100%"` instead of hardcoded `180`.
+- **Events analytics retry:** `retryCount` state and `onRetry` callbacks added to `DataState` for both list and detail views.
+- **Clan context cross-tab sync:** `window.addEventListener("storage", handleChange)` synchronizes clan changes across browser tabs.
+- **Forum category slug generation:** Transliterates German umlauts (ä→ae, ö→oe, ü→ue, ß→ss) and trims leading/trailing hyphens.
+- **Game account manager error handling:** `refreshAccounts` wrapped in try/catch.
+- **Submission detail:** Replaced `window.confirm()` with project's `ConfirmModal` for consistent UX.
+- **DOM safety:** `CSS.escape()` applied to user-provided `urlEventId` before `querySelector()`.
+- **API response consistency:** `resend-invite` wrapped in `{ data: { success: true } }`. `user-lookup` validates `clanId` as UUID. `game-account-approvals` and `stats` no longer leak Zod validation details.
+- **Stats power delta:** `powerDeltaWeek` uses `totalPower - lastWeekTotalPower` for correct initial growth.
+- **Create user email normalization:** `normalizedEmail` used when upserting profile.
+- **Message validation:** Removed hard 50-recipient limit; batched validation in 50-recipient chunks.
+
+### Improved (Type Safety)
+
+- **Eliminated `as unknown as` double-casts across 16 production files.** All Supabase queries with joins now use `.returns<T[]>()` with typed interfaces, moving the type assertion to the query definition point. Affected files: `use-dashboard-data.ts`, `use-events-data.ts`, `event-linked-results.tsx`, `members-client.tsx`, `use-news.ts`, `sidebar-shell.tsx`, `clan-access-gate.tsx`, `use-messages.ts`, `daten-client.tsx`, `api/bugs/route.ts`, `api/notifications/fan-out/route.ts`, `broadcast-targeting.ts`, `api/import/submit/route.ts`, `api/import/submissions/[id]/route.ts`, `api/import/submissions/[id]/review/route.ts`, `api/import/clans/route.ts`.
+- **Audio player i18n:** Replaced hardcoded German strings with `useTranslations("audioPlayer")`.
+- **Sentry integration:** `import/submissions/[id]/review` uses `captureApiError` instead of `console.error`.
+
+### Added
+
+- **`middleware.ts`** — New Next.js middleware replacing `proxy.ts`. Consolidated PKCE catch-all, locale init, session refresh, auth gating, and admin protection.
+- **`lib/timezone.ts`** — `berlinDateRangeUTC(from, to)` for DST-aware UTC boundary computation.
+- **`Documentation/migrations/forum_atomic_score.sql`** — `increment_post_score` and `increment_comment_score` RPCs for atomic forum score updates.
+- **Translation keys** — `audioPlayer.*` keys in `de.json` and `en.json`.
+
+---
+
 ## 2026-02-21
 
 ### Added

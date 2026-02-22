@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { captureApiError } from "@/lib/api/logger";
 import createSupabaseServerClient from "../../../../lib/supabase/server-client";
-import { standardLimiter } from "../../../../lib/rate-limit";
+import { strictLimiter } from "../../../../lib/rate-limit";
 
 const isTurnstileEnabled = Boolean(process.env.TURNSTILE_SECRET_KEY);
 
@@ -42,7 +42,7 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   /* Rate limit */
-  const blocked = standardLimiter.check(request);
+  const blocked = strictLimiter.check(request);
   if (blocked) return blocked;
 
   try {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { email, turnstileToken, redirectTo } = parsed.data;
 
     /* Validate redirectTo is same-origin to prevent open redirect / token leakage */
-    const origin = request.headers.get("origin") ?? request.nextUrl.origin;
+    const origin = request.nextUrl.origin;
     try {
       const redirectUrl = new URL(redirectTo);
       if (redirectUrl.origin !== origin) {
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       maxAge: 600,
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
     });
     return response;
   } catch (err) {

@@ -12,6 +12,51 @@ interface ProfileJoin {
   readonly username: string | null;
 }
 
+/** Raw event row shape returned by the events select with author join. */
+interface RawEventRow {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly location: string | null;
+  readonly starts_at: string;
+  readonly ends_at: string;
+  readonly created_at: string;
+  readonly updated_at: string | null;
+  readonly created_by: string;
+  readonly organizer: string | null;
+  readonly recurrence_type: RecurrenceType | null;
+  readonly recurrence_end_date: string | null;
+  readonly banner_url: string | null;
+  readonly is_pinned: boolean | null;
+  readonly forum_post_id: string | null;
+  readonly author: ProfileJoin | null;
+}
+
+/** Raw template row shape returned by the event_templates select. */
+interface RawTemplateRow {
+  readonly id: string;
+  readonly title: string | null;
+  readonly description: string | null;
+  readonly location: string | null;
+  readonly duration_hours: number | null;
+  readonly is_open_ended: boolean | null;
+  readonly organizer: string | null;
+  readonly recurrence_type: string | null;
+  readonly recurrence_end_date: string | null;
+  readonly banner_url: string | null;
+}
+
+/** Raw game account membership row with join. */
+interface RawGameAccountMembershipRow {
+  readonly game_account_id: string;
+  readonly game_accounts: { readonly id: string; readonly game_username: string } | null;
+}
+
+/** Raw event result row for linked event IDs. */
+interface RawEventResultRow {
+  readonly linked_event_id: string;
+}
+
 const PAST_EVENTS_WINDOW_DAYS = 365;
 const FUTURE_EVENTS_WINDOW_DAYS = 540;
 const EVENTS_FETCH_LIMIT = 1000;
@@ -34,33 +79,40 @@ function getEventWindowBounds(): { readonly fromIso: string; readonly toIso: str
 }
 
 /** Map a raw Supabase row to an EventRow. */
-function mapRowToEventRow(row: Record<string, unknown>): EventRow {
+function mapRowToEventRow(row: RawEventRow): EventRow {
   return {
-    ...row,
-    organizer: (row.organizer as string) ?? null,
-    author_name: extractAuthorName(row.author as ProfileJoin | null),
-    recurrence_type: (row.recurrence_type as RecurrenceType) ?? "none",
-    recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-    banner_url: (row.banner_url as string) ?? null,
-    is_pinned: (row.is_pinned as boolean) ?? false,
-    forum_post_id: (row.forum_post_id as string) ?? null,
-    updated_at: (row.updated_at as string) ?? null,
-  } as EventRow;
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    location: row.location,
+    starts_at: row.starts_at,
+    ends_at: row.ends_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at ?? null,
+    created_by: row.created_by,
+    organizer: row.organizer ?? null,
+    author_name: extractAuthorName(row.author),
+    recurrence_type: row.recurrence_type ?? "none",
+    recurrence_end_date: row.recurrence_end_date ?? null,
+    banner_url: row.banner_url ?? null,
+    is_pinned: row.is_pinned ?? false,
+    forum_post_id: row.forum_post_id ?? null,
+  };
 }
 
 /** Map a raw Supabase row to a TemplateRow. */
-function mapRowToTemplateRow(row: Record<string, unknown>): TemplateRow {
+function mapRowToTemplateRow(row: RawTemplateRow): TemplateRow {
   return {
-    id: row.id as string,
-    title: (row.title as string) ?? "",
-    description: (row.description as string) ?? "",
-    location: (row.location as string) ?? null,
-    duration_hours: (row.duration_hours as number) ?? 0,
-    is_open_ended: (row.is_open_ended as boolean) ?? ((row.duration_hours as number) ?? 0) <= 0,
-    organizer: (row.organizer as string) ?? null,
-    recurrence_type: ((row.recurrence_type as string) ?? "none") as RecurrenceType,
-    recurrence_end_date: (row.recurrence_end_date as string) ?? null,
-    banner_url: (row.banner_url as string) ?? null,
+    id: row.id,
+    title: row.title ?? "",
+    description: row.description ?? "",
+    location: row.location ?? null,
+    duration_hours: row.duration_hours ?? 0,
+    is_open_ended: row.is_open_ended ?? (row.duration_hours ?? 0) <= 0,
+    organizer: row.organizer ?? null,
+    recurrence_type: (row.recurrence_type ?? "none") as RecurrenceType,
+    recurrence_end_date: row.recurrence_end_date ?? null,
+    banner_url: row.banner_url ?? null,
   };
 }
 
@@ -116,15 +168,15 @@ export function useEventsData(
         .gte("starts_at", fromIso)
         .lte("starts_at", toIso)
         .order("starts_at", { ascending: true })
-        .limit(EVENTS_FETCH_LIMIT);
+        .limit(EVENTS_FETCH_LIMIT)
+        .returns<RawEventRow[]>();
       if (cancelled) return;
       setIsLoading(false);
       if (error) {
         showError(error, "saveFailed");
         return;
       }
-      const rows = (data ?? []) as Array<Record<string, unknown>>;
-      setEvents(rows.map(mapRowToEventRow));
+      setEvents((data ?? []).map(mapRowToEventRow));
     }
     void loadEvents();
     return () => {
@@ -144,9 +196,10 @@ export function useEventsData(
         .select("*")
         .eq("clan_id", clanId)
         .order("title", { ascending: true })
-        .limit(TEMPLATE_FETCH_LIMIT);
+        .limit(TEMPLATE_FETCH_LIMIT)
+        .returns<RawTemplateRow[]>();
       if (cancelled || error) return;
-      setTemplates((data ?? []).map((row: Record<string, unknown>) => mapRowToTemplateRow(row)));
+      setTemplates((data ?? []).map(mapRowToTemplateRow));
     }
     void loadTemplates();
     return () => {
@@ -165,11 +218,12 @@ export function useEventsData(
         .select("linked_event_id")
         .eq("clan_id", clanId)
         .not("linked_event_id", "is", null)
-        .limit(5000);
+        .limit(5000)
+        .returns<RawEventResultRow[]>();
       if (signal?.cancelled) return;
       if (data) {
         const ids = new Set<string>();
-        for (const row of data as Array<{ linked_event_id: string }>) {
+        for (const row of data) {
           ids.add(row.linked_event_id);
         }
         setEventIdsWithResults(ids);
@@ -198,13 +252,13 @@ export function useEventsData(
         .select("game_account_id, game_accounts!inner(id, game_username)")
         .eq("clan_id", clanId)
         .eq("is_active", true)
-        .eq("is_shadow", false);
+        .eq("is_shadow", false)
+        .returns<RawGameAccountMembershipRow[]>();
       if (cancelled || error || !data) return;
       const accounts: GameAccountOption[] = [];
-      for (const row of data as Record<string, unknown>[]) {
-        const ga = row.game_accounts as Record<string, unknown> | null;
-        if (ga?.game_username) {
-          accounts.push({ id: String(ga.id), game_username: String(ga.game_username) });
+      for (const row of data) {
+        if (row.game_accounts?.game_username) {
+          accounts.push({ id: row.game_accounts.id, game_username: row.game_accounts.game_username });
         }
       }
       accounts.sort((a, b) => a.game_username.localeCompare(b.game_username));
@@ -226,13 +280,13 @@ export function useEventsData(
       .gte("starts_at", fromIso)
       .lte("starts_at", toIso)
       .order("starts_at", { ascending: true })
-      .limit(EVENTS_FETCH_LIMIT);
+      .limit(EVENTS_FETCH_LIMIT)
+      .returns<RawEventRow[]>();
     if (error) {
       showError(error, "saveFailed");
       return;
     }
-    const rows = (data ?? []) as Array<Record<string, unknown>>;
-    setEvents(rows.map(mapRowToEventRow));
+    setEvents((data ?? []).map(mapRowToEventRow));
     void loadResultIds();
   }
 
@@ -243,12 +297,13 @@ export function useEventsData(
       .select("*")
       .eq("clan_id", clanId)
       .order("title", { ascending: true })
-      .limit(TEMPLATE_FETCH_LIMIT);
+      .limit(TEMPLATE_FETCH_LIMIT)
+      .returns<RawTemplateRow[]>();
     if (error) {
       showError(error, "saveFailed");
       return;
     }
-    setTemplates((data ?? []).map((row: Record<string, unknown>) => mapRowToTemplateRow(row)));
+    setTemplates((data ?? []).map(mapRowToTemplateRow));
   }
 
   return {

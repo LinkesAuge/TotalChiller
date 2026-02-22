@@ -96,7 +96,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .insert({
         clan_id: body.clan_id,
         name: body.name,
-        slug: body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        slug:
+          body.slug ||
+          body.name
+            .toLowerCase()
+            .replace(/ä/g, "ae")
+            .replace(/ö/g, "oe")
+            .replace(/ü/g, "ue")
+            .replace(/ß/g, "ss")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, ""),
         description: body.description ?? null,
         sort_order: body.sort_order ?? 0,
       })

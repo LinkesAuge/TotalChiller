@@ -43,7 +43,7 @@ export async function POST(request: Request): Promise<Response> {
       return NextResponse.json({ error: "Failed to resend invite." }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ data: { success: true } });
   } catch (err) {
     captureApiError("POST /api/admin/resend-invite", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });

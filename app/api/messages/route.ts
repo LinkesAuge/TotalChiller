@@ -273,10 +273,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const parsed = SEND_SCHEMA.safeParse(rawBody);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid input.", details: parsed.error.flatten().fieldErrors },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid input." }, { status: 400 });
     }
 
     const body = parsed.data;
@@ -317,13 +314,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (resolvedRecipientIds.length === 0) {
         return NextResponse.json({ error: "No recipients found." }, { status: 400 });
       }
-      if (resolvedRecipientIds.length <= 50) {
-        const { data: validProfiles } = await svc.from("profiles").select("id").in("id", resolvedRecipientIds);
+      const batchSize = 50;
+      const allInvalidIds: string[] = [];
+      for (let i = 0; i < resolvedRecipientIds.length; i += batchSize) {
+        const batch = resolvedRecipientIds.slice(i, i + batchSize);
+        const { data: validProfiles } = await svc.from("profiles").select("id").in("id", batch);
         const validIds = new Set((validProfiles ?? []).map((p) => p.id as string));
-        const invalidIds = resolvedRecipientIds.filter((id) => !validIds.has(id));
-        if (invalidIds.length > 0) {
-          return NextResponse.json({ error: `Recipient(s) not found: ${invalidIds.join(", ")}` }, { status: 404 });
-        }
+        allInvalidIds.push(...batch.filter((id) => !validIds.has(id)));
+      }
+      if (allInvalidIds.length > 0) {
+        return NextResponse.json({ error: `Recipient(s) not found: ${allInvalidIds.join(", ")}` }, { status: 404 });
       }
     }
 

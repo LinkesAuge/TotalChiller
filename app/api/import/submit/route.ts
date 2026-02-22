@@ -176,12 +176,13 @@ async function loadClanGameAccounts(svc: SupabaseClient, clanId: string): Promis
     .from("game_account_clan_memberships")
     .select("game_accounts!inner(id, game_username)")
     .eq("clan_id", clanId)
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .returns<Array<{ game_accounts: GameAccountMatch }>>();
 
   const map = new Map<string, GameAccountMatch>();
   if (!data) return map;
 
-  for (const row of data as unknown as Array<{ game_accounts: GameAccountMatch }>) {
+  for (const row of data) {
     map.set(row.game_accounts.game_username.toLowerCase(), row.game_accounts);
   }
   return map;

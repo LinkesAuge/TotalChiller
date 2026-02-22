@@ -477,15 +477,17 @@ export function useMessages({ userId, initialRecipientId, initialTab }: UseMessa
           .eq("is_active", true)
           .eq("is_shadow", false)
           .in("rank", ["leader", "superior"])
-          .eq("game_accounts.user_id", userId);
+          .eq("game_accounts.user_id", userId)
+          .returns<
+            Array<{ clan_id: string; rank: string; clans: ClanOption | null; game_accounts: { user_id: string } }>
+          >();
         if (cancelled) return;
         const leaderClans: ClanOption[] = [];
         const ids = new Set<string>();
         for (const m of memberships ?? []) {
-          const clan = m.clans as unknown as { id: string; name: string } | null;
-          if (clan && !ids.has(clan.id)) {
-            ids.add(clan.id);
-            leaderClans.push(clan);
+          if (m.clans && !ids.has(m.clans.id)) {
+            ids.add(m.clans.id);
+            leaderClans.push(m.clans);
           }
         }
         setClans(leaderClans.sort((a, b) => a.name.localeCompare(b.name)));

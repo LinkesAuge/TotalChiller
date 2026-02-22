@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useSupabase } from "../../hooks/use-supabase";
 import { useUserRole } from "@/lib/hooks/use-user-role";
+import ConfirmModal from "../../components/confirm-modal";
 import DataState from "../../components/data-state";
 import PaginationBar from "../../components/pagination-bar";
 import { usePagination } from "@/lib/hooks/use-pagination";
@@ -110,6 +111,7 @@ function SubmissionDetailClient(): JSX.Element {
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [itemStatusFilter, setItemStatusFilter] = useState<ItemStatusFilter>("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (actionLoading) {
@@ -190,13 +192,14 @@ function SubmissionDetailClient(): JSX.Element {
     [id, actionLoading, t],
   );
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(() => {
     if (!id || actionLoading) return;
-    const msg =
-      submission && submission.status !== "pending" && submission.status !== "partial"
-        ? t("deleteConfirmApproved")
-        : t("deleteConfirm");
-    if (!window.confirm(msg)) return;
+    setIsDeleteModalOpen(true);
+  }, [id, actionLoading]);
+
+  const executeDelete = useCallback(async () => {
+    setIsDeleteModalOpen(false);
+    if (!id) return;
     setActionLoading(true);
     try {
       const res = await fetch(`/api/import/submissions/${id}`, { method: "DELETE" });
@@ -209,7 +212,7 @@ function SubmissionDetailClient(): JSX.Element {
       setLoadError(err instanceof Error ? err.message : t("deleteError"));
       setActionLoading(false);
     }
-  }, [id, actionLoading, submission, router, t]);
+  }, [id, router, t]);
 
   const handleTabChange = useCallback(
     (filter: ItemStatusFilter) => {
@@ -472,6 +475,21 @@ function SubmissionDetailClient(): JSX.Element {
           </>
         )}
       </DataState>
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title={t("deleteSubmission")}
+        message={
+          submission && submission.status !== "pending" && submission.status !== "partial"
+            ? t("deleteConfirmApproved")
+            : t("deleteConfirm")
+        }
+        variant="danger"
+        confirmLabel={t("deleteSubmission")}
+        cancelLabel={t("cancelOverwrite")}
+        onConfirm={executeDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
+      />
     </div>
   );
 }

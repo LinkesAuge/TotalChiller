@@ -32,10 +32,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     }
     const parsed = APPROVAL_ACTION_SCHEMA.safeParse(rawBody);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid input.", details: parsed.error.flatten().fieldErrors },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid input." }, { status: 400 });
     }
     const body = parsed.data;
     const serviceClient = createSupabaseServiceRoleClient();

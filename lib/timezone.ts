@@ -90,6 +90,20 @@ function berlinMidnightUTC(dateStr: string): string {
   return new Date(Date.UTC(y!, m! - 1, d!, -2, 0, 0, 0)).toISOString();
 }
 
+/**
+ * UTC ISO boundaries for a Berlin date range (inclusive).
+ * Returns the UTC instant of midnight Berlin on `from` and just before
+ * midnight Berlin on the day after `to`, so DB `.gte` / `.lt` works correctly.
+ */
+export function berlinDateRangeUTC(from: string, to: string): { fromUTC: string; toUTC: string } {
+  const [ty, tm, td] = to.split("-").map(Number);
+  const dayAfterTo = berlinDateFromYMD(ty!, tm!, td! + 1);
+  return {
+    fromUTC: berlinMidnightUTC(from),
+    toUTC: berlinMidnightUTC(dayAfterTo),
+  };
+}
+
 /* ── Week / day helpers (for DB query ranges) ── */
 
 /** Monday YYYY-MM-DD of the current week in Berlin. */

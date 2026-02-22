@@ -65,7 +65,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .from("game_account_clan_memberships")
       .select("game_accounts(user_id)")
       .eq("clan_id", body.clan_id)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .returns<Array<{ game_accounts: { user_id: string } | null }>>();
     if (membershipError) {
       captureApiError("POST /api/notifications/fan-out", membershipError);
       return NextResponse.json({ error: "Failed to load clan memberships." }, { status: 500 });
@@ -73,10 +74,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const recipientIds = Array.from(
       new Set(
         (memberships ?? [])
-          .map((row) => {
-            const gameAccount = row.game_accounts as unknown as { user_id: string } | null;
-            return gameAccount?.user_id ?? null;
-          })
+          .map((row) => row.game_accounts?.user_id ?? null)
           .filter((id): id is string => id !== null && id !== senderId),
       ),
     );

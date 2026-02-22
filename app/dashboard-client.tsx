@@ -135,15 +135,10 @@ function DashboardClient(): JSX.Element {
           <div className="card-body">
             <DataState
               isLoading={isLoadingAnnouncements}
+              error={announcementsError}
               isEmpty={announcements.length === 0}
               loadingNode={<div className="py-4 text-sm text-text-muted">{t("loading")}</div>}
-              emptyNode={
-                announcementsError ? (
-                  <div className="py-4 text-sm text-red-500">{announcementsError}</div>
-                ) : (
-                  <div className="py-4 text-sm text-text-muted">{t("noAnnouncements")}</div>
-                )
-              }
+              emptyNode={<div className="py-4 text-sm text-text-muted">{t("noAnnouncements")}</div>}
             >
               {announcements.map((article, i) => {
                 const firstTag = article.tags.length > 0 ? article.tags[0] : null;
@@ -309,15 +304,10 @@ function DashboardClient(): JSX.Element {
           <div className="py-2.5 px-4">
             <DataState
               isLoading={isLoadingEvents}
+              error={eventsError}
               isEmpty={events.length === 0}
               loadingNode={<div className="py-2 text-sm text-text-muted">{t("loading")}</div>}
-              emptyNode={
-                eventsError ? (
-                  <div className="py-2 text-sm text-red-500">{eventsError}</div>
-                ) : (
-                  <div className="py-2 text-sm text-text-muted">{t("noEventsScheduled")}</div>
-                )
-              }
+              emptyNode={<div className="py-2 text-sm text-text-muted">{t("noEventsScheduled")}</div>}
             >
               {events.map((event, i) => {
                 const color = EVENT_DOT_COLORS[i % EVENT_DOT_COLORS.length];

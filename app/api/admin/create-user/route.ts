@@ -97,7 +97,7 @@ export async function POST(request: Request): Promise<Response> {
     const { error: profileError } = await supabase.from("profiles").upsert(
       {
         id: userId,
-        email,
+        email: normalizedEmail,
         user_db: nextUsername,
         username: nextUsername,
         display_name: nextDisplayName,

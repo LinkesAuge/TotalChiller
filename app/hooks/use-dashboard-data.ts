@@ -98,7 +98,8 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
         .eq("status", "published")
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(5)
+        .returns<ArticleWithAuthorJoin[]>();
       if (cancelled) return;
       setIsLoadingAnnouncements(false);
       if (error) {
@@ -106,11 +107,11 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
         return;
       }
       setAnnouncements(
-        ((data ?? []) as unknown as ArticleWithAuthorJoin[]).map((row) => ({
+        (data ?? []).map((row) => ({
           ...row,
           tags: row.tags ?? [],
           author_name: extractAuthorName(row.author),
-        })) as ArticleSummary[],
+        })),
       );
     }
     void loadAnnouncements();
@@ -140,7 +141,8 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
         .eq("clan_id", clanId)
         .gte("ends_at", now)
         .order("starts_at", { ascending: true })
-        .limit(5);
+        .limit(5)
+        .returns<EventWithAuthorJoin[]>();
       if (cancelled) return;
       setIsLoadingEvents(false);
       if (error) {
@@ -148,10 +150,11 @@ export function useDashboardData(params: UseDashboardDataParams): UseDashboardDa
         return;
       }
       setEvents(
-        ((data ?? []) as unknown as EventWithAuthorJoin[]).map((row) => ({
+        (data ?? []).map((row) => ({
           ...row,
+          description: row.description ?? "",
           author_name: extractAuthorName(row.author),
-        })) as EventSummary[],
+        })),
       );
     }
     void loadEvents();

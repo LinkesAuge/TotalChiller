@@ -683,9 +683,10 @@ function DataContent(): ReactElement {
         .select("id, title, starts_at")
         .eq("clan_id", clanContext!.clanId)
         .order("starts_at", { ascending: false })
-        .limit(200);
+        .limit(200)
+        .returns<CalendarEvent[]>();
       if (!error && data) {
-        setClanEvents(data as unknown as CalendarEvent[]);
+        setClanEvents(data);
       }
     }
     void loadEvents();

@@ -54,6 +54,7 @@ data_pipeline_staging.sql
 data_pipeline_production.sql
 data_pipeline_validation.sql
 data_pipeline_rls.sql
+forum_atomic_score.sql
 ```
 
 Legacy only (do not run on fresh setup): `messages.sql` (pre-v2 single-table model).

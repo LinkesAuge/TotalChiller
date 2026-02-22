@@ -1980,5 +1980,12 @@
       "invalidType": "Invalid file type. Use JPEG, PNG, GIF, or WebP.",
       "tooLarge": "File too large. Maximum size is 5 MB."
     }
+  },
+  "audioPlayer": {
+    "pause": "Pause music",
+    "play": "Play music",
+    "unmute": "Unmute",
+    "mute": "Mute",
+    "volume": "Volume"
   }
 }

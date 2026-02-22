@@ -18,6 +18,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (auth.error) return auth.error;
     const { userId, supabase } = auth;
 
+    interface MembershipRow {
+      clan_id: string;
+      clans: { id: string; name: string };
+      game_accounts: { id: string; game_username: string };
+    }
+
     const [profileResult, clansResult] = await Promise.all([
       supabase.from("profiles").select("default_clan_id").eq("id", userId).single(),
       supabase
@@ -30,18 +36,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         `,
         )
         .eq("game_accounts.user_id", userId)
-        .eq("is_active", true),
+        .eq("is_active", true)
+        .returns<MembershipRow[]>(),
     ]);
 
     const defaultClanId: string | null = profileResult.data?.default_clan_id ?? null;
-
-    interface MembershipRow {
-      clan_id: string;
-      clans: { id: string; name: string };
-      game_accounts: { id: string; game_username: string };
-    }
-
-    const memberships = (clansResult.data ?? []) as unknown as MembershipRow[];
+    const memberships = clansResult.data ?? [];
     const clans = memberships.map((m) => ({
       id: m.clans.id,
       name: m.clans.name,

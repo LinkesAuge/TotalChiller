@@ -21,6 +21,23 @@ interface ClanOption {
   readonly rank: string | null;
 }
 
+/** Raw row shape from game_account_clan_memberships with joins. */
+interface SidebarMembershipRow {
+  readonly clan_id: string;
+  readonly game_account_id: string;
+  readonly rank: string | null;
+  readonly clans: { readonly name: string; readonly is_unassigned: boolean } | null;
+  readonly game_accounts: { readonly game_username: string; readonly approval_status: string } | null;
+}
+
+/** Raw profile row for sidebar. */
+interface SidebarProfileRow {
+  readonly user_db: string | null;
+  readonly username: string | null;
+  readonly display_name: string | null;
+  readonly default_game_account_id: string | null;
+}
+
 interface SidebarUserData {
   readonly initials: string;
   readonly displayLabel: string;
@@ -94,7 +111,8 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
         .from("profiles")
         .select("user_db,username,display_name,default_game_account_id")
         .eq("id", userId)
-        .maybeSingle(),
+        .maybeSingle()
+        .returns<SidebarProfileRow | null>(),
       supabase
         .from("game_account_clan_memberships")
         .select(
@@ -102,24 +120,22 @@ function SidebarShell({ children }: { readonly children: React.ReactNode }): JSX
         )
         .eq("is_active", true)
         .eq("clans.is_unassigned", false)
-        .eq("game_accounts.user_id", userId),
+        .eq("game_accounts.user_id", userId)
+        .returns<SidebarMembershipRow[]>(),
     ]);
 
     const options: ClanOption[] = (memberships ?? [])
-      .filter((row) => {
-        const ga = row.game_accounts as unknown as { game_username: string; approval_status: string } | null;
-        return ga?.approval_status === "approved";
-      })
+      .filter((row) => row.game_accounts?.approval_status === "approved")
       .map((row) => ({
-        clanId: row.clan_id as string,
-        gameAccountId: row.game_account_id as string,
-        clanName: (row.clans as unknown as { name: string } | null)?.name ?? "Clan",
-        gameLabel: (row.game_accounts as unknown as { game_username: string } | null)?.game_username ?? "Account",
-        rank: (row.rank as string) ?? null,
+        clanId: row.clan_id,
+        gameAccountId: row.game_account_id,
+        clanName: row.clans?.name ?? "Clan",
+        gameLabel: row.game_accounts?.game_username ?? "Account",
+        rank: row.rank ?? null,
       }));
 
     /* Restore previous selection: 1) DB default, 2) localStorage, 3) first option */
-    const dbDefaultGameAccountId = (profile?.default_game_account_id as string | null) ?? null;
+    const dbDefaultGameAccountId = profile?.default_game_account_id ?? null;
     const dbDefaultOption = dbDefaultGameAccountId
       ? options.find((o) => o.gameAccountId === dbDefaultGameAccountId)
       : null;

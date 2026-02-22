@@ -4,18 +4,29 @@
  */
 export function isPublicPath(pathname: string): boolean {
   return (
-    pathname.startsWith("/home") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/about") ||
-    pathname.startsWith("/contact") ||
-    pathname.startsWith("/privacy-policy") ||
-    pathname.startsWith("/profile") /* bypasses clan-access gate; auth is enforced by the page itself */ ||
-    pathname.startsWith("/settings") /* bypasses clan-access gate; auth is enforced by the page itself */ ||
-    pathname.startsWith("/not-authorized") ||
+    pathname === "/home" ||
+    pathname.startsWith("/home/") ||
+    pathname === "/auth" ||
+    pathname.startsWith("/auth/") ||
+    pathname === "/about" ||
+    pathname.startsWith("/about/") ||
+    pathname === "/contact" ||
+    pathname.startsWith("/contact/") ||
+    pathname === "/privacy-policy" ||
+    pathname.startsWith("/privacy-policy/") ||
+    pathname === "/profile" ||
+    pathname.startsWith("/profile/") /* bypasses clan-access gate; auth is enforced by the page itself */ ||
+    pathname === "/settings" ||
+    pathname.startsWith("/settings/") /* bypasses clan-access gate; auth is enforced by the page itself */ ||
+    pathname === "/not-authorized" ||
+    pathname.startsWith("/not-authorized/") ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/sitemap") ||
-    pathname.startsWith("/robots") ||
-    pathname.startsWith("/assets") ||
+    pathname === "/sitemap" ||
+    pathname.startsWith("/sitemap/") ||
+    pathname === "/robots" ||
+    pathname.startsWith("/robots/") ||
+    pathname === "/assets" ||
+    pathname.startsWith("/assets/") ||
     pathname.endsWith(".xml") ||
     pathname.endsWith(".txt") ||
     pathname.endsWith(".json") ||

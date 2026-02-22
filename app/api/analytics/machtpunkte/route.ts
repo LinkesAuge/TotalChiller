@@ -5,7 +5,7 @@ import { standardLimiter } from "@/lib/rate-limit";
 import { requireAuth } from "@/lib/api/require-auth";
 import { apiError, uuidSchema, escapeLikePattern } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
-import { berlinCompareDate, toBerlinDate } from "@/lib/timezone";
+import { berlinCompareDate, berlinDateRangeUTC, toBerlinDate } from "@/lib/timezone";
 
 const MAX_PAGE_SIZE = 10000;
 
@@ -86,10 +86,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       snapshot_date: string;
     }>;
 
-    // Determine compare cutoff date
     const compareCutoff =
       compare === "custom" && parsed.data.from
-        ? `${parsed.data.from}T00:00:00.000Z`
+        ? berlinDateRangeUTC(parsed.data.from, parsed.data.from).fromUTC
         : compare === "all_time"
           ? null
           : berlinCompareDate(compare as "week" | "month");
@@ -180,14 +179,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // History data for charts: top 10 players, all their snapshots
     const from = parsed.data.from;
     const to = parsed.data.to;
+    const fromUTCBound = from ? berlinDateRangeUTC(from, from).fromUTC : null;
+    const toUTCBound = to ? berlinDateRangeUTC(to, to).toUTC : null;
     const top10Ids = new Set(sorted.slice(0, 10).map(([id]) => id));
     const history: Array<{ date: string; player_name: string; score: number }> = [];
 
     for (const [gaId, data] of accountData) {
       if (!top10Ids.has(gaId)) continue;
       for (const snap of data.snapshots) {
-        if (from && snap.date < from) continue;
-        if (to && snap.date > `${to}T23:59:59.999Z`) continue;
+        if (fromUTCBound && snap.date < fromUTCBound) continue;
+        if (toUTCBound && snap.date >= toUTCBound) continue;
         history.push({ date: snap.date, player_name: data.player_name, score: snap.score });
       }
     }

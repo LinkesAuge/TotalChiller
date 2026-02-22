@@ -67,7 +67,7 @@ export default function EventLinkedResults({
   const sectionRef = useRef<HTMLDivElement>(null);
   const [results, setResults] = useState<readonly EventResult[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     if (!clanId) {
@@ -86,13 +86,14 @@ export default function EventLinkedResults({
         .eq("linked_event_id", eventId)
         .eq("clan_id", clanId!)
         .order("event_points", { ascending: false })
-        .limit(200);
+        .limit(200)
+        .returns<EventResult[]>();
 
       if (cancelled) return;
       if (error || !data || data.length === 0) {
         setResults(null);
       } else {
-        setResults(data as unknown as EventResult[]);
+        setResults(data);
       }
       setLoading(false);
     }

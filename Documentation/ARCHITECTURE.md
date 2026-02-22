@@ -65,7 +65,7 @@
 ├── Documentation/          # Architecture, changelog, runbook, migrations
 │   └── migrations/         # SQL migration files (run order in runbook.md)
 ├── public/assets/          # Static assets (game icons, banners, backgrounds)
-├── proxy.ts                # Middleware: auth redirect, admin gating, PKCE catch
+├── middleware.ts            # Next.js middleware: auth redirect, admin gating, PKCE catch, locale init
 └── next.config.js          # Next.js config (CSP, image domains)
 ```
 
@@ -75,7 +75,7 @@ Each feature follows: `app/[feature]/page.tsx` (thin server component) → `app/
 
 ### 4.1 Auth (`app/auth/`)
 
-Login, register, forgot password, password update. Supabase Auth with PKCE flow. First-login detection redirects users without game accounts to `/profile`. `proxy.ts` handles page-level auth gating; API routes handle their own auth via `requireAuth()`.
+Login, register, forgot password, password update. Supabase Auth with PKCE flow. First-login detection redirects users without game accounts to `/profile`. `middleware.ts` handles page-level auth gating, PKCE code catch-all, locale cookie initialization, Supabase session refresh, and admin path protection; API routes handle their own auth via `requireAuth()`.
 
 | File                                  | Purpose                               |
 | ------------------------------------- | ------------------------------------- |
@@ -133,6 +133,8 @@ Reddit-style forum with categories, posts, threaded comments, voting, markdown, 
 | `app/forum/forum-post-list.tsx`   | Post list with thumbnails          |
 
 **DB tables:** `forum_categories`, `forum_posts`, `forum_comments`, `forum_votes`, `forum_comment_votes`
+
+**DB functions:** `increment_post_score(uuid, integer)`, `increment_comment_score(uuid, integer)` — atomic score updates via `SECURITY DEFINER` RPCs with delta range validation (±2 max). Called from vote handlers instead of read-modify-write to prevent lost updates under concurrent voting.
 
 ### 4.4 Events (`app/events/`)
 

@@ -91,16 +91,20 @@ function MembersClient(): JSX.Element {
 
   /* ── Load members for the active clan ── */
   useEffect(() => {
-    async function loadMembers(): Promise<void> {
-      if (!clanContext?.clanId) {
-        setMembers([]);
-        setClanName("");
-        setLoadError(null);
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
+    if (!clanContext?.clanId) {
+      setMembers([]);
+      setClanName("");
       setLoadError(null);
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const activeClanId = clanContext.clanId;
+    setIsLoading(true);
+    setLoadError(null);
+
+    async function loadMembers(): Promise<void> {
       const { data, error } = await supabase
         .from("game_account_clan_memberships")
         .select(
@@ -108,44 +112,48 @@ function MembersClient(): JSX.Element {
         )
         .eq("is_active", true)
         .eq("is_shadow", false)
-        .eq("clan_id", clanContext.clanId)
-        .order("rank", { ascending: true });
+        .eq("clan_id", activeClanId)
+        .order("rank", { ascending: true })
+        .returns<MembershipSupabaseRow[]>();
+
+      if (cancelled) return;
+
       if (error || !data) {
         setMembers([]);
         setLoadError(error?.message ?? t("loadError"));
         setIsLoading(false);
         return;
       }
-      const rows = data as unknown as MembershipSupabaseRow[];
-      /* Resolve clan name from the first row */
+      const rows = data;
       const firstRow = rows[0];
       if (firstRow?.clans) {
         setClanName(firstRow.clans.name ?? "");
       }
-      /* Collect unique user IDs to batch-fetch profiles and roles */
       const userIds = rows.map((r) => r.game_accounts.user_id).filter(Boolean);
       const unique = [...new Set(userIds)];
-      /* Fetch profiles and roles in parallel */
       let profileMap = new Map<string, { display_name: string | null; username: string | null }>();
       let nextRoleMap = new Map<string, string>();
       if (unique.length > 0) {
         const [{ data: profiles }, { data: roles }] = await Promise.all([
-          supabase.from("profiles").select("id, display_name, username").in("id", unique),
-          supabase.from("user_roles").select("user_id, role").in("user_id", unique),
+          supabase.from("profiles").select("id, display_name, username").in("id", unique).returns<ProfileSelectRow[]>(),
+          supabase.from("user_roles").select("user_id, role").in("user_id", unique).returns<RoleSelectRow[]>(),
         ]);
-        for (const p of (profiles ?? []) as ProfileSelectRow[]) {
+
+        if (cancelled) return;
+
+        for (const p of profiles ?? []) {
           profileMap.set(p.id, { display_name: p.display_name, username: p.username });
         }
-        for (const r of (roles ?? []) as RoleSelectRow[]) {
+        for (const r of roles ?? []) {
           if (NOTABLE_ROLES.has(r.role)) {
             nextRoleMap.set(r.user_id, r.role);
           }
         }
       }
-      /* Fetch latest member snapshots for this clan */
       let snapshotMap = new Map<string, { coordinates: string | null; score: number | null; snapshotDate: string }>();
       try {
-        const snapRes = await fetch(`/api/members/snapshots?clan_id=${encodeURIComponent(clanContext.clanId)}`);
+        const snapRes = await fetch(`/api/members/snapshots?clan_id=${encodeURIComponent(activeClanId)}`);
+        if (cancelled) return;
         if (snapRes.ok) {
           const snapBody = (await snapRes.json()) as {
             data: Array<{
@@ -164,8 +172,10 @@ function MembersClient(): JSX.Element {
           }
         }
       } catch {
-        /* snapshot data is optional — continue without it */
+        if (cancelled) return;
       }
+
+      if (cancelled) return;
 
       const mapped: MemberRow[] = rows.map((row) => {
         const ga = row.game_accounts;
@@ -191,6 +201,9 @@ function MembersClient(): JSX.Element {
       setIsLoading(false);
     }
     void loadMembers();
+    return () => {
+      cancelled = true;
+    };
   }, [supabase, clanContext?.clanId, retryCount, t]);
 
   const handleRetry = useCallback(() => {

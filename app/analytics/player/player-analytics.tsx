@@ -693,7 +693,7 @@ export default function PlayerAnalytics(): JSX.Element {
                     {t("chartChestTypeDistribution")}
                   </h4>
                   <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                    <ResponsiveContainer width={180} height={180}>
+                    <ResponsiveContainer width="100%" height={180}>
                       <PieChart>
                         <Pie
                           data={data.chests.type_distribution}

@@ -83,7 +83,8 @@ function RegisterPage(): JSX.Element {
     setIsSubmitting(true);
     updateFormState({ status: t("creating") });
     /* Set fallback cookie in case Supabase ignores the redirect URL */
-    document.cookie = "auth_redirect_next=/auth/login; path=/; max-age=600; SameSite=Lax";
+    const securePart = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `auth_redirect_next=/auth/login; path=/; max-age=600; SameSite=Lax${securePart}`;
     const { error } = await supabase.auth.signUp({
       email: formState.email,
       password: formState.password,

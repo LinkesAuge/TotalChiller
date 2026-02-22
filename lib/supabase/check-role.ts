@@ -21,7 +21,9 @@ export async function resolveUserRole(supabase: SupabaseClient): Promise<Role | 
   /* 2. Fast path — RPC admin check (returns true for owner / admin) */
   const { data: adminFlag, error: adminFlagError } = await supabase.rpc("is_any_admin");
   if (!adminFlagError && Boolean(adminFlag)) {
-    return "admin"; // RPC only fires for owner/admin — "admin" satisfies both checks
+    /* Distinguish owner from admin by fetching the actual role */
+    const { data: roleRow } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+    return toRole(roleRow?.role ?? "admin");
   }
 
   /* 3. Fallback — fetch explicit role from user_roles */

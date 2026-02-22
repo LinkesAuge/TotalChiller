@@ -150,11 +150,13 @@ export default function EventsAnalytics(): JSX.Element {
   const [listData, setListData] = useState<EventListResponse | null>(null);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [listRetry, setListRetry] = useState(0);
 
   /* ── Detail state ── */
   const [detailData, setDetailData] = useState<EventDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [detailRetry, setDetailRetry] = useState(0);
 
   /* ── Fetch event list ── */
   useEffect(() => {
@@ -184,7 +186,7 @@ export default function EventsAnalytics(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [clanId, selectedEventId]);
+  }, [clanId, selectedEventId, listRetry]);
 
   /* ── Fetch event detail ── */
   useEffect(() => {
@@ -215,7 +217,7 @@ export default function EventsAnalytics(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [clanId, selectedEventId]);
+  }, [clanId, selectedEventId, detailRetry]);
 
   /* ── Navigation ── */
 
@@ -302,6 +304,7 @@ export default function EventsAnalytics(): JSX.Element {
           error={detailError}
           isEmpty={!detailData || detailData.rankings.length === 0}
           emptyMessage={t("noEventResults")}
+          onRetry={() => setDetailRetry((c) => c + 1)}
         >
           {detailData && (
             <>
@@ -451,6 +454,7 @@ export default function EventsAnalytics(): JSX.Element {
           error={listError}
           isEmpty={!listData || listData.events.length === 0}
           emptyMessage={t("noEventData")}
+          onRetry={() => setListRetry((c) => c + 1)}
         >
           {listData && (
             <>

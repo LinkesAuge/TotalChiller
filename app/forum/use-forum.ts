@@ -486,12 +486,25 @@ export function useForum(t: (key: string) => string): UseForumResult {
           }
         }
         const scoreDelta = newVote - currentVote;
-        const newScore = post.score + scoreDelta;
-        const { error: scoreError } = await supabase.from("forum_posts").update({ score: newScore }).eq("id", postId);
+        const { error: scoreError } = await supabase.rpc("increment_post_score", {
+          target_post_id: postId,
+          delta: scoreDelta,
+        });
         if (scoreError) {
+          if (currentVote === 0) {
+            await supabase.from("forum_votes").delete().eq("post_id", postId).eq("user_id", currentUserId);
+          } else {
+            await supabase
+              .from("forum_votes")
+              .upsert(
+                { post_id: postId, user_id: currentUserId, vote_type: currentVote },
+                { onConflict: "post_id,user_id" },
+              );
+          }
           pushToast(t("voteFailed"));
           return;
         }
+        const newScore = post.score + scoreDelta;
         setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, score: newScore, userVote: newVote } : p)));
         setSelectedPost((prev) => (prev?.id === postId ? { ...prev, score: newScore, userVote: newVote } : prev));
       } finally {
@@ -543,15 +556,29 @@ export function useForum(t: (key: string) => string): UseForumResult {
           }
         }
         const scoreDelta = newVote - currentVote;
-        const newScore = comment.score + scoreDelta;
-        const { error: scoreError } = await supabase
-          .from("forum_comments")
-          .update({ score: newScore })
-          .eq("id", commentId);
+        const { error: scoreError } = await supabase.rpc("increment_comment_score", {
+          target_comment_id: commentId,
+          delta: scoreDelta,
+        });
         if (scoreError) {
+          if (currentVote === 0) {
+            await supabase
+              .from("forum_comment_votes")
+              .delete()
+              .eq("comment_id", commentId)
+              .eq("user_id", currentUserId);
+          } else {
+            await supabase
+              .from("forum_comment_votes")
+              .upsert(
+                { comment_id: commentId, user_id: currentUserId, vote_type: currentVote },
+                { onConflict: "comment_id,user_id" },
+              );
+          }
           pushToast(t("voteFailed"));
           return;
         }
+        const newScore = comment.score + scoreDelta;
         function updateTree(list: ForumComment[]): ForumComment[] {
           return list.map((c) => {
             if (c.id === commentId) return { ...c, score: newScore, userVote: newVote };

@@ -11,7 +11,7 @@ const LOOKUP_SCHEMA = z
     email: z.string().trim().optional(),
     username: z.string().trim().optional(),
     identifier: z.string().trim().optional(),
-    clanId: z.string().min(1),
+    clanId: z.string().uuid(),
   })
   .refine((data) => !!(data.identifier?.trim() || data.username?.trim() || data.email?.trim()), {
     message: "At least one lookup field (email, username, or identifier) is required.",
@@ -32,10 +32,7 @@ export async function POST(request: Request): Promise<Response> {
     }
     const parsed = LOOKUP_SCHEMA.safeParse(rawBody);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid input.", details: parsed.error.flatten().fieldErrors },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid input." }, { status: 400 });
     }
     const body = parsed.data;
     const identifier = body.identifier ?? "";
@@ -63,7 +60,7 @@ export async function POST(request: Request): Promise<Response> {
     if (!profile) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
-    return NextResponse.json({ id: profile.id });
+    return NextResponse.json({ data: { id: profile.id } });
   } catch (err) {
     captureApiError("POST /api/admin/user-lookup", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });

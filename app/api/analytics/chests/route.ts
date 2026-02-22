@@ -5,7 +5,7 @@ import { standardLimiter } from "@/lib/rate-limit";
 import { requireAuth } from "@/lib/api/require-auth";
 import { apiError, uuidSchema, escapeLikePattern } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
-import { berlinWeekBounds, toBerlinDate } from "@/lib/timezone";
+import { berlinWeekBounds, toBerlinDate, berlinDateRangeUTC } from "@/lib/timezone";
 
 const MAX_PAGE_SIZE = 10000;
 
@@ -65,13 +65,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { data: isAdmin } = await supabase.rpc("is_any_admin");
     if (!isMember && !isAdmin) return apiError("Access denied.", 403);
 
-    // Build base query
+    const { fromUTC, toUTC } = berlinDateRangeUTC(from, to);
+
     let query = supabase
       .from("chest_entries")
       .select("player_name, chest_name, source, opened_at, game_account_id")
       .eq("clan_id", clan_id)
-      .gte("opened_at", `${from}T00:00:00.000Z`)
-      .lte("opened_at", `${to}T23:59:59.999Z`)
+      .gte("opened_at", fromUTC)
+      .lt("opened_at", toUTC)
       .limit(10000);
 
     if (player) query = query.ilike("player_name", `%${escapeLikePattern(player)}%`);

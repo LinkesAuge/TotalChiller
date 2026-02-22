@@ -2,7 +2,6 @@
 
 import { type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useSupabase } from "@/app/hooks/use-supabase";
 import useClanContext from "@/app/hooks/use-clan-context";
 import DataState from "@/app/components/data-state";
 
@@ -32,7 +31,6 @@ interface EditState {
 
 export default function ValidationListsPanel(): ReactElement {
   const t = useTranslations("validationLists");
-  const supabase = useSupabase();
   const clanContext = useClanContext();
 
   const [corrections, setCorrections] = useState<readonly CorrectionEntry[]>([]);
@@ -58,17 +56,7 @@ export default function ValidationListsPanel(): ReactElement {
     setIsLoading(true);
     setError(null);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) {
-        setError("Not authenticated");
-        setIsLoading(false);
-        return;
-      }
-
-      const res = await fetch(`/api/import/validation-lists?clan_id=${encodeURIComponent(clanContext.clanId)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`/api/import/validation-lists?clan_id=${encodeURIComponent(clanContext.clanId)}`);
       if (!res.ok) throw new Error("Failed to load");
       const body = (await res.json()) as {
         data: {
@@ -83,7 +71,7 @@ export default function ValidationListsPanel(): ReactElement {
     } finally {
       setIsLoading(false);
     }
-  }, [clanContext?.clanId, supabase, t]);
+  }, [clanContext?.clanId, t]);
 
   useEffect(() => {
     void fetchData();
@@ -106,11 +94,6 @@ export default function ValidationListsPanel(): ReactElement {
     }
     return map;
   }, [knownNames]);
-
-  const getAuthToken = useCallback(async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    return sessionData.session?.access_token ?? null;
-  }, [supabase]);
 
   const handleDelete = useCallback(
     async (table: "ocr_corrections" | "known_names", id: string) => {
@@ -238,9 +221,6 @@ export default function ValidationListsPanel(): ReactElement {
     if (!clanContext?.clanId || !addEntityType) return;
     setSaving(true);
     try {
-      const token = await getAuthToken();
-      if (!token) return;
-
       if (addMode === "knownName" && addField1.trim()) {
         const payload: Record<string, unknown> = { clanId: clanContext.clanId };
         if (addEntityType === "player") payload.knownPlayerNames = [addField1.trim()];
@@ -249,7 +229,7 @@ export default function ValidationListsPanel(): ReactElement {
 
         await fetch("/api/import/validation-lists", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
       } else if (addMode === "correction" && addField1.trim() && addField2.trim()) {
@@ -257,7 +237,7 @@ export default function ValidationListsPanel(): ReactElement {
         corrections[addEntityType] = { [addField1.trim()]: addField2.trim() };
         await fetch("/api/import/validation-lists", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ clanId: clanContext.clanId, corrections }),
         });
       }
@@ -271,7 +251,7 @@ export default function ValidationListsPanel(): ReactElement {
     } finally {
       setSaving(false);
     }
-  }, [addMode, addEntityType, addField1, addField2, clanContext?.clanId, getAuthToken, fetchData, t]);
+  }, [addMode, addEntityType, addField1, addField2, clanContext?.clanId, fetchData, t]);
 
   const toggleCorrection = useCallback((id: string) => {
     setSelectedCorrections((prev) => {

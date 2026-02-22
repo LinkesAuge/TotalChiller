@@ -221,19 +221,19 @@ export function useNews(t: (key: string) => string): UseNewsResult {
     const { data, error, count } = await query
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
-      .range(fromIndex, toIndex);
+      .range(fromIndex, toIndex)
+      .returns<ArticleWithAuthorEditorJoin[]>();
     setIsLoading(false);
     if (error) {
       pushToast(`${t("loadError")}: ${error.message}`);
       return;
     }
-    const rows = (data ?? []) as unknown as ArticleWithAuthorEditorJoin[];
     setArticles(
-      rows.map((row) => ({
+      (data ?? []).map((row) => ({
         ...row,
         author_name: extractAuthorName(row.author),
         editor_name: extractAuthorName(row.editor),
-      })) as ArticleRow[],
+      })),
     );
     setTotalCount(count ?? 0);
   }, [

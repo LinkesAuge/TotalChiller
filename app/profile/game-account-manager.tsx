@@ -47,11 +47,15 @@ function GameAccountManager({ initialAccounts, initialDefaultId }: GameAccountMa
   }, [initialDefaultId]);
 
   async function refreshAccounts(): Promise<void> {
-    const response = await fetch("/api/game-accounts");
-    if (response.ok) {
-      const result = await response.json();
-      setAccounts(result.data ?? []);
-      setDefaultId(result.default_game_account_id ?? null);
+    try {
+      const response = await fetch("/api/game-accounts");
+      if (response.ok) {
+        const result = await response.json();
+        setAccounts(result.data ?? []);
+        setDefaultId(result.default_game_account_id ?? null);
+      }
+    } catch {
+      /* Network error — accounts will be stale until next successful refresh */
     }
   }
 

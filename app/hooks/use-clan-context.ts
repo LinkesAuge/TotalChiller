@@ -31,8 +31,10 @@ function useClanContext(): ClanContextState | null {
       readState();
     }
     window.addEventListener("clan-context-change", handleChange);
+    window.addEventListener("storage", handleChange);
     return () => {
       window.removeEventListener("clan-context-change", handleChange);
+      window.removeEventListener("storage", handleChange);
     };
   }, []);
 

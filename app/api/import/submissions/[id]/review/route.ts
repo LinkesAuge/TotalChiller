@@ -53,14 +53,14 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
 
     const svc = createSupabaseServiceRoleClient();
 
-    const { data: submission, error: subErr } = await svc
+    const { data: sub, error: subErr } = await svc
       .from("data_submissions")
       .select("id, clan_id, submission_type, status, linked_event_id")
       .eq("id", id)
-      .single();
+      .single()
+      .returns<SubmissionRow>();
 
-    if (subErr || !submission) return apiError("Submission not found.", 404);
-    const sub = submission as unknown as SubmissionRow;
+    if (subErr || !sub) return apiError("Submission not found.", 404);
     if (sub.status !== "pending" && sub.status !== "partial") {
       return apiError("Submission is not reviewable.", 409);
     }
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       .eq("id", sub.id);
 
     if (updateErr) {
-      console.error("[review] submission status update failed:", updateErr.message);
+      captureApiError("POST /api/import/submissions/[id]/review (status update)", updateErr);
       return apiError("Failed to update submission status.", 500);
     }
 
@@ -151,7 +151,7 @@ async function processBulkAction(
       .from(stagedTable)
       .update({ item_status: "rejected" })
       .eq("submission_id", submission.id);
-    if (error) console.error("[review] reject_all update failed:", error.message);
+    if (error) captureApiError("POST /api/import/submissions/[id]/review (reject_all)", error);
     return 0;
   }
 
@@ -177,7 +177,7 @@ async function processBulkAction(
       .from(stagedTable)
       .update({ item_status: "approved" })
       .eq("submission_id", submission.id);
-    if (error) console.error("[review] approve_all update failed:", error.message);
+    if (error) captureApiError("POST /api/import/submissions/[id]/review (approve_all)", error);
   } else if (toCopy && toCopy.length > 0) {
     const ids = (toCopy as Array<{ id: string }>).map((i) => i.id);
     const { error } = await svc
@@ -185,7 +185,7 @@ async function processBulkAction(
       .update({ item_status: "approved" })
       .in("id", ids)
       .eq("submission_id", submission.id);
-    if (error) console.error("[review] approve_matched update failed:", error.message);
+    if (error) captureApiError("POST /api/import/submissions/[id]/review (approve_matched)", error);
   }
 
   if (!toCopy || toCopy.length === 0) return 0;
@@ -233,7 +233,7 @@ async function processItemActions(
       .update({ item_status: "approved" })
       .in("id", approveIds)
       .eq("submission_id", submission.id);
-    if (approveErr) console.error("[review] approve update failed:", approveErr.message);
+    if (approveErr) captureApiError("POST /api/import/submissions/[id]/review (approve)", approveErr);
   }
   if (rejectIds.length > 0) {
     const { error: rejectErr } = await svc
@@ -241,7 +241,7 @@ async function processItemActions(
       .update({ item_status: "rejected" })
       .in("id", rejectIds)
       .eq("submission_id", submission.id);
-    if (rejectErr) console.error("[review] reject update failed:", rejectErr.message);
+    if (rejectErr) captureApiError("POST /api/import/submissions/[id]/review (reject)", rejectErr);
   }
 
   let productionRowsCreated = 0;

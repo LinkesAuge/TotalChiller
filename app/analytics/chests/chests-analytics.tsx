@@ -122,6 +122,7 @@ export default function ChestsAnalytics(): JSX.Element {
   const t = useTranslations("analytics");
   const clanContext = useClanContext();
   const clanId = clanContext?.clanId;
+  const [retryCount, setRetryCount] = useState(0);
 
   const defaultRange = berlinWeekBounds();
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
@@ -148,13 +149,14 @@ export default function ChestsAnalytics(): JSX.Element {
     };
   }, [playerSearch]);
 
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
     if (!clanId) {
       setData(null);
       setLoading(false);
       return;
     }
 
+    const ac = new AbortController();
     setLoading(true);
     setError(null);
 
@@ -169,27 +171,24 @@ export default function ChestsAnalytics(): JSX.Element {
     if (selectedChestName) params.set("chest_name", selectedChestName);
     if (selectedSource) params.set("source", selectedSource);
 
-    try {
-      const res = await fetch(`/api/analytics/chests?${params.toString()}`);
-      if (!res.ok) throw new Error(`${res.status}`);
-      const json = await res.json();
-      setData(json.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, [clanId, dateFrom, dateTo, debouncedPlayer, selectedChestName, selectedSource]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      if (!cancelled) await fetchData();
+    (async () => {
+      try {
+        const res = await fetch(`/api/analytics/chests?${params.toString()}`, { signal: ac.signal });
+        if (!res.ok) throw new Error(`${res.status}`);
+        const json = await res.json();
+        if (!ac.signal.aborted) setData(json.data);
+      } catch (err) {
+        if (ac.signal.aborted) return;
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        if (!ac.signal.aborted) setLoading(false);
+      }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchData]);
+
+    return () => ac.abort();
+  }, [clanId, dateFrom, dateTo, debouncedPlayer, selectedChestName, selectedSource, retryCount]);
+
+  const handleRetry = useCallback(() => setRetryCount((c) => c + 1), []);
 
   /* ── Preset handlers ── */
 
@@ -223,16 +222,33 @@ export default function ChestsAnalytics(): JSX.Element {
     setDateTo(value);
   }
 
-  /* ── Filter options ── */
+  /* ── Filter options (cached from unfiltered responses so they don't disappear) ── */
+
+  const [allChestNames, setAllChestNames] = useState<string[]>([]);
+  const [allSources, setAllSources] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!data?.filters) return;
+    if (!selectedChestName && !selectedSource && !debouncedPlayer) {
+      setAllChestNames(data.filters.chest_names);
+      setAllSources(data.filters.sources);
+    }
+  }, [data?.filters, selectedChestName, selectedSource, debouncedPlayer]);
 
   const chestNameOptions: SelectOption[] = [
     { value: "", label: t("filterAll") },
-    ...(data?.filters.chest_names ?? []).map((name) => ({ value: name, label: name })),
+    ...(allChestNames.length > 0 ? allChestNames : (data?.filters.chest_names ?? [])).map((name) => ({
+      value: name,
+      label: name,
+    })),
   ];
 
   const sourceOptions: SelectOption[] = [
     { value: "", label: t("filterAll") },
-    ...(data?.filters.sources ?? []).map((src) => ({ value: src, label: src })),
+    ...(allSources.length > 0 ? allSources : (data?.filters.sources ?? [])).map((src) => ({
+      value: src,
+      label: src,
+    })),
   ];
 
   const barChartData = (data?.rankings ?? []).slice(0, 15).map((r) => ({
@@ -274,7 +290,7 @@ export default function ChestsAnalytics(): JSX.Element {
         isEmpty={!loading && !error && (data?.rankings.length ?? 0) === 0}
         loadingNode={<ChestsSkeleton />}
         emptyMessage={t("noChestData")}
-        onRetry={fetchData}
+        onRetry={handleRetry}
       >
         {/* ── Summary stat cards ── */}
         {data && (

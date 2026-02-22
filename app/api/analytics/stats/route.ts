@@ -160,7 +160,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       seenLastWeekPower.add(gaId);
       lastWeekTotalPower += (row.score as number | null) ?? 0;
     }
-    const powerDeltaWeek = lastWeekTotalPower > 0 ? totalPower - lastWeekTotalPower : 0;
+    const powerDeltaWeek = totalPower - lastWeekTotalPower;
 
     // Count distinct linked events + find most active event participant
     const eventIds = new Set<string>();

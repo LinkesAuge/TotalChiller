@@ -1,6 +1,14 @@
 "use client";
 
-import type { ReactElement, ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, type MutableRefObject, type ReactElement, type ReactNode } from "react";
+
+function useLatest<T>(value: T): MutableRefObject<T> {
+  const ref = useRef(value);
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref;
+}
 import type { GameButtonVariant } from "./ui/game-button";
 import GameButton from "./ui/game-button";
 
@@ -70,18 +78,68 @@ export default function ConfirmModal({
   onCancel,
   isConfirmDisabled,
 }: ConfirmModalProps): ReactElement | null {
+  const titleId = useId();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const onCancelRef = useLatest(onCancel);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onCancelRef.current();
+        return;
+      }
+      if (e.key === "Tab" && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0]!;
+        const last = focusable[focusable.length - 1]!;
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [onCancelRef],
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.addEventListener("keydown", handleKeyDown);
+    const prev = document.activeElement as HTMLElement | null;
+    requestAnimationFrame(() => {
+      const first = modalRef.current?.querySelector<HTMLElement>("button:not([disabled]), input:not([disabled])");
+      first?.focus();
+    });
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      prev?.focus();
+    };
+  }, [isOpen, handleKeyDown]);
+
   if (!isOpen) return null;
   const cardClass = `modal card ${variant}`;
   const btnVariant = confirmButtonVariant ?? VARIANT_TO_BUTTON[variant] ?? "green";
   const isDisabled = isConfirmDisabled ?? (confirmPhrase ? phraseValue !== confirmPhrase : false);
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
-      <div className={cardClass}>
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={onCancel}>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div className={cardClass} ref={modalRef} onClick={(e) => e.stopPropagation()}>
         <div className="card-header">
           <div>
             {zoneLabel ? <div className={`${variant}-label`}>{zoneLabel}</div> : null}
-            <div id="confirm-modal-title" className="card-title">
+            <div id={titleId} className="card-title">
               {title}
             </div>
             {subtitle ? <div className="card-subtitle">{subtitle}</div> : null}

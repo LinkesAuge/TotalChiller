@@ -36,7 +36,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       enabledTypes.push("event");
     }
     if (prefs.system_enabled) {
-      enabledTypes.push("approval");
+      enabledTypes.push("approval", "bug_comment");
     }
     if (enabledTypes.length === 0) {
       return NextResponse.json({ data: [], unread_count: 0 });
@@ -53,7 +53,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Failed to load notifications." }, { status: 500 });
     }
     const rows = notifications ?? [];
-    const unreadCount = rows.filter((notification) => !notification.is_read).length;
+    const { count: totalUnread } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_read", false)
+      .in("type", enabledTypes);
+    const unreadCount = totalUnread ?? rows.filter((notification) => !notification.is_read).length;
     return NextResponse.json({ data: rows, unread_count: unreadCount });
   } catch (err) {
     captureApiError("GET /api/notifications", err);

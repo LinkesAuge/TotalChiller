@@ -96,8 +96,17 @@ export default function CorrectionModal({
   }, [ocrValue, correctedValue, category, clanId, accessToken, onSaved, t]);
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={onClose}>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+    >
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div className="modal card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
         <div className="card-header">
           <div>

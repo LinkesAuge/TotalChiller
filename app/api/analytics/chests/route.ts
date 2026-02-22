@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { uuidSchema, escapeLikePattern } from "@/lib/api/validation";
 import { berlinWeekBounds, berlinDateRangeUTC } from "@/lib/timezone";
-import { ANALYTICS_MAX_DURATION, createAnalyticsHandler, callClanRpc } from "@/lib/api/analytics-handler";
+import { createAnalyticsHandler, callClanRpc } from "@/lib/api/analytics-handler";
 
-export const maxDuration = ANALYTICS_MAX_DURATION;
+export const maxDuration = 30;
 
 const querySchema = z.object({
   clan_id: uuidSchema,

@@ -468,7 +468,7 @@ export default function ChestsAnalytics(): JSX.Element {
                   ))}
                 </header>
                 {data.rankings.map((entry, idx) => (
-                  <div key={entry.game_account_id ?? `unknown-${idx}`} className="row">
+                  <div key={`${entry.game_account_id ?? "u"}-${idx}`} className="row">
                     <span>
                       <span className={rankClass(entry.rank)}>{entry.rank}</span>
                     </span>

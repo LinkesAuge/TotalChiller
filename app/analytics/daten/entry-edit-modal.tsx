@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { useState, useCallback, useId } from "react";
+import { useState, useCallback, useId, useMemo } from "react";
 import { useTranslations } from "next-intl";
 
 interface StagedEntry {
@@ -75,17 +75,20 @@ export default function EntryEditModal({
 }: EntryEditModalProps): ReactElement {
   const t = useTranslations("submissions");
   const titleId = useId();
-  const fields = getFieldsForType(submissionType, t);
+  const fields = useMemo(() => getFieldsForType(submissionType, t), [submissionType, t]);
 
-  const initialValues: Record<string, string> = {};
-  for (const f of fields) {
-    const raw = (entry as unknown as Record<string, unknown>)[f.key];
-    if (f.type === "datetime-local") {
-      initialValues[f.key] = toLocalDatetime(raw as string);
-    } else {
-      initialValues[f.key] = raw != null ? String(raw) : "";
+  const initialValues = useMemo(() => {
+    const vals: Record<string, string> = {};
+    for (const f of fields) {
+      const raw = (entry as unknown as Record<string, unknown>)[f.key];
+      if (f.type === "datetime-local") {
+        vals[f.key] = toLocalDatetime(raw as string);
+      } else {
+        vals[f.key] = raw != null ? String(raw) : "";
+      }
     }
-  }
+    return vals;
+  }, [entry, fields]);
 
   const [values, setValues] = useState(initialValues);
   const [saving, setSaving] = useState(false);
@@ -136,8 +139,17 @@ export default function EntryEditModal({
   }, [values, fields, initialValues, submissionId, entry.id, onClose, onSaved, t]);
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={onClose}>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+    >
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div className="modal card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
         <div className="card-header">
           <div>

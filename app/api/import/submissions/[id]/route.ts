@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/api/require-admin";
 import { apiError, uuidSchema, parseJsonBody } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
 import { SubmissionDetailQuerySchema, SubmissionPatchSchema } from "@/lib/api/import-schemas";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import createSupabaseServiceRoleClient from "@/lib/supabase/service-role-client";
 
 interface RouteContext {
@@ -39,13 +40,14 @@ interface StagedEntryForProductionMatch {
   event_points?: number | null;
 }
 
-function applyNullableEq(query: any, column: string, value: unknown): any {
-  if (value === null || value === undefined) return query.is(column, null);
-  return query.eq(column, value);
+function applyNullableEq<Q>(query: Q, column: string, value: unknown): Q {
+  const q = query as unknown as { is: (col: string, val: null) => Q; eq: (col: string, val: unknown) => Q };
+  if (value === null || value === undefined) return q.is(column, null);
+  return q.eq(column, value);
 }
 
 async function buildFilterOptionsQuery(
-  supabase: any,
+  supabase: SupabaseClient,
   tableName: string,
   subTypeStr: string,
   submissionId: string,
@@ -59,9 +61,11 @@ async function buildFilterOptionsQuery(
       supabase.from(tableName).select("chest_name").eq("submission_id", submissionId).limit(10000),
       supabase.from(tableName).select("source").eq("submission_id", submissionId).limit(10000),
     ]);
-    filterOptions.player_name = [...new Set((playerNames ?? []).map((r: any) => r.player_name as string))].sort();
-    filterOptions.chest_name = [...new Set((chestNames ?? []).map((r: any) => r.chest_name as string))].sort();
-    filterOptions.source = [...new Set((sources ?? []).map((r: any) => r.source as string))].sort();
+    filterOptions.player_name = [
+      ...new Set((playerNames ?? []).map((r: { player_name: string }) => r.player_name)),
+    ].sort();
+    filterOptions.chest_name = [...new Set((chestNames ?? []).map((r: { chest_name: string }) => r.chest_name))].sort();
+    filterOptions.source = [...new Set((sources ?? []).map((r: { source: string }) => r.source))].sort();
   } else if (subTypeStr === "events") {
     const [{ data: playerNames }, { data: eventNames }] = await Promise.all([
       playerNameQuery,
@@ -72,11 +76,15 @@ async function buildFilterOptionsQuery(
         .not("event_name", "is", null)
         .limit(10000),
     ]);
-    filterOptions.player_name = [...new Set((playerNames ?? []).map((r: any) => r.player_name as string))].sort();
-    filterOptions.event_name = [...new Set((eventNames ?? []).map((r: any) => r.event_name as string))].sort();
+    filterOptions.player_name = [
+      ...new Set((playerNames ?? []).map((r: { player_name: string }) => r.player_name)),
+    ].sort();
+    filterOptions.event_name = [...new Set((eventNames ?? []).map((r: { event_name: string }) => r.event_name))].sort();
   } else {
     const { data: playerNames } = await playerNameQuery;
-    filterOptions.player_name = [...new Set((playerNames ?? []).map((r: any) => r.player_name as string))].sort();
+    filterOptions.player_name = [
+      ...new Set((playerNames ?? []).map((r: { player_name: string }) => r.player_name)),
+    ].sort();
   }
 
   return filterOptions;

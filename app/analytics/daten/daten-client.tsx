@@ -1326,6 +1326,7 @@ function DataContent(): ReactElement {
 
   function renderRow(entry: StagedEntry, type: string): ReactElement {
     const checkboxCell = canAssign ? (
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
       <span
         style={{ display: "flex", justifyContent: "center" }}
         onClick={(e) => e.stopPropagation()}

@@ -4,14 +4,9 @@ import { z } from "zod";
 import { uuidSchema } from "@/lib/api/validation";
 import { apiError } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
-import {
-  ANALYTICS_MAX_DURATION,
-  createAnalyticsHandler,
-  callClanRpc,
-  requireClanAccess,
-} from "@/lib/api/analytics-handler";
+import { createAnalyticsHandler, callClanRpc, requireClanAccess } from "@/lib/api/analytics-handler";
 
-export const maxDuration = ANALYTICS_MAX_DURATION;
+export const maxDuration = 30;
 
 const MAX_PAGE_SIZE = 10000;
 

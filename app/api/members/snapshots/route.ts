@@ -4,9 +4,8 @@ import { standardLimiter } from "@/lib/rate-limit";
 import { requireAuth } from "@/lib/api/require-auth";
 import { apiError, uuidSchema } from "@/lib/api/validation";
 import { captureApiError } from "@/lib/api/logger";
-import { ANALYTICS_MAX_DURATION } from "@/lib/api/analytics-handler";
 
-export const maxDuration = ANALYTICS_MAX_DURATION;
+export const maxDuration = 30;
 
 /**
  * GET /api/members/snapshots?clan_id=<uuid>

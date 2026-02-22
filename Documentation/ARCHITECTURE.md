@@ -504,7 +504,7 @@ Routes that aggregate >500 rows **must** use a PostgreSQL RPC instead of in-memo
 - Use `createAnalyticsHandler()` from `lib/api/analytics-handler.ts` — wraps rate-limiting, auth, Zod param parsing, and error handling.
 - Use `callClanRpc()` to call `SECURITY DEFINER` functions that bypass per-row RLS (which calls `is_clan_member()` per row and is extremely slow on large tables). Auth is enforced once inside the function.
 - RPCs return `jsonb_build_object('error', 'access_denied')` on auth failure; `callClanRpc()` maps this to a 403 response.
-- Always export `maxDuration = ANALYTICS_MAX_DURATION` (30s, effective on Pro plan).
+- Always export `maxDuration = 30` as a **literal number** (Turbopack requires statically analyzable segment config values).
 - SQL migration files go in `Documentation/migrations/`. See `.cursor/rules/api-large-datasets.mdc` for the enforced pattern.
 
 ### Client Components
